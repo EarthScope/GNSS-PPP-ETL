@@ -1,14 +1,16 @@
 from __future__ import annotations
 import datetime 
-from pydantic import BaseModel,Field
+from pydantic import Field
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 import yaml
 from enum import Enum
+import dagster as dg
+
 
 # Path to the sources.yml in this repository
 _SOURCES_YML = (
-    Path(__file__).resolve().parents[1] / "config" / "sources.yml"
+    Path(__file__).resolve().parent.parent.parent / "config" / "sources.yml"
 )
 
 GNSS_START_TIME = datetime.datetime(
@@ -211,7 +213,7 @@ class ProductDirectorySourceFTP:
         gps_week = _date_to_gps_week(date)
         return self.product_obx.format(year=year,doy=doy,gps_week=gps_week)
 
-class ProductSourcePathFTP(BaseModel):
+class ProductSourcePathFTP(dg.Config):
     ftpserver: str = Field(
         description="FTP server URL for GNSS product source"
     )
@@ -221,9 +223,12 @@ class ProductSourcePathFTP(BaseModel):
     file_regex: str = Field(
         description="Regex pattern for GNSS product files in the directory"
     )
+    discovered_remote_path: Optional[str] = Field(
+        default=None,
+        description="Discovered remote file path on the FTP server after searching",
+    )
 
-
-class ProductSourceCollection(BaseModel):
+class ProductSourceCollectionFTP(dg.Config):
     final: ProductSourcePathFTP = Field(
         description="Source paths for final GNSS products"
     )
@@ -240,7 +245,7 @@ class ProductSourceCollection(BaseModel):
         directory:str,
         ftpserver:str,
         date: datetime.date | datetime.datetime
-    ) -> "ProductSourceCollection":
+    ) -> "ProductSourceCollectionFTP":
         return cls(
             final=ProductSourcePathFTP(
                 ftpserver=ftpserver,
@@ -259,7 +264,7 @@ class ProductSourceCollection(BaseModel):
             ),
         )
 
-class Rinex2NavSource(BaseModel):
+class Rinex2NavSourceFTP(dg.Config):
     gps: ProductSourcePathFTP = Field(
         description="Source path for GPS RINEX version 2 navigation files"
     )
@@ -267,28 +272,31 @@ class Rinex2NavSource(BaseModel):
         description="Source path for GLONASS RINEX version 2 navigation files"
     )
 
-class ProductSources(BaseModel):
-    sp3: ProductSourceCollection = Field(
+class ProductSourcesFTP(dg.Config):
+    date: datetime.date | datetime.datetime = Field(
+        description="Date for which the product sources are valid"
+    )
+    sp3: ProductSourceCollectionFTP = Field(
         description="SP3 orbit product sources"
     )
-    obx: ProductSourceCollection = Field(
+    obx: ProductSourceCollectionFTP = Field(
         description="OBX quaternion product sources"
     )
-    clk: ProductSourceCollection = Field(
+    clk: ProductSourceCollectionFTP = Field(
         description="CLK clock product sources"
     )
-    erp: ProductSourceCollection = Field(
+    erp: ProductSourceCollectionFTP = Field(
         description="ERP earth rotation parameter product sources"
     )
     broadcast_rnx3: ProductSourcePathFTP = Field(
         description="Broadcast RINEX version 3 product sources"
     )
-    broadcast_rnx2: Rinex2NavSource = Field(
+    broadcast_rnx2: Rinex2NavSourceFTP = Field(
         description="Broadcast RINEX version 2 product sources"
     )
 
 
-def load_product_sources(date: datetime.date | datetime.datetime) -> Dict[str, ProductSources]:
+def load_product_sources_FTP(date: datetime.date | datetime.datetime) -> Dict[str, ProductSourcesFTP]:
     """
     Load GNSS product sources from the sources.yml configuration file for a given date.
 
@@ -301,7 +309,7 @@ def load_product_sources(date: datetime.date | datetime.datetime) -> Dict[str, P
         Dict[str, ProductSources]
             A dictionary mapping product types to their corresponding source paths.
     """
-    source_map:Dict[str,ProductSources] = {}
+    source_map:Dict[str,ProductSourcesFTP] = {}
     config_dict:dict = _load_sources_yaml()
     regex_config: ProductFileSourceRegex = ProductFileSourceRegex(**config_dict["regex"])
     for name,source in config_dict["sources"].items():
@@ -311,7 +319,7 @@ def load_product_sources(date: datetime.date | datetime.datetime) -> Dict[str, P
         )
         if (directory:=product_source_dirs.product_sp3_directory(date)) is not None:
             
-            sp3 = ProductSourceCollection.from_config(
+            sp3 = ProductSourceCollectionFTP.from_config(
                 regex_config=regex_config.sp3,
                 directory=directory,
                 ftpserver=product_source_dirs.ftpserver,
@@ -319,28 +327,28 @@ def load_product_sources(date: datetime.date | datetime.datetime) -> Dict[str, P
             )
 
         if (directory:=product_source_dirs.product_obx_directory(date)) is not None:
-            obx = ProductSourceCollection.from_config(
+            obx = ProductSourceCollectionFTP.from_config(
                 regex_config=regex_config.obx,
                 directory=directory,
                 ftpserver=product_source_dirs.ftpserver,
                 date=date,
             )
         if (directory:=product_source_dirs.product_clk_directory(date)) is not None:
-            clk = ProductSourceCollection.from_config(
+            clk = ProductSourceCollectionFTP.from_config(
                 regex_config=regex_config.clk,
                 directory=directory,
                 ftpserver=product_source_dirs.ftpserver,
                 date=date,
             )
         if (directory:=product_source_dirs.product_erp_directory(date)) is not None:
-            erp = ProductSourceCollection.from_config(
+            erp = ProductSourceCollectionFTP.from_config(
                 regex_config=regex_config.erp,
                 directory=directory,
             ftpserver=product_source_dirs.ftpserver,
             date=date,
         )
         if (directory:=product_source_dirs.product_erp_directory(date)) is not None:
-            erp = ProductSourceCollection.from_config(
+            erp = ProductSourceCollectionFTP.from_config(
                 regex_config=regex_config.erp,
                 directory=directory,
                 ftpserver=product_source_dirs.ftpserver,
@@ -352,7 +360,7 @@ def load_product_sources(date: datetime.date | datetime.datetime) -> Dict[str, P
                 directory=directory,
                 file_regex=regex_config.broadcast_rnx3(date),
             )
-            broadcast_rnx2 = Rinex2NavSource(
+            broadcast_rnx2 = Rinex2NavSourceFTP(
                 gps=ProductSourcePathFTP(
                     ftpserver=product_source_dirs.ftpserver,
                     directory=directory,
@@ -364,7 +372,8 @@ def load_product_sources(date: datetime.date | datetime.datetime) -> Dict[str, P
                     file_regex=regex_config.broadcast_rnx2(date,ConstellationCode.GLONASS),
                 ),
             )
-        product_source_dir = ProductSources(
+        product_source_dir = ProductSourcesFTP(
+            date=date,
             sp3=sp3,
             obx=obx,
             clk=clk,
@@ -375,8 +384,58 @@ def load_product_sources(date: datetime.date | datetime.datetime) -> Dict[str, P
         source_map[name] = product_source_dir
     return source_map
 
+class PrideFileStructure(dg.Config):
+    daily: str = Field(
+        description="Daily file structure pattern"
+    )
+    common: str = Field(
+        description="Common file structure pattern"
+    )
+    @classmethod
+    def from_date(cls,root_dir:Path,date: datetime.date | datetime.datetime) -> "PrideFileStructure":
+        year, doy = _parse_date(date)
+        return cls(
+            daily=root_dir/f"{year}/{doy}/",
+            common=root_dir/f"{year}/product/common/",
+        )
+
+class ProductSourcePathLocal(dg.Config):
+    directory: Path = Field(
+        description="Local directory path for GNSS products"
+    )
+    file_regex: str = Field(
+        description="Regex pattern for GNSS product files in the directory"
+    ) 
+
+def find_local_product_source(
+    product_sources_ftp: ProductSourcesFTP,
+    product_sources_local:ProductSourcePathLocal,
+    quality: ProductQuality,
+) -> List[ProductSourcePathFTP]:
+    """
+    Find local GNSS product sources based on the provided FTP product sources and local directory.
+
+    Parameters:
+    -----------
+        product_sources_ftp (ProductSourcesFTP): The GNSS product sources from FTP.
+        product_sources_local (ProductSourcePathLocal): The local directory and file regex for GNSS products.
+        quality (ProductQuality): The quality level of the products to find (e.g., FINAL, RAPID, RTS).
+
+    Returns:
+    --------
+        List[ProductSourcePathFTP]: A list of local GNSS product source paths matching the specified quality.
+    """
+    local_sources:List[ProductSourcePathFTP] = []
+    for product_name in ["sp3","obx","clk","erp"]:
+        ftp_source_collection:ProductSourceCollectionFTP = getattr(product_sources_ftp,product_name)
+        ftp_source_path:ProductSourcePathFTP = getattr(ftp_source_collection,quality.name.lower())
+        matching_filenames = list(product_sources_local.directory.rglob(ftp_source_path.file_regex))
+        if matching_filenames:
+            local_sources.extend(matching_filenames)
+    return local_sources    
+
 if __name__ == "__main__":
     import datetime
-    sources = load_product_sources(datetime.date(2024,6,15))
+    sources = load_product_sources_FTP(datetime.date(2024,6,15))
     import pprint
     pprint.pprint(sources)
