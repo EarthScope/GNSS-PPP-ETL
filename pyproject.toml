@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gnss-ppp-etl"
+version = "0.1.0"
+description = "Dagster ETL for GNSS PPP Processing Pipeline"
+requires-python = ">=3.8"
+dependencies = [
+    "dagster",
+    "dagster-webserver",
+    "pydantic",
+    "pandas",
+    "matplotlib",
+    "julian",
+]
+
+[tool.dagster]
+module_name = "dagster_etl"

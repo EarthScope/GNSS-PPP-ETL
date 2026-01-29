@@ -1,0 +1,3 @@
+pride:
+  daily: "{year}/{doy}/"
+  common: "{year}/product/common/"
