@@ -8,7 +8,7 @@ class Group1FileRegex(ProductFileSourceRegex):
     product_obx: str = "{quality}.*{year}{doy}.*OBX.*"
     product_clk: str = "{quality}.*{year}{doy}.*CLK.*"
     product_sum: str = "{quality}.*{year}{doy}.*SUM.*"
-    product_bias: str = ".*{year}{doy}.*BIAS.*"
+    product_bias: str = "{quality}.*{year}{doy}.*BIA.*"
     product_erp: str = "{quality}.*{year}{doy}.*ERP.*"
     product_broadcast_rnx3: str = "BRDS.*{year}{doy}.*rnx.*"
     product_broadcast_rnx2: str = "brdc{doy}0.{yy}{constellation}.gz"
@@ -175,13 +175,13 @@ class WuhanFTPProductSource(FTPProductSource):
 class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
     ftpserver: str = "ftp://igs.ign.fr"
     rinex_nav: str = "pub/igs/data/{year}/{doy}"
-    product_sp3: str = "pub/igs/products/mgex/{gps_week}"
-    product_orbit: str = "pub/igs/products/mgex/{gps_week}"
-    product_clk: str = "pub/igs/products/mgex/{gps_week}"
-    product_sum: str = "pub/igs/products/mgex/{gps_week}"
-    product_bias: str = "pub/igs/products/mgex/{gps_week}"
-    product_erp: str = "pub/igs/products/mgex/{gps_week}"
-    product_obx: str = "pub/igs/products/mgex/{gps_week}"
+    product_sp3: str = "pub/igs/products/{gps_week}"
+    product_orbit: str = "pub/igs/products/{gps_week}"
+    product_clk: str = "pub/igs/products/{gps_week}"
+    product_sum: str = "pub/igs/products/{gps_week}"
+    product_bias: str = "pub/igs/products/{gps_week}"
+    product_erp: str = "pub/igs/products/{gps_week}"
+    product_obx: str = "pub/igs/products/{gps_week}"
 
     def sp3(self, date: datetime.datetime) -> str:
         gps_week = _date_to_gps_week(date)

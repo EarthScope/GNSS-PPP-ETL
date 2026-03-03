@@ -115,9 +115,10 @@ def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
         log.info("Probing %s FTP — %s (DOY %03d, GPS week %d)", source_name, DATE, DOY, GPS_WEEK)
 
         for product in PRODUCTS:
-            probe = ProbeResult(product=product)
+            found_any = False
 
             for quality in QUALITY_ORDER:
+                probe = ProbeResult(product=product)
                 try:
                     file_result = source.query(
                         product=product, date=DATE, quality=quality
@@ -132,6 +133,7 @@ def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
                 if file_result is not None:
                     probe.file_result = file_result
                     probe.quality = quality
+                    found_any = True
                     log.info(
                         "  [%s] Found at %-3s — %s",
                         product.upper(),
@@ -140,7 +142,7 @@ def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
                     )
                     results[product][quality] = probe
 
-            if not probe.found:
+            if not found_any:
                 tried = " → ".join(q.value for q in QUALITY_ORDER)
                 log.warning("  [%s] Not found at any quality (%s)", product.upper(), tried)
 
