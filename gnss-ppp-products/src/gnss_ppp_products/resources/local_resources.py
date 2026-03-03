@@ -2,10 +2,9 @@ from pathlib import Path
 from typing import Literal, Optional
 import datetime
 import re
-import dagster as dg
 
 
-class GNSSOutputResource(dg.ConfigurableResource):
+class GNSSOutputResource:
     """
     Configures where downloaded GNSS products and generated config files are
     stored on the local filesystem.
@@ -44,8 +43,11 @@ class GNSSOutputResource(dg.ConfigurableResource):
         )
     """
 
-    output_base_dir: str = "/data/gnss_products"
-    table_dir: str = ""
+    def __init__(
+        self, output_base_dir: Optional[str] = None, table_dir: Optional[str] = None
+    ):
+        self.output_base_dir = output_base_dir
+        self.table_dir = table_dir
 
     # ------------------------------------------------------------------
     # Directory helpers (create on first access)
