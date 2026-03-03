@@ -9,8 +9,10 @@ import dagster as dg
 
 
 # Path to the sources.yml in this repository
+# product_sources.py lives at: <project>/src/gnss_ppp_products/utils/
+# sources.yml lives at:        <project>/config/sources.yml
 _SOURCES_YML = (
-    Path(__file__).resolve().parent.parent.parent / "config" / "sources.yml"
+    Path(__file__).resolve().parent.parent.parent.parent / "config" / "sources.yml"
 )
 
 GNSS_START_TIME = datetime.datetime(
@@ -288,6 +290,9 @@ class ProductSourcesFTP(dg.Config):
     erp: ProductSourceCollectionFTP = Field(
         description="ERP earth rotation parameter product sources"
     )
+    bias: ProductSourceCollectionFTP = Field(
+        description="Code/phase bias product sources"
+    )
     broadcast_rnx3: ProductSourcePathFTP = Field(
         description="Broadcast RINEX version 3 product sources"
     )
@@ -347,9 +352,9 @@ def load_product_sources_FTP(date: datetime.date | datetime.datetime) -> Dict[st
             ftpserver=product_source_dirs.ftpserver,
             date=date,
         )
-        if (directory:=product_source_dirs.product_erp_directory(date)) is not None:
-            erp = ProductSourceCollectionFTP.from_config(
-                regex_config=regex_config.erp,
+        if (directory:=product_source_dirs.product_bias_directory(date)) is not None:
+            bias = ProductSourceCollectionFTP.from_config(
+                regex_config=regex_config.bias,
                 directory=directory,
                 ftpserver=product_source_dirs.ftpserver,
                 date=date,
@@ -378,6 +383,7 @@ def load_product_sources_FTP(date: datetime.date | datetime.datetime) -> Dict[st
             obx=obx,
             clk=clk,
             erp=erp,
+            bias=bias,
             broadcast_rnx3=broadcast_rnx3,
             broadcast_rnx2=broadcast_rnx2,
         )
