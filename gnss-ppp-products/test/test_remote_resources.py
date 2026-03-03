@@ -20,6 +20,7 @@ Skip in offline environments::
 """
 from __future__ import annotations
 
+from collections import defaultdict
 import datetime
 import logging
 from dataclasses import dataclass, field
@@ -102,7 +103,7 @@ def product_results(wuhan_source: WuhanFTPProductSource) -> dict[str, ProbeResul
     once per test session regardless of how many test functions consume this
     fixture.
     """
-    results: dict[str, ProbeResult] = {}
+    results: dict[str, dict[str, ProbeResult]] = defaultdict(dict)
 
     log.info("Probing Wuhan IGS FTP — %s (DOY %03d, GPS week %d)", DATE, DOY, GPS_WEEK)
 
@@ -130,13 +131,12 @@ def product_results(wuhan_source: WuhanFTPProductSource) -> dict[str, ProbeResul
                     quality.value,
                     file_result.filename,
                 )
-                break
+                results[product][quality] = probe
+
 
         if not probe.found:
             tried = " → ".join(q.value for q in QUALITY_ORDER)
             log.warning("  [%s] Not found at any quality (%s)", product.upper(), tried)
-
-        results[product] = probe
 
     _print_summary(results)
     return results
@@ -151,7 +151,7 @@ _COL_QUAL = 7
 _COL_FILE = 52
 
 
-def _print_summary(results: dict[str, ProbeResult]) -> None:
+def _print_summary(results: dict[str, dict[str, ProbeResult]]) -> None:
     """Print a formatted ASCII table of query results to stdout."""
     separator = "=" * 80
     print(
@@ -173,15 +173,16 @@ def _print_summary(results: dict[str, ProbeResult]) -> None:
         f"  {'-'*_COL_FILE}"
         f"  {'-'*60}"
     )
-    for probe in results.values():
-        print(
-            f"  {probe.product.upper():<{_COL_PROD}}"
-            f"  {probe.quality_label:<{_COL_QUAL}}"
-            f"  {probe.filename:<{_COL_FILE}}"
-            f"  {probe.url}"
-        )
-        for q_val, msg in probe.errors.items():
-            print(f"    {'':>{_COL_PROD}}  {q_val}: {msg}")
+    for product, quality_dict in results.items():
+        for quality, probe in quality_dict.items():
+            print(
+                f"  {probe.product.upper():<{_COL_PROD}}"
+                f"  {probe.quality_label:<{_COL_QUAL}}"
+                f"  {probe.filename:<{_COL_FILE}}"
+                f"  {probe.url}"
+            )
+            for q_val, msg in probe.errors.items():
+                print(f"    {'':>{_COL_PROD}}  {q_val}: {msg}")
 
     print(f"{separator}\n")
 
@@ -207,70 +208,148 @@ class TestWuhanFTPHighestQuality:
 
     def test_sp3_found_at_high_quality(self, product_results: dict) -> None:
         """SP3 (precise orbit) must be present at FINAL or RAPID quality."""
-        probe = product_results["sp3"]
+        probe_sp3 = product_results["sp3"]
         days_past = (datetime.date.today() - DATE).days
-
-        assert probe.found, (
-            f"SP3 not found for {DATE} (DOY {DOY:03d}, GPS week {GPS_WEEK}). "
-            f"Errors: {probe.errors or 'none — FTP listing returned no match'}."
-        )
-        assert probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID), (
-            f"SP3 found only at {probe.quality_label}; expected FINAL or RAPID "
+        found_quality = False
+        for quality, probe in probe_sp3.items():
+            assert probe.found, (
+                f"SP3 not found for {DATE} (DOY {DOY:03d}, GPS week {GPS_WEEK}). "
+                f"Errors: {probe.errors or 'none — FTP listing returned no match'}."
+            )
+            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
+                found_quality = True
+                log.info(
+                    "SP3 found at %s quality for date %s (DOY %03d, GPS week %d).",
+                    probe.quality_label,
+                    DATE,
+                    DOY,
+                    GPS_WEEK,
+                )
+        assert found_quality, (
+            f"SP3 found only at lower quality levels; expected FINAL or RAPID "
             f"for a date {days_past} days in the past."
         )
 
     def test_clk_found_at_high_quality(self, product_results: dict) -> None:
         """CLK (precise clock) must be present at FINAL or RAPID quality."""
-        probe = product_results["clk"]
+        probe_clock_results = product_results["clk"]
         days_past = (datetime.date.today() - DATE).days
-
-        assert probe.found, (
-            f"CLK not found for {DATE} (DOY {DOY:03d}, GPS week {GPS_WEEK}). "
-            f"Errors: {probe.errors or 'none — FTP listing returned no match'}."
-        )
-        assert probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID), (
-            f"CLK found only at {probe.quality_label}; expected FINAL or RAPID "
+        found_quality = False
+        for quality, probe in probe_clock_results.items():
+            assert probe.found, (
+                f"CLK not found for {DATE} (DOY {DOY:03d}, GPS week {GPS_WEEK}). {quality.value} "
+                f"Errors: {probe.errors or 'none — FTP listing returned no match'}."
+            )
+            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
+                found_quality = True
+                log.info(
+                    "CLK found at %s quality for date %s (DOY %03d, GPS week %d).",
+                    probe.quality_label,
+                    DATE,
+                    DOY,
+                    GPS_WEEK,
+                )
+        assert found_quality, (
+            f"CLK found only at lower quality levels; expected FINAL or RAPID "
             f"for a date {days_past} days in the past."
         )
 
-    def test_obx_found(self, product_results: dict) -> None:
-        """OBX (satellite attitude quaternions) must be present for FINAL periods."""
-        probe = product_results["obx"]
-        assert probe.found, (
-            f"OBX not found for {DATE} (DOY {DOY:03d}). "
-            f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
-            "Verify the OBX directory path and regex in Group1FileRegex."
+    def test_obx_found_at_high_quality(self, product_results: dict) -> None:
+        """OBX (satellite attitude quaternions) must be present at FINAL or RAPID quality."""
+        probe_obx_results = product_results["obx"]
+        days_past = (datetime.date.today() - DATE).days
+        found_quality = False
+        for quality, probe in probe_obx_results.items():
+            assert probe.found, (
+                f"OBX not found for {DATE} (DOY {DOY:03d}). {quality.value} "
+                f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
+                "Verify the OBX directory path and regex in Group1FileRegex."
+            )
+            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
+                found_quality = True
+                log.info(
+                    "OBX found at %s quality for date %s (DOY %03d).",
+                    probe.quality_label,
+                    DATE,
+                    DOY,
+                )
+        assert found_quality, (
+            f"OBX found only at lower quality levels; expected FINAL or RAPID "
+            f"for a date {days_past} days in the past."
         )
 
-    def test_erp_found(self, product_results: dict) -> None:
-        """ERP (earth rotation parameters) must be present at any quality."""
-        probe = product_results["erp"]
-        assert probe.found, (
-            f"ERP not found for {DATE} (DOY {DOY:03d}). "
-            f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
-            "Verify the ERP directory path and regex in Group1FileRegex."
+    def test_erp_found_at_high_quality(self, product_results: dict) -> None:
+        """ERP (earth rotation parameters) must be present at FINAL or RAPID quality."""
+        probe_erp = product_results["erp"]
+        days_past = (datetime.date.today() - DATE).days
+        found_quality = False
+
+        for quality, probe in probe_erp.items():
+            assert probe.found, (
+                f"ERP not found for {DATE} (DOY {DOY:03d}). {quality.value} "
+                f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
+                "Verify the ERP directory path and regex in Group1FileRegex."
+            )
+            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
+                found_quality = True
+                log.info(
+                    "ERP found at %s quality for date %s (DOY %03d).",
+                    probe.quality_label,
+                    DATE,
+                    DOY,
+                )
+        assert found_quality, (
+            f"ERP found only at lower quality levels; expected FINAL or RAPID "
+            f"for a date {days_past} days in the past."
+        )
+    def test_bias_found(self, product_results: dict) -> None:
+        """BIAS (satellite phase biases) must be present at any quality."""
+        probe_bias = product_results["bias"]
+        days_past = (datetime.date.today() - DATE).days
+        found_quality = False
+
+        for quality, probe in probe_bias.items():
+
+            assert probe.found, (
+                f"BIAS not found for {DATE} (DOY {DOY:03d}). {quality.value} "
+                f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
+                "Verify the BIAS directory path and regex in Group1FileRegex."
+            )
+            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
+                found_quality = True
+                log.info(
+                    "BIAS found at %s quality for date %s (DOY %03d).",
+                    probe.quality_label,
+                    DATE,
+                    DOY,
+                )
+        assert found_quality, (
+            f"BIAS found only at lower quality levels; expected FINAL or RAPID "
+            f"for a date {days_past} days in the past."
         )
 
     def test_found_products_have_valid_filenames(self, product_results: dict) -> None:
         """Every product that resolved must have a non-empty, extension-bearing filename."""
-        for product, probe in product_results.items():
-            if not probe.found:
-                continue
-            assert probe.filename, (
-                f"{product.upper()} result has an empty filename."
-            )
-            assert "." in probe.filename, (
-                f"{product.upper()} filename '{probe.filename}' has no file extension."
-            )
+        for product, probe_qualities in product_results.items():
+            for quality,probe in probe_qualities.items():
+                if not probe.found:
+                    continue
+                assert probe.filename, (
+                    f"{product.upper()} result has an empty filename."
+                )
+                assert "." in probe.filename, (
+                    f"{product.upper()} filename '{probe.filename}' has no file extension."
+                )
 
     def test_found_products_have_valid_ftp_urls(self, product_results: dict) -> None:
         """Every product that resolved must produce a well-formed FTP URL."""
-        for product, probe in product_results.items():
-            if not probe.found:
-                continue
-            assert probe.url.startswith("ftp://"), (
-                f"{product.upper()} URL '{probe.url}' does not start with 'ftp://'."
-            )
+        for product, probe_qualities in product_results.items():
+            for quality, probe in probe_qualities.items():
+                if not probe.found:
+                    continue
+                assert probe.url.startswith("ftp://"), (
+                    f"{product.upper()} URL '{probe.url}' does not start with 'ftp://'."
+                )
             assert probe.filename in probe.url, (
                 f"{product.upper()} URL '{probe.url}' does not contain its filename."
             )

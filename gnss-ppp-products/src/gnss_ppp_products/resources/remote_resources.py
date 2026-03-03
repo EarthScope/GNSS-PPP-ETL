@@ -8,7 +8,7 @@ class Group1FileRegex(ProductFileSourceRegex):
     product_obx: str = "{quality}.*{year}{doy}.*OBX.*"
     product_clk: str = "{quality}.*{year}{doy}.*CLK.*"
     product_sum: str = "{quality}.*{year}{doy}.*SUM.*"
-    product_bias: str = "{quality}.*{year}{doy}.*BIAS.*"
+    product_bias: str = ".*{year}{doy}.*BIAS.*"
     product_erp: str = "{quality}.*{year}{doy}.*ERP.*"
     product_broadcast_rnx3: str = "BRDS.*{year}{doy}.*rnx.*"
     product_broadcast_rnx2: str = "brdc{doy}0.{yy}{constellation}.gz"
