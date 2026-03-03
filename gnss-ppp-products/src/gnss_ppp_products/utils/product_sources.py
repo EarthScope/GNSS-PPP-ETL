@@ -440,6 +440,7 @@ def find_local_product_source(
             local_sources.extend(matching_filenames)
     return local_sources    
 
+
 if __name__ == "__main__":
     import datetime
     sources = load_product_sources_FTP(datetime.date(2024,6,15))

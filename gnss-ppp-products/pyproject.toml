@@ -17,7 +17,10 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v"
+addopts = "-v -s"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(levelname)-8s %(name)s — %(message)s"
 markers = [
     "integration: marks tests that require live FTP connections (skip with -m 'not integration')",
 ]
