@@ -1,1 +1,1 @@
-from .remote_resources import WuhanFTPProductSource
+from .remote_resources import WuhanFTPProductSource, CLSIGSFTPProductSource
