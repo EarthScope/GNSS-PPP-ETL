@@ -28,6 +28,15 @@ from .reference_tables import (
     WuhanProductTableFTPSource,
     CDDISProductTableFTPSource,
 )
+from .antennae_resources import (
+    AntexFrameType,
+    AntexFileResult,
+    IGSAntexFTPSource,
+    CODEMGEXAntexFTPSource,
+    IGSR3AntexFTPSource,
+    CLSIGSAntexFTPSource,
+    AntexProductSource,
+)
 from .base import (
     ProductQuality,
     FTPFileResult,
