@@ -1,0 +1,6 @@
+dagster
+dagster-webserver
+pydantic
+pandas
+matplotlib
+julian
