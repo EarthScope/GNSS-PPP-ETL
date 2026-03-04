@@ -24,6 +24,10 @@ from .navigation_products import (
     CDDISNavFileFTPProductSource,
 
 )
+from .reference_tables import (
+    WuhanProductTableFTPSource,
+    CDDISProductTableFTPSource,
+)
 from .base import (
     ProductQuality,
     FTPFileResult,
