@@ -46,12 +46,14 @@ class WuhanNavFileDirectorySourceFTP(BaseModel):
     def rinex_nav_dir(self, date: datetime.date, constellation: ConstellationCode=None) -> str:
         """Return the RINEX navigation directory for a given date."""
         year, doy = _parse_date(date)
-        if int(year) <2013:
+        yy = str(year)[-2:]
+        if date >= datetime.date(2013,1,1):
+            # use multi-gnss merged products after 2013 when they became available, otherwise use constellation-specific directories for older data
+            prefix = "p" if constellation is None else constellation.value
+        else:
             assert constellation is not None, "Constellation code required for rinex_nav_dir before 2013"
             prefix = constellation.value
-        else:
-            prefix = "p" # use multi-gnss merged products after 2013 when they became available, otherwise use constellation-specific directories for older data
-        return self.rinex_nav.format(year=year, doy=doy, yy=year[2:], prefix=prefix)
+        return self.rinex_nav.format(year=year, doy=doy, yy=yy, prefix=prefix)
 
 
 class WuhanNavFileFTPProductSource(BaseModel):
@@ -126,13 +128,44 @@ class CLSIGSNavFileDirectorySourceFTP(BaseModel):
 class CLSIGSNavFileFTPProductSource(WuhanNavFileFTPProductSource):
     product_directory_source: CLSIGSNavFileDirectorySourceFTP = CLSIGSNavFileDirectorySourceFTP()
 
-if __name__ == "__main__":
-    # Example usage
-    source = WuhanNavFileFTPProductSource()
-    date = datetime.date(2010, 1, 1)
-    result = source.query(
-        product="rinex_2_nav",
-        date=date,
-        constellation=ConstellationCode.GPS,
-    )
-    print(result)
+class CDDISNavFileDirectorySourceFTP(BaseModel):
+    ftpserver: str = "ftp://gdc.cddis.eosdis.nasa.gov"
+    rinex_nav: str = "pub/gps/data/daily/{year}/{doy}/{yy}{prefix}"
+
+    def rinex_nav_dir(self, date: datetime.date, constellation: Optional[ConstellationCode] = None) -> str:
+        """Return the RINEX navigation directory for a given date."""
+        year, doy = _parse_date(date)
+        yy = str(year)[-2:]
+        if date >= datetime.date(2013,1,1):
+            prefix = "p" if constellation is None else constellation.value
+            # use multi-gnss merged products after 2013 when they became available, otherwise use constellation-specific directories for older data
+        else:
+            assert constellation is not None, "Constellation code required for rinex_nav_dir before 2013"
+            prefix = constellation.value
+
+        return self.rinex_nav.format(year=year, doy=doy, yy=yy, prefix=prefix)
+
+class CDDISNavFileFTPProductSource(WuhanNavFileFTPProductSource):
+    """CDDIS requires FTPS (TLS) for anonymous sessions."""
+    product_directory_source: CDDISNavFileDirectorySourceFTP = CDDISNavFileDirectorySourceFTP()
+
+    def _search(
+        self, regex: str, directory: str
+    ) -> Optional[FTPFileResult]:
+        logger.info(f"Searching FTP {self.product_directory_source.ftpserver} in directory {directory} for regex {regex}")
+        # CDDIS requires TLS for anonymous sessions
+        dir_listing = ftp_list_directory(
+            self.product_directory_source.ftpserver, directory, timeout=60, use_tls=True
+        )
+        if not dir_listing:
+            logger.info(f"No files found in directory {directory} on {self.product_directory_source.ftpserver}")
+            return None
+        filename = find_best_match_in_listing(dir_listing, regex)
+        if filename:
+            return FTPFileResult(
+                ftpserver=self.product_directory_source.ftpserver,
+                directory=directory,
+                filename=filename,
+                quality=ProductQuality.FINAL,
+            )
+        return None

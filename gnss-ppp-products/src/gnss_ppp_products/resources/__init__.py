@@ -21,6 +21,7 @@ from .orbit_clock_products import (
 from .navigation_products import (
     WuhanNavFileFTPProductSource,
     CLSIGSNavFileFTPProductSource,
+    CDDISNavFileFTPProductSource,
 
 )
 from .base import (

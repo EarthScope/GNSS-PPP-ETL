@@ -28,7 +28,11 @@ from typing import Optional, Type
 
 import pytest
 
-from gnss_ppp_products.resources import WuhanNavFileFTPProductSource, CLSIGSNavFileFTPProductSource
+from gnss_ppp_products.resources import (
+    WuhanNavFileFTPProductSource, 
+    CLSIGSNavFileFTPProductSource,
+    CDDISNavFileFTPProductSource
+)
 from gnss_ppp_products.resources.base import (
     FTPFileResult,
     FTPProductSource,
@@ -59,12 +63,14 @@ NAV_PRODUCTS = [
     ("rinex_3_nav", None, DATE_RINEX_3),  # RINEX v3 merged broadcast
     ("rinex_2_nav", ConstellationCode.GPS, DATE_RINEX_2),  # GPS navigation
     ("rinex_2_nav", ConstellationCode.GLONASS, DATE_RINEX_2),  # GLONASS navigation
+    ("rinex_3_nav",None,DATE_RINEX_3), # RINEX v3 merged broadcast (repeat to check multi-constellation handling)
 ]
 
 # FTP sources to test (only Wuhan has nav files in known locations)
 FTP_SOURCES: list[tuple[str, Type[FTPProductSource]]] = [
     ("Wuhan", WuhanNavFileFTPProductSource),
     ("CLSIGS", CLSIGSNavFileFTPProductSource),
+    ("CDDIS", CDDISNavFileFTPProductSource),
 ]
 
 

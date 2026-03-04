@@ -1,9 +1,10 @@
 import datetime
-from ftplib import FTP
+from ftplib import FTP, FTP_TLS
 from pathlib import Path
 import re
 from typing import Optional, Tuple
-
+import logging
+logger = logging.getLogger(__name__)
 
 def _parse_date(date: datetime.date | datetime.datetime) -> Tuple[str, str]:
     """
@@ -56,21 +57,34 @@ def ftp_list_directory(
     ftpserver: str,
     directory: str,
     timeout: int = 60,
+    use_tls: bool = False,
 ) -> list[str]:
     """
     Connect to *ftpserver*, change to *directory*, and return the file listing.
 
     Returns an empty list on any connection or command error so the caller
     can decide how to handle the failure.
+    
+    Args:
+        use_tls: If True, use FTPS (FTP over TLS) for servers requiring encryption
+                 (e.g., NASA CDDIS requires TLS for anonymous sessions).
     """
     clean = ftpserver.replace("ftp://", "")
     try:
-        with FTP(clean, timeout=timeout) as ftp:
+        if use_tls:
+            ftp = FTP_TLS(clean, timeout=timeout)
             ftp.set_pasv(True)
             ftp.login()
+            ftp.prot_p()  # Switch to secure data connection
+        else:
+            ftp = FTP(clean, timeout=timeout)
+            ftp.set_pasv(True)
+            ftp.login()
+        with ftp:
             ftp.cwd("/" + directory)
             return ftp.nlst()
-    except Exception:  # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Failed to list directory {directory} on {ftpserver} | {e}")
         return []
 
 
@@ -80,6 +94,7 @@ def ftp_download_file(
     filename: str,
     dest_path: Path,
     timeout: int = 180,
+    use_tls: bool = False,
 ) -> bool:
     """
     Download *filename* from *ftpserver*/*directory* to *dest_path*.
@@ -87,13 +102,24 @@ def ftp_download_file(
     Parent directories are created automatically.  Returns *True* on success
     (file exists and is non-empty), *False* on any failure (partial download
     is deleted before returning).
+    
+    Args:
+        use_tls: If True, use FTPS (FTP over TLS) for servers requiring encryption
+                 (e.g., NASA CDDIS requires TLS for anonymous sessions).
     """
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     clean = ftpserver.replace("ftp://", "")
     try:
-        with FTP(clean, timeout=timeout) as ftp:
+        if use_tls:
+            ftp = FTP_TLS(clean, timeout=timeout)
             ftp.set_pasv(True)
             ftp.login()
+            ftp.prot_p()  # Switch to secure data connection
+        else:
+            ftp = FTP(clean, timeout=timeout)
+            ftp.set_pasv(True)
+            ftp.login()
+        with ftp:
             ftp.cwd("/" + directory)
             with open(dest_path, "wb") as fh:
                 ftp.retrbinary(f"RETR {filename}", fh.write)
