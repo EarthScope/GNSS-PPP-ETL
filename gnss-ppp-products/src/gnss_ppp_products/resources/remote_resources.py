@@ -1,8 +1,19 @@
 import datetime
-from typing import Literal, Optional, List
-from .base import FTPFileResult, FTPProductSource, ProductDirectorySourceFTP,ProductFileSourceRegex,ProductQuality,ConstellationCode
-from .utils import _parse_date, _date_to_gps_week, ftp_list_directory, ftp_download_file, find_best_match_in_listing
-from pydantic import BaseModel
+from typing import Literal, Optional
+from .base import (
+    FTPFileResult,
+    FTPProductSource,
+    ProductDirectorySourceFTP,
+    ProductFileSourceRegex,
+    ProductQuality,
+    ConstellationCode,
+)
+from .utils import (
+    _parse_date,
+    _date_to_gps_week,
+    ftp_list_directory,
+    find_best_match_in_listing,
+)
 
 
 class Group1FileRegex(ProductFileSourceRegex):
@@ -15,37 +26,47 @@ class Group1FileRegex(ProductFileSourceRegex):
     product_broadcast_rnx3: str = "BRDS.*{year}{doy}.*rnx.*"
     product_broadcast_rnx2: str = "brdc{doy}0.{yy}{constellation}.gz"
 
-    def sp3(self,date: datetime.datetime, quality: ProductQuality) -> str:
+    def sp3(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
         return self.product_sp3.format(quality=quality.value, year=year, doy=doy)
 
-    def obx(self,date: datetime.datetime, quality: ProductQuality) -> str:
+    def obx(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
         return self.product_obx.format(quality=quality.value, year=year, doy=doy)
 
-    def clk(self,date: datetime.datetime, quality: ProductQuality) -> str:
+    def clk(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
         return self.product_clk.format(quality=quality.value, year=year, doy=doy)
 
-    def erp(self,date: datetime.datetime, quality: ProductQuality) -> str:
+    def erp(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
         return self.product_erp.format(quality=quality.value, year=year, doy=doy)
 
-    def sum(self,date: datetime.datetime, quality: ProductQuality) -> str:
+    def sum(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
         return self.product_sum.format(quality=quality.value, year=year, doy=doy)
 
-    def bias(self,date: datetime.datetime, quality: ProductQuality) -> str:
+    def bias(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
         return self.product_bias.format(quality=quality.value, year=year, doy=doy)
 
-    def broadcast_rnx3(self,date: datetime.datetime, quality: ProductQuality) -> str:
+    def broadcast_rnx3(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
-        return self.product_broadcast_rnx3.format(quality=quality.value, year=year, doy=doy)
+        return self.product_broadcast_rnx3.format(
+            quality=quality.value, year=year, doy=doy
+        )
 
-    def broadcast_rnx2(self,date: datetime.datetime, quality: ProductQuality, constellation: ConstellationCode) -> str:
+    def broadcast_rnx2(
+        self,
+        date: datetime.datetime,
+        quality: ProductQuality,
+        constellation: ConstellationCode,
+    ) -> str:
         year, doy = _parse_date(date)
-        return self.product_broadcast_rnx2.format(doy=doy, yy=year[2:], constellation=constellation.value)
+        return self.product_broadcast_rnx2.format(
+            doy=doy, yy=year[2:], constellation=constellation.value
+        )
+
 
 class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
     ftpserver: str = "ftp://igs.gnsswhu.cn"
@@ -58,31 +79,31 @@ class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
     product_erp: str = "pub/whu/phasebias/{year}/orbit/"
     product_obx: str = "pub/whu/phasebias/{year}/orbit/"
 
-    def sp3(self,date: datetime.datetime) -> str:
+    def sp3(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_sp3.format(year=year)
 
-    def orbit(self,date: datetime.datetime) -> str:
+    def orbit(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_orbit.format(year=year)
 
-    def clk(self,date: datetime.datetime) -> str:
+    def clk(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_clk.format(year=year)
 
-    def sum(self,date: datetime.datetime) -> str:
+    def sum(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_sum.format(year=year)
 
-    def erp(self,date: datetime.datetime) -> str:
+    def erp(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_erp.format(year=year)
 
-    def bias(self,date: datetime.datetime) -> str:
+    def bias(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_bias.format(year=year)
 
-    def rinex_nav_dir(self,date: datetime.datetime) -> str:
+    def rinex_nav_dir(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.rinex_nav.format(year=year, doy=doy, yy=year[2:])
 
@@ -92,6 +113,7 @@ class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
 
     def broadcast_rnx(self, date: datetime.datetime) -> str:
         return self.rinex_nav_dir(date)
+
 
 class WuhanFTPProductSource(FTPProductSource):
     product_filesource_regex: Group1FileRegex = Group1FileRegex()
@@ -158,7 +180,9 @@ class WuhanFTPProductSource(FTPProductSource):
                 assert (
                     constellation is not None
                 ), "Constellation code required for rinex_2_nav"
-                regex = self.product_filesource_regex.broadcast_rnx2(date, quality, constellation)
+                regex = self.product_filesource_regex.broadcast_rnx2(
+                    date, quality, constellation
+                )
                 directory = self.product_directory_source.rinex_nav_dir(date)
             case _:
                 raise ValueError(f"Unknown product type: {product}")
@@ -196,7 +220,7 @@ class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
     def sum(self, date: datetime.datetime) -> str:
         gps_week = _date_to_gps_week(date)
         return self.product_sum.format(gps_week=gps_week)
-    
+
     def clk(self, date: datetime.datetime) -> str:
         gps_week = _date_to_gps_week(date)
         return self.product_clk.format(gps_week=gps_week)
@@ -325,6 +349,7 @@ class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
 
     def broadcast_rnx(self, date: datetime.datetime) -> str:
         return self.rinex_nav_dir(date)
+
 
 class CDDISFTPProductSource(WuhanFTPProductSource):
     product_directory_source: CDDISDirectorySourceFTP = CDDISDirectorySourceFTP()
