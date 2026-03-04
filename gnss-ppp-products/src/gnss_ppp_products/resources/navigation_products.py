@@ -1,6 +1,8 @@
 import datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel
+import logging
+
 from .base import (
     FTPFileResult,
     FTPProductSource,
@@ -14,15 +16,16 @@ from .utils import (
     find_best_match_in_listing,
 )
 
+logger = logging.getLogger(__name__)
 
 class Group1NavFileRegex(BaseModel):
     product_broadcast_rnx3: str = "BRDC.*{year}{doy}.*rnx.*"
-    product_broadcast_rnx2: str = "brdc{doy}0.{yy}{constellation}.gz"
+    product_broadcast_rnx2: str = "brdc{doy}0.{yy}{constellation}.*"
 
-    def broadcast_rnx3(self, date: datetime.datetime, quality: ProductQuality) -> str:
+    def broadcast_rnx3(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_broadcast_rnx3.format(
-            quality=quality.value, year=year, doy=doy
+            year=year, doy=doy
         )
 
     def broadcast_rnx2(
@@ -38,20 +41,32 @@ class Group1NavFileRegex(BaseModel):
 
 class WuhanNavFileDirectorySourceFTP(BaseModel):
     ftpserver: str = "ftp://igs.gnsswhu.cn"
-    rinex_nav: str = "pub/gps/data/daily/{year}/{doy}/{yy}p"
+    rinex_nav: str = "pub/gps/data/daily/{year}/{doy}/{yy}{prefix}"
+
+    def rinex_nav_dir(self, date: datetime.date, constellation: ConstellationCode=None) -> str:
+        """Return the RINEX navigation directory for a given date."""
+        year, doy = _parse_date(date)
+        if int(year) <2013:
+            assert constellation is not None, "Constellation code required for rinex_nav_dir before 2013"
+            prefix = constellation.value
+        else:
+            prefix = "p" # use multi-gnss merged products after 2013 when they became available, otherwise use constellation-specific directories for older data
+        return self.rinex_nav.format(year=year, doy=doy, yy=year[2:], prefix=prefix)
 
 
-class WuhanNavFileFTPProductSource(FTPProductSource):
+class WuhanNavFileFTPProductSource(BaseModel):
     product_filesource_regex: Group1NavFileRegex = Group1NavFileRegex()
     product_directory_source: WuhanNavFileDirectorySourceFTP = WuhanNavFileDirectorySourceFTP()
 
     def _search(
-        self, regex: str, directory: str, quality: ProductQuality
+        self, regex: str, directory: str
     ) -> Optional[FTPFileResult]:
+        logger.info(f"Searching FTP {self.product_directory_source.ftpserver} in directory {directory} for regex {regex}")
         dir_listing = ftp_list_directory(
             self.product_directory_source.ftpserver, directory, timeout=60
         )
         if not dir_listing:
+            logger.info(f"No files found in directory {directory} on {self.product_directory_source.ftpserver}")
             return None
         filename = find_best_match_in_listing(dir_listing, regex)
         if filename:
@@ -59,7 +74,7 @@ class WuhanNavFileFTPProductSource(FTPProductSource):
                 ftpserver=self.product_directory_source.ftpserver,
                 directory=directory,
                 filename=filename,
-                quality=quality,
+                quality=ProductQuality.FINAL,
             )
         return None
 
@@ -70,22 +85,21 @@ class WuhanNavFileFTPProductSource(FTPProductSource):
             "rinex_2_nav"
         ],
         date: datetime.date,
-        quality: Optional[ProductQuality] = None,
         constellation: Optional[ConstellationCode] = None,
     ) -> Optional[FTPFileResult]:
         match product:
 
             case "rinex_3_nav":
-                regex = self.product_filesource_regex.broadcast_rnx3(date, quality)
+                regex = self.product_filesource_regex.broadcast_rnx3(date)
                 directory = self.product_directory_source.rinex_nav_dir(date)
             case "rinex_2_nav":
                 assert (
                     constellation is not None
                 ), "Constellation code required for rinex_2_nav"
                 regex = self.product_filesource_regex.broadcast_rnx2(
-                    date, quality, constellation
+                    date, constellation
                 )
-                directory = self.product_directory_source.rinex_nav_dir(date)
+                directory = self.product_directory_source.rinex_nav_dir(date, constellation)
             case _:
                 raise ValueError(f"Unknown product type: {product}")
 
@@ -93,10 +107,10 @@ class WuhanNavFileFTPProductSource(FTPProductSource):
             raise ValueError(f"Regex or directory not defined for product {product}")
 
         try:
-            ftp_file_result = self._search(regex, directory, quality)
+            ftp_file_result = self._search(regex, directory)
             return ftp_file_result
         except Exception as e:
-            print(f"Error querying FTP for product {product}: {e}")
+            logger.error(f"Error querying FTP for product {product}: {e}")
             return None
 
 
@@ -104,5 +118,21 @@ class CLSIGSNavFileDirectorySourceFTP(BaseModel):
     ftpserver: str = "ftp://igs.ign.fr"
     rinex_nav: str = "pub/igs/data/{year}/{doy}"
 
+    def rinex_nav_dir(self, date: datetime.date,_=None) -> str:
+        """Return the RINEX navigation directory for a given date."""
+        year, doy = _parse_date(date)
+        return self.rinex_nav.format(year=year, doy=doy)
+
 class CLSIGSNavFileFTPProductSource(WuhanNavFileFTPProductSource):
     product_directory_source: CLSIGSNavFileDirectorySourceFTP = CLSIGSNavFileDirectorySourceFTP()
+
+if __name__ == "__main__":
+    # Example usage
+    source = WuhanNavFileFTPProductSource()
+    date = datetime.date(2010, 1, 1)
+    result = source.query(
+        product="rinex_2_nav",
+        date=date,
+        constellation=ConstellationCode.GPS,
+    )
+    print(result)

@@ -9,3 +9,4 @@ Requires-Dist: pydantic
 Requires-Dist: pandas
 Requires-Dist: matplotlib
 Requires-Dist: julian
+Requires-Dist: pytest>=8.3.5
