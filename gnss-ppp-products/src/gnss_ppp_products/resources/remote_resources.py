@@ -1,7 +1,9 @@
 import datetime
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 from .base import FTPFileResult, FTPProductSource, ProductDirectorySourceFTP,ProductFileSourceRegex,ProductQuality,ConstellationCode
 from .utils import _parse_date, _date_to_gps_week, ftp_list_directory, ftp_download_file, find_best_match_in_listing
+from pydantic import BaseModel
+
 
 class Group1FileRegex(ProductFileSourceRegex):
     product_sp3: str = "{quality}.*{year}{doy}.*SP3.*"
@@ -219,78 +221,110 @@ class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
         return self.rinex_nav_dir(date)
 
 
-class CLSIGSFTPProductSource(FTPProductSource):
-    product_filesource_regex: Group1FileRegex = Group1FileRegex()
+class CLSIGSFTPProductSource(WuhanFTPProductSource):
     product_directory_source: CLSIGSDirectorySourceFTP = CLSIGSDirectorySourceFTP()
 
-    def _search(
-        self, regex: str, directory: str, quality: ProductQuality
-    ) -> Optional[FTPFileResult]:
-        dir_listing = ftp_list_directory(
-            self.product_directory_source.ftpserver, directory, timeout=60
-        )
-        if not dir_listing:
-            return None
-        filename = find_best_match_in_listing(dir_listing, regex)
-        if filename:
-            return FTPFileResult(
-                ftpserver=self.product_directory_source.ftpserver,
-                directory=directory,
-                filename=filename,
-                quality=quality,
-            )
-        return None
 
-    def query(
-        self,
-        product: Literal[
-            "rinex_3_nav",
-            "rinex_2_nav",
-            "sp3",
-            "orbit",
-            "clk",
-            "bias",
-            "erp",
-            "obx",
-        ],
-        date: datetime.date,
-        quality: Optional[ProductQuality] = None,
-        constellation: Optional[ConstellationCode] = None,
-    ) -> Optional[FTPFileResult]:
-        match product:
-            case "sp3" | "orbit":
-                regex = self.product_filesource_regex.sp3(date, quality)
-                directory = self.product_directory_source.sp3(date)
-            case "clk":
-                regex = self.product_filesource_regex.clk(date, quality)
-                directory = self.product_directory_source.clk(date)
-            case "bias":
-                regex = self.product_filesource_regex.bias(date, quality)
-                directory = self.product_directory_source.bias(date)
-            case "erp":
-                regex = self.product_filesource_regex.erp(date, quality)
-                directory = self.product_directory_source.erp(date)
-            case "obx":
-                regex = self.product_filesource_regex.obx(date, quality)
-                directory = self.product_directory_source.obx(date)
-            case "rinex_3_nav":
-                regex = self.product_filesource_regex.broadcast_rnx3(date, quality)
-                directory = self.product_directory_source.rinex_nav_dir(date)
-            case "rinex_2_nav":
-                assert (
-                    constellation is not None
-                ), "Constellation code required for rinex_2_nav"
-                regex = self.product_filesource_regex.broadcast_rnx2(date, quality, constellation)
-                directory = self.product_directory_source.rinex_nav_dir(date)
-            case _:
-                raise ValueError(f"Unknown product type: {product}")
+class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
+    """Directory structure for KASI (Korea) FTP server - fallback source."""
 
-        if regex is None or directory is None:
-            raise ValueError(f"Regex or directory not defined for product {product}")
+    ftpserver: str = "ftp://nfs.kasi.re.kr"
+    rinex_nav: str = "gps/data/daily/{year}/{doy}/{yy}p"
+    product_sp3: str = "gps/products/{gps_week}"
+    product_orbit: str = "gps/products/{gps_week}"
+    product_clk: str = "gps/products/{gps_week}"
+    product_sum: str = "gps/products/{gps_week}"
+    product_bias: str = "gps/products/{gps_week}"
+    product_erp: str = "gps/products/{gps_week}"
+    product_obx: str = "gps/products/{gps_week}"
 
-        try:
-            ftp_file_result = self._search(regex, directory, quality)
-            return ftp_file_result
-        except Exception as e:
-            print(f"Error querying FTP for product {product}: {e}")
-            return None
+    def sp3(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_sp3.format(gps_week=gps_week)
+
+    def orbit(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_orbit.format(gps_week=gps_week)
+
+    def clk(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_clk.format(gps_week=gps_week)
+
+    def sum(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_sum.format(gps_week=gps_week)
+
+    def erp(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_erp.format(gps_week=gps_week)
+
+    def bias(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_bias.format(gps_week=gps_week)
+
+    def obx(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_obx.format(gps_week=gps_week)
+
+    def rinex_nav_dir(self, date: datetime.datetime) -> str:
+        year, doy = _parse_date(date)
+        return self.rinex_nav.format(year=year, doy=doy, yy=year[2:])
+
+    def broadcast_rnx(self, date: datetime.datetime) -> str:
+        return self.rinex_nav_dir(date)
+
+
+class KASDIFTPProductSource(WuhanFTPProductSource):
+    product_directory_source: KASIDirectorySourceFTP = KASIDirectorySourceFTP()
+
+
+class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
+    """Directory structure for CDDIS (ESA/NASA) FTP server - fallback source."""
+
+    ftpserver: str = "ftp://gssc.esa.int"
+    rinex_nav: str = "gnss/data/daily/{year}/{doy}/{yy}p"
+    product_sp3: str = "gnss/products/{gps_week}"
+    product_orbit: str = "gnss/products/{gps_week}"
+    product_clk: str = "gnss/products/{gps_week}"
+    product_sum: str = "gnss/products/{gps_week}"
+    product_bias: str = "gnss/products/{gps_week}"
+    product_erp: str = "gnss/products/{gps_week}"
+    product_obx: str = "gnss/products/{gps_week}"
+
+    def sp3(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_sp3.format(gps_week=gps_week)
+
+    def orbit(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_orbit.format(gps_week=gps_week)
+
+    def clk(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_clk.format(gps_week=gps_week)
+
+    def sum(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_sum.format(gps_week=gps_week)
+
+    def erp(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_erp.format(gps_week=gps_week)
+
+    def bias(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_bias.format(gps_week=gps_week)
+
+    def obx(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_obx.format(gps_week=gps_week)
+
+    def rinex_nav_dir(self, date: datetime.datetime) -> str:
+        year, doy = _parse_date(date)
+        return self.rinex_nav.format(year=year, doy=doy, yy=year[2:])
+
+    def broadcast_rnx(self, date: datetime.datetime) -> str:
+        return self.rinex_nav_dir(date)
+
+class CDDISFTPProductSource(WuhanFTPProductSource):
+    product_directory_source: CDDISDirectorySourceFTP = CDDISDirectorySourceFTP()

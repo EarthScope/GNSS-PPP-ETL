@@ -4,7 +4,7 @@ import datetime
 import re
 
 
-class GNSSOutputResource:
+class PRIDEGNSSOutputResource:
     """
     Configures where downloaded GNSS products and generated config files are
     stored on the local filesystem.
