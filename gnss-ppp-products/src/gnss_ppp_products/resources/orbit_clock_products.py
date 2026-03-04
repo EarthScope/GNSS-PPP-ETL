@@ -6,7 +6,6 @@ from .base import (
     ProductDirectorySourceFTP,
     ProductFileSourceRegex,
     ProductQuality,
-    ConstellationCode,
 )
 from .utils import (
     _parse_date,
@@ -23,8 +22,6 @@ class Group1FileRegex(ProductFileSourceRegex):
     product_sum: str = "{quality}.*{year}{doy}.*SUM.*"
     product_bias: str = "{quality}.*{year}{doy}.*BIA.*"
     product_erp: str = "{quality}.*{year}{doy}.*ERP.*"
-    product_broadcast_rnx3: str = "BRDC.*{year}{doy}.*rnx.*"
-    product_broadcast_rnx2: str = "brdc{doy}0.{yy}{constellation}.gz"
 
     def sp3(self, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
@@ -50,27 +47,10 @@ class Group1FileRegex(ProductFileSourceRegex):
         year, doy = _parse_date(date)
         return self.product_bias.format(quality=quality.value, year=year, doy=doy)
 
-    def broadcast_rnx3(self, date: datetime.datetime, quality: ProductQuality) -> str:
-        year, doy = _parse_date(date)
-        return self.product_broadcast_rnx3.format(
-            quality=quality.value, year=year, doy=doy
-        )
-
-    def broadcast_rnx2(
-        self,
-        date: datetime.datetime,
-        quality: ProductQuality,
-        constellation: ConstellationCode,
-    ) -> str:
-        year, doy = _parse_date(date)
-        return self.product_broadcast_rnx2.format(
-            doy=doy, yy=year[2:], constellation=constellation.value
-        )
 
 
 class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
     ftpserver: str = "ftp://igs.gnsswhu.cn"
-    rinex_nav: str = "pub/gps/data/daily/{year}/{doy}/{yy}p"
     product_sp3: str = "pub/whu/phasebias/{year}/orbit/"
     product_orbit: str = "pub/whu/phasebias/{year}/orbit/"
     product_clk: str = "pub/whu/phasebias/{year}/clock/"
@@ -103,17 +83,9 @@ class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
         year, doy = _parse_date(date)
         return self.product_bias.format(year=year)
 
-    def rinex_nav_dir(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.rinex_nav.format(year=year, doy=doy, yy=year[2:])
-
     def obx(self, date: datetime.datetime) -> str:
         year, doy = _parse_date(date)
         return self.product_obx.format(year=year)
-
-    def broadcast_rnx(self, date: datetime.datetime) -> str:
-        return self.rinex_nav_dir(date)
-
 
 class WuhanFTPProductSource(FTPProductSource):
     product_filesource_regex: Group1FileRegex = Group1FileRegex()
@@ -140,8 +112,6 @@ class WuhanFTPProductSource(FTPProductSource):
     def query(
         self,
         product: Literal[
-            "rinex_3_nav",
-            "rinex_2_nav",
             "sp3",
             "orbit",
             "clk",
@@ -151,8 +121,7 @@ class WuhanFTPProductSource(FTPProductSource):
             "obx",
         ],
         date: datetime.date,
-        quality: Optional[ProductQuality] = None,
-        constellation: Optional[ConstellationCode] = None,
+        quality: Optional[ProductQuality] = None
     ) -> Optional[FTPFileResult]:
         match product:
             case "sp3" | "orbit":
@@ -173,17 +142,7 @@ class WuhanFTPProductSource(FTPProductSource):
             case "obx":
                 regex = self.product_filesource_regex.obx(date, quality)
                 directory = self.product_directory_source.obx(date)
-            case "rinex_3_nav":
-                regex = self.product_filesource_regex.broadcast_rnx3(date, quality)
-                directory = self.product_directory_source.rinex_nav_dir(date)
-            case "rinex_2_nav":
-                assert (
-                    constellation is not None
-                ), "Constellation code required for rinex_2_nav"
-                regex = self.product_filesource_regex.broadcast_rnx2(
-                    date, quality, constellation
-                )
-                directory = self.product_directory_source.rinex_nav_dir(date)
+
             case _:
                 raise ValueError(f"Unknown product type: {product}")
 
@@ -200,7 +159,6 @@ class WuhanFTPProductSource(FTPProductSource):
 
 class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
     ftpserver: str = "ftp://igs.ign.fr"
-    rinex_nav: str = "pub/igs/data/{year}/{doy}"
     product_sp3: str = "pub/igs/products/{gps_week}"
     product_orbit: str = "pub/igs/products/{gps_week}"
     product_clk: str = "pub/igs/products/{gps_week}"
@@ -237,14 +195,6 @@ class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
         gps_week = _date_to_gps_week(date)
         return self.product_obx.format(gps_week=gps_week)
 
-    def rinex_nav_dir(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.rinex_nav.format(year=year, doy=doy)
-
-    def broadcast_rnx(self, date: datetime.datetime) -> str:
-        return self.rinex_nav_dir(date)
-
-
 class CLSIGSFTPProductSource(WuhanFTPProductSource):
     product_directory_source: CLSIGSDirectorySourceFTP = CLSIGSDirectorySourceFTP()
 
@@ -253,7 +203,6 @@ class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
     """Directory structure for KASI (Korea) FTP server - fallback source."""
 
     ftpserver: str = "ftp://nfs.kasi.re.kr"
-    rinex_nav: str = "gps/data/daily/{year}/{doy}/{yy}p"
     product_sp3: str = "gps/products/{gps_week}"
     product_orbit: str = "gps/products/{gps_week}"
     product_clk: str = "gps/products/{gps_week}"
@@ -290,14 +239,6 @@ class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
         gps_week = _date_to_gps_week(date)
         return self.product_obx.format(gps_week=gps_week)
 
-    def rinex_nav_dir(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.rinex_nav.format(year=year, doy=doy, yy=year[2:])
-
-    def broadcast_rnx(self, date: datetime.datetime) -> str:
-        return self.rinex_nav_dir(date)
-
-
 class KASDIFTPProductSource(WuhanFTPProductSource):
     product_directory_source: KASIDirectorySourceFTP = KASIDirectorySourceFTP()
 
@@ -306,7 +247,6 @@ class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
     """Directory structure for CDDIS (ESA/NASA) FTP server - fallback source."""
 
     ftpserver: str = "ftp://gssc.esa.int"
-    rinex_nav: str = "gnss/data/daily/{year}/{doy}/{yy}p"
     product_sp3: str = "gnss/products/{gps_week}"
     product_orbit: str = "gnss/products/{gps_week}"
     product_clk: str = "gnss/products/{gps_week}"
@@ -342,13 +282,6 @@ class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
     def obx(self, date: datetime.datetime) -> str:
         gps_week = _date_to_gps_week(date)
         return self.product_obx.format(gps_week=gps_week)
-
-    def rinex_nav_dir(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.rinex_nav.format(year=year, doy=doy, yy=year[2:])
-
-    def broadcast_rnx(self, date: datetime.datetime) -> str:
-        return self.rinex_nav_dir(date)
 
 
 class CDDISFTPProductSource(WuhanFTPProductSource):

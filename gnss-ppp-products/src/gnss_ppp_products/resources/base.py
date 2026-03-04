@@ -71,8 +71,7 @@ class ProductFileSourceRegex(BaseModel, ABC):
     product_erp: str
     product_sum: str
     product_bias: str
-    product_broadcast_rnx3: str
-    product_broadcast_rnx2: str
+
 
     @abstractmethod
     def sp3(self,date: datetime.datetime) -> str:
@@ -98,18 +97,10 @@ class ProductFileSourceRegex(BaseModel, ABC):
     def bias(self,date: datetime.datetime) -> str:
         pass
 
-    @abstractmethod
-    def broadcast_rnx3(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def broadcast_rnx2(self,date: datetime.datetime) -> str:
-        pass
 
 
 class ProductDirectorySourceFTP(ABC,BaseModel):
     ftpserver: str
-    rinex_nav: Optional[str] = None
     product_sp3: Optional[str] = None
     product_clk: Optional[str] = None
     product_sum: Optional[str] = None
@@ -135,10 +126,6 @@ class ProductDirectorySourceFTP(ABC,BaseModel):
 
     @abstractmethod
     def bias(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def broadcast_rnx(self,date: datetime.datetime) -> str:
         pass
 
     @abstractmethod
@@ -176,8 +163,6 @@ class FTPProductSource(ABC,BaseModel):
         self,
         date: datetime.datetime,
         product: Literal[
-            "rinex_3_nav",
-            "rinex_2_nav",
             "sp3",
             "orbit",
             "clk",
@@ -187,7 +172,6 @@ class FTPProductSource(ABC,BaseModel):
             "obx",
         ],
         quality: ProductQuality,
-        constellation: ConstellationCode,
     ) -> Optional[str]:
         """
         Query the FTP source for a product file matching the given criteria.
