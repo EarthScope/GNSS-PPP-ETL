@@ -48,7 +48,6 @@ class Group1FileRegex(ProductFileSourceRegex):
         return self.product_bias.format(quality=quality.value, year=year, doy=doy)
 
 
-
 class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
     ftpserver: str = "ftp://igs.gnsswhu.cn"
     product_sp3: str = "pub/whu/phasebias/{year}/orbit/"
@@ -87,6 +86,7 @@ class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
         year, doy = _parse_date(date)
         return self.product_obx.format(year=year)
 
+
 class WuhanFTPProductSource(FTPProductSource):
     product_filesource_regex: Group1FileRegex = Group1FileRegex()
     product_directory_source: WuhanDirectorySourceFTP = WuhanDirectorySourceFTP()
@@ -121,7 +121,7 @@ class WuhanFTPProductSource(FTPProductSource):
             "obx",
         ],
         date: datetime.date,
-        quality: Optional[ProductQuality] = None
+        quality: Optional[ProductQuality] = None,
     ) -> Optional[FTPFileResult]:
         match product:
             case "sp3" | "orbit":
@@ -195,6 +195,7 @@ class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
         gps_week = _date_to_gps_week(date)
         return self.product_obx.format(gps_week=gps_week)
 
+
 class CLSIGSFTPProductSource(WuhanFTPProductSource):
     product_directory_source: CLSIGSDirectorySourceFTP = CLSIGSDirectorySourceFTP()
 
@@ -238,6 +239,7 @@ class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
     def obx(self, date: datetime.datetime) -> str:
         gps_week = _date_to_gps_week(date)
         return self.product_obx.format(gps_week=gps_week)
+
 
 class KASDIFTPProductSource(WuhanFTPProductSource):
     product_directory_source: KASIDirectorySourceFTP = KASIDirectorySourceFTP()

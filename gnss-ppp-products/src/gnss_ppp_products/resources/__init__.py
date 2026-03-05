@@ -29,10 +29,11 @@ from .reference_tables import (
     CDDISProductTableFTPSource,
 )
 from .antennae_resources import (
-    AntexFrameType,
+    IGSAntexReferenceFrameType,
     AntexFileResult,
     NGSNOAAAntexHTTPSource,
     IGSAntexHTTPSource,
+    determine_frame
 )
 from .base import (
     ProductQuality,

@@ -51,23 +51,32 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
+class IGSAntexReferenceFrameType(str, Enum):
+    """Reference frame types for ANTEX files."""
+    IGS05 = "igs05"
+    IGS08 = "igs08"
+    IGS14 = "igs14"
+    IGS20 = "igs20"
+    IGSR3 = "igsR3"
+
+
 def determine_frame(
     date: datetime.date | datetime.datetime,
-) -> Literal["08", "14", "20"]:
+) -> IGSAntexReferenceFrameType:
     """Determine the appropriate IGS frame based on date."""
     if isinstance(date, datetime.datetime):
         date = date.date()
-    # IGS frame transitions:
-    # - igs08: 2011-04-17 to 2017-01-29 (ITRF2008)
-    # - igs14: 2017-01-29 to 2024-04-14 (ITRF2014)
-    # - igs20: 2024-04-14 onwards (ITRF2020)
-    if date >= datetime.date(2024, 4, 14):
-        return "20"
-    elif date >= datetime.date(2017, 1, 29):
-        return "14"
-    else:
-        return "08"
 
+    if date >= datetime.date(2022, 11, 27):
+        return IGSAntexReferenceFrameType.IGS20
+    elif date >= datetime.date(2017, 1, 29):
+        return IGSAntexReferenceFrameType.IGS14
+    elif date >= datetime.date(2011,4,17):
+        return IGSAntexReferenceFrameType.IGS08
+    elif date >= datetime.date(2006, 11, 5):
+        return IGSAntexReferenceFrameType.IGS05  # Assuming a placeholder for the earliest frame
+    else:
+        raise ValueError(f"No suitable IGS frame found for date {date}")
 
 def _extract_filenames_from_html(html: str) -> list[str]:
     """
@@ -99,15 +108,6 @@ CODE_MGEX_MJD_CUTOFF = 59336
 CODE_MGEX_DATE_CUTOFF = datetime.date(2021, 5, 2)
 
 
-class AntexFrameType(str, Enum):
-    """Reference frame types for ANTEX files."""
-
-    IGS08 = "igs08"
-    IGS14 = "igs14"
-    IGS20 = "igs20"
-    IGSR3 = "igsR3"
-
-
 @dataclass
 class AntexFileResult:
     """
@@ -129,7 +129,7 @@ class AntexFileResult:
     directory: str
     filename: str
     full_url: Optional[str] = None
-    frame_type: Optional[AntexFrameType] = None
+    frame_type: Optional[IGSAntexReferenceFrameType] = None
 
 
 # ---------------------------------------------------------------------------
@@ -143,21 +143,6 @@ class IGSAntexHTTPSource(BaseModel):
     httpserver: str = "https://files.igs.org"
     current_dir: str = "pub/station/general"
     archive_dir: str = "pub/station/general/pcv_archive"
-
-    def _determine_frame(self, date: datetime.date | datetime.datetime) -> str:
-        """Determine the appropriate IGS frame based on date."""
-        if isinstance(date, datetime.datetime):
-            date = date.date()
-        # IGS frame transitions:
-        # - igs08: 2011-04-17 to 2017-01-29 (ITRF2008)
-        # - igs14: 2017-01-29 to 2024-04-14 (ITRF2014)
-        # - igs20: 2024-04-14 onwards (ITRF2020)
-        if date >= datetime.date(2024, 4, 14):
-            return "20"
-        elif date >= datetime.date(2017, 1, 29):
-            return "14"
-        else:
-            return "08"
 
     def _find_antex_file_strict(
         self, atx_week_pattern: re.Pattern, gps_week: int
@@ -252,13 +237,13 @@ class IGSAntexHTTPSource(BaseModel):
         gps_week = _date_to_gps_week(date)
 
         # Determine frame version
-        frame = self._determine_frame(date)
+        frame:IGSAntexReferenceFrameType = determine_frame(date)
 
         current_gps_week = _date_to_gps_week(
             datetime.datetime.today().astimezone(datetime.timezone.utc)
         )
-        atx_week_pattern: re.Pattern = re.compile(f"igs{frame}_[0-9]{{4}}\\.atx")
-        atx_current_pattern: re.Pattern = re.compile(f"igs{frame}\\.atx")
+        atx_week_pattern: re.Pattern = re.compile(f"igs{frame.value[-2:]}_[0-9]{{4}}\\.atx")
+        atx_current_pattern: re.Pattern = re.compile(f"igs{frame.value[-2:]}\\.atx")
 
         result: Optional[Tuple[str, str, str]] = None
         if gps_week < current_gps_week and strict:
@@ -277,13 +262,13 @@ class IGSAntexHTTPSource(BaseModel):
         # use a regex to find the max week file for the frame that is less than gps_week
 
         full_url = f"{self.httpserver}/{result[1]}/{result[2]}"
-        atnx_frame_type = "igs" + frame
+        
         return AntexFileResult(
             ftpserver=self.httpserver,
             directory=result[1],
             filename=result[2],
             full_url=full_url,
-            frame_type=AntexFrameType(atnx_frame_type),
+            frame_type=frame,
         )
 
 
@@ -296,8 +281,8 @@ class NGSNOAAAntexHTTPSource(BaseModel):
     def query(self, date: datetime.datetime) -> Optional[AntexFileResult]:
         """Query for the appropriate ANTEX file for a given date."""
         # NGS/NOAA does not have strict week-based files, so we will just return the current file
-        frame: Literal["08", "14", "20"] = determine_frame(date)
-        filename = f"ngs{frame}.atx"
+        frame: IGSAntexReferenceFrameType = determine_frame(date)
+        filename = f"ngs{frame.value[-2:]}.atx"
         full_url = f"{self.httpserver}/{self.archive_dir}{filename}"
         # Check if the file exists by making a HEAD request
         try:
@@ -311,5 +296,5 @@ class NGSNOAAAntexHTTPSource(BaseModel):
             directory=self.archive_dir,
             filename=filename,
             full_url=full_url,
-            frame_type=AntexFrameType("igs" + frame),
+            frame_type=frame,
         )

@@ -1,26 +1,23 @@
 """
-Integration tests for ANTEX (antenna phase center) FTP sources.
+Integration tests for ANTEX (antenna phase center) HTTP sources.
 
-Tests verify that ANTEX files can be found on remote servers.
+Tests verify that ANTEX files can be found on remote servers via HTTP.
 """
 
 import datetime
 import logging
 import pytest
-from urllib.parse import urlparse
+import requests
 from dataclasses import dataclass
 from typing import Optional
 
 from gnss_ppp_products.resources import (
-    AntexFrameType,
+    IGSAntexReferenceFrameType,
     AntexFileResult,
-    IGSAntexFTPSource,
-    CODEMGEXAntexFTPSource,
-    IGSR3AntexFTPSource,
-    CLSIGSAntexFTPSource,
-    AntexProductSource,
+    IGSAntexHTTPSource,
+    NGSNOAAAntexHTTPSource,
+    determine_frame
 )
-from gnss_ppp_products.resources.utils import ftp_list_directory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,37 +30,38 @@ class AntexProbeResult:
     url: str
     found: bool
     filename: Optional[str] = None
+    status_code: Optional[int] = None
 
 
-def probe_ftp_file(label: str, result: AntexFileResult, use_tls: bool = False) -> AntexProbeResult:
+def probe_http_file(label: str, result: AntexFileResult) -> AntexProbeResult:
     """
-    Check if an ANTEX file exists at the given location.
+    Check if an ANTEX file exists at the given HTTP location.
+    Uses HEAD request to verify file availability without downloading.
     """
-    ftpserver = result.ftpserver
-    directory = result.directory
-    filename = result.filename
+    if result is None or not result.full_url:
+        logger.warning(f"[{label}] No URL to probe")
+        return AntexProbeResult(label=label, url="", found=False)
     
-    logger.info(f"Probing {label}: {ftpserver} / {directory} / {filename}")
+    url = result.full_url
+    logger.info(f"Probing {label}: {url}")
     
-    # Skip HTTP sources (files.igs.org) - would need different probing method
-    if ftpserver.startswith("https://"):
-        logger.info(f"[{label}] Skipping HTTP source - assuming available")
-        return AntexProbeResult(label=label, url=result.url, found=True, filename=filename)
-    
-    listing = ftp_list_directory(ftpserver, directory, timeout=60, use_tls=use_tls)
-    
-    if not listing:
-        logger.warning(f"[{label}] Could not list directory: {directory}")
-        return AntexProbeResult(label=label, url=result.url, found=False)
-    
-    # Check for exact match or case-insensitive match
-    for entry in listing:
-        if entry == filename or entry.lower() == filename.lower():
-            logger.info(f"[{label}] Found: {entry}")
-            return AntexProbeResult(label=label, url=result.url, found=True, filename=entry)
-    
-    logger.warning(f"[{label}] File not found: {filename}")
-    return AntexProbeResult(label=label, url=result.url, found=False)
+    try:
+        response = requests.head(url, timeout=30, allow_redirects=True)
+        found = response.status_code == 200
+        if found:
+            logger.info(f"[{label}] Found: {result.filename} (HTTP {response.status_code})")
+        else:
+            logger.warning(f"[{label}] Not found: HTTP {response.status_code}")
+        return AntexProbeResult(
+            label=label, 
+            url=url, 
+            found=found, 
+            filename=result.filename,
+            status_code=response.status_code
+        )
+    except requests.RequestException as e:
+        logger.error(f"[{label}] Request failed: {e}")
+        return AntexProbeResult(label=label, url=url, found=False)
 
 
 # ---------------------------------------------------------------------------
@@ -71,194 +69,208 @@ def probe_ftp_file(label: str, result: AntexFileResult, use_tls: bool = False) -
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
-def igs_source() -> IGSAntexFTPSource:
-    return IGSAntexFTPSource()
+def current_date() -> datetime.datetime:
+    """Provide a fixed current date for testing."""
+    return datetime.datetime.today().astimezone(datetime.timezone.utc)
+
+@pytest.fixture(scope="module")
+def one_year_ago(current_date: datetime.datetime) -> datetime.datetime:
+    """Provide a fixed past date for testing."""
+    return current_date - datetime.timedelta(days=365)
+
+@pytest.fixture(scope="module")
+def itrf_14_date() -> datetime.datetime:
+    """Provide a date during the IGS14 frame period."""
+    return datetime.datetime(2020, 1, 1)
+
+@pytest.fixture(scope="module")
+def igs_source() -> IGSAntexHTTPSource:
+    return IGSAntexHTTPSource()
 
 
 @pytest.fixture(scope="module")
-def code_mgex_source() -> CODEMGEXAntexFTPSource:
-    return CODEMGEXAntexFTPSource()
+def ngs_source() -> NGSNOAAAntexHTTPSource:
+    return NGSNOAAAntexHTTPSource()
 
-
-@pytest.fixture(scope="module")
-def repro3_source() -> IGSR3AntexFTPSource:
-    return IGSR3AntexFTPSource()
-
-
-@pytest.fixture(scope="module")
-def clsigs_source() -> CLSIGSAntexFTPSource:
-    return CLSIGSAntexFTPSource()
-
+IGS_CURRENT_LABEL = "igs_current"
+IGS_ARCHIVED_LABEL = "igs_archived"
+IGS_ITRF_14_LABEL = "igs14"
+NGS_CURRENT_LABEL = "ngs_current"
+NGS_PAST_LABEL = "ngs_past"
+NGS_ITRF_14_LABEL = "ngs14_itrf"
 
 @pytest.fixture(scope="module")
-def code_mgex_results(code_mgex_source: CODEMGEXAntexFTPSource) -> dict[str, AntexProbeResult]:
-    """Probe CODE FTP server for MGEX ANTEX files."""
+def igs_results(igs_source: IGSAntexHTTPSource, current_date: datetime.datetime, one_year_ago: datetime.datetime, itrf_14_date: datetime.datetime) -> dict[str, AntexProbeResult]:
+    """Probe IGS HTTP server for ANTEX files."""
     results = {}
     
-    # M14.ATX (legacy)
-    m14_result = code_mgex_source.query(datetime.date(2020, 1, 1))
-    results["M14"] = probe_ftp_file("CODE MGEX M14.ATX", m14_result, use_tls=False)
+    # Current ATX
+    igs_current_result:AntexFileResult = igs_source.query(current_date, strict=False)
+    if igs_current_result:
+        results[IGS_CURRENT_LABEL] = probe_http_file(IGS_CURRENT_LABEL, igs_current_result)
     
-    # M20.ATX (current)
-    m20_result = code_mgex_source.query(datetime.date(2023, 1, 1))
-    results["M20"] = probe_ftp_file("CODE MGEX M20.ATX", m20_result, use_tls=False)
+    # Archived IGS20 with week number (strict mode)
+    igs_archived_strict:AntexFileResult = igs_source.query(one_year_ago, strict=True)
+    if igs_archived_strict:
+        results[IGS_ARCHIVED_LABEL] = probe_http_file(IGS_ARCHIVED_LABEL, igs_archived_strict)
+    
+    # itrf (2020 date)
+    itrf_14_result:AntexFileResult = igs_source.query(itrf_14_date, strict=False)       
+    if itrf_14_result:
+        results[IGS_ITRF_14_LABEL] = probe_http_file(IGS_ITRF_14_LABEL, itrf_14_result)
     
     return results
 
 
 @pytest.fixture(scope="module")
-def clsigs_results(clsigs_source: CLSIGSAntexFTPSource) -> dict[str, AntexProbeResult]:
-    """Probe CLSIGS FTP server for ANTEX files."""
+def ngs_results(ngs_source: NGSNOAAAntexHTTPSource,current_date: datetime.datetime, one_year_ago: datetime.datetime,itrf_14_date: datetime.datetime) -> dict[str, AntexProbeResult]:
+    """Probe NGS/NOAA HTTP server for ANTEX files."""
     results = {}
     
-    # igs20.atx
-    igs20_result = clsigs_source.query("igs20.atx")
-    results["igs20"] = probe_ftp_file("CLSIGS igs20.atx", igs20_result, use_tls=False)
+    # NGS20 (2026 date)
+    ngs20_result:AntexFileResult = ngs_source.query(current_date)
     
-    return results
+    if ngs20_result:
+        results[NGS_CURRENT_LABEL] = probe_http_file(NGS_CURRENT_LABEL, ngs20_result)
+    
+    # NGS14 (2020 date)
+    ngs14_result:AntexFileResult = ngs_source.query(one_year_ago)
+    
+    if ngs14_result:
+        results[NGS_PAST_LABEL] = probe_http_file(NGS_PAST_LABEL, ngs14_result)
 
-
-@pytest.fixture(scope="module")
-def repro3_results(repro3_source: IGSR3AntexFTPSource) -> dict[str, AntexProbeResult]:
-    """Probe IGS-RF and AIUB for Repro3 ANTEX files."""
-    results = {}
-    
-    # Primary (igs-rf.ign.fr)
-    primary_result = repro3_source.query()
-    results["primary"] = probe_ftp_file("IGS-RF igsR3.atx", primary_result, use_tls=False)
-    
-    # Fallback (aiub) - only if primary fails
-    if not results["primary"].found:
-        fallback_result = repro3_source.query_fallback()
-        results["fallback"] = probe_ftp_file("AIUB igsR3.atx", fallback_result, use_tls=False)
+    # ITRF (2020 date)
+    itrf_14_result:AntexFileResult = ngs_source.query(itrf_14_date)
+   
+    if itrf_14_result:
+        results[NGS_ITRF_14_LABEL] = probe_http_file(NGS_ITRF_14_LABEL, itrf_14_result)
     
     return results
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Tests: IGS ANTEX HTTP Source
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-class TestCODEMGEXAntex:
-    """Test CODE MGEX ANTEX file availability."""
+class TestIGSAntexHTTPSource:
+    """Test IGS ANTEX file availability via HTTP."""
 
-    def test_m14_found(self, code_mgex_results: dict[str, AntexProbeResult]) -> None:
-        """CODE should provide M14.ATX for legacy processing."""
-        result = code_mgex_results["M14"]
-        assert result.found, f"M14.ATX not found at {result.url}"
-        logger.info(f"[CODE MGEX] M14.ATX found: {result.filename}")
+    def test_igs_current_found(self, igs_results: dict[str, AntexProbeResult]) -> None:
+        """IGS should provide current igs.atx file."""
+        result = igs_results.get(IGS_CURRENT_LABEL)
+        assert result is not None, "Query returned None"
+        assert result.found, f"igs.atx not found at {result.url} (HTTP {result.status_code})"
+        logger.info(f"[IGS] Current igs.atx found: {result.filename}")
 
-    def test_m20_found(self, code_mgex_results: dict[str, AntexProbeResult]) -> None:
-        """CODE should provide M20.ATX for current processing."""
-        result = code_mgex_results["M20"]
-        assert result.found, f"M20.ATX not found at {result.url}"
-        logger.info(f"[CODE MGEX] M20.ATX found: {result.filename}")
+    def test_igs_archived_found(self, igs_results: dict[str, AntexProbeResult]) -> None:
+        """IGS should provide archived week-specific igs files."""
+        result = igs_results.get(IGS_ARCHIVED_LABEL)
+        assert result.found, f"Archived igs not found at {result.url}"
+        assert "_" in result.filename, f"Expected week-specific file, got {result.filename}"
+        logger.info(f"[IGS] Archived igs found: {result.filename}")
 
-    def test_date_selection(self, code_mgex_source: CODEMGEXAntexFTPSource) -> None:
-        """Query should return correct file based on date threshold."""
-        # Before cutoff (2021-05-02) -> M14
-        before = code_mgex_source.query(datetime.date(2021, 5, 1))
-        assert before.filename == "M14.ATX"
+    def test_igs14_found(self, igs_results: dict[str, AntexProbeResult]) -> None:
+        """IGS should provide igs14.atx for legacy processing."""
+        result = igs_results.get(IGS_ITRF_14_LABEL)
+        assert result is not None, "Query returned None"
+        assert result.found, f"igs14.atx not found at {result.url}"
+        logger.info(f"[IGS] igs14.atx found: {result.filename}")
+
+    def test_frame_auto_detection(self, igs_source: IGSAntexHTTPSource) -> None:
+        """Query should return correct frame based on date."""
+        # 2026 -> igs20
+        # 2020 -> igs14
+        # 2011 -> igs05
+
+        result_2026:IGSAntexReferenceFrameType = determine_frame(datetime.datetime(2026, 1, 1))
+        assert result_2026 is not None
+        assert result_2026 == IGSAntexReferenceFrameType.IGS20
         
-        # After cutoff -> M20
-        after = code_mgex_source.query(datetime.date(2021, 5, 2))
-        assert after.filename == "M20.ATX"
+        # 2020 -> igs14
+        result_2020:IGSAntexReferenceFrameType = determine_frame(datetime.datetime(2020, 1, 1))
+        assert result_2020 is not None
+        assert result_2020 == IGSAntexReferenceFrameType.IGS14
 
+        result_2014:IGSAntexReferenceFrameType = determine_frame(datetime.datetime(2014, 1, 1))
+        assert result_2014 is not None
+        assert result_2014 == IGSAntexReferenceFrameType.IGS14
+        
+        result_2011:IGSAntexReferenceFrameType = determine_frame(datetime.datetime(2011, 1, 1))
+        assert result_2011 is not None
+        assert result_2011 == IGSAntexReferenceFrameType.IGS05
+
+    def test_query_returns_full_url(self, igs_source: IGSAntexHTTPSource,current_date: datetime.datetime) -> None:
+        """Query result should include full download URL."""
+        result = igs_source.query(current_date, strict=False)
+        assert result is not None
+        assert result.full_url.startswith("https://")
+        assert "igs20" in result.full_url
+        assert result.full_url.endswith(".atx")
+
+
+# ---------------------------------------------------------------------------
+# Tests: NGS/NOAA ANTEX HTTP Source
+# ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-class TestCLSIGSAntex:
-    """Test CLSIGS ANTEX file availability."""
+class TestNGSAntexHTTPSource:
+    """Test NGS/NOAA ANTEX file availability via HTTP."""
 
-    @pytest.mark.skip(reason="CLSIGS may not host ANTEX in expected location")
-    def test_igs20_found(self, clsigs_results: dict[str, AntexProbeResult]) -> None:
-        """CLSIGS should provide igs20.atx."""
-        result = clsigs_results["igs20"]
-        assert result.found, f"igs20.atx not found at {result.url}"
-        logger.info(f"[CLSIGS] igs20.atx found: {result.filename}")
+    def test_ngs20_found(self, ngs_results: dict[str, AntexProbeResult]) -> None:
+        """NGS should provide ngs20.atx file."""
+        result = ngs_results.get(NGS_CURRENT_LABEL)
+        assert result is not None, "Query returned None"
+        assert result.found, f"ngs.atx not found at {result.url} (HTTP {result.status_code})"
+        logger.info(f"[NGS] ngs.atx found: {result.filename}")
 
-    def test_url_methods(self, clsigs_source: CLSIGSAntexFTPSource) -> None:
-        """URL convenience methods should return valid paths."""
-        igs20_url = clsigs_source.igs20()
-        igs14_url = clsigs_source.igs14()
+    def test_ngs14_found(self, ngs_results: dict[str, AntexProbeResult]) -> None:
+        """NGS should provide ngs14.atx for legacy processing."""
+        result = ngs_results.get(NGS_ITRF_14_LABEL)
+        assert result is not None, "Query returned None"
+        assert result.found, f"ngs14.atx not found at {result.url}"
+        logger.info(f"[NGS] ngs14.atx found: {result.filename}")
+
+    def test_frame_auto_detection(self, ngs_source: NGSNOAAAntexHTTPSource,current_date: datetime.datetime,itrf_14_date: datetime.datetime) -> None:
+        """Query should return correct frame based on date."""
+        # 2026 -> ngs20
+        result_2026 = ngs_source.query(current_date)
+        assert result_2026 is not None
+        assert result_2026.filename == "ngs20.atx"
+        assert result_2026.frame_type == IGSAntexReferenceFrameType.IGS20
         
-        assert "igs20.atx" in igs20_url
-        assert "igs14.atx" in igs14_url
-        assert igs20_url.startswith("ftp://")
+        # 2020 -> ngs14
+        result_2020 = ngs_source.query(itrf_14_date)
+        assert result_2020 is not None
+        assert result_2020.filename == "ngs14.atx"
+        assert result_2020.frame_type == IGSAntexReferenceFrameType.IGS14
 
+    def test_query_returns_full_url(self, ngs_source: NGSNOAAAntexHTTPSource,current_date: datetime.datetime) -> None:
+        """Query result should include full download URL."""
+        result = ngs_source.query(current_date)
+        assert result is not None
+        assert result.full_url.startswith("https://")
+        assert "ngs20.atx" in result.full_url
+
+
+# ---------------------------------------------------------------------------
+# Tests: Comparison between sources
+# ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-class TestIGSR3Antex:
-    """Test IGS Repro3 ANTEX file availability."""
+class TestAntexSourceComparison:
+    """Compare IGS and NGS ANTEX sources."""
 
-    @pytest.mark.skip(reason="IGS-RF server may be unreliable")
-    def test_repro3_found(self, repro3_results: dict[str, AntexProbeResult]) -> None:
-        """At least one Repro3 source should provide igsR3.atx."""
-        primary = repro3_results.get("primary")
-        fallback = repro3_results.get("fallback")
+    def test_both_sources_return_same_frame_for_date(
+        self, igs_source: IGSAntexHTTPSource, ngs_source: NGSNOAAAntexHTTPSource
+    ) -> None:
+        """Both sources should return the same reference frame for a given date."""
+        date = datetime.datetime(2025, 6, 15)
         
-        found = (primary and primary.found) or (fallback and fallback.found)
-        assert found, "igsR3.atx not found on primary or fallback servers"
+        igs_result = igs_source.query(date, strict=False)
+        ngs_result = ngs_source.query(date)
         
-        if primary and primary.found:
-            logger.info(f"[IGS-RF] igsR3.atx found: {primary.filename}")
-        elif fallback and fallback.found:
-            logger.info(f"[AIUB] igsR3.atx found: {fallback.filename}")
+        assert igs_result is not None
+        assert ngs_result is not None
+        assert igs_result.frame_type == ngs_result.frame_type
 
-    def test_query_returns_valid_result(self, repro3_source: IGSR3AntexFTPSource) -> None:
-        """Query methods should return valid AntexFileResult objects."""
-        primary = repro3_source.query()
-        fallback = repro3_source.query_fallback()
-        
-        assert primary.filename == "igsR3.atx"
-        assert fallback.filename == "igsR3.atx"
-        assert primary.ftpserver != fallback.ftpserver  # Different servers
-
-
-@pytest.mark.integration
-class TestIGSAntex:
-    """Test IGS ANTEX source (files.igs.org - HTTP)."""
-
-    def test_query_returns_valid_result(self, igs_source: IGSAntexFTPSource) -> None:
-        """Query should return valid AntexFileResult for different frames."""
-        igs20 = igs_source.query(AntexFrameType.IGS20)
-        igs14 = igs_source.query(AntexFrameType.IGS14)
-        
-        assert igs20.filename == "igs20.atx"
-        assert igs14.filename == "igs14.atx"
-        assert igs20.frame_type == AntexFrameType.IGS20
-        assert igs14.frame_type == AntexFrameType.IGS14
-
-    def test_query_by_filename(self, igs_source: IGSAntexFTPSource) -> None:
-        """Query by filename should detect frame type correctly."""
-        result = igs_source.query_by_filename("igs20_2345.atx")
-        
-        assert result.filename == "igs20_2345.atx"
-        assert result.frame_type == AntexFrameType.IGS20
-        # Week-specific files are in archive
-        assert "archive" in result.directory
-
-
-@pytest.mark.integration
-class TestUnifiedAntexSource:
-    """Test unified AntexProductSource interface."""
-
-    def test_all_query_methods(self) -> None:
-        """All query methods should return valid results."""
-        source = AntexProductSource()
-        
-        # Standard IGS
-        standard = source.query_standard(AntexFrameType.IGS20)
-        assert standard.filename == "igs20.atx"
-        
-        # By filename
-        by_name = source.query_by_filename("igs14.atx")
-        assert by_name.filename == "igs14.atx"
-        
-        # CODE MGEX
-        mgex = source.query_code_mgex(datetime.date(2023, 1, 1))
-        assert mgex.filename == "M20.ATX"
-        
-        # Repro3
-        repro3 = source.query_repro3()
-        assert repro3.filename == "igsR3.atx"
