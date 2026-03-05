@@ -10,10 +10,10 @@ ANTEX File Types
     - **IGS Standard ANTEX**: Official IGS antenna calibrations
       Format: ``igs{frame}_{week}.atx`` or ``igs{frame}.atx``
       Examples: ``igs20_2345.atx``, ``igs14.atx``
-      
+
     - **CODE MGEX ANTEX**: Extended calibrations for CODE MGEX products
       Files: ``M14.ATX`` (before 2021-05-02), ``M20.ATX`` (after)
-      
+
     - **IGS Repro3 ANTEX**: Calibrations for IGS Reprocessing 3
       Format: ``igsR3*.atx``
 
@@ -37,7 +37,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Literal, Optional, List
+from typing import Literal, Optional, List, Tuple
 import requests
 from pydantic import BaseModel
 
@@ -51,10 +51,28 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
+def determine_frame(
+    date: datetime.date | datetime.datetime,
+) -> Literal["08", "14", "20"]:
+    """Determine the appropriate IGS frame based on date."""
+    if isinstance(date, datetime.datetime):
+        date = date.date()
+    # IGS frame transitions:
+    # - igs08: 2011-04-17 to 2017-01-29 (ITRF2008)
+    # - igs14: 2017-01-29 to 2024-04-14 (ITRF2014)
+    # - igs20: 2024-04-14 onwards (ITRF2020)
+    if date >= datetime.date(2024, 4, 14):
+        return "20"
+    elif date >= datetime.date(2017, 1, 29):
+        return "14"
+    else:
+        return "08"
+
+
 def _extract_filenames_from_html(html: str) -> list[str]:
     """
     Extract filenames from an Apache/nginx HTML directory listing.
-    
+
     Parses <a href="filename"> tags to get file names.
     """
     # Match href attributes that look like filenames (not directories or parent links)
@@ -62,11 +80,12 @@ def _extract_filenames_from_html(html: str) -> list[str]:
     matches = re.findall(pattern, html)
     # Filter out non-file entries and decode URL encoding
     from urllib.parse import unquote
+
     filenames = []
     for match in matches:
         decoded = unquote(match)
         # Skip parent directory links and query strings
-        if decoded and not decoded.startswith('?') and not decoded.endswith('/'):
+        if decoded and not decoded.startswith("?") and not decoded.endswith("/"):
             filenames.append(decoded)
     return filenames
 
@@ -82,13 +101,11 @@ CODE_MGEX_DATE_CUTOFF = datetime.date(2021, 5, 2)
 
 class AntexFrameType(str, Enum):
     """Reference frame types for ANTEX files."""
-    
+
     IGS08 = "igs08"
     IGS14 = "igs14"
     IGS20 = "igs20"
     IGSR3 = "igsR3"
-
-
 
 
 @dataclass
@@ -111,27 +128,22 @@ class AntexFileResult:
     ftpserver: str
     directory: str
     filename: str
+    full_url: Optional[str] = None
     frame_type: Optional[AntexFrameType] = None
-
-    @property
-    def url(self) -> str:
-        """Full URL to the remote file."""
-        host = self.ftpserver.rstrip("/")
-        path = self.directory.strip("/")
-        return f"{host}/{path}/{self.filename}"
 
 
 # ---------------------------------------------------------------------------
 # IGS Standard ANTEX (files.igs.org)
 # ---------------------------------------------------------------------------
 
+
 class IGSAntexHTTPSource(BaseModel):
     """HTTP source for IGS ANTEX files."""
-    
+
     httpserver: str = "https://files.igs.org"
     current_dir: str = "pub/station/general"
     archive_dir: str = "pub/station/general/pcv_archive"
-    
+
     def _determine_frame(self, date: datetime.date | datetime.datetime) -> str:
         """Determine the appropriate IGS frame based on date."""
         if isinstance(date, datetime.datetime):
@@ -146,17 +158,23 @@ class IGSAntexHTTPSource(BaseModel):
             return "14"
         else:
             return "08"
-    
-    def _find_antex_file_strict(self,atx_week_pattern: re.Pattern,gps_week: int) -> Optional[str]:
+
+    def _find_antex_file_strict(
+        self, atx_week_pattern: re.Pattern, gps_week: int
+    ) -> Optional[Tuple[str, str, str]]:
 
         try:
             logger.info(f"Querying IGS ANTEX at {self.httpserver}/{self.archive_dir}/")
-            response = requests.get(f"{self.httpserver}/{self.archive_dir}/", timeout=30)
+            response = requests.get(
+                f"{self.httpserver}/{self.archive_dir}/", timeout=30
+            )
             response.raise_for_status()
             # Parse HTML to extract filenames
             filenames = _extract_filenames_from_html(response.text)
             matches = [f for f in filenames if re.match(atx_week_pattern, f)]
-            gps_week_matches = {f: int(re.search(r"igs\d+_(\d{4})\.atx", f).group(1)) for f in matches}
+            gps_week_matches = {
+                f: int(re.search(r"igs\d+_(\d{4})\.atx", f).group(1)) for f in matches
+            }
             # find the file with the largest gps week that is less than or equal to the target gps_week
             best_match = None
             for f, week in gps_week_matches.items():
@@ -164,18 +182,21 @@ class IGSAntexHTTPSource(BaseModel):
                     if best_match is None or week > gps_week_matches[best_match]:
                         best_match = f
             if best_match:
-                full_url = f"{self.httpserver}/{self.archive_dir}/{best_match}"
-                return full_url
+                return self.httpserver, self.archive_dir, best_match
             return None
-            
+
         except requests.RequestException as e:
             logger.error(f"Failed to retrieve strict ANTEX file from IGS archive: {e}")
             return None
-    
-    def _find_antex_file_current(self,atx_current_pattern: re.Pattern) -> Optional[str]:
+
+    def _find_antex_file_current(
+        self, atx_current_pattern: re.Pattern
+    ) -> Optional[Tuple[str, str, str]]:
         try:
             logger.info(f"Querying IGS ANTEX at {self.httpserver}/{self.current_dir}/")
-            response = requests.get(f"{self.httpserver}/{self.current_dir}/", timeout=30)
+            response = requests.get(
+                f"{self.httpserver}/{self.current_dir}/", timeout=30
+            )
             response.raise_for_status()
             # Parse HTML to extract filenames
             filenames = _extract_filenames_from_html(response.text)
@@ -183,63 +204,112 @@ class IGSAntexHTTPSource(BaseModel):
 
             if matches:
                 filename = matches[0]
-                full_url = f"{self.httpserver}/{self.current_dir}/{filename}"
-                return full_url  # Return the first match (should be the latest)
+                return (
+                    self.httpserver,
+                    self.current_dir,
+                    filename,
+                )  # Return the first match (should be the latest)
             return None
-            
+
         except requests.RequestException as e:
             logger.error(f"Failed to retrieve current ANTEX file from IGS: {e}")
             return None
-        
-    def query(self, date: datetime.datetime, strict:bool=True) -> AntexFileResult:
+
+    def query(
+        self, date: datetime.datetime, strict: bool = True
+    ) -> Optional[AntexFileResult]:
         """
         Query for the appropriate ANTEX file for a given date.
-        
+
         Parameters
         ----------
         date : datetime.datetime
             Processing date
-        
+        strict : bool
+            If True, attempt to find the week-specific ANTEX file in the archive first (e.g., igs20_2345.atx).
+            If False, or if no week-specific file is found, fall back to the current file.
+
         Returns
         -------
-        AntexFileResult
-            Result pointing to the ANTEX file
+        Optional[AntexFileResult]
+            Result pointing to the ANTEX file, or None if no file is found.
+
+        Examples
+        --------
+        >>> source = IGSAntexHTTPSource()
+        >>> date = datetime.datetime(2025, 1, 1)
+        >>> result = source.query(date, strict=True)
+        >>> print(result.full_url)
+        'https://files.igs.org/pub/station/general/pcv_archive/igs20_2343.atx'
+        >>> result = source.query(date, strict=False)
+        >>> print(result.full_url)
+        'https://files.igs.org/pub/station/general/igs20.atx'
         """
-        
+        assert isinstance(
+            date, (datetime.date, datetime.datetime)
+        ), "date must be a datetime.date or datetime.datetime object"
+
         gps_week = _date_to_gps_week(date)
-        
+
         # Determine frame version
         frame = self._determine_frame(date)
-        
-        current_gps_week = _date_to_gps_week(datetime.datetime.today().astimezone(datetime.timezone.utc))
-        atx_week_pattern = re.compile(f"igs{frame}_[0-9]{{4}}\\.atx")
-        atx_current_pattern = re.compile(f"igs{frame}\\.atx")
 
-        filename: Optional[str] = None
+        current_gps_week = _date_to_gps_week(
+            datetime.datetime.today().astimezone(datetime.timezone.utc)
+        )
+        atx_week_pattern: re.Pattern = re.compile(f"igs{frame}_[0-9]{{4}}\\.atx")
+        atx_current_pattern: re.Pattern = re.compile(f"igs{frame}\\.atx")
+
+        result: Optional[Tuple[str, str, str]] = None
         if gps_week < current_gps_week and strict:
             # use archive directory
-            filename: Optional[str] = self._find_antex_file_strict(atx_week_pattern, gps_week)
-        if not filename:
-            # Fall back to current directory
-            filename = self._find_antex_file_current(atx_current_pattern)
-
-        if not filename:
-            logger.warning(f"No ANTEX file for igs{frame} found in IGS listing")
-            return AntexFileResult(
-                ftpserver=self.httpserver,
-                directory=self.current_dir,
-                filename="",
-                frame_type=None,
+            result: Optional[Tuple[str, str, str]] = self._find_antex_file_strict(
+                atx_week_pattern, gps_week
             )
+        if not result:
+            # Fall back to current directory
+            result = self._find_antex_file_current(atx_current_pattern)
+
+        if not result:
+            logger.warning(f"No ANTEX file for igs{frame} found in IGS listing")
+            return None
         # Try week-specific file first, then fall back to current file
         # use a regex to find the max week file for the frame that is less than gps_week
 
-    
+        full_url = f"{self.httpserver}/{result[1]}/{result[2]}"
         atnx_frame_type = "igs" + frame
         return AntexFileResult(
             ftpserver=self.httpserver,
-            directory=self.current_dir,
-            filename=filename,
+            directory=result[1],
+            filename=result[2],
+            full_url=full_url,
             frame_type=AntexFrameType(atnx_frame_type),
         )
 
+
+class NGSNOAAAntexHTTPSource(BaseModel):
+    """NGS/NOAA ANTEX source (same structure as IGS, but different server)."""
+
+    httpserver: str = "https://www.ngs.noaa.gov/"
+    archive_dir: str = "ANTCAL/LoadFile?file="
+
+    def query(self, date: datetime.datetime) -> Optional[AntexFileResult]:
+        """Query for the appropriate ANTEX file for a given date."""
+        # NGS/NOAA does not have strict week-based files, so we will just return the current file
+        frame: Literal["08", "14", "20"] = determine_frame(date)
+        filename = f"ngs{frame}.atx"
+        full_url = f"{self.httpserver}/{self.archive_dir}{filename}"
+        # Check if the file exists by making a HEAD request
+        try:
+            response = requests.head(full_url, timeout=30)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            logger.error(f"Failed to retrieve ANTEX file from NGS/NOAA: {e}")
+            return None
+        return AntexFileResult(
+            ftpserver=self.httpserver,
+            directory=self.archive_dir,
+            filename=filename,
+            full_url=full_url,
+            frame_type=AntexFrameType("igs" + frame),
+        )

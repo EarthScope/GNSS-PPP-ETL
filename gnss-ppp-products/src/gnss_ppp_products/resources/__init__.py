@@ -31,11 +31,7 @@ from .reference_tables import (
 from .antennae_resources import (
     AntexFrameType,
     AntexFileResult,
-    IGSAntexFTPSource,
-    CODEMGEXAntexFTPSource,
-    IGSR3AntexFTPSource,
-    CLSIGSAntexFTPSource,
-    AntexProductSource,
+    NGSNOAAAntexHTTPSource,
     IGSAntexHTTPSource,
 )
 from .base import (
