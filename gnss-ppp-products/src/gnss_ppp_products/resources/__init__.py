@@ -36,6 +36,7 @@ from .antennae_resources import (
     IGSR3AntexFTPSource,
     CLSIGSAntexFTPSource,
     AntexProductSource,
+    IGSAntexHTTPSource,
 )
 from .base import (
     ProductQuality,
