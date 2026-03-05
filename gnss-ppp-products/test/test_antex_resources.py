@@ -16,6 +16,7 @@ from gnss_ppp_products.resources import (
     AntexFileResult,
     IGSAntexHTTPSource,
     NGSNOAAAntexHTTPSource,
+    AstroInstMGEXAntexFTPSource,
     determine_frame
 )
 
@@ -98,6 +99,7 @@ IGS_ITRF_14_LABEL = "igs14"
 NGS_CURRENT_LABEL = "ngs_current"
 NGS_PAST_LABEL = "ngs_past"
 NGS_ITRF_14_LABEL = "ngs14_itrf"
+ASTRO_MGEX_LABEL = "astroinst_mgex"
 
 @pytest.fixture(scope="module")
 def igs_results(igs_source: IGSAntexHTTPSource, current_date: datetime.datetime, one_year_ago: datetime.datetime, itrf_14_date: datetime.datetime) -> dict[str, AntexProbeResult]:
@@ -147,7 +149,32 @@ def ngs_results(ngs_source: NGSNOAAAntexHTTPSource,current_date: datetime.dateti
     
     return results
 
-
+@pytest.fixture(scope="module")
+def astroinst_mgex_antex_results(current_date: datetime.datetime) -> dict[str, AntexProbeResult]:
+    """Probe AstroInst MGEX FTP server for ANTEX files."""
+    results = {}
+    ftp_source = AstroInstMGEXAntexFTPSource()
+    try:
+        ftp_result:AntexFileResult = ftp_source.query(current_date)
+        if ftp_result:
+            # Convert FTP result to HTTP probe result for consistency
+            fttp_result = AntexFileResult(
+                ftpserver=ftp_result.ftpserver,
+                directory=ftp_result.directory,
+                filename=ftp_result.filename,
+                full_url=f"{ftp_result.ftpserver}/{ftp_result.directory}/{ftp_result.filename}",
+                frame_type=ftp_result.frame_type
+            )
+            results[ASTRO_MGEX_LABEL] = AntexProbeResult(
+                label=ASTRO_MGEX_LABEL,
+                url=fttp_result.full_url,
+                found=True,
+                filename=fttp_result.filename
+            )
+    except Exception as e:
+        logger.error(f"Error probing AstroInst MGEX FTP source: {e}")
+    
+    return results
 # ---------------------------------------------------------------------------
 # Tests: IGS ANTEX HTTP Source
 # ---------------------------------------------------------------------------
@@ -252,7 +279,16 @@ class TestNGSAntexHTTPSource:
         assert result.full_url.startswith("https://")
         assert "ngs20.atx" in result.full_url
 
+@pytest.mark.integration
+class TestAstroInstMGEXAntexFTPSource:
+    """Test AstroInst MGEX ANTEX file availability via FTP."""
 
+    def test_astroinst_mgex_found(self, astroinst_mgex_antex_results: dict[str, AntexProbeResult]) -> None:
+        """AstroInst MGEX should provide an ANTEX file."""
+        result = astroinst_mgex_antex_results.get(ASTRO_MGEX_LABEL)
+        assert result is not None, "Query returned None"
+        assert result.found, f"AstroInst MGEX ANTEX not found at {result.url}"
+        logger.info(f"[AstroInst MGEX] ANTEX found: {result.filename}")
 # ---------------------------------------------------------------------------
 # Tests: Comparison between sources
 # ---------------------------------------------------------------------------

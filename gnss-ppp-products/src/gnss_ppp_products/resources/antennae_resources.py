@@ -298,3 +298,32 @@ class NGSNOAAAntexHTTPSource(BaseModel):
             full_url=full_url,
             frame_type=frame,
         )
+
+
+class AstroInstMGEXAntexFTPSource(BaseModel):
+    """FTP source for CODE MGEX ANTEX files.
+    CODE MGEX products use slightly different antenna calibrations than the standard IGS models. Using mismatched antenna files would introduce systematic errors in the position estimates, so this override ensures consistency between the clock products and the antenna phase center corrections.
+    """
+
+    ftpserver: str = "ftp.aiub.unibe.ch"
+    directory: str = "/CODE_MGEX/CODE"
+
+    def query(self, date: datetime.datetime) -> Optional[AntexFileResult]:
+        """Query for the appropriate CODE MGEX ANTEX file for a given date."""
+        if date.date() < CODE_MGEX_DATE_CUTOFF:
+            regex = "M14.ATX"
+        else:
+            regex = "M20.ATX"
+        dir_listing = ftp_list_directory(self.ftpserver, self.directory, timeout=60)
+        if not dir_listing:
+            logger.warning(f"No files found in directory {self.directory} on {self.ftpserver}")
+            return None
+        filename = find_best_match_in_listing(dir_listing, regex)
+        if filename:
+            return AntexFileResult(
+                ftpserver=self.ftpserver,
+                directory=self.directory,
+                filename=filename,
+                full_url=f"ftp://{self.ftpserver}/{self.directory}/{filename}",
+                frame_type=determine_frame(date),
+            )
