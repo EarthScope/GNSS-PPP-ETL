@@ -192,10 +192,10 @@ class TestIGSAntexHTTPSource:
         assert result_2020 is not None
         assert result_2020 == IGSAntexReferenceFrameType.IGS14
 
-        result_2014:IGSAntexReferenceFrameType = determine_frame(datetime.datetime(2014, 1, 1))
+        result_2014:IGSAntexReferenceFrameType = determine_frame(datetime.datetime(2012, 1, 1))
         assert result_2014 is not None
-        assert result_2014 == IGSAntexReferenceFrameType.IGS14
-        
+        assert result_2014 == IGSAntexReferenceFrameType.IGS08
+
         result_2011:IGSAntexReferenceFrameType = determine_frame(datetime.datetime(2011, 1, 1))
         assert result_2011 is not None
         assert result_2011 == IGSAntexReferenceFrameType.IGS05
