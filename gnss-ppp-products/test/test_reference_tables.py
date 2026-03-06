@@ -156,3 +156,51 @@ class TestCDDISReferenceTables:
         
         assert leap_url.startswith("ftp://"), f"Invalid leap_sec URL: {leap_url}"
         assert "leapsec" in leap_url or "leap" in leap_url
+
+
+# ---------------------------------------------------------------------------
+# Tests for standardized .query() interface
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+class TestQueryInterface:
+    """Test the standardized .query() interface for reference tables."""
+
+    def test_wuhan_query_leap_seconds(self, wuhan_source: WuhanProductTableFTPSource) -> None:
+        """Wuhan query() should return leap_seconds result."""
+        result = wuhan_source.query(product="leap_seconds")
+        
+        assert result is not None
+        assert result.filename == "leap.sec"
+        assert "igs.gnsswhu.cn" in result.server
+        assert result.table_type.value == "leap_seconds"
+        logger.info(f"[Wuhan] query('leap_seconds') URL: {result.url}")
+
+    def test_wuhan_query_sat_parameters(self, wuhan_source: WuhanProductTableFTPSource) -> None:
+        """Wuhan query() should return sat_parameters result."""
+        result = wuhan_source.query(product="sat_parameters")
+        
+        assert result is not None
+        assert result.filename == "sat_parameters"
+        assert result.table_type.value == "sat_parameters"
+        logger.info(f"[Wuhan] query('sat_parameters') URL: {result.url}")
+
+    def test_cddis_query_leap_seconds(self, cddis_source: CDDISProductTableFTPSource) -> None:
+        """CDDIS query() should return leap_seconds result."""
+        result = cddis_source.query(product="leap_seconds")
+        
+        assert result is not None
+        assert result.filename == "leapsec.dat"
+        assert "cddis" in result.server
+        assert result.table_type.value == "leap_seconds"
+        logger.info(f"[CDDIS] query('leap_seconds') URL: {result.url}")
+
+    def test_wuhan_invalid_product_raises(self, wuhan_source: WuhanProductTableFTPSource) -> None:
+        """Invalid product should raise ValueError."""
+        with pytest.raises(ValueError, match="Unknown product type"):
+            wuhan_source.query(product="invalid_product")  # type: ignore
+
+    def test_cddis_invalid_product_raises(self, cddis_source: CDDISProductTableFTPSource) -> None:
+        """Invalid product should raise ValueError."""
+        with pytest.raises(ValueError, match="Unknown product type"):
+            cddis_source.query(product="invalid_product")  # type: ignore

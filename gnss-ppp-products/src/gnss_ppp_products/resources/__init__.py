@@ -26,7 +26,6 @@ from .orbit_clock_resources import (
     CLSIGSFTPProductSource,
     KASIFTPProductSource,
     CDDISFTPProductSource,
-    IGNMGEXFTPProductSource,
 )
 from .navigation_resources import (
     WuhanNavFileFTPProductSource,
@@ -34,6 +33,8 @@ from .navigation_resources import (
     CDDISNavFileFTPProductSource,
 )
 from .reference_tables import (
+    ReferenceTableType,
+    ReferenceTableResult,
     WuhanProductTableFTPSource,
     CDDISProductTableFTPSource,
 )

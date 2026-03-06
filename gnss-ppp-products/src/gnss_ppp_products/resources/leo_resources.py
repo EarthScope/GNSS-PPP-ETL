@@ -170,16 +170,43 @@ class GFZGRACEFTPProductSource(BaseModel):
     Example
     -------
     >>> source = GFZGRACEFTPProductSource()
-    >>> result = source.query_level1b(
-    ...     datetime.date(2024, 1, 15),
+    >>> result = source.query(
+    ...     date=datetime.date(2024, 1, 15),
     ...     mission=GRACEMission.GRACE_FO,
-    ...     instrument="GNV1B"
+    ...     product="GNV1B"
     ... )
     >>> print(result.url)
     """
     
     directory_source: GFZGRACEDirectorySource = GFZGRACEDirectorySource()
     file_regex: GFZGRACEFileRegex = GFZGRACEFileRegex()
+    
+    def query(
+        self,
+        date: datetime.date,
+        product: str = "GNV1B",
+        mission: GRACEMission = GRACEMission.GRACE_FO,
+    ) -> Optional[GRACEFileResult]:
+        """
+        Query for a GRACE/GRACE-FO Level-1B product.
+        
+        Parameters
+        ----------
+        date : datetime.date
+            Date for which to retrieve the product.
+        product : str
+            Instrument/product type (e.g., "GNV1B", "ACC1B", "SCA1B", "SOFTWARE").
+        mission : GRACEMission
+            GRACE or GRACE-FO mission.
+            
+        Returns
+        -------
+        GRACEFileResult or None
+            File result if found.
+        """
+        if product == "SOFTWARE":
+            return self.query_software()
+        return self.query_level1b(date=date, mission=mission, instrument=product)
     
     def query_level1b(
         self,

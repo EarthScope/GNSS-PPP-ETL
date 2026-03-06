@@ -120,10 +120,10 @@ class TestGFZGRACEFTPProductSource:
         """Test querying GRACE-FO GNV1B (GPS Navigation) data."""
         log.info("Testing GRACE-FO GNV1B query for %s", DATE_GRACE_FO)
         
-        result = source.query_level1b(
+        result = source.query(
             date=DATE_GRACE_FO,
             mission=GRACEMission.GRACE_FO,
-            instrument="GNV1B",
+            product="GNV1B",
         )
         
         # Note: This may return None if the GFZ FTP is unavailable
@@ -139,10 +139,10 @@ class TestGFZGRACEFTPProductSource:
         """Test querying original GRACE GNV1B data."""
         log.info("Testing GRACE GNV1B query for %s", DATE_GRACE)
         
-        result = source.query_level1b(
+        result = source.query(
             date=DATE_GRACE,
             mission=GRACEMission.GRACE,
-            instrument="GNV1B",
+            product="GNV1B",
         )
         
         if result is not None:
@@ -154,19 +154,19 @@ class TestGFZGRACEFTPProductSource:
 
     def test_mission_date_validation_grace_fo(self, source: GFZGRACEFTPProductSource) -> None:
         """Test that GRACE-FO rejects dates before 2018."""
-        result = source.query_level1b(
+        result = source.query(
             date=datetime.date(2015, 1, 1),
             mission=GRACEMission.GRACE_FO,
-            instrument="GNV1B",
+            product="GNV1B",
         )
         assert result is None
 
     def test_mission_date_validation_grace(self, source: GFZGRACEFTPProductSource) -> None:
         """Test that GRACE warns about dates after 2017."""
-        result = source.query_level1b(
+        result = source.query(
             date=datetime.date(2020, 1, 1),
             mission=GRACEMission.GRACE,
-            instrument="GNV1B",
+            product="GNV1B",
         )
         assert result is None
 
@@ -218,10 +218,10 @@ class TestGRACESummary:
         
         for instrument in INSTRUMENTS:
             try:
-                file_result = source.query_level1b(
+                file_result = source.query(
                     date=DATE_GRACE_FO,
                     mission=GRACEMission.GRACE_FO,
-                    instrument=instrument,
+                    product=instrument,
                 )
                 results.append(GRACEProbeResult(
                     mission=GRACEMission.GRACE_FO,
