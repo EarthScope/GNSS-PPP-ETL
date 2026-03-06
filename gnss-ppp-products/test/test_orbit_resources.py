@@ -28,7 +28,7 @@ from typing import Optional, Type
 
 import pytest
 
-from gnss_ppp_products.resources import WuhanFTPProductSource, CLSIGSFTPProductSource,KASDIFTPProductSource,CDDISFTPProductSource
+from gnss_ppp_products.resources import WuhanFTPProductSource, CLSIGSFTPProductSource,KASIFTPProductSource,CDDISFTPProductSource
 from gnss_ppp_products.resources.base import FTPFileResult, FTPProductSource, ProductQuality
 
 log = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ QUALITY_ORDER: list[ProductQuality] = [
 FTP_SOURCES: list[tuple[str, Type[FTPProductSource]]] = [
     ("Wuhan", WuhanFTPProductSource),
     ("CLSIGS", CLSIGSFTPProductSource),
-    ("KASDI", KASDIFTPProductSource),
+    ("KASI", KASIFTPProductSource),
     ("CDDIS", CDDISFTPProductSource),
 ]
 

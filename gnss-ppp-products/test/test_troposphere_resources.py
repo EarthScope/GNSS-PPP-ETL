@@ -29,10 +29,12 @@ import pytest
 from gnss_ppp_products.resources.troposphere_resources import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
-    CODEGIMProductSource,
-    VMFProductSource,
-    AtmosphericProductSource,
+    VMFHTTPProductSource,
 )
+from gnss_ppp_products.resources.ionosphere_resources import (
+    CODEGIMProductSource,
+)
+import requests
 
 log = logging.getLogger(__name__)
 
@@ -148,24 +150,25 @@ def gim_results() -> dict[str, GIMProbeResult]:
 @pytest.fixture(scope="module")
 def vmf_results() -> dict[str, list[VMFProbeResult]]:
     """
-    Query VMF FTP for VMF1 and VMF3 products.
+    Query VMF HTTP for VMF1 and VMF3 products.
 
     Returns:
         dict mapping product_type → list of VMFProbeResult per hour
     """
-    source = VMFProductSource()
+    source = VMFHTTPProductSource()
     results: dict[str, list[VMFProbeResult]] = {"vmf1": [], "vmf3": []}
 
-    log.info("Probing VMF FTP — %s (DOY %03d)", DATE, DOY)
+    log.info("Probing VMF HTTP — %s (DOY %03d)", DATE, DOY)
 
     for product_type in ["vmf1", "vmf3"]:
         for hour in VMF_HOURS:
             probe = VMFProbeResult(product_type=product_type, hour=hour)
             try:
+                hour_str = f"H{hour:02d}"
                 if product_type == "vmf1":
-                    file_result = source.query_vmf1(DATE, hour)
+                    file_result = source.query(DATE, resolution="2.5x2", product="VMF1", hour=hour_str)
                 else:
-                    file_result = source.query_vmf3(DATE, hour)
+                    file_result = source.query(DATE, resolution="1x1", product="VMF3", hour=hour_str)
             except Exception as exc:
                 probe.error = str(exc)
                 log.warning("  [%s] H%02d — ERROR: %s", product_type.upper(), hour, exc)
@@ -182,44 +185,7 @@ def vmf_results() -> dict[str, list[VMFProbeResult]]:
 
             results[product_type].append(probe)
 
-    _print_vmf_summary(source.directory_source.ftpserver, results)
-    return results
-
-
-@pytest.fixture(scope="module")
-def unified_results() -> dict[str, Optional[AtmosphericFileResult]]:
-    """
-    Test the unified AtmosphericProductSource interface.
-
-    Returns:
-        dict with gim and vmf results
-    """
-    source = AtmosphericProductSource()
-    results: dict[str, Optional[AtmosphericFileResult]] = {}
-
-    log.info("Probing via AtmosphericProductSource — %s (DOY %03d)", DATE, DOY)
-
-    # GIM with fallback
-    try:
-        results["gim"] = source.query_gim(DATE, fallback=True)
-    except Exception as exc:
-        log.warning("  [UNIFIED] GIM — ERROR: %s", exc)
-        results["gim"] = None
-
-    # VMF1
-    try:
-        results["vmf1"] = source.query_vmf(DATE, version="vmf1", hour=0)
-    except Exception as exc:
-        log.warning("  [UNIFIED] VMF1 — ERROR: %s", exc)
-        results["vmf1"] = None
-
-    # VMF3
-    try:
-        results["vmf3"] = source.query_vmf(DATE, version="vmf3", hour=0)
-    except Exception as exc:
-        log.warning("  [UNIFIED] VMF3 — ERROR: %s", exc)
-        results["vmf3"] = None
-
+    _print_vmf_summary(source.http_server, results)
     return results
 
 
@@ -368,8 +334,6 @@ class TestCODEGIMProducts:
 # Integration tests — VMF
 # ---------------------------------------------------------------------------
 
-
-#@pytest.mark.skip(reason="VMF server often unreachable/slow - run manually when needed")
 class TestVMFProducts:
     """
     Integration tests for VMF troposphere products.
@@ -431,47 +395,15 @@ class TestVMFProducts:
             for probe in probes:
                 if not probe.found:
                     continue
-                assert probe.url.startswith("ftp://"), (
-                    f"{product_type.upper()} URL '{probe.url}' "
-                    "does not start with 'ftp://'"
-                )
-
-
-# ---------------------------------------------------------------------------
-# Integration tests — Unified interface
-# ---------------------------------------------------------------------------
-
-
-class TestUnifiedAtmosphericSource:
-    """
-    Integration tests for the unified AtmosphericProductSource interface.
-    """
-
-    def test_unified_gim_query(
-        self, unified_results: dict[str, Optional[AtmosphericFileResult]]
-    ) -> None:
-        """Unified GIM query with fallback should find a product."""
-        gim = unified_results.get("gim")
-        assert gim is not None, (
-            f"Unified GIM query failed for {DATE}. "
-            "Expected at least one quality level to succeed."
-        )
-        assert gim.product_type == "gim"
-
-    #@pytest.mark.skip(reason="VMF server often unreachable - run manually")
-    def test_unified_vmf1_query(
-        self, unified_results: dict[str, Optional[AtmosphericFileResult]]
-    ) -> None:
-        """Unified VMF1 query should find a product."""
-        vmf1 = unified_results.get("vmf1")
-        assert vmf1 is not None, f"Unified VMF1 query failed for {DATE}"
-        assert vmf1.product_type == "vmf1"
-
-    #@pytest.mark.skip(reason="VMF server often unreachable - run manually")
-    def test_unified_vmf3_query(
-        self, unified_results: dict[str, Optional[AtmosphericFileResult]]
-    ) -> None:
-        """Unified VMF3 query should find a product."""
-        vmf3 = unified_results.get("vmf3")
-        assert vmf3 is not None, f"Unified VMF3 query failed for {DATE}"
-        assert vmf3.product_type == "vmf3"
+                # Quick check with header request to validate URL (without downloading full file)
+                try:
+                    
+                    response = requests.head(probe.url, timeout=10)
+                    assert response.status_code == 200, (
+                        f"{product_type.upper()} URL '{probe.url}' is not accessible "
+                        f"(status code {response.status_code})"
+                    )
+                except Exception as e:
+                    pytest.fail(
+                        f"{product_type.upper()} URL '{probe.url}' is not accessible: {e}"
+                    )

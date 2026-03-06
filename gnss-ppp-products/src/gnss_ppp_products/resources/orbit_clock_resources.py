@@ -241,7 +241,7 @@ class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
         return self.product_obx.format(gps_week=gps_week)
 
 
-class KASDIFTPProductSource(WuhanFTPProductSource):
+class KASIFTPProductSource(WuhanFTPProductSource):
     product_directory_source: KASIDirectorySourceFTP = KASIDirectorySourceFTP()
 
 

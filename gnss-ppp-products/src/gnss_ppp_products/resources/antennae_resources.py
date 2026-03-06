@@ -131,6 +131,15 @@ class AntexFileResult:
     full_url: Optional[str] = None
     frame_type: Optional[IGSAntexReferenceFrameType] = None
 
+    @property
+    def url(self) -> str:
+        """Full URL to the remote file."""
+        if self.full_url:
+            return self.full_url
+        host = self.ftpserver.rstrip("/")
+        path = self.directory.strip("/")
+        return f"{host}/{path}/{self.filename}"
+
 
 # ---------------------------------------------------------------------------
 # IGS Standard ANTEX (files.igs.org)
@@ -140,7 +149,7 @@ class AntexFileResult:
 class IGSAntexHTTPSource(BaseModel):
     """HTTP source for IGS ANTEX files."""
 
-    httpserver: str = "https://files.igs.org"
+    http_server: str = "https://files.igs.org"
     current_dir: str = "pub/station/general"
     archive_dir: str = "pub/station/general/pcv_archive"
 
@@ -149,9 +158,9 @@ class IGSAntexHTTPSource(BaseModel):
     ) -> Optional[Tuple[str, str, str]]:
 
         try:
-            logger.info(f"Querying IGS ANTEX at {self.httpserver}/{self.archive_dir}/")
+            logger.info(f"Querying IGS ANTEX at {self.http_server}/{self.archive_dir}/")
             response = requests.get(
-                f"{self.httpserver}/{self.archive_dir}/", timeout=30
+                f"{self.http_server}/{self.archive_dir}/", timeout=30
             )
             response.raise_for_status()
             # Parse HTML to extract filenames
@@ -167,7 +176,7 @@ class IGSAntexHTTPSource(BaseModel):
                     if best_match is None or week > gps_week_matches[best_match]:
                         best_match = f
             if best_match:
-                return self.httpserver, self.archive_dir, best_match
+                return self.http_server, self.archive_dir, best_match
             return None
 
         except requests.RequestException as e:
@@ -178,9 +187,9 @@ class IGSAntexHTTPSource(BaseModel):
         self, atx_current_pattern: re.Pattern
     ) -> Optional[Tuple[str, str, str]]:
         try:
-            logger.info(f"Querying IGS ANTEX at {self.httpserver}/{self.current_dir}/")
+            logger.info(f"Querying IGS ANTEX at {self.http_server}/{self.current_dir}/")
             response = requests.get(
-                f"{self.httpserver}/{self.current_dir}/", timeout=30
+                f"{self.http_server}/{self.current_dir}/", timeout=30
             )
             response.raise_for_status()
             # Parse HTML to extract filenames
@@ -190,7 +199,7 @@ class IGSAntexHTTPSource(BaseModel):
             if matches:
                 filename = matches[0]
                 return (
-                    self.httpserver,
+                    self.http_server,
                     self.current_dir,
                     filename,
                 )  # Return the first match (should be the latest)
@@ -261,10 +270,10 @@ class IGSAntexHTTPSource(BaseModel):
         # Try week-specific file first, then fall back to current file
         # use a regex to find the max week file for the frame that is less than gps_week
 
-        full_url = f"{self.httpserver}/{result[1]}/{result[2]}"
+        full_url = f"{self.http_server}/{result[1]}/{result[2]}"
         
         return AntexFileResult(
-            ftpserver=self.httpserver,
+            ftpserver=self.http_server,
             directory=result[1],
             filename=result[2],
             full_url=full_url,
@@ -275,7 +284,7 @@ class IGSAntexHTTPSource(BaseModel):
 class NGSNOAAAntexHTTPSource(BaseModel):
     """NGS/NOAA ANTEX source (same structure as IGS, but different server)."""
 
-    httpserver: str = "https://www.ngs.noaa.gov/"
+    http_server: str = "https://www.ngs.noaa.gov/"
     archive_dir: str = "ANTCAL/LoadFile?file="
 
     def query(self, date: datetime.datetime) -> Optional[AntexFileResult]:
@@ -283,7 +292,7 @@ class NGSNOAAAntexHTTPSource(BaseModel):
         # NGS/NOAA does not have strict week-based files, so we will just return the current file
         frame: IGSAntexReferenceFrameType = determine_frame(date)
         filename = f"ngs{frame.value[-2:]}.atx"
-        full_url = f"{self.httpserver}/{self.archive_dir}{filename}"
+        full_url = f"{self.http_server}/{self.archive_dir}{filename}"
         # Check if the file exists by making a HEAD request
         try:
             response = requests.head(full_url, timeout=30)
@@ -292,7 +301,7 @@ class NGSNOAAAntexHTTPSource(BaseModel):
             logger.error(f"Failed to retrieve ANTEX file from NGS/NOAA: {e}")
             return None
         return AntexFileResult(
-            ftpserver=self.httpserver,
+            ftpserver=self.http_server,
             directory=self.archive_dir,
             filename=filename,
             full_url=full_url,

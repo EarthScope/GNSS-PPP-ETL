@@ -1,23 +1,21 @@
 """
-Atmospheric Products FTP Resources
-==================================
+Troposphere Products Resources
+==============================
 
-This module provides FTP resources for downloading atmospheric correction products
-used in GNSS Precise Point Positioning (PPP):
+This module provides FTP/HTTP resources for downloading tropospheric correction
+products used in GNSS Precise Point Positioning (PPP):
 
-    - **GIM** (Global Ionosphere Maps): VTEC grids for ionospheric correction
     - **VMF** (Vienna Mapping Functions): Troposphere mapping and delay coefficients
 
 Product Categories
 ------------------
-These are distinct from orbit/clock products in that they:
-    - Provide correction models rather than satellite states
-    - May have different quality tiers (FINAL, RAPID, PREDICTED)
-    - Often use different FTP servers than orbit/clock products
+These products provide:
+    - Hydrostatic and wet mapping function coefficients
+    - Zenith hydrostatic and wet delay values
+    - Used for precise tropospheric modeling in PPP
 
 Servers
 -------
-    - CODE (ftp.aiub.unibe.ch): GIM products in IONEX format
     - VMF Data Server (vmf.geo.tuwien.ac.at): VMF1/VMF3 grid products
 """
 
@@ -76,10 +74,13 @@ class AtmosphericFileResult:
     filename: str
     product_type: str
     quality: AtmosphericProductQuality
+    full_url: Optional[str] = None
 
     @property
     def url(self) -> str:
         """Full FTP URL to the remote file."""
+        if self.full_url:
+            return self.full_url
         host = self.ftpserver.rstrip("/")
         path = self.directory.strip("/")
         return f"{host}/{path}/{self.filename}"
@@ -138,6 +139,11 @@ class VMFFileRegex(BaseModel):
         year, doy = _parse_date(date)
         month = str(date.month).zfill(2)
         day = str(date.day).zfill(2)
+        match product:
+            case "VMF1":
+                product = "VMFG"
+            case _:
+                pass
         return self.regex.format(product=product.upper(), year=year, month=month, day=day, hh=hour)
 
 
@@ -193,7 +199,13 @@ class VMFHTTPProductSource(BaseModel):
                 assert product == "VMF3", "Only VMF3 is available at 5x5 resolution"
             case _:
                 raise ValueError(f"Unsupported resolution: {resolution}")
-            
+        
+        match product:
+            case "VMF1":
+                assert date.year >= 1985, "VMF1 products are only available from 1985 onwards"
+            case "VMF3":
+                assert date.year >= 2008, "VMF3 products are only available from 2008 onwards"
+
         year,doy = _parse_date(date)
 
         directory = self.archive_dir.format(resolution=resolution, product=product.upper(), year=year)

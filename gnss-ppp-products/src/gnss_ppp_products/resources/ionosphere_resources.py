@@ -112,6 +112,15 @@ class IonosphereFileResult:
     full_url: Optional[str] = None
     quality: IonosphereProductQuality = IonosphereProductQuality.FINAL
 
+    @property
+    def url(self) -> str:
+        """Full URL to the remote file."""
+        if self.full_url:
+            return self.full_url
+        host = self.ftpserver.rstrip("/")
+        path = self.directory.strip("/")
+        return f"{host}/{path}/{self.filename}"
+
 
 # ---------------------------------------------------------------------------
 # CODE GIM Products (Primary Source - AIUB Bern)

@@ -16,17 +16,16 @@ from .troposphere_resources import (
     VMFHTTPProductSource,
   
 )
-from .orbit_clock_products import (
+from .orbit_clock_resources import (
     WuhanFTPProductSource,
     CLSIGSFTPProductSource,
-    KASDIFTPProductSource,
+    KASIFTPProductSource,
     CDDISFTPProductSource
 )
-from .navigation_products import (
+from .navigation_resources import (
     WuhanNavFileFTPProductSource,
     CLSIGSNavFileFTPProductSource,
     CDDISNavFileFTPProductSource,
-
 )
 from .reference_tables import (
     WuhanProductTableFTPSource,
