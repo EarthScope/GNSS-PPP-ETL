@@ -27,6 +27,7 @@ from .orbit_clock_resources import (
     KASIFTPProductSource,
     CDDISFTPProductSource,
     ProductTypes as OrbitClockProductTypes,
+    OrbitClockFTPProductSource,
 )
 from .navigation_resources import (
     WuhanNavFileFTPProductSource,

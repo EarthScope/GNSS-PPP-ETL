@@ -38,7 +38,7 @@ class ProductTypes(Enum):
 # ---------------------------------------------------------------------------
 
 
-class Group1FileRegex(BaseModel):
+class Group1FileRegex(ProductFileSourceRegex):
 
     templates: dict[str, str] = {
         "sp3": "{quality}.*{year}{doy}.*SP3.*",
@@ -61,7 +61,7 @@ class Group1FileRegex(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class WuhanDirectorySourceFTP(BaseModel):
+class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
 
     paths: dict[str, str] = {
         "sp3": "pub/whu/phasebias/{year}/orbit/",
@@ -78,33 +78,38 @@ class WuhanDirectorySourceFTP(BaseModel):
         return self.paths[product.value].format(year=year)
 
 
-class CLSIGSDirectorySourceFTP(BaseModel):
+class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
 
-    ftpserver: str = IGS_FTP
-    base_path: str = "pub/igs/products/{gps_week}"
-
-    def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.base_path.format(gps_week=gps_week)
-
-
-class KASIDirectorySourceFTP(BaseModel):
-
-    ftpserver: str = KASI_FTP
-    base_path: str = "gps/products/{gps_week}"
+        
+    paths: dict[str, str] = {
+        "base": "pub/igs/products/{gps_week}"
+    }
 
     def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
         gps_week = _date_to_gps_week(date)
-        return self.base_path.format(gps_week=gps_week)
+        return self.paths["base"].format(gps_week=gps_week)
 
 
-class CDDISDirectorySourceFTP(BaseModel):
+class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
 
-    base_path: str = "gnss/products/{gps_week}"
+    paths: dict[str, str] = {
+        "base": "gps/products/{gps_week}"
+    }
 
     def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
         gps_week = _date_to_gps_week(date)
-        return self.base_path.format(gps_week=gps_week)
+        return self.paths["base"].format(gps_week=gps_week)
+
+
+class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
+
+    paths: dict[str, str] = {
+        "base": "gnss/products/{gps_week}"
+    }
+
+    def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.paths["base"].format(gps_week=gps_week)
 
 
 # ---------------------------------------------------------------------------
@@ -112,10 +117,10 @@ class CDDISDirectorySourceFTP(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class GenericFTPProductSource(FTPProductSource):
+class OrbitClockFTPProductSource(FTPProductSource):
     ftpserver: str
     product_filesource_regex: Group1FileRegex
-    product_directory_source: ProductDirectorySourceFTP
+    product_directory_source: ProductDirectorySourceFTP  # Accepts WuhanDirectorySourceFTP, CLSIGSDirectorySourceFTP, etc.
 
     def _search(
         self, regex: str, directory: str, quality: ProductQuality
@@ -166,28 +171,28 @@ class GenericFTPProductSource(FTPProductSource):
 # ---------------------------------------------------------------------------
 
 
-WuhanFTPProductSource = GenericFTPProductSource(
+WuhanFTPProductSource = OrbitClockFTPProductSource(
     ftpserver=WUHAN_FTP,
     product_filesource_regex=Group1FileRegex(),
     product_directory_source=WuhanDirectorySourceFTP()
 )
 
 
-CLSIGSFTPProductSource = GenericFTPProductSource(
+CLSIGSFTPProductSource = OrbitClockFTPProductSource(
     ftpserver=IGS_FTP,
     product_filesource_regex=Group1FileRegex(),
     product_directory_source=CLSIGSDirectorySourceFTP()
 )
 
 
-KASIFTPProductSource = GenericFTPProductSource(
+KASIFTPProductSource = OrbitClockFTPProductSource(
     ftpserver=KASI_FTP, 
     product_filesource_regex=Group1FileRegex(),
     product_directory_source=KASIDirectorySourceFTP()
 )
 
 
-CDDISFTPProductSource = GenericFTPProductSource(
+CDDISFTPProductSource = OrbitClockFTPProductSource(
     ftpserver=ESA_FTP,  
     product_filesource_regex=Group1FileRegex(),
     product_directory_source=CDDISDirectorySourceFTP()

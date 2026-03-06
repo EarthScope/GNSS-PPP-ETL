@@ -114,77 +114,45 @@ class ProductFileSourceRegex(BaseModel, ABC):
     Base class for product file sources that are identified by a regex pattern.
     """
 
-    product_sp3: str
-    product_obx: str
-    product_clk: str
-    product_erp: str
-    product_sum: str
-    product_bias: str
+    templates: dict[str, str] = {}
 
 
     @abstractmethod
-    def sp3(self,date: datetime.datetime) -> str:
-        pass
-    
-    @abstractmethod
-    def obx(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def clk(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def erp(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def sum(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def bias(self,date: datetime.datetime) -> str:
+    def build(self) -> str:
+        """
+        Build the regex pattern for the product file based on the provided templates.
+        This method should be implemented by subclasses to generate the appropriate
+        regex pattern for the specific product type and date.
+        Returns
+        -------
+        str
+            The regex pattern to match the desired product file.
+        """
         pass
 
 
 
 class ProductDirectorySourceFTP(ABC,BaseModel):
-    ftpserver: str
-    product_sp3: Optional[str] = None
-    product_clk: Optional[str] = None
-    product_sum: Optional[str] = None
-    product_bias: Optional[str] = None
-    product_erp: Optional[str] = None
-    product_obx: Optional[str] = None
+    paths : dict[str, str] = {}
 
     @abstractmethod
-    def sp3(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def clk(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def erp(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def obx(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def bias(self,date: datetime.datetime) -> str:
-        pass
-
-    @abstractmethod
-    def sum(self,date: datetime.datetime) -> str:
+    def directory(self) -> str:
+        """
+        Build the remote directory path on the FTP server based on the provided paths.
+        This method should be implemented by subclasses to generate the appropriate
+        directory path for the specific product type and date.
+        Returns
+        -------
+        str
+            The remote directory path on the FTP server where the desired product file is located.
+        """
         pass
 
 class FTPProductSource(ABC,BaseModel):
     """
     Base class for FTP product sources.
     """
+    ftpserver: str
     product_filesource_regex: ProductFileSourceRegex
     product_directory_source: ProductDirectorySourceFTP
 
@@ -211,15 +179,7 @@ class FTPProductSource(ABC,BaseModel):
     def query(
         self,
         date: datetime.datetime,
-        product: Literal[
-            "sp3",
-            "orbit",
-            "clk",
-            "sum",
-            "bias",
-            "erp",
-            "obx",
-        ],
+        product: str,
         quality: ProductQuality,
     ) -> Optional[str]:
         """
@@ -229,9 +189,9 @@ class FTPProductSource(ABC,BaseModel):
         date : datetime.datetime
             The date for which to query the product file.
         quality : ProductQuality
-            The quality level of the product file.
-        constellation : ConstellationCode
-            The GNSS constellation code.
+            The quality level of the product file to search for.
+        product : str
+            The type of product to query (e.g., "sp3", "clk", etc.).
         Returns
         -------
         Optional[str]

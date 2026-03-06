@@ -28,7 +28,7 @@ from typing import Optional, Type
 
 import pytest
 
-from gnss_ppp_products.resources import WuhanFTPProductSource, CLSIGSFTPProductSource,KASIFTPProductSource,CDDISFTPProductSource,OrbitClockProductTypes
+from gnss_ppp_products.resources import OrbitClockFTPProductSource, WuhanFTPProductSource, CLSIGSFTPProductSource,KASIFTPProductSource,CDDISFTPProductSource,OrbitClockProductTypes
 from gnss_ppp_products.resources.base import FTPFileResult, FTPProductSource, ProductQuality
 
 log = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ QUALITY_ORDER: list[ProductQuality] = [
 ]
 
 # FTP sources to test
-FTP_SOURCES: list[tuple[str, Type[FTPProductSource]]] = [
+FTP_SOURCES: list[tuple[str, OrbitClockFTPProductSource]] = [
     ("Wuhan", WuhanFTPProductSource),
     ("CLSIGS", CLSIGSFTPProductSource),
     ("KASI", KASIFTPProductSource),
@@ -110,8 +110,8 @@ def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
     """
     all_results: dict[str, dict[str, dict[str, ProbeResult]]] = {}
 
-    for source_name, source_cls in FTP_SOURCES:
-        source = source_cls()
+    for source_name, source in FTP_SOURCES:
+     
         results: dict[str, dict[str, ProbeResult]] = defaultdict(dict)
 
         log.info("Probing %s FTP — %s (DOY %03d, GPS week %d)", source_name, DATE, DOY, GPS_WEEK)
@@ -204,7 +204,7 @@ def _print_summary(source_name: str, ftpserver: str, results: dict[str, dict[str
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("source_name,source_cls", FTP_SOURCES, ids=[s[0] for s in FTP_SOURCES])
+@pytest.mark.parametrize("source_name,source_instance", FTP_SOURCES, ids=[s[0] for s in FTP_SOURCES])
 class TestFTPHighestQuality:
     """
     Integration tests against FTP servers.
@@ -219,10 +219,10 @@ class TestFTPHighestQuality:
     """
 
     @pytest.fixture(autouse=True)
-    def _setup(self, source_name: str, source_cls: Type[FTPProductSource], product_results_by_source: dict):
+    def _setup(self, source_name: str, source_instance, product_results_by_source: dict):
         """Setup source and results for each test."""
         self.source_name = source_name
-        self.source = source_cls()
+        self.source = source_instance
         self.product_results = product_results_by_source.get(source_name, {})
 
     def test_sp3_found_at_high_quality(self) -> None:
