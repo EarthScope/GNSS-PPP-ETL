@@ -1,7 +1,0 @@
-dagster
-dagster-webserver
-pydantic
-pandas
-matplotlib
-julian
-pytest>=8.3.5
