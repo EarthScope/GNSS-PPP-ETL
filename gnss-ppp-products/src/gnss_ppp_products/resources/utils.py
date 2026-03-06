@@ -3,6 +3,7 @@ from ftplib import FTP, FTP_TLS
 from pathlib import Path
 import re
 from typing import Optional, Tuple
+import julian
 import logging
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,23 @@ def _date_to_gps_week(date: datetime.date | datetime.datetime) -> int:
     gps_week = time_since_epoch.days // 7
     return gps_week
 
+def datetime_to_mjd(date: datetime.date | datetime.datetime) -> float:
+    """
+    Convert a given date to Modified Julian Date (MJD).
+
+    MJD is calculated as the number of days (including fractional days) since midnight on November 17, 1858.
+
+    Args:
+        date (datetime.date | datetime.datetime): The date to be converted. Can be either a datetime.date or datetime.datetime object.
+
+    Returns:
+        float: The Modified Julian Date corresponding to the given date.
+    """
+    # Convert date to datetime if necessary (julian library requires datetime with hour/minute/second)
+    if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
+        date = datetime.datetime.combine(date, datetime.time.min)
+    mjd = julian.to_jd(date, fmt='mjd')
+    return mjd
 
 def ftp_list_directory(
     ftpserver: str,

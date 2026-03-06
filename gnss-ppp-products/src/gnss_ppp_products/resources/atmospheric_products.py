@@ -35,6 +35,11 @@ from .utils import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Enums and Data Classes
+# ---------------------------------------------------------------------------
+
+
 class AtmosphericProductQuality(str, Enum):
     """Quality levels for atmospheric products."""
     
@@ -74,174 +79,6 @@ class AtmosphericFileResult:
         host = self.ftpserver.rstrip("/")
         path = self.directory.strip("/")
         return f"{host}/{path}/{self.filename}"
-
-
-# ---------------------------------------------------------------------------
-# GIM Products (CODE - Bern)
-# ---------------------------------------------------------------------------
-
-
-class CODEGIMDirectorySource(BaseModel):
-    """
-    Directory structure for CODE GIM products at AIUB Bern.
-    
-    Products available:
-        - CGIM: Final combined GIM (IONEX format)
-        - CORG: Rapid GIM
-        - COD: Predicted GIM
-        
-    Directory structure:
-        ftp://ftp.aiub.unibe.ch/CODE/{year}/
-    """
-    
-    ftpserver: str = "ftp://ftp.aiub.unibe.ch"
-    base_path: str = "CODE/{year}"
-    
-    def directory(self, date: datetime.date) -> str:
-        """Return the GIM directory for a given date."""
-        year, _ = _parse_date(date)
-        return self.base_path.format(year=year)
-
-
-class CODEGIMFileRegex(BaseModel):
-    """
-    Regex patterns for CODE GIM products.
-    
-    File naming conventions (new long-form):
-        - Final:     COD0OPSFIN_{year}{doy}0000_01D_01H_GIM.ION.gz
-        - Rapid:     COD0OPSRAP_{year}{doy}0000_01D_01H_GIM.ION.gz
-        - Predicted: COD.*GIM.*
-        
-    Legacy naming (still supported):
-        - Final:     CGIM{doy}0.{yy}I.Z
-        - Rapid:     CORG{doy}0.{yy}I.Z
-    """
-    
-    # New long-form patterns
-    final_pattern: str = r"COD0OPSFIN_{year}{doy}.*GIM\.ION.*"
-    rapid_pattern: str = r"COD0OPSRAP_{year}{doy}.*GIM\.ION.*"
-    # Legacy patterns as fallback
-    final_pattern_legacy: str = r"CGIM{doy}0\.{yy}I\.Z"
-    rapid_pattern_legacy: str = r"CORG{doy}0\.{yy}I\.Z"
-    # Predicted uses wildcard
-    predicted_pattern: str = r"COD.*GIM\.ION.*"
-    
-    def regex(self, date: datetime.date, quality: AtmosphericProductQuality) -> str:
-        """Return regex pattern for GIM file matching."""
-        year, doy = _parse_date(date)
-        yy = year[2:]
-        
-        match quality:
-            case AtmosphericProductQuality.FINAL:
-                # Match either new or legacy format
-                new = self.final_pattern.format(year=year, doy=doy)
-                legacy = self.final_pattern_legacy.format(doy=doy, yy=yy)
-                return f"({new})|({legacy})"
-            case AtmosphericProductQuality.RAPID:
-                new = self.rapid_pattern.format(year=year, doy=doy)
-                legacy = self.rapid_pattern_legacy.format(doy=doy, yy=yy)
-                return f"({new})|({legacy})"
-            case AtmosphericProductQuality.PREDICTED:
-                return self.predicted_pattern
-
-
-class CODEGIMProductSource(BaseModel):
-    """
-    FTP source for CODE Global Ionosphere Maps (GIM).
-    
-    GIM products provide global VTEC (Vertical Total Electron Content) maps
-    in IONEX format, used for ionospheric delay corrections.
-    
-    Example
-    -------
-    >>> source = CODEGIMProductSource()
-    >>> result = source.query(datetime.date(2025, 1, 1), AtmosphericProductQuality.FINAL)
-    >>> print(result.url)
-    ftp://ftp.aiub.unibe.ch/CODE/2025/CGIM0010.25I.Z
-    """
-    
-    directory_source: CODEGIMDirectorySource = CODEGIMDirectorySource()
-    file_regex: CODEGIMFileRegex = CODEGIMFileRegex()
-    
-    def query(
-        self,
-        date: datetime.date,
-        quality: AtmosphericProductQuality = AtmosphericProductQuality.FINAL,
-    ) -> Optional[AtmosphericFileResult]:
-        """
-        Query for a GIM product file.
-        
-        Parameters
-        ----------
-        date : datetime.date
-            Date for which to retrieve the GIM product.
-        quality : AtmosphericProductQuality
-            Quality level (FINAL, RAPID, or PREDICTED).
-            
-        Returns
-        -------
-        AtmosphericFileResult or None
-            File result if found, otherwise None.
-        """
-        directory = self.directory_source.directory(date)
-        regex = self.file_regex.regex(date, quality)
-        
-        try:
-            listing = ftp_list_directory(
-                self.directory_source.ftpserver, directory, timeout=60
-            )
-            if not listing:
-                return None
-                
-            filename = find_best_match_in_listing(listing, regex)
-            if filename:
-                return AtmosphericFileResult(
-                    ftpserver=self.directory_source.ftpserver,
-                    directory=directory,
-                    filename=filename,
-                    product_type="gim",
-                    quality=quality,
-                )
-        except Exception:
-            pass
-        
-        return None
-    
-    def query_with_fallback(
-        self,
-        date: datetime.date,
-        quality_order: Optional[list[AtmosphericProductQuality]] = None,
-    ) -> Optional[AtmosphericFileResult]:
-        """
-        Query for GIM with automatic quality fallback.
-        
-        Tries each quality level in order until a product is found.
-        
-        Parameters
-        ----------
-        date : datetime.date
-            Date for which to retrieve the GIM product.
-        quality_order : list[AtmosphericProductQuality], optional
-            Order of quality levels to try. Defaults to FINAL → RAPID → PREDICTED.
-            
-        Returns
-        -------
-        AtmosphericFileResult or None
-            File result at the best available quality, or None if not found.
-        """
-        if quality_order is None:
-            quality_order = [
-                AtmosphericProductQuality.FINAL,
-                AtmosphericProductQuality.RAPID,
-                AtmosphericProductQuality.PREDICTED,
-            ]
-        
-        for quality in quality_order:
-            result = self.query(date, quality)
-            if result is not None:
-                return result
-        
-        return None
 
 
 # ---------------------------------------------------------------------------
@@ -461,13 +298,16 @@ class VMFProductSource(BaseModel):
 # Unified Atmospheric Product Source
 # ---------------------------------------------------------------------------
 
+# Import GIM source from ionosphere_resources to avoid duplication
+from .ionosphere_resources import CODEGIMProductSource
+
 
 class AtmosphericProductSource(BaseModel):
     """
     Unified interface for all atmospheric correction products.
     
     Provides a single entry point to query:
-        - GIM (ionosphere maps) from CODE
+        - GIM (ionosphere maps) from CODE (via ionosphere_resources)
         - VMF1/VMF3 (troposphere) from VMF server
     
     Example
@@ -483,8 +323,6 @@ class AtmosphericProductSource(BaseModel):
     def query_gim(
         self,
         date: datetime.date,
-        quality: AtmosphericProductQuality = AtmosphericProductQuality.FINAL,
-        fallback: bool = True,
     ) -> Optional[AtmosphericFileResult]:
         """
         Query for GIM ionosphere product.
@@ -493,18 +331,22 @@ class AtmosphericProductSource(BaseModel):
         ----------
         date : datetime.date
             Target date.
-        quality : AtmosphericProductQuality
-            Preferred quality level.
-        fallback : bool
-            If True, try lower quality levels if preferred not available.
             
         Returns
         -------
         AtmosphericFileResult or None
         """
-        if fallback:
-            return self.gim_source.query_with_fallback(date)
-        return self.gim_source.query(date, quality)
+        result = self.gim_source.query(date)
+        if result is not None:
+            # Convert IonosphereFileResult to AtmosphericFileResult for backward compatibility
+            return AtmosphericFileResult(
+                ftpserver=result.ftpserver,
+                directory=result.directory,
+                filename=result.filename,
+                product_type="gim",
+                quality=AtmosphericProductQuality.FINAL,
+            )
+        return None
     
     def query_vmf(
         self,

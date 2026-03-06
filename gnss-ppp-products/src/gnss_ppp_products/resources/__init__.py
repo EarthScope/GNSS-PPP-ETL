@@ -1,9 +1,18 @@
 
 from .local_resources import PRIDEGNSSOutputResource
+from .ionosphere_resources import (
+    IonosphereProductQuality,
+    IonosphereProductType,
+    IonosphereFileResult,
+    IonosphereAnalysisCenter,
+    IonosphereProductSource,  # Alias for IonosphereAnalysisCenter
+    CODEGIMProductSource,
+    CDDISGIMProductSource,
+    WuhanGIMProductSource,
+)
 from .atmospheric_products import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
-    CODEGIMProductSource as CODEGIMProductSourceAtmospheric,  # Legacy alias
     VMFProductSource,
     AtmosphericProductSource,
 )
@@ -30,15 +39,6 @@ from .antennae_resources import (
     IGSAntexHTTPSource,
     determine_frame,
     AstroInstMGEXAntexFTPSource
-)
-from .ionosphere_resources import (
-    IonosphereProductQuality,
-    IonosphereProductType,
-    IonosphereFileResult,
-    CODEGIMProductSource,
-    CDDISGIMProductSource,
-    WuhanGIMProductSource,
-    IonosphereProductSource,
 )
 from .base import (
     ProductQuality,
