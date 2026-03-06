@@ -1,0 +1,84 @@
+# ESA / ESOC
+# ==========
+#
+# European Space Agency's European Space Operations Centre.
+# Produces GPS and Galileo products.
+
+center:
+  code: ESA
+  name: ESA/ESOC
+  description: >
+    European Space Agency's European Space Operations Centre in Darmstadt.
+    Produces GPS products and is primary producer for Galileo.
+  website: https://www.esa.int/
+
+servers:
+  - id: esa_ftp
+    name: ESA GNSS FTP
+    hostname: ftp://gssc.esa.int
+    protocol: ftp
+    auth_required: false
+    notes: ESA GNSS Science Support Centre
+
+defaults:
+  version: "0"
+  coverage: "01D"
+  compressed: true
+
+products:
+  - id: esa_sp3
+    type: SP3
+    server_id: esa_ftp
+    available: true
+    description: Precise orbits
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: ESA
+        description: GPS operational
+      - code: MGX
+        prefix: ESA
+        description: Multi-GNSS
+    directory:
+      gps_week_based: true
+      pattern: gnss/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      regex: "ESA.*{qual}.*{year}{doy}.*SP3"
+    intervals: ["05M", "15M"]
+    extensions: [".SP3.gz", ".sp3.gz"]
+
+  - id: esa_clk
+    type: CLK
+    server_id: esa_ftp
+    available: true
+    description: Precise clocks
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: ESA
+    directory:
+      gps_week_based: true
+      pattern: gnss/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      regex: "ESA.*{qual}.*{year}{doy}.*CLK"
+    intervals: ["30S", "05M"]
+    extensions: [".CLK.gz", ".clk.gz"]
+
+  - id: esa_gim
+    type: GIM
+    server_id: esa_ftp
+    available: true
+    description: ESA Global Ionosphere Maps
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: ESA
+    directory:
+      pattern: gnss/products/ionex/{year}/{doy}/
+    filename:
+      template: "ESA0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
+      regex: "ESA.*{qual}.*{year}{doy}.*GIM"
+    intervals: ["01H", "02H"]
+    extensions: [".INX.gz", ".ionex.gz"]

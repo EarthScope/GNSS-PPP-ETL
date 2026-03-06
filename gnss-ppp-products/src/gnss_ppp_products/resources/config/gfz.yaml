@@ -1,0 +1,159 @@
+# GFZ Potsdam
+# ===========
+#
+# GeoForschungsZentrum Potsdam, Germany.
+# Primary center for GRACE/GRACE-FO data and MGEX products.
+
+center:
+  code: GFZ
+  name: GFZ Potsdam
+  description: >
+    German Research Centre for Geosciences in Potsdam. Major IGS analysis
+    center and primary distributor of GRACE/GRACE-FO mission data.
+    Produces GPS (GFZ) and MGEX (GBM) products.
+  website: https://www.gfz-potsdam.de/
+
+servers:
+  - id: gfz_ftp
+    name: ISDC FTP
+    hostname: ftp://isdcftp.gfz-potsdam.de
+    protocol: ftp
+    auth_required: false
+    notes: Information System and Data Center (ISDC) FTP
+
+defaults:
+  version: "0"
+  coverage: "01D"
+  compressed: true
+
+products:
+  - id: gfz_sp3
+    type: SP3
+    server_id: gfz_ftp
+    available: true
+    description: Precise orbits
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: GFZ
+        description: GPS-only operational
+      - code: MGX
+        prefix: GBM
+        description: MGEX multi-GNSS
+    directory:
+      gps_week_based: true
+      pattern: gnss/products/final/w{gps_week}/
+      rapid_pattern: gnss/products/rapid/w{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      regex: "{ac}.*{qual}.*{year}{doy}.*SP3"
+    intervals: ["05M", "15M"]
+    extensions: [".SP3.gz", ".sp3.gz"]
+
+  - id: gfz_clk
+    type: CLK
+    server_id: gfz_ftp
+    available: true
+    description: Precise clocks
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: GFZ
+      - code: MGX
+        prefix: GBM
+    directory:
+      gps_week_based: true
+      pattern: gnss/products/final/w{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      regex: "{ac}.*{qual}.*{year}{doy}.*CLK"
+    intervals: ["30S", "05M"]
+    extensions: [".CLK.gz", ".clk.gz"]
+
+  # GRACE/GRACE-FO Level-1B Products
+  - id: gfz_grace_gnv
+    type: GRACE_GNV
+    server_id: gfz_ftp
+    available: true
+    description: GRACE/GRACE-FO GPS navigation data
+    qualities: [FIN]
+    solutions:
+      - code: L1B
+        prefix: GNV
+    directory:
+      pattern: grace/Level-1B/JPL/RL03/{year}/
+      gracefo_pattern: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename:
+      template: "GNV1B_{year}-{month}-{day}_{spacecraft}_04.dat.gz"
+      regex: "GNV1B_{year}-{month:02d}-{day:02d}_[CD]_"
+    spacecraft: [C, D]  # GRACE-C, GRACE-D (GRACE-FO)
+    extensions: [".dat.gz"]
+    notes: >
+      GRACE-FO uses spacecraft C and D. Original GRACE (A, B) ended 2017.
+
+  - id: gfz_grace_acc
+    type: GRACE_ACC
+    server_id: gfz_ftp
+    available: true
+    description: GRACE/GRACE-FO accelerometer data
+    qualities: [FIN]
+    solutions:
+      - code: L1B
+        prefix: ACC
+    directory:
+      pattern: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename:
+      template: "ACC1B_{year}-{month}-{day}_{spacecraft}_04.dat.gz"
+      regex: "ACC1B_{year}-{month:02d}-{day:02d}_[CD]_"
+    spacecraft: [C, D]
+    extensions: [".dat.gz"]
+
+  - id: gfz_grace_sca
+    type: GRACE_SCA
+    server_id: gfz_ftp
+    available: true
+    description: GRACE/GRACE-FO star camera data
+    qualities: [FIN]
+    solutions:
+      - code: L1B
+        prefix: SCA
+    directory:
+      pattern: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename:
+      template: "SCA1B_{year}-{month}-{day}_{spacecraft}_04.dat.gz"
+      regex: "SCA1B_{year}-{month:02d}-{day:02d}_[CD]_"
+    spacecraft: [C, D]
+    extensions: [".dat.gz"]
+
+  - id: gfz_grace_kbr
+    type: GRACE_KBR
+    server_id: gfz_ftp
+    available: true
+    description: GRACE/GRACE-FO K-Band ranging data
+    qualities: [FIN]
+    solutions:
+      - code: L1B
+        prefix: KBR
+    directory:
+      pattern: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename:
+      template: "KBR1B_{year}-{month}-{day}_Y_04.dat.gz"
+      regex: "KBR1B_{year}-{month:02d}-{day:02d}_"
+    extensions: [".dat.gz"]
+
+  - id: gfz_grace_lri
+    type: GRACE_LRI
+    server_id: gfz_ftp
+    available: true
+    description: GRACE-FO Laser Ranging Interferometer data
+    qualities: [FIN]
+    solutions:
+      - code: L1B
+        prefix: LRI
+    directory:
+      pattern: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename:
+      template: "LRI1B_{year}-{month}-{day}_Y_04.dat.gz"
+      regex: "LRI1B_{year}-{month:02d}-{day:02d}_"
+    extensions: [".dat.gz"]
+    notes: LRI only available on GRACE-FO (2018+), not original GRACE.

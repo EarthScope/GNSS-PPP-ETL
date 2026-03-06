@@ -1,0 +1,72 @@
+# Analysis Center Configuration Schema
+# =====================================
+#
+# This file documents the YAML schema for center configuration files.
+# Each center file follows this structure.
+
+# ------------------------------------------------------------------------------
+# Schema Definition
+# ------------------------------------------------------------------------------
+
+# center:
+#   code: str              # 3-letter code (WUM, COD, IGS, etc.)
+#   name: str              # Full name
+#   description: str       # Brief description
+#
+# servers:
+#   - id: str              # Server identifier (e.g., "wuhan_ftp", "igs_http")
+#     name: str            # Human-readable name
+#     hostname: str        # Server hostname or URL
+#     protocol: str        # ftp | ftps | http | https
+#     auth_required: bool  # Whether authentication is needed
+#     notes: str           # Special requirements (e.g., "Requires FTPS/TLS")
+#
+# products:
+#   - id: str              # Unique product identifier (e.g., "wuhan_sp3_mgx")
+#     type: str            # Product type: SP3, CLK, ERP, BIAS, OBX, GIM, etc.
+#     server_id: str       # Reference to server.id
+#     available: bool      # Whether this product is available
+#     description: str     # Human-readable description
+#     qualities:           # List of available quality levels
+#       - FIN              # Final
+#       - RAP              # Rapid
+#       - ULT              # Ultra-rapid
+#     solutions:           # Solution types offered
+#       - code: str        # OPS, MGX, DEM
+#         prefix: str      # Analysis center prefix (WUM, COD, etc.)
+#     directory:
+#       pattern: str       # Directory pattern with placeholders
+#       # Placeholders: {year}, {doy}, {gps_week}, {month}, {day}
+#     filename:
+#       template: str      # Filename template (exact match)
+#       regex: str         # Regex pattern for searching
+#       # Placeholders: {ac}, {v}, {sol}, {qual}, {year}, {doy}, {interval}, {ext}
+#     intervals:           # Available sampling intervals
+#       - "05M"            # 5 minutes
+#       - "30S"            # 30 seconds
+#     coverage: str        # Default coverage (01D, 01H, etc.)
+#     extensions:          # File extensions
+#       - ".SP3.gz"
+
+# ------------------------------------------------------------------------------
+# Placeholder Reference
+# ------------------------------------------------------------------------------
+#
+# Date placeholders:
+#   {year}      - 4-digit year (2025)
+#   {yy}        - 2-digit year (25)
+#   {doy}       - 3-digit day of year (001-366)
+#   {month}     - 2-digit month (01-12)
+#   {day}       - 2-digit day (01-31)
+#   {gps_week}  - GPS week number (2345)
+#   {dow}       - Day of week (0=Sunday, 6=Saturday)
+#
+# Product placeholders:
+#   {ac}        - Analysis center code (WUM, COD, etc.)
+#   {v}         - Version (usually 0)
+#   {sol}       - Solution type (OPS, MGX, DEM)
+#   {qual}      - Quality level (FIN, RAP, ULT)
+#   {interval}  - Sampling interval (05M, 30S, etc.)
+#   {coverage}  - Data coverage (01D, 01H, etc.)
+#   {content}   - Content type (ORB, CLK, ERP, etc.)
+#   {ext}       - File extension (SP3, CLK, etc.)

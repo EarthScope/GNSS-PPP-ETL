@@ -1,0 +1,134 @@
+# NASA CDDIS Archive
+# ==================
+#
+# Crustal Dynamics Data Information System at NASA Goddard.
+# Major archive for IGS products. Requires FTPS (TLS) for all connections.
+
+center:
+  code: CDDIS
+  name: NASA CDDIS
+  description: >
+    NASA's Crustal Dynamics Data Information System archives and 
+    distributes space geodesy data including GNSS, SLR, VLBI, and DORIS.
+    Mirrors products from all IGS analysis centers.
+  website: https://cddis.nasa.gov/
+
+servers:
+  - id: cddis_ftps
+    name: CDDIS FTPS
+    hostname: ftp://gdc.cddis.eosdis.nasa.gov
+    protocol: ftps
+    auth_required: false
+    notes: >
+      Requires FTPS (explicit TLS). Anonymous login with email address.
+      May require NASA Earthdata login for some products.
+
+defaults:
+  version: "0"
+  coverage: "01D"
+  compressed: true
+
+products:
+  - id: cddis_sp3
+    type: SP3
+    server_id: cddis_ftps
+    available: true
+    description: Precise orbits (mirrors from all ACs)
+    qualities: [FIN, RAP, ULT]
+    solutions:
+      - code: OPS
+        prefix: IGS
+      - code: MGX
+        prefix: GBM
+      - code: MGX
+        prefix: WUM
+      - code: OPS
+        prefix: COD
+    directory:
+      gps_week_based: true
+      pattern: gnss/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      regex: "{ac}.*{qual}.*{year}{doy}.*SP3"
+    intervals: ["05M", "15M"]
+    extensions: [".SP3.gz", ".sp3.gz"]
+
+  - id: cddis_clk
+    type: CLK
+    server_id: cddis_ftps
+    available: true
+    description: Precise clocks (mirrors from all ACs)
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: IGS
+      - code: MGX
+        prefix: GBM
+      - code: MGX
+        prefix: WUM
+    directory:
+      gps_week_based: true
+      pattern: gnss/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      regex: "{ac}.*{qual}.*{year}{doy}.*CLK"
+    intervals: ["30S", "05M"]
+    extensions: [".CLK.gz", ".clk.gz"]
+
+  - id: cddis_gim
+    type: GIM
+    server_id: cddis_ftps
+    available: true
+    description: Global Ionosphere Maps
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: COD
+      - code: OPS
+        prefix: IGS
+      - code: OPS
+        prefix: JPL
+      - code: OPS
+        prefix: ESA
+    directory:
+      pattern: gnss/products/ionex/{year}/{doy}/
+    filename:
+      template: "{ac}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
+      legacy_template: "{ac}g{doy}0.{yy}i.Z"
+      regex: "{ac}.*{qual}.*{year}{doy}.*GIM|{ac}g{doy}"
+    intervals: ["01H", "02H"]
+    extensions: [".INX.gz", ".I.Z", ".ionex.gz"]
+
+  - id: cddis_nav3
+    type: RINEX3_NAV
+    server_id: cddis_ftps
+    available: true
+    description: Broadcast navigation
+    qualities: [FIN]
+    solutions:
+      - code: OPS
+        prefix: BRD
+    directory:
+      pattern: gnss/data/daily/{year}/{doy}/{yy}p/
+    filename:
+      template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
+      regex: "BRDC.*{year}{doy}.*rnx"
+    extensions: [".rnx.gz"]
+
+  - id: cddis_nav2
+    type: RINEX2_NAV
+    server_id: cddis_ftps
+    available: true
+    description: Legacy RINEX 2 navigation
+    qualities: [FIN]
+    solutions:
+      - code: OPS
+        prefix: brdc
+    directory:
+      pattern: gnss/data/daily/{year}/{doy}/{yy}n/
+    filename:
+      gps_template: "brdc{doy}0.{yy}n.Z"
+      glonass_template: "brdc{doy}0.{yy}g.Z"
+      mixed_template: "brdc{doy}0.{yy}p.Z"
+      regex: "brdc{doy}0\\.{yy}[ngp]"
+    extensions: [".n.Z", ".g.Z", ".p.Z"]

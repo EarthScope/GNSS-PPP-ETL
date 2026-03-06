@@ -1,0 +1,164 @@
+# IGS Combined Solutions (via IGN France)
+# ========================================
+#
+# International GNSS Service combined products, hosted by IGN France.
+# Combined solutions are weighted combinations of multiple analysis centers.
+
+center:
+  code: IGS
+  name: IGS (via IGN France)
+  description: >
+    International GNSS Service combined solutions hosted by Institut 
+    National de l'Information Géographique et Forestière (IGN France).
+    Combined products provide the official IGS reference solutions.
+  website: https://igs.org/
+
+servers:
+  - id: ign_ftp
+    name: IGN France FTP
+    hostname: ftp://igs.ign.fr
+    protocol: ftp
+    auth_required: false
+    notes: IGN France FTP mirror
+  - id: igs_http
+    name: IGS HTTP
+    hostname: https://files.igs.org
+    protocol: https
+    auth_required: false
+    notes: IGS HTTP server for ANTEX and station data
+
+defaults:
+  version: "0"
+  coverage: "01D"
+  compressed: true
+
+products:
+  - id: igs_sp3
+    type: SP3
+    server_id: ign_ftp
+    available: true
+    description: IGS combined precise orbits
+    qualities: [FIN, RAP, ULT]
+    solutions:
+      - code: OPS
+        prefix: IGS
+        description: Combined GPS-only
+    directory:
+      gps_week_based: true
+      pattern: pub/igs/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      regex: "IGS.*{qual}.*{year}{doy}.*SP3"
+    intervals: ["15M"]
+    extensions: [".SP3.gz", ".sp3.gz", ".SP3.Z"]
+
+  - id: igs_clk
+    type: CLK
+    server_id: ign_ftp
+    available: true
+    description: IGS combined precise clocks
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: IGS
+    directory:
+      gps_week_based: true
+      pattern: pub/igs/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      regex: "IGS.*{qual}.*{year}{doy}.*CLK"
+    intervals: ["30S", "05M"]
+    extensions: [".CLK.gz", ".clk.gz"]
+
+  - id: igs_erp
+    type: ERP
+    server_id: ign_ftp
+    available: true
+    description: IGS combined Earth rotation parameters
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: IGS
+    directory:
+      gps_week_based: true
+      pattern: pub/igs/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
+      regex: "IGS.*{qual}.*{year}{doy}.*ERP"
+    intervals: ["01D"]
+    extensions: [".ERP.gz", ".erp.gz"]
+
+  - id: igs_bias
+    type: BIAS
+    server_id: ign_ftp
+    available: true
+    description: IGS combined biases
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: IGS
+    directory:
+      gps_week_based: true
+      pattern: pub/igs/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
+      regex: "IGS.*{qual}.*{year}{doy}.*BIA"
+    intervals: ["01D"]
+    extensions: [".BIA.gz", ".bia.gz"]
+
+  - id: igs_obx
+    type: OBX
+    server_id: ign_ftp
+    available: true
+    description: IGS satellite attitude (ORBEX)
+    qualities: [FIN]
+    solutions:
+      - code: OPS
+        prefix: IGS
+    directory:
+      gps_week_based: true
+      pattern: pub/igs/products/{gps_week}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ATT.OBX.gz"
+      regex: "IGS.*{qual}.*{year}{doy}.*OBX"
+    intervals: ["30S"]
+    extensions: [".OBX.gz", ".obx.gz"]
+
+  - id: igs_nav
+    type: RINEX3_NAV
+    server_id: ign_ftp
+    available: true
+    description: IGS merged broadcast navigation
+    qualities: [FIN]
+    solutions:
+      - code: OPS
+        prefix: BRD
+    directory:
+      pattern: pub/igs/data/{year}/{doy}/
+    filename:
+      template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
+      regex: "BRDC.*{year}{doy}.*rnx"
+    extensions: [".rnx.gz"]
+
+  - id: igs_atx
+    type: ATX
+    server_id: igs_http
+    available: true
+    description: IGS ANTEX antenna calibrations
+    qualities: [FIN]
+    solutions:
+      - code: OPS
+        prefix: igs
+    directory:
+      pattern: pub/station/general/
+      archive_pattern: pub/station/general/pcv_archive/
+    filename:
+      # Current file named by reference frame
+      template: "igs20.atx"
+      # Archive files named by GPS week
+      archive_template: "igs20_{gps_week}.atx"
+      regex: "igs20.*\\.atx"
+    extensions: [".atx"]
+    notes: >
+      ANTEX files are not date-specific but frame-specific (igs14, igs20).
+      Archive contains weekly snapshots; current file is latest.

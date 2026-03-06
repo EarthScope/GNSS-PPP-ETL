@@ -1,0 +1,107 @@
+# Vienna Mapping Functions (TU Wien)
+# ===================================
+#
+# Troposphere products from TU Wien (Vienna University of Technology).
+# Primary source for VMF1/VMF3 tropospheric mapping functions and delays.
+
+center:
+  code: VMF
+  name: TU Wien (Vienna)
+  description: >
+    Vienna University of Technology provides Vienna Mapping Functions
+    (VMF) for tropospheric delay modeling. VMF products include hydrostatic
+    and wet mapping coefficients and zenith delay values.
+  website: https://vmf.geo.tuwien.ac.at/
+
+servers:
+  - id: vmf_https
+    name: VMF HTTPS
+    hostname: https://vmf.geo.tuwien.ac.at
+    protocol: https
+    auth_required: false
+    notes: Primary HTTP server for VMF products
+
+defaults:
+  compressed: false  # VMF files are typically uncompressed
+
+products:
+  - id: vmf_vmf1
+    type: VMF1
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 1
+    qualities: [FIN]
+    solutions:
+      - code: OP
+        prefix: VMFG
+        description: Operational VMF1 grids
+    directory:
+      # Resolution determines subdirectory
+      pattern: trop_products/GRID/{resolution}/VMF1/VMF1_OP/{year}/
+    filename:
+      # VMF uses YYYYMMDD format, not DOY
+      template: "VMFG_{year}{month}{day}.H{hour}"
+      regex: "VMFG_{year}{month:02d}{day:02d}\\.H[0-9]{{2}}"
+    hours: ["H00", "H06", "H12", "H18"]
+    resolution:
+      - code: "2.5x2"
+        description: 2.5° x 2° grid (default)
+        available: true
+    extensions: [".H00", ".H06", ".H12", ".H18"]
+    date_format: YYYYMMDD  # Different from IGS DOY format
+    notes: >
+      VMF1 available from 1985. 6-hourly grids at 00, 06, 12, 18 UTC.
+
+  - id: vmf_vmf3
+    type: VMF3
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 3 (recommended)
+    qualities: [FIN]
+    solutions:
+      - code: OP
+        prefix: VMF3
+        description: Operational VMF3 grids
+    directory:
+      pattern: trop_products/GRID/{resolution}/VMF3/VMF3_OP/{year}/
+    filename:
+      template: "VMF3_{year}{month}{day}.H{hour}"
+      regex: "VMF3_{year}{month:02d}{day:02d}\\.H[0-9]{{2}}"
+    hours: ["H00", "H06", "H12", "H18"]
+    resolution:
+      - code: "1x1"
+        description: 1° x 1° grid (highest resolution)
+        available: true
+      - code: "5x5"
+        description: 5° x 5° grid
+        available: true
+    extensions: [".H00", ".H06", ".H12", ".H18"]
+    date_format: YYYYMMDD
+    notes: >
+      VMF3 available from 2008. Improved accuracy over VMF1.
+      1x1 resolution recommended for precise applications.
+
+  - id: vmf_orography
+    type: OROGRAPHY
+    server_id: vmf_https
+    available: true
+    description: Ellipsoidal terrain height grids for VMF interpolation
+    qualities: [FIN]
+    solutions:
+      - code: static
+        prefix: orography
+    directory:
+      pattern: station_files/GRID/
+    filename:
+      template: "orography_ell_{resolution}"
+      regex: "orography_ell_(1x1|5x5)"
+    resolution:
+      - code: "1x1"
+        description: 1° x 1° grid
+      - code: "5x5"
+        description: 5° x 5° grid
+    extensions: ["_1x1", "_5x5"]
+    static: true  # Not date-dependent
+    notes: >
+      Orography grids are static files for VMF site interpolation.
+      Required when computing site-specific VMF values.

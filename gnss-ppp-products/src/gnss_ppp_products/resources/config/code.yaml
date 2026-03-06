@@ -1,0 +1,128 @@
+# CODE Analysis Center (AIUB, Bern)
+# ==================================
+#
+# Center for Orbit Determination in Europe at the Astronomical 
+# Institute of the University of Bern. Known for high-quality
+# GPS-only and MGEX products.
+
+center:
+  code: COD
+  name: CODE (AIUB)
+  description: >
+    Center for Orbit Determination in Europe at the Astronomical Institute
+    of the University of Bern. Provides high-precision GPS products and
+    ionosphere models. Primary source for CODE GIM products.
+  website: http://www.aiub.unibe.ch/
+
+servers:
+  - id: code_ftp
+    name: Primary FTP
+    hostname: ftp://ftp.aiub.unibe.ch
+    protocol: ftp
+    auth_required: false
+    notes: Primary AIUB FTP server
+
+defaults:
+  version: "0"
+  coverage: "01D"
+  compressed: true
+
+products:
+  - id: code_sp3
+    type: SP3
+    server_id: code_ftp
+    available: true
+    description: Precise satellite orbits
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: COD
+        description: GPS-only operational
+      - code: MGX
+        prefix: COD
+        description: CODE MGEX
+    directory:
+      # CODE organizes by GPS week for orbit products
+      gps_week_based: true
+      pattern: CODE/{year}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      regex: "COD.*{qual}.*{year}{doy}.*SP3"
+    intervals: ["05M", "15M"]
+    extensions: [".SP3.gz", ".sp3.gz"]
+
+  - id: code_clk
+    type: CLK
+    server_id: code_ftp
+    available: true
+    description: Precise clocks
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: COD
+    directory:
+      pattern: CODE/{year}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      regex: "COD.*{qual}.*{year}{doy}.*CLK"
+    intervals: ["30S", "05M"]
+    extensions: [".CLK.gz", ".clk.gz"]
+
+  - id: code_erp
+    type: ERP
+    server_id: code_ftp
+    available: true
+    description: Earth rotation parameters
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: COD
+    directory:
+      pattern: CODE/{year}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
+      regex: "COD.*{qual}.*{year}{doy}.*ERP"
+    intervals: ["01D"]
+    extensions: [".ERP.gz", ".erp.gz"]
+
+  - id: code_bias
+    type: BIAS
+    server_id: code_ftp
+    available: true
+    description: Differential code biases (DCB/OSB)
+    qualities: [FIN, RAP]
+    solutions:
+      - code: OPS
+        prefix: COD
+    directory:
+      pattern: CODE/{year}/
+    filename:
+      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
+      # Legacy format also available
+      legacy_template: "P1C1{yy}{month}.DCB.Z"
+      regex: "COD.*{qual}.*{year}{doy}.*BIA|DCB"
+    intervals: ["01D"]
+    extensions: [".BIA.gz", ".DCB.Z", ".BSX.gz"]
+
+  - id: code_gim
+    type: GIM
+    server_id: code_ftp
+    available: true
+    description: Global Ionosphere Maps (CODE is primary producer)
+    qualities: [FIN, RAP, PRD]
+    solutions:
+      - code: OPS
+        prefix: COD
+    directory:
+      pattern: CODE/{year}/
+    filename:
+      # New long-form (2022+)
+      template: "COD0OPS{qual}_{year}{doy}0000_01D_01H_GIM.INX.gz"
+      # Legacy short-form (pre-2022)
+      legacy_template: "CODG{doy}0.{yy}I.Z"
+      regex: "COD.*{qual}.*{year}{doy}.*GIM|CODG{doy}"
+    intervals: ["01H", "02H"]
+    extensions: [".INX.gz", ".I.Z", ".ionex.gz"]
+    notes: >
+      CODE produces the most widely-used GIM products. Long-form naming
+      started in 2022; legacy CODG format for older data.
