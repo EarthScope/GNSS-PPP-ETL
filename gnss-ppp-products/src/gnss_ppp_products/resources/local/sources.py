@@ -15,7 +15,8 @@ import logging
 from pathlib import Path
 from typing import Tuple
 from .base import _date_to_gps_week, _parse_date,_date_to_gps_week_day,_date_to_year_doy
-from ..products import types as product_types
+from ..products.types import ProductType,TemporalCoverage
+from ..products.collections import ORBIT_CLOCK_PRODUCTS, NAVIGATION_PRODUCTS, ATMOSPHERIC_PRODUCTS, IONOSPHERE_PRODUCTS, TROPOSPHERE_PRODUCTS, ANTENNA_PRODUCTS, REFERENCE_PRODUCTS, OROGRAPHY_PRODUCTS, LEO_PRODUCTS
 
 class LocalDataSource:
     """Local data sources for GNSS PPP products."""
@@ -44,23 +45,27 @@ class LocalDataSource:
         week_day_dir.mkdir(parents=True, exist_ok=True)
         return week_day_dir
     
-    def query(self, date: datetime.datetime | datetime.date, temporal_coverage: product_types.TemporalCoverage, regex: str) -> Tuple[Path, list[Path]] | None:
+    def query(self, date: datetime.datetime | datetime.date, product_type: ProductType, regex: str) -> Tuple[Path, list[Path]] | None:
         """Construct the expected local path for a given product."""
         # For simplicity, we assume all products are stored in gps_week_day_directory
-        match temporal_coverage:
-            case product_types.TemporalCoverage.DAILY:
+        match product_type.temporal_coverage:
+            case TemporalCoverage.DAILY:
                 dir_path = self.gps_week_day_directory(date)
-            case product_types.TemporalCoverage.GPSWEEKLY:
+            case TemporalCoverage.GPSWEEKLY:
                 dir_path = self.gps_week_directory(date)
-            case product_types.TemporalCoverage.YEARLY:
+            case TemporalCoverage.YEARLY:
                 dir_path = self.year_directory(date)
-            case product_types.TemporalCoverage.EPOCH:
+            case TemporalCoverage.EPOCH | TemporalCoverage.STATIC:
                 dir_path = self.table_dir
             case _:
-                raise ValueError(f"Unsupported temporal coverage: {temporal_coverage}")
+                raise ValueError(f"Unsupported temporal coverage: {product_type.temporal_coverage}")
         
         found_files = []
-        # Search for files matching the regex in the directory
+        if regex is None:
+            # Build glob from extensions: ('.obx', '.obx.gz') -> "*.[oO][bB][xX]*"
+            ext = product_type.value.extensions[0].lstrip('.').lower()
+            regex = f"*.{''.join(f'[{c.lower()}{c.upper()}]' for c in ext)}*"        # Search for files matching the regex in the directory
+        
         for file in dir_path.glob(regex):
             if file.is_file():
                 found_files.append(file)
@@ -97,4 +102,34 @@ class PrideDataSource:
         common_dir.mkdir(parents=True, exist_ok=True)
         return common_dir
     
-    
+
+    def query(self, date: datetime.datetime | datetime.date, product_type: ProductType, regex: str) -> Tuple[Path, list[Path]] | None:
+        """Construct the expected local path for a given product."""
+        
+        if product_type in ORBIT_CLOCK_PRODUCTS:
+            dir_path = self.common_product_directory(date)
+        elif product_type in NAVIGATION_PRODUCTS:
+            dir_path = self.doy_directory(date)
+        else:
+            dir_path = self.table_dir
+
+        
+        found_files = []
+        if regex is None:
+            # Build glob from extensions: ('.obx', '.obx.gz') -> "*001*.[oO][bB][xX]*"
+            ext = product_type.value.extensions[0].lstrip('.').lower()
+            _, doy = _date_to_year_doy(date)
+            ext_pattern = ''.join(f'[{c.lower()}{c.upper()}]' for c in ext)
+            regex = f"*{doy:03d}*.{ext_pattern}*"
+        
+        # Search for files matching the glob pattern in the directory
+        for file in dir_path.glob(regex):
+            if file.is_file():
+                found_files.append(file)
+        
+        if not found_files:
+            logging.info(f"No local files found in {dir_path} matching {regex}")
+            return None
+        # TODO - validate for complete/non-corrupted files, e.g. by checking file size or using checksums if available
+        logging.info(f"Found local files in {dir_path} matching {regex}: {[str(f) for f in found_files]}")
+        return dir_path,found_files

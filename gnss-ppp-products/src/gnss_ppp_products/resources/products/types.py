@@ -484,69 +484,6 @@ class ProductType(Enum):
 
 
 # ---------------------------------------------------------------------------
-# Convenience Collections
-# ---------------------------------------------------------------------------
-
-# All orbit/clock product types
-ORBIT_CLOCK_PRODUCTS: Set[ProductType] = {
-    ProductType.SP3,
-    ProductType.CLK,
-    ProductType.ERP,
-    ProductType.BIAS,
-    ProductType.OBX,
-    ProductType.SUM,
-}
-
-# All navigation product types
-NAVIGATION_PRODUCTS: Set[ProductType] = {
-    ProductType.RINEX3_NAV,
-    ProductType.RINEX2_NAV_GPS,
-    ProductType.RINEX2_NAV_GLONASS,
-    ProductType.RINEX2_NAV_MIXED,
-}
-
-# All atmospheric product types
-ATMOSPHERIC_PRODUCTS: Set[ProductType] = {
-    ProductType.GIM,
-    ProductType.VMF1,
-    ProductType.VMF3,
-}
-
-# All antenna product types
-ANTENNA_PRODUCTS: Set[ProductType] = {
-    ProductType.ATX_IGS,
-    ProductType.ATX_CODE_MGEX,
-    ProductType.ATX_NGS,
-}
-
-# All reference/auxiliary product types
-REFERENCE_PRODUCTS: Set[ProductType] = {
-    ProductType.LEAP_SECONDS,
-    ProductType.SAT_PARAMETERS,
-    ProductType.OROGRAPHY,
-}
-
-# All LEO product types
-LEO_PRODUCTS: Set[ProductType] = {
-    ProductType.GRACE_GNV,
-    ProductType.GRACE_ACC,
-    ProductType.GRACE_SCA,
-    ProductType.GRACE_KBR,
-    ProductType.GRACE_LRI,
-    ProductType.GRACE_CLK,
-    ProductType.GRACE_THR,
-}
-
-# Products that require date-based organization
-DATE_ORGANIZED_PRODUCTS: Set[ProductType] = (
-    ORBIT_CLOCK_PRODUCTS | NAVIGATION_PRODUCTS | ATMOSPHERIC_PRODUCTS | LEO_PRODUCTS
-)
-
-# Products that are static (date-independent)
-STATIC_PRODUCTS: Set[ProductType] = ANTENNA_PRODUCTS | REFERENCE_PRODUCTS
-
-
-# ---------------------------------------------------------------------------
 # Analysis Center / Source Enums (for reference)
 # ---------------------------------------------------------------------------
 
@@ -557,13 +494,15 @@ class AnalysisCenter(str, Enum):
     
     Used for identifying product sources and applying center-specific
     processing configurations.
+
+    See https://igs.org/acc/#analysis-centers
     """
     
     # IGS Analysis Centers
     COD = "cod"    # CODE (Center for Orbit Determination in Europe)
     EMR = "emr"    # Natural Resources Canada
     ESA = "esa"    # European Space Agency
-    GFZ = "gfz"    # GeoForschungsZentrum Potsdam
+    GFZ = "gfz"    # Helmholtz centre for geosciences (GFZ)
     GRG = "grg"    # CNES/CLS (GRGS)
     IGS = "igs"    # IGS combined solution
     JPL = "jpl"    # Jet Propulsion Laboratory
