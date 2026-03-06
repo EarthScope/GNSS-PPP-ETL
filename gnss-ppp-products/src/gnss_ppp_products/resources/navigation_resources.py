@@ -10,6 +10,7 @@ from .base import (
     ConstellationCode,
     DownloadProtocol,
 )
+from .ftp_servers import WUHAN_FTP, IGS_FTP, CDDIS_FTP
 from .utils import (
     _parse_date,
     _date_to_gps_week,
@@ -41,7 +42,7 @@ class Group1NavFileRegex(BaseModel):
 
 
 class WuhanNavFileDirectorySourceFTP(BaseModel):
-    ftpserver: str = "ftp://igs.gnsswhu.cn"
+    ftpserver: str = WUHAN_FTP
     rinex_nav: str = "pub/gps/data/daily/{year}/{doy}/{yy}{prefix}"
 
     def rinex_nav_dir(self, date: datetime.date, constellation: ConstellationCode=None) -> str:
@@ -119,7 +120,7 @@ class WuhanNavFileFTPProductSource(BaseModel):
 
 
 class CLSIGSNavFileDirectorySourceFTP(BaseModel):
-    ftpserver: str = "ftp://igs.ign.fr"
+    ftpserver: str = IGS_FTP
     rinex_nav: str = "pub/igs/data/{year}/{doy}"
 
     def rinex_nav_dir(self, date: datetime.date,_=None) -> str:
@@ -131,7 +132,7 @@ class CLSIGSNavFileFTPProductSource(WuhanNavFileFTPProductSource):
     product_directory_source: CLSIGSNavFileDirectorySourceFTP = CLSIGSNavFileDirectorySourceFTP()
 
 class CDDISNavFileDirectorySourceFTP(BaseModel):
-    ftpserver: str = "ftp://gdc.cddis.eosdis.nasa.gov"
+    ftpserver: str = CDDIS_FTP
     rinex_nav: str = "pub/gps/data/daily/{year}/{doy}/{yy}{prefix}"
 
     def rinex_nav_dir(self, date: datetime.date, constellation: Optional[ConstellationCode] = None) -> str:

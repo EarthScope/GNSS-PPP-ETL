@@ -29,6 +29,7 @@ from pydantic import BaseModel
 import requests
 
 from .base import ResourceQueryResult, DownloadProtocol
+from .http_servers import VMF_HTTP
 from .utils import (
     _parse_date,
     ftp_list_directory,
@@ -102,7 +103,7 @@ class VMFDirectorySource(BaseModel):
         trop_products/GRID/VMF3/VMF3_OP/{year}/
     """
     
-    http_server:str = "https://vmf.geo.tuwien.ac.at/"
+    http_server:str = VMF_HTTP
     vmf1_path: str = "trop_products/GRID/VMF1/VMF1_OP/{year}"
     vmf3_path: str = "trop_products/GRID/VMF3/VMF3_OP/{year}"
     
@@ -162,7 +163,7 @@ class VMFHTTPProductSource(BaseModel):
     
     # directory_source: VMFDirectorySource = VMFDirectorySource()
     file_regex: VMFFileRegex = VMFFileRegex()
-    http_server: str = "https://vmf.geo.tuwien.ac.at/"
+    http_server: str = VMF_HTTP
     archive_dir: str = "trop_products/GRID/{resolution}/{product}/{product}_OP/{year}"
     
     def query(self, date: datetime.date, resolution: Literal["1x1", "2.5x2","5x5"] = "1x1", product: Literal["VMF1", "VMF3"] = "VMF3", hour: Literal['H00', 'H06', 'H12', 'H18'] = 'H00') -> Optional[AtmosphericFileResult]:

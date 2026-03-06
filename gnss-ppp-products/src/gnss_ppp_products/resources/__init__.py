@@ -42,7 +42,8 @@ from .antennae_resources import (
     IGSAntexReferenceFrameType,
     AntexFileResult,
     NGSNOAAAntexHTTPSource,
-    IGSAntexHTTPSource,
+    IGSAntexHTTP,
+    IGSAntexHTTP as IGSAntexHTTPSource,  # Alias for backward compatibility
     determine_frame,
     AstroInstMGEXAntexFTPSource
 )

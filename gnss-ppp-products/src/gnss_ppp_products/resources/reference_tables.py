@@ -21,6 +21,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 from .base import ResourceQueryResult, DownloadProtocol
+from .ftp_servers import WUHAN_FTP, CDDIS_FTP
 
 
 class ReferenceTableType(str, Enum):
@@ -67,7 +68,7 @@ class WuhanProductTableFTPSource(BaseModel):
     >>> print(result.url)
     """
     
-    ftpserver: str = "ftp://igs.gnsswhu.cn"
+    ftpserver: str = WUHAN_FTP
     _leap_seconds_dir: str = "pub/whu/phasebias/table"
     _leap_seconds_file: str = "leap.sec"
     _sat_parameters_dir: str = "pub/whu/phasebias/table"
@@ -131,7 +132,7 @@ class CDDISProductTableFTPSource(BaseModel):
     >>> print(result.url)
     """
     
-    ftpserver: str = "ftp://gdc.cddis.eosdis.nasa.gov"
+    ftpserver: str = CDDIS_FTP
     _leap_seconds_dir: str = "pub/products/iers"
     _leap_seconds_file: str = "leapsec.dat"
 

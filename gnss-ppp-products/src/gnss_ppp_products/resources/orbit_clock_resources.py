@@ -8,6 +8,7 @@ from .base import (
     ProductQuality,
     DownloadProtocol,
 )
+from .ftp_servers import WUHAN_FTP, IGS_FTP, KASI_FTP, ESA_FTP
 from .utils import (
     _parse_date,
     _date_to_gps_week,
@@ -50,7 +51,7 @@ class Group1FileRegex(ProductFileSourceRegex):
 
 
 class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
-    ftpserver: str = "ftp://igs.gnsswhu.cn"
+    ftpserver: str = WUHAN_FTP
     product_sp3: str = "pub/whu/phasebias/{year}/orbit/"
     product_orbit: str = "pub/whu/phasebias/{year}/orbit/"
     product_clk: str = "pub/whu/phasebias/{year}/clock/"
@@ -160,7 +161,7 @@ class WuhanFTPProductSource(FTPProductSource):
 
 
 class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
-    ftpserver: str = "ftp://igs.ign.fr"
+    ftpserver: str = IGS_FTP
     product_sp3: str = "pub/igs/products/{gps_week}"
     product_orbit: str = "pub/igs/products/{gps_week}"
     product_clk: str = "pub/igs/products/{gps_week}"
@@ -205,7 +206,7 @@ class CLSIGSFTPProductSource(WuhanFTPProductSource):
 class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
     """Directory structure for KASI (Korea) FTP server - fallback source."""
 
-    ftpserver: str = "ftp://nfs.kasi.re.kr"
+    ftpserver: str = KASI_FTP
     product_sp3: str = "gps/products/{gps_week}"
     product_orbit: str = "gps/products/{gps_week}"
     product_clk: str = "gps/products/{gps_week}"
@@ -250,7 +251,7 @@ class KASIFTPProductSource(WuhanFTPProductSource):
 class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
     """Directory structure for CDDIS (ESA/NASA) FTP server - fallback source."""
 
-    ftpserver: str = "ftp://gssc.esa.int"
+    ftpserver: str = ESA_FTP
     product_sp3: str = "gnss/products/{gps_week}"
     product_orbit: str = "gnss/products/{gps_week}"
     product_clk: str = "gnss/products/{gps_week}"

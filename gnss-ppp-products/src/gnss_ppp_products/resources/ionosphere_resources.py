@@ -42,6 +42,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 from .base import FTPFileResult, ProductQuality, ResourceQueryResult, DownloadProtocol
+from .ftp_servers import AIUB_FTP, WUHAN_FTP, CDDIS_FTP
 from .utils import (
     ftp_list_directory,
     find_best_match_in_listing,
@@ -129,7 +130,7 @@ class CODEGIMDirectorySource(BaseModel):
         ftp://ftp.aiub.unibe.ch/CODE/{year}/
     """
 
-    ftpserver: str = "ftp://ftp.aiub.unibe.ch"
+    ftpserver: str = AIUB_FTP
     base_path: str = "CODE/{year}"
 
     def directory(self, date: datetime.date) -> str:
@@ -271,7 +272,7 @@ class WuhanGIMDirectorySource(BaseModel):
         ftp://igs.gnsswhu.cn/pub/gps/products/ionex/{year}/{doy}/
     """
 
-    ftpserver: str = "ftp://igs.gnsswhu.cn"
+    ftpserver: str = WUHAN_FTP
     base_path: str = "pub/gps/products/ionex/{year}/{doy}"
 
     def directory(self, date: datetime.date) -> str:
@@ -365,7 +366,7 @@ class CDDISGIMDirectorySource(BaseModel):
         ftp://gdc.cddis.eosdis.nasa.gov/gnss/products/ionex/{year}/{doy}/
     """
 
-    ftpserver: str = "ftp://gdc.cddis.eosdis.nasa.gov"
+    ftpserver: str = CDDIS_FTP
     base_path: str = "gnss/products/ionex/{year}/{doy}"
 
     def directory(self, date: datetime.date) -> str:

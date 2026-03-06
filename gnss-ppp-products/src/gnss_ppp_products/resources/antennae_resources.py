@@ -48,7 +48,8 @@ from .utils import (
     _parse_date,
     _date_to_gps_week,
 )
-
+from .http_servers import IGS_HTTP, NGS_NOAA_HTTP
+from .ftp_servers import AIUB_FTP, IGS_FTP
 logger = logging.getLogger(__name__)
 
 
@@ -137,10 +138,10 @@ class AntexFileResult(ResourceQueryResult):
 # ---------------------------------------------------------------------------
 
 
-class IGSAntexHTTPSource(BaseModel):
+class IGSAntexHTTP(BaseModel):
     """HTTP source for IGS ANTEX files."""
 
-    http_server: str = "https://files.igs.org"
+    http_server: str = IGS_HTTP
     current_dir: str = "pub/station/general"
     archive_dir: str = "pub/station/general/pcv_archive"
 
@@ -273,7 +274,7 @@ class IGSAntexHTTPSource(BaseModel):
 class NGSNOAAAntexHTTPSource(BaseModel):
     """NGS/NOAA ANTEX source (same structure as IGS, but different server)."""
 
-    http_server: str = "https://www.ngs.noaa.gov/"
+    http_server: str = NGS_NOAA_HTTP
     archive_dir: str = "ANTCAL/LoadFile?file="
 
     def query(self, date: datetime.datetime) -> Optional[AntexFileResult]:
@@ -303,7 +304,7 @@ class AstroInstMGEXAntexFTPSource(BaseModel):
     CODE MGEX products use slightly different antenna calibrations than the standard IGS models. Using mismatched antenna files would introduce systematic errors in the position estimates, so this override ensures consistency between the clock products and the antenna phase center corrections.
     """
 
-    ftpserver: str = "ftp.aiub.unibe.ch"
+    ftpserver: str = AIUB_FTP
     directory: str = "/CODE_MGEX/CODE"
 
     def query(self, date: datetime.datetime) -> Optional[AntexFileResult]:
@@ -319,7 +320,7 @@ class AstroInstMGEXAntexFTPSource(BaseModel):
         filename = find_best_match_in_listing(dir_listing, regex)
         if filename:
             return AntexFileResult(
-                server=f"ftp://{self.ftpserver}",
+                server=self.ftpserver,
                 directory=self.directory,
                 filename=filename,
                 protocol=DownloadProtocol.FTP,

@@ -28,6 +28,7 @@ from pydantic import BaseModel
 import requests
 
 from .base import ResourceQueryResult, DownloadProtocol
+from .http_servers import VMF_HTTP
 
 
 logger = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ class VMFOrographyHTTPSource(BaseModel):
     https://vmf.geo.tuwien.ac.at/station_coord_files/orography_ell_1x1
     """
     
-    http_server: str = "https://vmf.geo.tuwien.ac.at"
+    http_server: str = VMF_HTTP
     directory: str = "station_coord_files"
     filename_pattern: str = "orography_ell_{resolution}"
     

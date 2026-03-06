@@ -31,6 +31,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 from .base import ResourceQueryResult, DownloadProtocol
+from .ftp_servers import GFZ_FTP
 from .utils import ftp_list_directory, find_best_match_in_listing
 
 logger = logging.getLogger(__name__)
@@ -103,7 +104,7 @@ class GFZGRACEDirectorySource(BaseModel):
         ftp://isdcftp.gfz-potsdam.de/grace-fo/Level-1B/JPL/INSTRUMENT/RL04/{year}/
     """
     
-    ftpserver: str = "ftp://isdcftp.gfz-potsdam.de"
+    ftpserver: str = GFZ_FTP
     
     # GRACE (original mission) paths
     grace_level1b_path: str = "grace/Level-1B/JPL/{instrument}/RL02/{year}"
