@@ -1,11 +1,21 @@
 from abc import ABC, abstractmethod
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Literal, Optional
 import re
 from pydantic import BaseModel
+
+
+class DownloadProtocol(str, Enum):
+    """Protocol used for downloading remote files."""
+    
+    FTP = "ftp"
+    FTPS = "ftps"  # FTP over TLS (e.g., CDDIS)
+    HTTP = "http"
+    HTTPS = "https"
+
 
 class ProductQuality(str, Enum):
     """Enum for product quality levels."""
@@ -21,13 +31,61 @@ class ConstellationCode(str, Enum):
 
 
 @dataclass
-class FTPFileResult:
+class ResourceQueryResult:
+    """
+    Unified base result for all resource queries.
+    
+    Provides a standardized interface for identifying the download protocol
+    and constructing the full URL for any GNSS product resource.
+    
+    Attributes
+    ----------
+    server : str
+        Server hostname or URL (e.g., ``ftp://igs.gnsswhu.cn`` or ``https://files.igs.org``).
+    directory : str
+        Remote directory path.
+    filename : str
+        Remote filename.
+    protocol : DownloadProtocol
+        The protocol to use for downloading (FTP, FTPS, HTTP, HTTPS).
+    """
+    
+    server: str
+    directory: str
+    filename: str
+    protocol: DownloadProtocol = DownloadProtocol.FTP
+    
+    @property
+    def url(self) -> str:
+        """Full URL to the remote file."""
+        host = self.server.rstrip("/")
+        path = self.directory.strip("/")
+        return f"{host}/{path}/{self.filename}"
+    
+    @property
+    def is_http(self) -> bool:
+        """True if this resource should be downloaded via HTTP/HTTPS."""
+        return self.protocol in (DownloadProtocol.HTTP, DownloadProtocol.HTTPS)
+    
+    @property
+    def is_ftp(self) -> bool:
+        """True if this resource should be downloaded via FTP/FTPS."""
+        return self.protocol in (DownloadProtocol.FTP, DownloadProtocol.FTPS)
+    
+    @property
+    def requires_tls(self) -> bool:
+        """True if this resource requires TLS encryption (HTTPS or FTPS)."""
+        return self.protocol in (DownloadProtocol.HTTPS, DownloadProtocol.FTPS)
+
+
+@dataclass
+class FTPFileResult(ResourceQueryResult):
     """
     The result of a successful FTP file query.
 
     Attributes
     ----------
-    ftpserver:
+    server:
         FTP host URL, e.g. ``ftp://igs.gnsswhu.cn``.
     directory:
         Remote directory path (without leading slash), e.g.
@@ -37,21 +95,18 @@ class FTPFileResult:
         ``WMC0DEMFIN_20253050000_01D_05M_ORB.SP3.gz``.
     quality:
         The quality level at which the file was found.
-    server_name:
-        Human-readable server key, e.g. ``"wuhan"``.
+    protocol:
+        Download protocol (defaults to FTP).
     """
 
-    ftpserver: str
-    directory: str
-    filename: str
-    quality: ProductQuality
+    quality: ProductQuality = field(default=ProductQuality.FINAL)
+    protocol: DownloadProtocol = field(default=DownloadProtocol.FTP)
 
+    # Legacy alias for backward compatibility
     @property
-    def url(self) -> str:
-        """Full FTP URL to the remote file."""
-        host = self.ftpserver.rstrip("/")
-        path = self.directory.strip("/")
-        return f"{host}/{path}/{self.filename}"
+    def ftpserver(self) -> str:
+        """Alias for server (backward compatibility)."""
+        return self.server
 
     @property
     def quality_label(self) -> str:

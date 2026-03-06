@@ -6,6 +6,7 @@ from .base import (
     ProductDirectorySourceFTP,
     ProductFileSourceRegex,
     ProductQuality,
+    DownloadProtocol,
 )
 from .utils import (
     _parse_date,
@@ -102,9 +103,10 @@ class WuhanFTPProductSource(FTPProductSource):
         filename = find_best_match_in_listing(dir_listing, regex)
         if filename:
             return FTPFileResult(
-                ftpserver=self.product_directory_source.ftpserver,
+                server=self.product_directory_source.ftpserver,
                 directory=directory,
                 filename=filename,
+                protocol=DownloadProtocol.FTP,
                 quality=quality,
             )
         return None

@@ -39,15 +39,15 @@ def probe_http_file(label: str, result: AntexFileResult) -> AntexProbeResult:
     Check if an ANTEX file exists at the given HTTP location.
     Uses HEAD request to verify file availability without downloading.
     """
-    if result is None or not result.full_url:
+    if result is None or not result.url:
         logger.warning(f"[{label}] No URL to probe")
         return AntexProbeResult(label=label, url="", found=False)
     
-    url = result.full_url
-    logger.info(f"Probing {label}: {url}")
+   
+    logger.info(f"Probing {label}: {result.url}")
     
     try:
-        response = requests.head(url, timeout=30, allow_redirects=True)
+        response = requests.head(result.url, timeout=30, allow_redirects=True)
         found = response.status_code == 200
         if found:
             logger.info(f"[{label}] Found: {result.filename} (HTTP {response.status_code})")
@@ -55,14 +55,14 @@ def probe_http_file(label: str, result: AntexFileResult) -> AntexProbeResult:
             logger.warning(f"[{label}] Not found: HTTP {response.status_code}")
         return AntexProbeResult(
             label=label, 
-            url=url, 
+            url=result.url, 
             found=found, 
             filename=result.filename,
             status_code=response.status_code
         )
     except requests.RequestException as e:
         logger.error(f"[{label}] Request failed: {e}")
-        return AntexProbeResult(label=label, url=url, found=False)
+        return AntexProbeResult(label=label, url=result.url, found=False)
 
 
 # ---------------------------------------------------------------------------
@@ -155,21 +155,14 @@ def astroinst_mgex_antex_results(current_date: datetime.datetime) -> dict[str, A
     results = {}
     ftp_source = AstroInstMGEXAntexFTPSource()
     try:
-        ftp_result:AntexFileResult = ftp_source.query(current_date)
+        ftp_result: AntexFileResult = ftp_source.query(current_date)
         if ftp_result:
-            # Convert FTP result to HTTP probe result for consistency
-            fttp_result = AntexFileResult(
-                ftpserver=ftp_result.ftpserver,
-                directory=ftp_result.directory,
-                filename=ftp_result.filename,
-                full_url=f"{ftp_result.ftpserver}/{ftp_result.directory}/{ftp_result.filename}",
-                frame_type=ftp_result.frame_type
-            )
+            # Use the result directly - no conversion needed
             results[ASTRO_MGEX_LABEL] = AntexProbeResult(
                 label=ASTRO_MGEX_LABEL,
-                url=fttp_result.full_url,
+                url=ftp_result.url,
                 found=True,
-                filename=fttp_result.filename
+                filename=ftp_result.filename
             )
     except Exception as e:
         logger.error(f"Error probing AstroInst MGEX FTP source: {e}")
@@ -231,9 +224,9 @@ class TestIGSAntexHTTPSource:
         """Query result should include full download URL."""
         result = igs_source.query(current_date, strict=False)
         assert result is not None
-        assert result.full_url.startswith("https://")
-        assert "igs20" in result.full_url
-        assert result.full_url.endswith(".atx")
+        assert result.url.startswith("https://")
+        assert "igs20" in result.url
+        assert result.url.endswith(".atx")
 
 
 # ---------------------------------------------------------------------------
@@ -276,8 +269,8 @@ class TestNGSAntexHTTPSource:
         """Query result should include full download URL."""
         result = ngs_source.query(current_date)
         assert result is not None
-        assert result.full_url.startswith("https://")
-        assert "ngs20.atx" in result.full_url
+        assert result.url.startswith("https://")
+        assert "ngs20.atx" in result.url
 
 @pytest.mark.integration
 class TestAstroInstMGEXAntexFTPSource:

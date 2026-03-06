@@ -41,7 +41,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel
 
-from .base import FTPFileResult, ProductQuality
+from .base import FTPFileResult, ProductQuality, ResourceQueryResult, DownloadProtocol
 from .utils import (
     ftp_list_directory,
     find_best_match_in_listing,
@@ -87,39 +87,28 @@ IonosphereProductSource = IonosphereAnalysisCenter
 
 
 @dataclass
-class IonosphereFileResult:
+class IonosphereFileResult(ResourceQueryResult):
     """
     Result of a successful ionosphere product query.
 
     Attributes
     ----------
-    ftpserver : str
-        FTP host URL, e.g. ``ftp://ftp.aiub.unibe.ch``.
+    server : str
+        Server URL (FTP or HTTP).
     directory : str
         Remote directory path.
     filename : str
         Remote filename.
+    protocol : DownloadProtocol
+        Protocol for downloading (FTP, FTPS, HTTP, HTTPS).
     product_type : IonosphereProductType
         Product type (GIM).
     quality : IonosphereProductQuality
         Quality level at which the file was found.
     """
 
-    ftpserver: str
-    directory: str
-    filename: str
-    product_type: IonosphereProductType
-    full_url: Optional[str] = None
+    product_type: IonosphereProductType = IonosphereProductType.GIM
     quality: IonosphereProductQuality = IonosphereProductQuality.FINAL
-
-    @property
-    def url(self) -> str:
-        """Full URL to the remote file."""
-        if self.full_url:
-            return self.full_url
-        host = self.ftpserver.rstrip("/")
-        path = self.directory.strip("/")
-        return f"{host}/{path}/{self.filename}"
 
 
 # ---------------------------------------------------------------------------
@@ -182,12 +171,12 @@ class CODEGIMProductSource(BaseModel):
     -------
     >>> source = CODEGIMProductSource()
     >>> result = source.query(datetime.date(2025, 1, 1))
-    >>> print(result.full_url)
+    >>> print(result.url)
     ftp://ftp.aiub.unibe.ch/CODE/2025/COD0OPSFIN_20250010000_01D_01H_GIM.INX.gz
 
     >>> # Query older data with legacy naming
     >>> result = source.query(datetime.date(2020, 6, 15))
-    >>> print(result.full_url)
+    >>> print(result.url)
     ftp://ftp.aiub.unibe.ch/CODE/2020/CODG1670.20I.Z
     """
 
@@ -231,11 +220,11 @@ class CODEGIMProductSource(BaseModel):
             filename = find_best_match_in_listing(listing, regex)
             if filename:
                 return IonosphereFileResult(
-                    ftpserver=self.directory_source.ftpserver,
+                    server=self.directory_source.ftpserver,
                     directory=directory,
                     filename=filename,
+                    protocol=DownloadProtocol.FTP,
                     product_type=IonosphereProductType.GIM,
-                    full_url=f"{self.directory_source.ftpserver}/{directory}/{filename}"
                 )
         except Exception as e:
             logger.debug(f"Error querying CODE GIM: {e}")
@@ -347,9 +336,10 @@ class WuhanGIMProductSource(BaseModel):
             filename = find_best_match_in_listing(listing, regex)
             if filename:
                 return IonosphereFileResult(
-                    ftpserver=self.directory_source.ftpserver,
+                    server=self.directory_source.ftpserver,
                     directory=directory,
                     filename=filename,
+                    protocol=DownloadProtocol.FTP,
                     product_type=IonosphereProductType.GIM,
                     quality=quality,
                 )
@@ -450,9 +440,10 @@ class CDDISGIMProductSource(BaseModel):
             filename = find_best_match_in_listing(listing, regex)
             if filename:
                 return IonosphereFileResult(
-                    ftpserver=self.directory_source.ftpserver,
+                    server=self.directory_source.ftpserver,
                     directory=directory,
                     filename=filename,
+                    protocol=DownloadProtocol.FTPS,
                     product_type=IonosphereProductType.GIM,
                     quality=quality,
                 )

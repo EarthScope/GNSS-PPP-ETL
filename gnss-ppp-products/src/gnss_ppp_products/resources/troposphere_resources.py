@@ -28,6 +28,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 import requests
 
+from .base import ResourceQueryResult, DownloadProtocol
 from .utils import (
     _parse_date,
     ftp_list_directory,
@@ -51,39 +52,34 @@ class AtmosphericProductQuality(str, Enum):
 
 
 @dataclass
-class AtmosphericFileResult:
+class AtmosphericFileResult(ResourceQueryResult):
     """
-    Result of a successful atmospheric product FTP query.
+    Result of a successful atmospheric product query.
 
     Attributes
     ----------
-    ftpserver : str
-        FTP host URL, e.g. ``ftp://ftp.aiub.unibe.ch``.
+    server : str
+        Server URL (FTP or HTTP).
     directory : str
         Remote directory path.
     filename : str
         Remote filename.
+    protocol : DownloadProtocol
+        Protocol for downloading (FTP, FTPS, HTTP, HTTPS).
     product_type : str
-        Product type identifier (gim, vmf1, vmf3).
+        Product type identifier (vmf1, vmf3).
     quality : AtmosphericProductQuality
         Quality level at which the file was found.
     """
 
-    ftpserver: str
-    directory: str
-    filename: str
-    product_type: str
-    quality: AtmosphericProductQuality
-    full_url: Optional[str] = None
+    product_type: str = ""
+    quality: AtmosphericProductQuality = AtmosphericProductQuality.FINAL
 
+    # Legacy alias for backward compatibility
     @property
-    def url(self) -> str:
-        """Full FTP URL to the remote file."""
-        if self.full_url:
-            return self.full_url
-        host = self.ftpserver.rstrip("/")
-        path = self.directory.strip("/")
-        return f"{host}/{path}/{self.filename}"
+    def ftpserver(self) -> str:
+        """Alias for server (backward compatibility)."""
+        return self.server
 
 
 # ---------------------------------------------------------------------------
@@ -218,13 +214,14 @@ class VMFHTTPProductSource(BaseModel):
             response = requests.head(full_url, timeout=30)
             response.raise_for_status()
         except requests.RequestException as e:
-            logger.error(f"Failed to retrieve ANTEX file from NGS/NOAA: {e}")
+            logger.error(f"Failed to retrieve VMF file: {e}")
             return None
         return AtmosphericFileResult(
-            ftpserver=self.http_server,
+            server=self.http_server,
             directory=directory,
             filename=filename,
+            protocol=DownloadProtocol.HTTPS,
             product_type=product.lower(),
-            quality=AtmosphericProductQuality.FINAL,  # VMF products are typically final quality
+            quality=AtmosphericProductQuality.FINAL,
         )
     

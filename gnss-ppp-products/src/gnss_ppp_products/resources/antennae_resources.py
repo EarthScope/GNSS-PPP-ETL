@@ -41,6 +41,7 @@ from typing import Literal, Optional, List, Tuple
 import requests
 from pydantic import BaseModel
 
+from .base import ResourceQueryResult, DownloadProtocol
 from .utils import (
     ftp_list_directory,
     find_best_match_in_listing,
@@ -109,36 +110,26 @@ CODE_MGEX_DATE_CUTOFF = datetime.date(2021, 5, 2)
 
 
 @dataclass
-class AntexFileResult:
+class AntexFileResult(ResourceQueryResult):
     """
     Result of a successful ANTEX file query.
 
     Attributes
     ----------
-    ftpserver : str
-        FTP/HTTP host URL.
+    server : str
+        Server URL (FTP or HTTP).
     directory : str
         Remote directory path.
     filename : str
         Remote filename.
-    frame_type : AntexFrameType | None
+    protocol : DownloadProtocol
+        Protocol for downloading (FTP, FTPS, HTTP, HTTPS).
+    frame_type : IGSAntexReferenceFrameType | None
         Reference frame type if known.
     """
 
-    ftpserver: str
-    directory: str
-    filename: str
-    full_url: Optional[str] = None
     frame_type: Optional[IGSAntexReferenceFrameType] = None
 
-    @property
-    def url(self) -> str:
-        """Full URL to the remote file."""
-        if self.full_url:
-            return self.full_url
-        host = self.ftpserver.rstrip("/")
-        path = self.directory.strip("/")
-        return f"{host}/{path}/{self.filename}"
 
 
 # ---------------------------------------------------------------------------
@@ -233,10 +224,10 @@ class IGSAntexHTTPSource(BaseModel):
         >>> source = IGSAntexHTTPSource()
         >>> date = datetime.datetime(2025, 1, 1)
         >>> result = source.query(date, strict=True)
-        >>> print(result.full_url)
+        >>> print(result.url)
         'https://files.igs.org/pub/station/general/pcv_archive/igs20_2343.atx'
         >>> result = source.query(date, strict=False)
-        >>> print(result.full_url)
+        >>> print(result.url)
         'https://files.igs.org/pub/station/general/igs20.atx'
         """
         assert isinstance(
@@ -270,13 +261,11 @@ class IGSAntexHTTPSource(BaseModel):
         # Try week-specific file first, then fall back to current file
         # use a regex to find the max week file for the frame that is less than gps_week
 
-        full_url = f"{self.http_server}/{result[1]}/{result[2]}"
-        
         return AntexFileResult(
-            ftpserver=self.http_server,
+            server=self.http_server,
             directory=result[1],
             filename=result[2],
-            full_url=full_url,
+            protocol=DownloadProtocol.HTTPS,
             frame_type=frame,
         )
 
@@ -301,10 +290,10 @@ class NGSNOAAAntexHTTPSource(BaseModel):
             logger.error(f"Failed to retrieve ANTEX file from NGS/NOAA: {e}")
             return None
         return AntexFileResult(
-            ftpserver=self.http_server,
+            server=self.http_server,
             directory=self.archive_dir,
             filename=filename,
-            full_url=full_url,
+            protocol=DownloadProtocol.HTTPS,
             frame_type=frame,
         )
 
@@ -330,9 +319,9 @@ class AstroInstMGEXAntexFTPSource(BaseModel):
         filename = find_best_match_in_listing(dir_listing, regex)
         if filename:
             return AntexFileResult(
-                ftpserver=self.ftpserver,
+                server=f"ftp://{self.ftpserver}",
                 directory=self.directory,
                 filename=filename,
-                full_url=f"ftp://{self.ftpserver}/{self.directory}/{filename}",
+                protocol=DownloadProtocol.FTP,
                 frame_type=determine_frame(date),
             )

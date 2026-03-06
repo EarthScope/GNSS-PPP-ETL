@@ -43,4 +43,6 @@ from .base import (
     ProductQuality,
     FTPFileResult,
     ConstellationCode,
+    ResourceQueryResult,
+    DownloadProtocol,
 )

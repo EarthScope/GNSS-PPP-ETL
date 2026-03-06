@@ -92,7 +92,7 @@ class GIMProbeResult:
     @property
     def full_url(self) -> str:
         if self.file_result:
-            return self.file_result.full_url or f"{self.file_result.ftpserver}/{self.file_result.directory}/{self.file_result.filename}"
+            return self.file_result.url or f"{self.file_result.server}/{self.file_result.directory}/{self.file_result.filename}"
         return "—"
 
 
@@ -144,7 +144,7 @@ class TestCODEGIMProductSource:
         assert result is not None, f"Expected GIM file for {DATE_NEW_FORMAT}, got None"
         assert result.product_type == IonosphereProductType.GIM
         assert "COD0OPSFIN" in result.filename or "GIM" in result.filename.upper()
-        assert result.ftpserver == "ftp://ftp.aiub.unibe.ch"
+        assert result.server == "ftp://ftp.aiub.unibe.ch"
         
         log.info("  Found: %s", result.filename)
 
@@ -211,7 +211,7 @@ class TestWuhanGIMProductSource:
         if result is not None:
             log.info("  Found: %s", result.filename)
             assert result.product_type == IonosphereProductType.GIM
-            assert result.ftpserver == "ftp://igs.gnsswhu.cn"
+            assert result.server == "ftp://igs.gnsswhu.cn"
         else:
             log.warning("  Not found (may be expected for recent dates)")
 
@@ -279,7 +279,7 @@ class TestCDDISGIMProductSource:
         if result is not None:
             log.info("  Found: %s", result.filename)
             assert result.product_type == IonosphereProductType.GIM
-            assert "cddis" in result.ftpserver.lower()
+            assert "cddis" in result.server.lower()
         else:
             log.warning("  Not found (CDDIS may require FTPS)")
 
@@ -408,14 +408,14 @@ class TestIonosphereFileResult:
     def test_result_attributes(self) -> None:
         """Test that file result has all expected attributes."""
         result = IonosphereFileResult(
-            ftpserver="ftp://ftp.aiub.unibe.ch",
+            server="ftp://ftp.aiub.unibe.ch",
             directory="CODE/2025",
             filename="COD0OPSFIN_20250010000_01D_01H_GIM.INX.gz",
             product_type=IonosphereProductType.GIM,
             quality=IonosphereProductQuality.FINAL,
         )
         
-        assert result.ftpserver == "ftp://ftp.aiub.unibe.ch"
+        assert result.server == "ftp://ftp.aiub.unibe.ch"
         assert result.directory == "CODE/2025"
         assert result.filename == "COD0OPSFIN_20250010000_01D_01H_GIM.INX.gz"
         assert result.product_type == IonosphereProductType.GIM
@@ -424,14 +424,14 @@ class TestIonosphereFileResult:
     def test_full_url_property(self) -> None:
         """Test full_url property assembly when not set."""
         result = IonosphereFileResult(
-            ftpserver="ftp://ftp.aiub.unibe.ch",
+            server="ftp://ftp.aiub.unibe.ch",
             directory="CODE/2025",
             filename="test.gz",
             product_type=IonosphereProductType.GIM,
         )
         
         # full_url is optional and set explicitly
-        assert result.full_url is None or "ftp://" in str(result.full_url)
+        assert result.url is None or "ftp://" in str(result.url)
 
 
 # ---------------------------------------------------------------------------

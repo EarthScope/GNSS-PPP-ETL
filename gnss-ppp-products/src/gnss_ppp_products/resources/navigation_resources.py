@@ -8,6 +8,7 @@ from .base import (
     FTPProductSource,
     ProductQuality,
     ConstellationCode,
+    DownloadProtocol,
 )
 from .utils import (
     _parse_date,
@@ -73,9 +74,10 @@ class WuhanNavFileFTPProductSource(BaseModel):
         filename = find_best_match_in_listing(dir_listing, regex)
         if filename:
             return FTPFileResult(
-                ftpserver=self.product_directory_source.ftpserver,
+                server=self.product_directory_source.ftpserver,
                 directory=directory,
                 filename=filename,
+                protocol=DownloadProtocol.FTP,
                 quality=ProductQuality.FINAL,
             )
         return None
@@ -163,9 +165,10 @@ class CDDISNavFileFTPProductSource(WuhanNavFileFTPProductSource):
         filename = find_best_match_in_listing(dir_listing, regex)
         if filename:
             return FTPFileResult(
-                ftpserver=self.product_directory_source.ftpserver,
+                server=self.product_directory_source.ftpserver,
                 directory=directory,
                 filename=filename,
+                protocol=DownloadProtocol.FTPS,
                 quality=ProductQuality.FINAL,
             )
         return None
