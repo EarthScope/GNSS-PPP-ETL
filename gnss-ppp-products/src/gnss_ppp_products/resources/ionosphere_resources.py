@@ -47,7 +47,6 @@ from .utils import (
     ftp_list_directory,
     find_best_match_in_listing,
     _parse_date,
-    _date_to_gps_week,
     datetime_to_mjd
 )
 
@@ -420,12 +419,13 @@ class CDDISGIMProductSource(BaseModel):
         """
         directory = self.directory_source.directory(date)
 
-        assert center in [
+        if center not in [
             IonosphereProductSource.IGS,
             IonosphereProductSource.ESA,
             IonosphereProductSource.COD,
             IonosphereProductSource.EMR,
-        ], "CDDIS GIM query only supports IGS, ESA, COD, and EMR centers"
+        ]:
+            raise ValueError("CDDIS GIM query only supports IGS, ESA, COD, and EMR centers")
         regex = self.file_regex.ion(date, center, quality)
 
         try:

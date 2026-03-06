@@ -102,12 +102,6 @@ class FTPFileResult(ResourceQueryResult):
     quality: ProductQuality = field(default=ProductQuality.FINAL)
     protocol: DownloadProtocol = field(default=DownloadProtocol.FTP)
 
-    # Legacy alias for backward compatibility
-    @property
-    def ftpserver(self) -> str:
-        """Alias for server (backward compatibility)."""
-        return self.server
-
     @property
     def quality_label(self) -> str:
         """Short quality label used in filenames (``FIN``, ``RAP``, ``RTS``)."""

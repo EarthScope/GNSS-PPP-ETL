@@ -30,11 +30,7 @@ import requests
 
 from .base import ResourceQueryResult, DownloadProtocol
 from .http_servers import VMF_HTTP
-from .utils import (
-    _parse_date,
-    ftp_list_directory,
-    find_best_match_in_listing,
-)
+from .utils import _parse_date
 
 logger = logging.getLogger(__name__)
 
@@ -76,46 +72,10 @@ class AtmosphericFileResult(ResourceQueryResult):
     product_type: str = ""
     quality: AtmosphericProductQuality = AtmosphericProductQuality.FINAL
 
-    # Legacy alias for backward compatibility
-    @property
-    def ftpserver(self) -> str:
-        """Alias for server (backward compatibility)."""
-        return self.server
-
 
 # ---------------------------------------------------------------------------
 # VMF Products (Vienna Mapping Functions)
 # ---------------------------------------------------------------------------
-
-
-class VMFDirectorySource(BaseModel):
-    """
-    Directory structure for VMF (Vienna Mapping Functions) products.
-    
-    Products available:
-        - VMF1: Vienna Mapping Function 1 (operational grids)
-        - VMF3: Vienna Mapping Function 3 (operational grids)
-        
-    Server: vmf.geo.tuwien.ac.at (or mirrors)
-    
-    Directory structure:
-        trop_products/GRID/VMF1/VMF1_OP/{year}/
-        trop_products/GRID/VMF3/VMF3_OP/{year}/
-    """
-    
-    http_server:str = VMF_HTTP
-    vmf1_path: str = "trop_products/GRID/VMF1/VMF1_OP/{year}"
-    vmf3_path: str = "trop_products/GRID/VMF3/VMF3_OP/{year}"
-    
-    def vmf1_directory(self, date: datetime.date) -> str:
-        """Return VMF1 directory for a given date."""
-        year, _ = _parse_date(date)
-        return self.vmf1_path.format(year=year)
-    
-    def vmf3_directory(self, date: datetime.date) -> str:
-        """Return VMF3 directory for a given date."""
-        year, _ = _parse_date(date)
-        return self.vmf3_path.format(year=year)
 
 
 class VMFFileRegex(BaseModel):
@@ -186,22 +146,28 @@ class VMFHTTPProductSource(BaseModel):
         AtmosphericFileResult or None
             File result if found.
         """
-        assert product in ["VMF1", "VMF3"], "Product must be either 'VMF1' or 'VMF3'"
+        if product not in ["VMF1", "VMF3"]:
+            raise ValueError("Product must be either 'VMF1' or 'VMF3'")
         match resolution:
             case "1x1":
-                assert product == "VMF3", "Only VMF3 is available at 1x1 resolution"
+                if product != "VMF3":
+                    raise ValueError("Only VMF3 is available at 1x1 resolution")
             case "2.5x2":
-                assert product == "VMF1", "Only VMF1 is available at 2.5x2 resolution"
+                if product != "VMF1":
+                    raise ValueError("Only VMF1 is available at 2.5x2 resolution")
             case "5x5":
-                assert product == "VMF3", "Only VMF3 is available at 5x5 resolution"
+                if product != "VMF3":
+                    raise ValueError("Only VMF3 is available at 5x5 resolution")
             case _:
                 raise ValueError(f"Unsupported resolution: {resolution}")
         
         match product:
             case "VMF1":
-                assert date.year >= 1985, "VMF1 products are only available from 1985 onwards"
+                if date.year < 1985:
+                    raise ValueError("VMF1 products are only available from 1985 onwards")
             case "VMF3":
-                assert date.year >= 2008, "VMF3 products are only available from 2008 onwards"
+                if date.year < 2008:
+                    raise ValueError("VMF3 products are only available from 2008 onwards")
 
         year,doy = _parse_date(date)
 

@@ -1,11 +1,10 @@
 import datetime
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
 import logging
 
 from .base import (
     FTPFileResult,
-    FTPProductSource,
     ProductQuality,
     ConstellationCode,
     DownloadProtocol,
@@ -13,7 +12,6 @@ from .base import (
 from .ftp_servers import WUHAN_FTP, IGS_FTP, CDDIS_FTP
 from .utils import (
     _parse_date,
-    _date_to_gps_week,
     ftp_list_directory,
     find_best_match_in_listing,
 )
@@ -53,7 +51,8 @@ class WuhanNavFileDirectorySourceFTP(BaseModel):
             # use multi-gnss merged products after 2013 when they became available, otherwise use constellation-specific directories for older data
             prefix = "p" if constellation is None else constellation.value
         else:
-            assert constellation is not None, "Constellation code required for rinex_nav_dir before 2013"
+            if constellation is None:
+                raise ValueError("Constellation code required for rinex_nav_dir before 2013")
             prefix = constellation.value
         return self.rinex_nav.format(year=year, doy=doy, yy=yy, prefix=prefix)
 
@@ -98,9 +97,8 @@ class WuhanNavFileFTPProductSource(BaseModel):
                 regex = self.product_filesource_regex.broadcast_rnx3(date)
                 directory = self.product_directory_source.rinex_nav_dir(date)
             case "rinex_2_nav":
-                assert (
-                    constellation is not None
-                ), "Constellation code required for rinex_2_nav"
+                if constellation is None:
+                    raise ValueError("Constellation code required for rinex_2_nav")
                 regex = self.product_filesource_regex.broadcast_rnx2(
                     date, constellation
                 )
@@ -143,7 +141,8 @@ class CDDISNavFileDirectorySourceFTP(BaseModel):
             prefix = "p" if constellation is None else constellation.value
             # use multi-gnss merged products after 2013 when they became available, otherwise use constellation-specific directories for older data
         else:
-            assert constellation is not None, "Constellation code required for rinex_nav_dir before 2013"
+            if constellation is None:
+                raise ValueError("Constellation code required for rinex_nav_dir before 2013")
             prefix = constellation.value
 
         return self.rinex_nav.format(year=year, doy=doy, yy=yy, prefix=prefix)

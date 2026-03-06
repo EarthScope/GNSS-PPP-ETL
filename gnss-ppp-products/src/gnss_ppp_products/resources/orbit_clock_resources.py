@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import Literal, Optional
 from .base import (
     FTPFileResult,
@@ -15,6 +16,8 @@ from .utils import (
     ftp_list_directory,
     find_best_match_in_listing,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Group1FileRegex(ProductFileSourceRegex):
@@ -156,7 +159,7 @@ class WuhanFTPProductSource(FTPProductSource):
             ftp_file_result = self._search(regex, directory, quality)
             return ftp_file_result
         except Exception as e:
-            print(f"Error querying FTP for product {product}: {e}")
+            logger.error(f"Error querying FTP for product {product}: {e}")
             return None
 
 
