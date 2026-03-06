@@ -57,38 +57,11 @@ class Group1FileRegex(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Directory Sources
-# ---------------------------------------------------------------------------
-
-
-class YearDirectorySource(BaseModel):
-
-    ftpserver: str
-    base_path: str
-
-    def directory(self, date: datetime.datetime) -> str:
-        year, _ = _parse_date(date)
-        return self.base_path.format(year=year)
-
-
-class GPSWeekDirectorySource(BaseModel):
-
-    ftpserver: str
-    base_path: str
-
-    def directory(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.base_path.format(gps_week=gps_week)
-
-
-# ---------------------------------------------------------------------------
 # Specific Directory Implementations
 # ---------------------------------------------------------------------------
 
 
 class WuhanDirectorySourceFTP(BaseModel):
-
-    ftpserver: str = WUHAN_FTP
 
     paths: dict[str, str] = {
         "sp3": "pub/whu/phasebias/{year}/orbit/",
@@ -127,7 +100,6 @@ class KASIDirectorySourceFTP(BaseModel):
 
 class CDDISDirectorySourceFTP(BaseModel):
 
-    ftpserver: str = ESA_FTP
     base_path: str = "gnss/products/{gps_week}"
 
     def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
@@ -141,7 +113,7 @@ class CDDISDirectorySourceFTP(BaseModel):
 
 
 class GenericFTPProductSource(FTPProductSource):
-
+    ftpserver: str
     product_filesource_regex: Group1FileRegex
     product_directory_source: ProductDirectorySourceFTP
 
@@ -150,7 +122,7 @@ class GenericFTPProductSource(FTPProductSource):
     ) -> Optional[FTPFileResult]:
 
         dir_listing = ftp_list_directory(
-            self.product_directory_source.ftpserver, directory, timeout=60
+            self.ftpserver, directory, timeout=60
         )
 
         if not dir_listing:
@@ -160,7 +132,7 @@ class GenericFTPProductSource(FTPProductSource):
 
         if filename:
             return FTPFileResult(
-                server=self.product_directory_source.ftpserver,
+                server=self.ftpserver,
                 directory=directory,
                 filename=filename,
                 protocol=DownloadProtocol.FTP,
@@ -194,25 +166,29 @@ class GenericFTPProductSource(FTPProductSource):
 # ---------------------------------------------------------------------------
 
 
-class WuhanFTPProductSource(GenericFTPProductSource):
-
-    product_filesource_regex: Group1FileRegex = Group1FileRegex()
-    product_directory_source: WuhanDirectorySourceFTP = WuhanDirectorySourceFTP()
-
-
-class CLSIGSFTPProductSource(GenericFTPProductSource):
-
-    product_filesource_regex: Group1FileRegex = Group1FileRegex()
-    product_directory_source: CLSIGSDirectorySourceFTP = CLSIGSDirectorySourceFTP()
+WuhanFTPProductSource = GenericFTPProductSource(
+    ftpserver=WUHAN_FTP,
+    product_filesource_regex=Group1FileRegex(),
+    product_directory_source=WuhanDirectorySourceFTP()
+)
 
 
-class KASIFTPProductSource(GenericFTPProductSource):
+CLSIGSFTPProductSource = GenericFTPProductSource(
+    ftpserver=IGS_FTP,
+    product_filesource_regex=Group1FileRegex(),
+    product_directory_source=CLSIGSDirectorySourceFTP()
+)
 
-    product_filesource_regex: Group1FileRegex = Group1FileRegex()
-    product_directory_source: KASIDirectorySourceFTP = KASIDirectorySourceFTP()
+
+KASIFTPProductSource = GenericFTPProductSource(
+    ftpserver=KASI_FTP, 
+    product_filesource_regex=Group1FileRegex(),
+    product_directory_source=KASIDirectorySourceFTP()
+)
 
 
-class CDDISFTPProductSource(GenericFTPProductSource):
-
-    product_filesource_regex: Group1FileRegex = Group1FileRegex()
-    product_directory_source: CDDISDirectorySourceFTP = CDDISDirectorySourceFTP()
+CDDISFTPProductSource = GenericFTPProductSource(
+    ftpserver=ESA_FTP,  
+    product_filesource_regex=Group1FileRegex(),
+    product_directory_source=CDDISDirectorySourceFTP()
+)

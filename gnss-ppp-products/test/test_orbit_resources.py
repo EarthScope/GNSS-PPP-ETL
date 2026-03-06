@@ -148,7 +148,7 @@ def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
                 tried = " → ".join(q.value for q in QUALITY_ORDER)
                 log.warning("  [%s] Not found at any quality (%s)", product.name, tried)
 
-        _print_summary(source_name, source.product_directory_source.ftpserver, results)
+        _print_summary(source_name, source.ftpserver, results)
         all_results[source_name] = results
 
     return all_results
