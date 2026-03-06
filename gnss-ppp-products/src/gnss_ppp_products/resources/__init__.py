@@ -10,7 +10,7 @@ from .ionosphere_resources import (
     CDDISGIMProductSource,
     WuhanGIMProductSource,
 )
-from .atmospheric_products import (
+from .troposphere_resources import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
     VMFProductSource,

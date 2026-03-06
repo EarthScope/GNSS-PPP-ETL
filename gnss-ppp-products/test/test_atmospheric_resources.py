@@ -26,7 +26,7 @@ from typing import Optional
 
 import pytest
 
-from gnss_ppp_products.resources.atmospheric_products import (
+from gnss_ppp_products.resources.troposphere_resources import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
     CODEGIMProductSource,
