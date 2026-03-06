@@ -14,7 +14,7 @@ from .troposphere_resources import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
     VMFProductSource,
-    AtmosphericProductSource,
+  
 )
 from .orbit_clock_products import (
     WuhanFTPProductSource,
