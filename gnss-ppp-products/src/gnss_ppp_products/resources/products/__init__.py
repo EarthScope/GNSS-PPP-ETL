@@ -1,17 +1,50 @@
-class Antex:
-    pass
+"""
+GNSS Product Types
+==================
 
-class BIA:
-    pass
+Exhaustive collection of all product types downloaded by remote resources.
+"""
 
-class ERP:
-    pass
+from .types import (
+    # Core enums
+    TemporalCoverage,
+    ProductQuality,
+    ProductCategory,
+    FileFormat,
+    AnalysisCenter,
+    ConstellationType,
+    # Product type enum with metadata
+    ProductType,
+    ProductTypeInfo,
+    # Convenience collections
+    ORBIT_CLOCK_PRODUCTS,
+    NAVIGATION_PRODUCTS,
+    ATMOSPHERIC_PRODUCTS,
+    ANTENNA_PRODUCTS,
+    REFERENCE_PRODUCTS,
+    LEO_PRODUCTS,
+    DATE_ORGANIZED_PRODUCTS,
+    STATIC_PRODUCTS,
+)
 
-class OBX:
-    pass
-
-class ORB:
-    pass
-
-class CLK:
-    pass
+__all__ = [
+    # Enums
+    "TemporalCoverage",
+    "ProductQuality", 
+    "ProductCategory",
+    "FileFormat",
+    "AnalysisCenter",
+    "ConstellationType",
+    # Product types
+    "ProductType",
+    "ProductTypeInfo",
+    # Collections
+    "ORBIT_CLOCK_PRODUCTS",
+    "NAVIGATION_PRODUCTS",
+    "ATMOSPHERIC_PRODUCTS",
+    "ANTENNA_PRODUCTS",
+    "REFERENCE_PRODUCTS",
+    "LEO_PRODUCTS",
+    "DATE_ORGANIZED_PRODUCTS",
+    "STATIC_PRODUCTS",
+]

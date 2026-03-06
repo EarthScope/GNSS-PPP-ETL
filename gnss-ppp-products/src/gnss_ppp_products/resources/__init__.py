@@ -66,6 +66,7 @@ from .remote.base import (
 # Local resource imports
 from .local import (
     DirectoryStrategy,
+    ProductCategory,
     LocalDirectoryBuilder,
     LocalFileFinder,
     LocalFileResult,
@@ -74,10 +75,6 @@ from .local import (
     LocalAntexResult,
     LocalAtmosphericResult,
     LocalProductSource,
-    LocalOrbitClockSource,
-    LocalNavigationSource,
-    LocalAntexSource,
-    LocalAtmosphericSource,
-    LocalProductStore,
-    ProductCategory,
+    LocalDataSource,
+    PrideDataSource,
 )
