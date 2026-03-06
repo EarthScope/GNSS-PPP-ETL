@@ -22,17 +22,21 @@ Servers
 """
 
 import datetime
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, Optional
 
 from pydantic import BaseModel
+import requests
 
 from .utils import (
     _parse_date,
     ftp_list_directory,
     find_best_match_in_listing,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +105,7 @@ class VMFDirectorySource(BaseModel):
         trop_products/GRID/VMF3/VMF3_OP/{year}/
     """
     
-    ftpserver: str = "ftp://vmf.geo.tuwien.ac.at"
+    http_server:str = "https://vmf.geo.tuwien.ac.at/"
     vmf1_path: str = "trop_products/GRID/VMF1/VMF1_OP/{year}"
     vmf3_path: str = "trop_products/GRID/VMF3/VMF3_OP/{year}"
     
@@ -126,48 +130,20 @@ class VMFFileRegex(BaseModel):
         
     For daily aggregates, match any hour or use combined files.
     """
+
+    regex: str = "{product}_{year}{month}{day}.{hh}"
     
-    vmf1_pattern: str = r"VMFG_{year}{doy}\.H(00|06|12|18)"
-    vmf3_pattern: str = r"VMF3_{year}{doy}\.H(00|06|12|18)"
-    vmf1_daily: str = r"VMFG_{year}{doy}.*"
-    vmf3_daily: str = r"VMF3_{year}{doy}.*"
-    
-    def vmf1_regex(self, date: datetime.date, hour: Optional[int] = None) -> str:
-        """
-        Return regex for VMF1 file.
-        
-        Parameters
-        ----------
-        date : datetime.date
-            Target date.
-        hour : int, optional
-            Specific hour (0, 6, 12, 18). If None, matches any available hour.
-        """
+    def query(self, date: datetime.date, product: Literal["VMF1", "VMF3"] = "VMF1", hour: Literal['H00', 'H06', 'H12', 'H18'] = 'H00') -> str:
+        """Return regex for specified product and date."""
         year, doy = _parse_date(date)
-        if hour is not None:
-            return f"VMFG_{year}{doy}\\.H{hour:02d}"
-        return self.vmf1_daily.format(year=year, doy=doy)
-    
-    def vmf3_regex(self, date: datetime.date, hour: Optional[int] = None) -> str:
-        """
-        Return regex for VMF3 file.
-        
-        Parameters
-        ----------
-        date : datetime.date
-            Target date.
-        hour : int, optional
-            Specific hour (0, 6, 12, 18). If None, matches any available hour.
-        """
-        year, doy = _parse_date(date)
-        if hour is not None:
-            return f"VMF3_{year}{doy}\\.H{hour:02d}"
-        return self.vmf3_daily.format(year=year, doy=doy)
+        month = str(date.month).zfill(2)
+        day = str(date.day).zfill(2)
+        return self.regex.format(product=product.upper(), year=year, month=month, day=day, hh=hour)
 
 
-class VMFProductSource(BaseModel):
+class VMFHTTPProductSource(BaseModel):
     """
-    FTP source for Vienna Mapping Functions (VMF) troposphere products.
+    HTTP source for Vienna Mapping Functions (VMF) troposphere products.
     
     VMF products provide:
         - Hydrostatic and wet mapping function coefficients
@@ -176,121 +152,67 @@ class VMFProductSource(BaseModel):
     
     Example
     -------
-    >>> source = VMFProductSource()
+    >>> source = VMFHTTPProductSource()
     >>> result = source.query_vmf1(datetime.date(2025, 1, 1))
     >>> print(result.url)
-    ftp://vmf.geo.tuwien.ac.at/trop_products/GRID/VMF1/VMF1_OP/2025/VMFG_2025001.H00
+    https://vmf.geo.tuwien.ac.at/trop_products/GRID/VMF1/VMF1_OP/2025/VMFG_2025001.H00
     """
     
-    directory_source: VMFDirectorySource = VMFDirectorySource()
+    # directory_source: VMFDirectorySource = VMFDirectorySource()
     file_regex: VMFFileRegex = VMFFileRegex()
+    http_server: str = "https://vmf.geo.tuwien.ac.at/"
+    archive_dir: str = "trop_products/GRID/{resolution}/{product}/{product}_OP/{year}"
     
-    def _search(
-        self,
-        directory: str,
-        regex: str,
-        product_type: str,
-    ) -> Optional[AtmosphericFileResult]:
-        """Search FTP directory for matching file."""
-        try:
-            listing = ftp_list_directory(
-                self.directory_source.ftpserver, directory, timeout=60
-            )
-            if not listing:
-                return None
-                
-            filename = find_best_match_in_listing(listing, regex)
-            if filename:
-                return AtmosphericFileResult(
-                    ftpserver=self.directory_source.ftpserver,
-                    directory=directory,
-                    filename=filename,
-                    product_type=product_type,
-                    quality=AtmosphericProductQuality.FINAL,
-                )
-        except Exception:
-            pass
-        
-        return None
-    
-    def query_vmf1(
-        self,
-        date: datetime.date,
-        hour: Optional[int] = None,
-    ) -> Optional[AtmosphericFileResult]:
+    def query(self, date: datetime.date, resolution: Literal["1x1", "2.5x2","5x5"] = "1x1", product: Literal["VMF1", "VMF3"] = "VMF3", hour: Literal['H00', 'H06', 'H12', 'H18'] = 'H00') -> Optional[AtmosphericFileResult]:
         """
-        Query for VMF1 troposphere product.
+        Query for a VMF product file.
         
         Parameters
         ----------
         date : datetime.date
-            Date for which to retrieve VMF1 product.
-        hour : int, optional
-            Specific hour (0, 6, 12, 18). If None, returns first available.
-            
-        Returns
-        -------
-        AtmosphericFileResult or None
-            File result if found.
-        """
-        directory = self.directory_source.vmf1_directory(date)
-        regex = self.file_regex.vmf1_regex(date, hour)
-        return self._search(directory, regex, "vmf1")
-    
-    def query_vmf3(
-        self,
-        date: datetime.date,
-        hour: Optional[int] = None,
-    ) -> Optional[AtmosphericFileResult]:
-        """
-        Query for VMF3 troposphere product.
-        
-        Parameters
-        ----------
-        date : datetime.date
-            Date for which to retrieve VMF3 product.
-        hour : int, optional
-            Specific hour (0, 6, 12, 18). If None, returns first available.
-            
-        Returns
-        -------
-        AtmosphericFileResult or None
-            File result if found.
-        """
-        directory = self.directory_source.vmf3_directory(date)
-        regex = self.file_regex.vmf3_regex(date, hour)
-        return self._search(directory, regex, "vmf3")
-    
-    def query_all_hours(
-        self,
-        date: datetime.date,
-        product: Literal["vmf1", "vmf3"] = "vmf1",
-    ) -> list[AtmosphericFileResult]:
-        """
-        Query all available hourly files for a given date.
-        
-        Parameters
-        ----------
-        date : datetime.date
-            Target date.
+            Date for which to retrieve the VMF product.
+        resolution : str
+            Grid resolution ("1x1", "2.5x2", "5x5").
         product : str
             Either "vmf1" or "vmf3".
+        hour : int, optional
+            Specific hour (0, 6, 12, 18). If None, returns first available.
             
         Returns
         -------
-        list[AtmosphericFileResult]
-            List of all matching hourly files.
+        AtmosphericFileResult or None
+            File result if found.
         """
-        results = []
-        for hour in [0, 6, 12, 18]:
-            if product == "vmf1":
-                result = self.query_vmf1(date, hour)
-            else:
-                result = self.query_vmf3(date, hour)
+        assert product in ["VMF1", "VMF3"], "Product must be either 'VMF1' or 'VMF3'"
+        match resolution:
+            case "1x1":
+                assert product == "VMF3", "Only VMF3 is available at 1x1 resolution"
+            case "2.5x2":
+                assert product == "VMF1", "Only VMF1 is available at 2.5x2 resolution"
+            case "5x5":
+                assert product == "VMF3", "Only VMF3 is available at 5x5 resolution"
+            case _:
+                raise ValueError(f"Unsupported resolution: {resolution}")
             
-            if result is not None:
-                results.append(result)
+        year,doy = _parse_date(date)
+
+        directory = self.archive_dir.format(resolution=resolution, product=product.upper(), year=year)
         
-        return results
+        filename = self.file_regex.query(date=date, product=product, hour=hour)
 
-
+        full_url = f"{self.http_server.rstrip('/')}/{directory.strip('/')}/{filename}"
+        
+        try:
+            response = requests.head(full_url, timeout=30)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            logger.error(f"Failed to retrieve ANTEX file from NGS/NOAA: {e}")
+            return None
+        return AtmosphericFileResult(
+            ftpserver=self.http_server,
+            directory=directory,
+            filename=filename,
+            product_type=product.lower(),
+            quality=AtmosphericProductQuality.FINAL,  # VMF products are typically final quality
+        )
+    

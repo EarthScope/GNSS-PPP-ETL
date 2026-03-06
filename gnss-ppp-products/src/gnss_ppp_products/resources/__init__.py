@@ -13,7 +13,7 @@ from .ionosphere_resources import (
 from .troposphere_resources import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
-    VMFProductSource,
+    VMFHTTPProductSource,
   
 )
 from .orbit_clock_products import (
