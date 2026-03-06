@@ -28,7 +28,7 @@ from typing import Optional, Type
 
 import pytest
 
-from gnss_ppp_products.resources import WuhanFTPProductSource, CLSIGSFTPProductSource,KASIFTPProductSource,CDDISFTPProductSource
+from gnss_ppp_products.resources import WuhanFTPProductSource, CLSIGSFTPProductSource,KASIFTPProductSource,CDDISFTPProductSource,OrbitClockProductTypes
 from gnss_ppp_products.resources.base import FTPFileResult, FTPProductSource, ProductQuality
 
 log = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ DATE = datetime.date(2025, 1, 1)
 DOY: int = DATE.timetuple().tm_yday                            # 1
 GPS_WEEK: int = (DATE - datetime.date(1980, 1, 6)).days // 7  # 2347
 
-PRODUCTS: list[str] = ["sp3", "clk", "obx", "erp", "bias"]
+PRODUCTS:list = list(OrbitClockProductTypes)  # [OrbitClockProductTypes.SP3, OrbitClockProductTypes.ORBIT, ...]
 
 QUALITY_ORDER: list[ProductQuality] = [
     ProductQuality.FINAL,
@@ -128,7 +128,7 @@ def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
                 except Exception as exc:
                     probe.errors[quality.value] = str(exc)
                     log.warning(
-                        "  [%s] %s — ERROR: %s", product.upper(), quality.value, exc
+                        "  [%s] %s — ERROR: %s", product.name, quality.value, exc
                     )
                     file_result = None
 
@@ -138,15 +138,15 @@ def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
                     found_any = True
                     log.info(
                         "  [%s] Found at %-3s — %s",
-                        product.upper(),
+                        product.name,
                         quality.value,
                         file_result.filename,
                     )
-                    results[product][quality] = probe
+                    results[product.value][quality] = probe
 
             if not found_any:
                 tried = " → ".join(q.value for q in QUALITY_ORDER)
-                log.warning("  [%s] Not found at any quality (%s)", product.upper(), tried)
+                log.warning("  [%s] Not found at any quality (%s)", product.name, tried)
 
         _print_summary(source_name, source.product_directory_source.ftpserver, results)
         all_results[source_name] = results
@@ -188,7 +188,7 @@ def _print_summary(source_name: str, ftpserver: str, results: dict[str, dict[str
     for product, quality_dict in results.items():
         for quality, probe in quality_dict.items():
             print(
-                f"  {probe.product.upper():<{_COL_PROD}}"
+                f"  {probe.product.name:<{_COL_PROD}}"
                 f"  {probe.quality_label:<{_COL_QUAL}}"
                 f"  {probe.filename:<{_COL_FILE}}"
                 f"  {probe.url}"
@@ -359,10 +359,10 @@ class TestFTPHighestQuality:
                 if not probe.found:
                     continue
                 assert probe.filename, (
-                    f"[{self.source_name}] {product.upper()} result has an empty filename."
+                    f"[{self.source_name}] {product.name} result has an empty filename."
                 )
                 assert "." in probe.filename, (
-                    f"[{self.source_name}] {product.upper()} filename '{probe.filename}' has no file extension."
+                    f"[{self.source_name}] {product.name} filename '{probe.filename}' has no file extension."
                 )
 
     def test_found_products_have_valid_ftp_urls(self) -> None:
@@ -372,8 +372,8 @@ class TestFTPHighestQuality:
                 if not probe.found:
                     continue
                 assert probe.url.startswith("ftp://"), (
-                    f"[{self.source_name}] {product.upper()} URL '{probe.url}' does not start with 'ftp://'."
+                    f"[{self.source_name}] {product.name} URL '{probe.url}' does not start with 'ftp://'."
                 )
                 assert probe.filename in probe.url, (
-                    f"[{self.source_name}] {product.upper()} URL '{probe.url}' does not contain its filename."
+                    f"[{self.source_name}] {product.name} URL '{probe.url}' does not contain its filename."
                 )

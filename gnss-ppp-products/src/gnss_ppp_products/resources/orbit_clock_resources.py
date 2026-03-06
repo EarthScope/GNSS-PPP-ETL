@@ -1,6 +1,9 @@
 import datetime
 import logging
 from typing import Literal, Optional
+from enum import Enum
+from pydantic import BaseModel
+
 from .base import (
     FTPFileResult,
     FTPProductSource,
@@ -9,7 +12,9 @@ from .base import (
     ProductQuality,
     DownloadProtocol,
 )
+
 from .ftp_servers import WUHAN_FTP, IGS_FTP, KASI_FTP, ESA_FTP
+
 from .utils import (
     _parse_date,
     _date_to_gps_week,
@@ -19,92 +24,140 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
+class ProductTypes(Enum):
+    SP3 = "sp3"
+    ORBIT = "orbit"
+    CLK = "clk"
+    SUM = "sum"
+    BIAS = "bias"
+    ERP = "erp"
+    OBX = "obx" 
 
-class Group1FileRegex(ProductFileSourceRegex):
-    product_sp3: str = "{quality}.*{year}{doy}.*SP3.*"
-    product_obx: str = "{quality}.*{year}{doy}.*OBX.*"
-    product_clk: str = "{quality}.*{year}{doy}.*CLK.*"
-    product_sum: str = "{quality}.*{year}{doy}.*SUM.*"
-    product_bias: str = "{quality}.*{year}{doy}.*BIA.*"
-    product_erp: str = "{quality}.*{year}{doy}.*ERP.*"
+# ---------------------------------------------------------------------------
+# Regex
+# ---------------------------------------------------------------------------
 
-    def sp3(self, date: datetime.datetime, quality: ProductQuality) -> str:
+
+class Group1FileRegex(BaseModel):
+
+    templates: dict[str, str] = {
+        "sp3": "{quality}.*{year}{doy}.*SP3.*",
+        "orbit": "{quality}.*{year}{doy}.*SP3.*",
+        "clk": "{quality}.*{year}{doy}.*CLK.*",
+        "sum": "{quality}.*{year}{doy}.*SUM.*",
+        "bias": "{quality}.*{year}{doy}.*BIA.*",
+        "erp": "{quality}.*{year}{doy}.*ERP.*",
+        "obx": "{quality}.*{year}{doy}.*OBX.*",
+    }
+
+    def build(self, product: ProductTypes, date: datetime.datetime, quality: ProductQuality) -> str:
         year, doy = _parse_date(date)
-        return self.product_sp3.format(quality=quality.value, year=year, doy=doy)
-
-    def obx(self, date: datetime.datetime, quality: ProductQuality) -> str:
-        year, doy = _parse_date(date)
-        return self.product_obx.format(quality=quality.value, year=year, doy=doy)
-
-    def clk(self, date: datetime.datetime, quality: ProductQuality) -> str:
-        year, doy = _parse_date(date)
-        return self.product_clk.format(quality=quality.value, year=year, doy=doy)
-
-    def erp(self, date: datetime.datetime, quality: ProductQuality) -> str:
-        year, doy = _parse_date(date)
-        return self.product_erp.format(quality=quality.value, year=year, doy=doy)
-
-    def sum(self, date: datetime.datetime, quality: ProductQuality) -> str:
-        year, doy = _parse_date(date)
-        return self.product_sum.format(quality=quality.value, year=year, doy=doy)
-
-    def bias(self, date: datetime.datetime, quality: ProductQuality) -> str:
-        year, doy = _parse_date(date)
-        return self.product_bias.format(quality=quality.value, year=year, doy=doy)
+        template = self.templates[product.value]
+        return template.format(quality=quality.value, year=year, doy=doy)
 
 
-class WuhanDirectorySourceFTP(ProductDirectorySourceFTP):
+# ---------------------------------------------------------------------------
+# Directory Sources
+# ---------------------------------------------------------------------------
+
+
+class YearDirectorySource(BaseModel):
+
+    ftpserver: str
+    base_path: str
+
+    def directory(self, date: datetime.datetime) -> str:
+        year, _ = _parse_date(date)
+        return self.base_path.format(year=year)
+
+
+class GPSWeekDirectorySource(BaseModel):
+
+    ftpserver: str
+    base_path: str
+
+    def directory(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.base_path.format(gps_week=gps_week)
+
+
+# ---------------------------------------------------------------------------
+# Specific Directory Implementations
+# ---------------------------------------------------------------------------
+
+
+class WuhanDirectorySourceFTP(BaseModel):
+
     ftpserver: str = WUHAN_FTP
-    product_sp3: str = "pub/whu/phasebias/{year}/orbit/"
-    product_orbit: str = "pub/whu/phasebias/{year}/orbit/"
-    product_clk: str = "pub/whu/phasebias/{year}/clock/"
-    product_sum: str = "pub/whu/phasebias/{year}/clock/"
-    product_bias: str = "pub/whu/phasebias/{year}/bias/"
-    product_erp: str = "pub/whu/phasebias/{year}/orbit/"
-    product_obx: str = "pub/whu/phasebias/{year}/orbit/"
 
-    def sp3(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.product_sp3.format(year=year)
+    paths: dict[str, str] = {
+        "sp3": "pub/whu/phasebias/{year}/orbit/",
+        "orbit": "pub/whu/phasebias/{year}/orbit/",
+        "clk": "pub/whu/phasebias/{year}/clock/",
+        "sum": "pub/whu/phasebias/{year}/clock/",
+        "bias": "pub/whu/phasebias/{year}/bias/",
+        "erp": "pub/whu/phasebias/{year}/orbit/",
+        "obx": "pub/whu/phasebias/{year}/orbit/",
+    }
 
-    def orbit(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.product_orbit.format(year=year)
-
-    def clk(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.product_clk.format(year=year)
-
-    def sum(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.product_sum.format(year=year)
-
-    def erp(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.product_erp.format(year=year)
-
-    def bias(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.product_bias.format(year=year)
-
-    def obx(self, date: datetime.datetime) -> str:
-        year, doy = _parse_date(date)
-        return self.product_obx.format(year=year)
+    def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
+        year, _ = _parse_date(date)
+        return self.paths[product.value].format(year=year)
 
 
-class WuhanFTPProductSource(FTPProductSource):
-    product_filesource_regex: Group1FileRegex = Group1FileRegex()
-    product_directory_source: WuhanDirectorySourceFTP = WuhanDirectorySourceFTP()
+class CLSIGSDirectorySourceFTP(BaseModel):
+
+    ftpserver: str = IGS_FTP
+    base_path: str = "pub/igs/products/{gps_week}"
+
+    def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.base_path.format(gps_week=gps_week)
+
+
+class KASIDirectorySourceFTP(BaseModel):
+
+    ftpserver: str = KASI_FTP
+    base_path: str = "gps/products/{gps_week}"
+
+    def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.base_path.format(gps_week=gps_week)
+
+
+class CDDISDirectorySourceFTP(BaseModel):
+
+    ftpserver: str = ESA_FTP
+    base_path: str = "gnss/products/{gps_week}"
+
+    def directory(self, product: ProductTypes, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.base_path.format(gps_week=gps_week)
+
+
+# ---------------------------------------------------------------------------
+# Product Source
+# ---------------------------------------------------------------------------
+
+
+class GenericFTPProductSource(FTPProductSource):
+
+    product_filesource_regex: Group1FileRegex
+    product_directory_source: ProductDirectorySourceFTP
 
     def _search(
         self, regex: str, directory: str, quality: ProductQuality
     ) -> Optional[FTPFileResult]:
+
         dir_listing = ftp_list_directory(
             self.product_directory_source.ftpserver, directory, timeout=60
         )
+
         if not dir_listing:
             return None
+
         filename = find_best_match_in_listing(dir_listing, regex)
+
         if filename:
             return FTPFileResult(
                 server=self.product_directory_source.ftpserver,
@@ -113,184 +166,53 @@ class WuhanFTPProductSource(FTPProductSource):
                 protocol=DownloadProtocol.FTP,
                 quality=quality,
             )
+
         return None
 
     def query(
         self,
-        product: Literal[
-            "sp3",
-            "orbit",
-            "clk",
-            "sum",
-            "bias",
-            "erp",
-            "obx",
-        ],
+        product: ProductTypes,
         date: datetime.date,
         quality: Optional[ProductQuality] = None,
     ) -> Optional[FTPFileResult]:
-        match product:
-            case "sp3" | "orbit":
-                regex = self.product_filesource_regex.sp3(date, quality)
-                directory = self.product_directory_source.sp3(date)
-            case "clk":
-                regex = self.product_filesource_regex.clk(date, quality)
-                directory = self.product_directory_source.clk(date)
-            case "sum":
-                regex = self.product_filesource_regex.sum(date, quality)
-                directory = self.product_directory_source.sum(date)
-            case "bias":
-                regex = self.product_filesource_regex.bias(date, quality)
-                directory = self.product_directory_source.bias(date)
-            case "erp":
-                regex = self.product_filesource_regex.erp(date, quality)
-                directory = self.product_directory_source.erp(date)
-            case "obx":
-                regex = self.product_filesource_regex.obx(date, quality)
-                directory = self.product_directory_source.obx(date)
-
-            case _:
-                raise ValueError(f"Unknown product type: {product}")
-
-        if regex is None or directory is None:
-            raise ValueError(f"Regex or directory not defined for product {product}")
 
         try:
-            ftp_file_result = self._search(regex, directory, quality)
-            return ftp_file_result
+
+            regex = self.product_filesource_regex.build(product, date, quality)
+
+            directory = self.product_directory_source.directory(product, date)
+
+            return self._search(regex, directory, quality)
+
         except Exception as e:
-            logger.error(f"Error querying FTP for product {product}: {e}")
+            logger.error(f"Error querying FTP for {product}: {e}")
             return None
 
 
-class CLSIGSDirectorySourceFTP(ProductDirectorySourceFTP):
-    ftpserver: str = IGS_FTP
-    product_sp3: str = "pub/igs/products/{gps_week}"
-    product_orbit: str = "pub/igs/products/{gps_week}"
-    product_clk: str = "pub/igs/products/{gps_week}"
-    product_sum: str = "pub/igs/products/{gps_week}"
-    product_bias: str = "pub/igs/products/{gps_week}"
-    product_erp: str = "pub/igs/products/{gps_week}"
-    product_obx: str = "pub/igs/products/{gps_week}"
-
-    def sp3(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_sp3.format(gps_week=gps_week)
-
-    def orbit(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_orbit.format(gps_week=gps_week)
-
-    def sum(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_sum.format(gps_week=gps_week)
-
-    def clk(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_clk.format(gps_week=gps_week)
-
-    def erp(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_erp.format(gps_week=gps_week)
-
-    def bias(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_bias.format(gps_week=gps_week)
-
-    def obx(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_obx.format(gps_week=gps_week)
+# ---------------------------------------------------------------------------
+# Concrete Sources
+# ---------------------------------------------------------------------------
 
 
-class CLSIGSFTPProductSource(WuhanFTPProductSource):
+class WuhanFTPProductSource(GenericFTPProductSource):
+
+    product_filesource_regex: Group1FileRegex = Group1FileRegex()
+    product_directory_source: WuhanDirectorySourceFTP = WuhanDirectorySourceFTP()
+
+
+class CLSIGSFTPProductSource(GenericFTPProductSource):
+
+    product_filesource_regex: Group1FileRegex = Group1FileRegex()
     product_directory_source: CLSIGSDirectorySourceFTP = CLSIGSDirectorySourceFTP()
 
 
-class KASIDirectorySourceFTP(ProductDirectorySourceFTP):
-    """Directory structure for KASI (Korea) FTP server - fallback source."""
+class KASIFTPProductSource(GenericFTPProductSource):
 
-    ftpserver: str = KASI_FTP
-    product_sp3: str = "gps/products/{gps_week}"
-    product_orbit: str = "gps/products/{gps_week}"
-    product_clk: str = "gps/products/{gps_week}"
-    product_sum: str = "gps/products/{gps_week}"
-    product_bias: str = "gps/products/{gps_week}"
-    product_erp: str = "gps/products/{gps_week}"
-    product_obx: str = "gps/products/{gps_week}"
-
-    def sp3(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_sp3.format(gps_week=gps_week)
-
-    def orbit(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_orbit.format(gps_week=gps_week)
-
-    def clk(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_clk.format(gps_week=gps_week)
-
-    def sum(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_sum.format(gps_week=gps_week)
-
-    def erp(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_erp.format(gps_week=gps_week)
-
-    def bias(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_bias.format(gps_week=gps_week)
-
-    def obx(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_obx.format(gps_week=gps_week)
-
-
-class KASIFTPProductSource(WuhanFTPProductSource):
+    product_filesource_regex: Group1FileRegex = Group1FileRegex()
     product_directory_source: KASIDirectorySourceFTP = KASIDirectorySourceFTP()
 
 
-class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
-    """Directory structure for CDDIS (ESA/NASA) FTP server - fallback source."""
+class CDDISFTPProductSource(GenericFTPProductSource):
 
-    ftpserver: str = ESA_FTP
-    product_sp3: str = "gnss/products/{gps_week}"
-    product_orbit: str = "gnss/products/{gps_week}"
-    product_clk: str = "gnss/products/{gps_week}"
-    product_sum: str = "gnss/products/{gps_week}"
-    product_bias: str = "gnss/products/{gps_week}"
-    product_erp: str = "gnss/products/{gps_week}"
-    product_obx: str = "gnss/products/{gps_week}"
-
-    def sp3(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_sp3.format(gps_week=gps_week)
-
-    def orbit(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_orbit.format(gps_week=gps_week)
-
-    def clk(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_clk.format(gps_week=gps_week)
-
-    def sum(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_sum.format(gps_week=gps_week)
-
-    def erp(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_erp.format(gps_week=gps_week)
-
-    def bias(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_bias.format(gps_week=gps_week)
-
-    def obx(self, date: datetime.datetime) -> str:
-        gps_week = _date_to_gps_week(date)
-        return self.product_obx.format(gps_week=gps_week)
-
-
-class CDDISFTPProductSource(WuhanFTPProductSource):
+    product_filesource_regex: Group1FileRegex = Group1FileRegex()
     product_directory_source: CDDISDirectorySourceFTP = CDDISDirectorySourceFTP()

@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 from typing import Optional, Tuple
 import julian
+from functools import lru_cache
 import logging
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ def datetime_to_mjd(date: datetime.date | datetime.datetime) -> float:
     mjd = julian.to_jd(date, fmt='mjd')
     return mjd
 
+@lru_cache(maxsize=128)
 def ftp_list_directory(
     ftpserver: str,
     directory: str,

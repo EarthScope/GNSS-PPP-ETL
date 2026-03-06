@@ -306,9 +306,9 @@ class TestCDDISGIMProductSource:
         assert directory == "gnss/products/ionex/2025/001"
 
     def test_invalid_center_raises(self, source: CDDISGIMProductSource) -> None:
-        """Test that unsupported centers raise assertion."""
+        """Test that unsupported centers raise ValueError."""
         # UPC is not in the allowed list for CDDIS
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             source.query(
                 DATE_NEW_FORMAT,
                 center=IonosphereProductSource.UPC,
