@@ -1,4 +1,4 @@
-from gnss_ppp_products.resources.orbit_clock_resources import (
+from gnss_ppp_products.resources.remote.orbit_clock_resources import (
     WuhanDirectorySourceFTP,
     CLSIGSDirectorySourceFTP,
     ProductTypes,

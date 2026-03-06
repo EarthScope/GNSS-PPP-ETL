@@ -29,7 +29,7 @@ from typing import Optional, Type
 import pytest
 
 from gnss_ppp_products.resources import OrbitClockFTPProductSource, WuhanFTPProductSource, CLSIGSFTPProductSource,KASIFTPProductSource,CDDISFTPProductSource,OrbitClockProductTypes
-from gnss_ppp_products.resources.base import FTPFileResult, FTPProductSource, ProductQuality
+from gnss_ppp_products.resources.remote.base import FTPFileResult, FTPProductSource, ProductQuality
 
 log = logging.getLogger(__name__)
 

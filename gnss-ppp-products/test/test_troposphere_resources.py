@@ -26,12 +26,12 @@ from typing import Optional
 
 import pytest
 
-from gnss_ppp_products.resources.troposphere_resources import (
+from gnss_ppp_products.resources.remote.troposphere_resources import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
     VMFHTTPProductSource,
 )
-from gnss_ppp_products.resources.ionosphere_resources import (
+from gnss_ppp_products.resources.remote.ionosphere_resources import (
     CODEGIMProductSource,
 )
 import requests

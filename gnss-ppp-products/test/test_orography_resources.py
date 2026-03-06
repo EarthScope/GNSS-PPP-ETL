@@ -24,12 +24,12 @@ from typing import Optional
 
 import pytest
 
-from gnss_ppp_products.resources.orography_resources import (
+from gnss_ppp_products.resources.remote.orography_resources import (
     OrographyGridResolution,
     OrographyFileResult,
     VMFOrographyHTTPSource,
 )
-from gnss_ppp_products.resources.base import DownloadProtocol
+from gnss_ppp_products.resources.remote.base import DownloadProtocol
 
 log = logging.getLogger(__name__)
 

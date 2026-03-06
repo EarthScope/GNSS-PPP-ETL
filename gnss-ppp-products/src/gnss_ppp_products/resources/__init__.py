@@ -1,6 +1,6 @@
 
-from .local_resources import PRIDEGNSSOutputResource
-from .ionosphere_resources import (
+from .remote.local_resources import PRIDEGNSSOutputResource
+from .remote.ionosphere_resources import (
     IonosphereProductQuality,
     IonosphereProductType,
     IonosphereFileResult,
@@ -10,18 +10,18 @@ from .ionosphere_resources import (
     CDDISGIMProductSource,
     WuhanGIMProductSource,
 )
-from .troposphere_resources import (
+from .remote.troposphere_resources import (
     AtmosphericProductQuality,
     AtmosphericFileResult,
     VMFHTTPProductSource,
   
 )
-from .orography_resources import (
+from .remote.orography_resources import (
     OrographyGridResolution,
     OrographyFileResult,
     VMFOrographyHTTPSource,
 )
-from .orbit_clock_resources import (
+from .remote.orbit_clock_resources import (
     WuhanFTPProductSource,
     CLSIGSFTPProductSource,
     KASIFTPProductSource,
@@ -29,18 +29,18 @@ from .orbit_clock_resources import (
     ProductTypes as OrbitClockProductTypes,
     OrbitClockFTPProductSource,
 )
-from .navigation_resources import (
+from .remote.navigation_resources import (
     WuhanNavFileFTPProductSource,
     CLSIGSNavFileFTPProductSource,
     CDDISNavFileFTPProductSource,
 )
-from .reference_tables import (
+from .remote.reference_tables import (
     ReferenceTableType,
     ReferenceTableResult,
     WuhanProductTableFTPSource,
     CDDISProductTableFTPSource,
 )
-from .antennae_resources import (
+from .remote.antennae_resources import (
     IGSAntexReferenceFrameType,
     AntexFileResult,
     NGSNOAAAntexHTTPSource,
@@ -49,16 +49,35 @@ from .antennae_resources import (
     determine_frame,
     AstroInstMGEXAntexFTPSource
 )
-from .leo_resources import (
+from .remote.leo_resources import (
     GRACEMission,
     GRACEInstrument,
     GRACEFileResult,
     GFZGRACEFTPProductSource,
 )
-from .base import (
+from .remote.base import (
     ProductQuality,
     FTPFileResult,
     ConstellationCode,
     ResourceQueryResult,
     DownloadProtocol,
+)
+
+# Local resource imports
+from .local import (
+    DirectoryStrategy,
+    LocalDirectoryBuilder,
+    LocalFileFinder,
+    LocalFileResult,
+    LocalOrbitClockResult,
+    LocalNavigationResult,
+    LocalAntexResult,
+    LocalAtmosphericResult,
+    LocalProductSource,
+    LocalOrbitClockSource,
+    LocalNavigationSource,
+    LocalAntexSource,
+    LocalAtmosphericSource,
+    LocalProductStore,
+    ProductCategory,
 )

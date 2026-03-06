@@ -33,7 +33,7 @@ from gnss_ppp_products.resources import (
     CLSIGSNavFileFTPProductSource,
     CDDISNavFileFTPProductSource
 )
-from gnss_ppp_products.resources.base import (
+from gnss_ppp_products.resources.remote.base import (
     FTPFileResult,
     FTPProductSource,
     ProductQuality,

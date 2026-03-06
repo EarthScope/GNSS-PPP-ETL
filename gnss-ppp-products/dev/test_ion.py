@@ -1,4 +1,4 @@
-from gnss_ppp_products.resources.ionosphere_resources import (
+from gnss_ppp_products.resources.remote.ionosphere_resources import (
     WuhanGIMProductSource,
     CODEGIMProductSource,
     CDDISGIMProductSource,

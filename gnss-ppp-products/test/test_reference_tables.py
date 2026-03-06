@@ -15,7 +15,7 @@ from gnss_ppp_products.resources import (
     WuhanProductTableFTPSource,
     CDDISProductTableFTPSource,
 )
-from gnss_ppp_products.resources.utils import ftp_list_directory
+from gnss_ppp_products.resources.remote.utils import ftp_list_directory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

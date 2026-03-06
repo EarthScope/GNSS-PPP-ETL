@@ -1,4 +1,4 @@
-from gnss_ppp_products.resources.troposphere_resources import (
+from gnss_ppp_products.resources.remote.troposphere_resources import (
     VMFHTTPProductSource,
     AtmosphericProductQuality,
     AtmosphericFileResult,

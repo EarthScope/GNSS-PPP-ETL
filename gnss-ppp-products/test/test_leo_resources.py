@@ -26,7 +26,7 @@ from typing import Optional
 
 import pytest
 
-from gnss_ppp_products.resources.leo_resources import (
+from gnss_ppp_products.resources.remote.leo_resources import (
     GRACEMission,
     GRACEInstrument,
     GRACEFileResult,
