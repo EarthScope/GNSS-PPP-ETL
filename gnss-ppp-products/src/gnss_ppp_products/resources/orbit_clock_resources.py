@@ -290,3 +290,60 @@ class CDDISDirectorySourceFTP(ProductDirectorySourceFTP):
 
 class CDDISFTPProductSource(WuhanFTPProductSource):
     product_directory_source: CDDISDirectorySourceFTP = CDDISDirectorySourceFTP()
+
+
+class IGNMGEXDirectorySourceFTP(ProductDirectorySourceFTP):
+    """
+    Directory structure for IGN MGEX FTP server.
+    
+    Multi-GNSS products from ftp://igs.ign.fr/pub/igs/products/mgex/
+    
+    Used by PRIDE-PPPAR for rapid products (WUM0MGXRAP).
+    """
+
+    ftpserver: str = "ftp://igs.ign.fr"
+    product_sp3: str = "pub/igs/products/mgex/{gps_week}"
+    product_orbit: str = "pub/igs/products/mgex/{gps_week}"
+    product_clk: str = "pub/igs/products/mgex/{gps_week}"
+    product_sum: str = "pub/igs/products/mgex/{gps_week}"
+    product_bias: str = "pub/igs/products/mgex/{gps_week}"
+    product_erp: str = "pub/igs/products/mgex/{gps_week}"
+    product_obx: str = "pub/igs/products/mgex/{gps_week}"
+
+    def sp3(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_sp3.format(gps_week=gps_week)
+
+    def orbit(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_orbit.format(gps_week=gps_week)
+
+    def clk(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_clk.format(gps_week=gps_week)
+
+    def sum(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_sum.format(gps_week=gps_week)
+
+    def erp(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_erp.format(gps_week=gps_week)
+
+    def bias(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_bias.format(gps_week=gps_week)
+
+    def obx(self, date: datetime.datetime) -> str:
+        gps_week = _date_to_gps_week(date)
+        return self.product_obx.format(gps_week=gps_week)
+
+
+class IGNMGEXFTPProductSource(WuhanFTPProductSource):
+    """
+    MGEX product source from IGN (igs.ign.fr).
+    
+    Provides multi-GNSS orbit, clock, attitude, ERP, and bias products.
+    Primary source for WUM0MGXRAP (Wuhan University rapid MGEX products).
+    """
+    product_directory_source: IGNMGEXDirectorySourceFTP = IGNMGEXDirectorySourceFTP()

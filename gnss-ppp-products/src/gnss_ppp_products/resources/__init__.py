@@ -25,7 +25,8 @@ from .orbit_clock_resources import (
     WuhanFTPProductSource,
     CLSIGSFTPProductSource,
     KASIFTPProductSource,
-    CDDISFTPProductSource
+    CDDISFTPProductSource,
+    IGNMGEXFTPProductSource,
 )
 from .navigation_resources import (
     WuhanNavFileFTPProductSource,
@@ -43,6 +44,12 @@ from .antennae_resources import (
     IGSAntexHTTPSource,
     determine_frame,
     AstroInstMGEXAntexFTPSource
+)
+from .leo_resources import (
+    GRACEMission,
+    GRACEInstrument,
+    GRACEFileResult,
+    GFZGRACEFTPProductSource,
 )
 from .base import (
     ProductQuality,
