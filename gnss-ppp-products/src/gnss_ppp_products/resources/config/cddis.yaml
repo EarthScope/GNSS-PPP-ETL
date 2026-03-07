@@ -4,14 +4,14 @@
 # Crustal Dynamics Data Information System at NASA Goddard.
 # Major archive for IGS products. Requires FTPS (TLS) for all connections.
 
-center:
-  code: CDDIS
-  name: NASA CDDIS
-  description: >
-    NASA's Crustal Dynamics Data Information System archives and 
-    distributes space geodesy data including GNSS, SLR, VLBI, and DORIS.
-    Mirrors products from all IGS analysis centers.
-  website: https://cddis.nasa.gov/
+
+code: CDDIS
+name: NASA CDDIS
+description: >
+  NASA's Crustal Dynamics Data Information System archives and 
+  distributes space geodesy data including GNSS, SLR, VLBI, and DORIS.
+  Mirrors products from all IGS analysis centers.
+website: https://cddis.nasa.gov/
 
 servers:
   - id: cddis_ftps
@@ -34,7 +34,7 @@ products:
     server_id: cddis_ftps
     available: true
     description: Precise orbits (mirrors from all ACs)
-    qualities: [FIN, RAP, ULT]
+    qualities: [FIN, RAP]
     solutions:
       - code: OPS
         prefix: IGS
@@ -45,11 +45,10 @@ products:
       - code: OPS
         prefix: COD
     directory:
-      gps_week_based: true
       pattern: gnss/products/{gps_week}/
     filename:
-      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-      regex: "{ac}.*{qual}.*{year}{doy}.*SP3"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
 
@@ -70,8 +69,8 @@ products:
       gps_week_based: true
       pattern: gnss/products/{gps_week}/
     filename:
-      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-      regex: "{ac}.*{qual}.*{year}{doy}.*CLK"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]
 
@@ -93,9 +92,9 @@ products:
     directory:
       pattern: gnss/products/ionex/{year}/{doy}/
     filename:
-      template: "{ac}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
-      legacy_template: "{ac}g{doy}0.{yy}i.Z"
-      regex: "{ac}.*{qual}.*{year}{doy}.*GIM|{ac}g{doy}"
+      template: "{solution_prefix}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
+      legacy_template: "{solution_prefix}g{doy}0.{yy}i.Z"
+      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*GIM|{solution_prefix}g{doy}"
     intervals: ["01H", "02H"]
     extensions: [".INX.gz", ".I.Z", ".ionex.gz"]
 
@@ -115,7 +114,7 @@ products:
       regex: "BRDC.*{year}{doy}.*rnx"
     extensions: [".rnx.gz"]
 
-  - id: cddis_nav2
+  - id: cddis_nav_gps
     type: RINEX2_NAV
     server_id: cddis_ftps
     available: true
@@ -127,8 +126,38 @@ products:
     directory:
       pattern: gnss/data/daily/{year}/{doy}/{yy}n/
     filename:
-      gps_template: "brdc{doy}0.{yy}n.Z"
-      glonass_template: "brdc{doy}0.{yy}g.Z"
-      mixed_template: "brdc{doy}0.{yy}p.Z"
-      regex: "brdc{doy}0\\.{yy}[ngp]"
+      template: "brdc{doy}0.{yy}n.Z"
+      regex: "brdc{doy}0\\.{yy}n"
+    extensions: [".n.Z", ".g.Z", ".p.Z"]
+
+  - id: cddis_nav_glonass
+    type: RINEX2_NAV
+    server_id: cddis_ftps
+    available: true
+    description: Legacy RINEX 2 navigation
+    qualities: [FIN]
+    solutions:
+      - code: OPS
+        prefix: brdc
+    directory:
+      pattern: gnss/data/daily/{year}/{doy}/{yy}n/
+    filename:
+      template: "brdc{doy}0.{yy}g.Z"
+      regex: "brdc{doy}0\\.{yy}g"
+    extensions: [".n.Z", ".g.Z", ".p.Z"]
+
+  - id: cddis_nav_mixed
+    type: RINEX2_NAV
+    server_id: cddis_ftps
+    available: true
+    description: Legacy RINEX 2 navigation
+    qualities: [FIN]
+    solutions:
+      - code: OPS
+        prefix: brdc
+    directory:
+      pattern: gnss/data/daily/{year}/{doy}/{yy}n/
+    filename:
+      template: "brdc{doy}0.{yy}p.Z"
+      regex: "brdc{doy}0\\.{yy}p"
     extensions: [".n.Z", ".g.Z", ".p.Z"]

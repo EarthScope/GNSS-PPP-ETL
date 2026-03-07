@@ -57,6 +57,7 @@ class Filename(BaseModel):
             coverage: Optional[str] = "01D",
             ) -> str:
         year, doy = _parse_date(date)
+        yy = str(year)[-2:]
         if solution is not None and interval is not None:
             filename = self.template.format(
                 solution_prefix=solution.prefix,
@@ -74,7 +75,8 @@ class Filename(BaseModel):
                 year=year,
                 doy=doy,
                 coverage=coverage,
-                interval=interval
+                interval=interval,
+                yy=yy
             )
         return filename
 
@@ -86,7 +88,7 @@ class Product(BaseModel):
     solutions: List[Solution]  # e.g., [{'code': 'OPS', 'prefix': 'BRD'}]
     directory: Directory
     filename: Filename
-    intervals: List[CoverageIntervals]
+    intervals: Optional[List[CoverageIntervals]] = None  # e.g., ['05M', '15M']
     extensions: List[str]  # e.g., ['.rnx', '.rnx.gz']
 
 class RemoteProductAddress(BaseModel):
@@ -123,15 +125,17 @@ class GNSSCenterConfig(BaseModel):
             server = next((s for s in self.servers if s.id == product.server_id), None)
             if server is None:
                 raise ValueError(f"Product {product.type} references unknown server_id {product.server_id}")
-            # build each combination of quality/solution/itervals for the product
-            #TODO: create list_no_solution() and list_no_intervals()(maybe) so we go straight to the regex. we can default quality levels
+            # build each combination of quality/solution/intervals for the product
+            # Use [None] fallback for empty lists so loop executes once with None values
             for quality in product.qualities:
-                for solution in product.solutions:
-                    for interval in product.intervals:
+                solutions = product.solutions or [None]
+                intervals = product.intervals or [None]
+                for solution in solutions:
+                    for interval in intervals:
                         filename = product.filename.build(
                             date=date,
                             solution=solution,
-                            interval=interval.value,
+                            interval=interval.value if interval else None,
                             quality=quality
                         )
                         directory = product.directory.build(date)

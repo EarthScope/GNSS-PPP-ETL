@@ -1,12 +1,41 @@
 from gnss_ppp_products.resources.resource import GNSSCenterConfig
 from datetime import datetime
-def load_wuhan_config() -> GNSSCenterConfig:
-    """Load Wuhan University configuration from YAML."""
-    return GNSSCenterConfig.from_yaml("/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/gnss-ppp-products/src/gnss_ppp_products/resources/config/wuhan.yaml")
+from gnss_ppp_products.resources.remote.utils import ftp_list_directory,find_best_match_in_listing
+from pathlib import Path
 
-test = load_wuhan_config()
-print(test)
+config_dir = Path(
+    "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/gnss-ppp-products/src/gnss_ppp_products/resources/config/"
+)
+
+
+wuhan = GNSSCenterConfig.from_yaml(config_dir / "wuhan.yaml")
 
 date = datetime(2025, 1, 15)
-products = test.list_products(date)
-print(products)
+# products = wuhan.list_products(date)
+
+# for product in products:
+
+#     listing = ftp_list_directory(
+#         ftpserver=product.server.hostname,
+#         directory=product.directory
+#     )
+#     #print(listing)
+#     best_match = find_best_match_in_listing(listing, product.filename)
+#     if best_match:
+#         print(product.model_dump_json(indent=2))
+#         print(f"Best match for {product.filename}: {best_match}")
+
+cddis = GNSSCenterConfig.from_yaml(config_dir / "cddis.yaml")
+products = cddis.list_products(date)
+for product in products:
+
+    listing = ftp_list_directory(
+        ftpserver=product.server.hostname,
+        directory=product.directory,
+        use_tls=True
+    )
+    #print(listing)
+    best_match = find_best_match_in_listing(listing, product.filename)
+    if best_match:
+        print(product.model_dump_json(indent=2))
+        print(f"Best match for {product.filename}: {best_match}")
