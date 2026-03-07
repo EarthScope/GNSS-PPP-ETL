@@ -8,12 +8,12 @@ from .products.types import ProductType,ProductTypeInfo,ProductQuality
 from ..resources.remote.utils import _parse_date, _date_to_gps_week
 
 class CoverageIntervals(Enum):
-    THIRTYSECOND = "30S"
-    FIVEMINUTE = "05M"
-    FIFTEENMINUTE = "15M"
-    HOURLY = "01H"
-    TWOHOURLY = "02H"
-    DAILY = "01D"
+    S_30 = "30S"
+    M_5 = "05M"
+    M_15 = "15M"
+    H_1 = "01H"
+    H_2 = "02H"
+    D_1 = "01D"
 
 class ServerProtocol(str, Enum):
     FTP = "ftp"
@@ -127,9 +127,10 @@ class GNSSCenterConfig(BaseModel):
                 raise ValueError(f"Product {product.type} references unknown server_id {product.server_id}")
             # build each combination of quality/solution/intervals for the product
             # Use [None] fallback for empty lists so loop executes once with None values
-            for quality in product.qualities:
-                solutions = product.solutions or [None]
-                intervals = product.intervals or [None]
+            qualities = product.qualities or [None]
+            solutions = product.solutions or [None]
+            intervals = product.intervals or [None]
+            for quality in qualities:
                 for solution in solutions:
                     for interval in intervals:
                         filename = product.filename.build(

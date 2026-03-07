@@ -3,13 +3,13 @@
 #
 # Primary source for US antenna calibrations and geodetic products.
 
-center:
-  code: NGS
-  name: NOAA NGS
-  description: >
-    NOAA's National Geodetic Survey provides official US antenna calibrations,
-    CORS network data, and geodetic reference products.
-  website: https://www.ngs.noaa.gov/
+
+code: NGS
+name: NOAA NGS
+description: >
+  NOAA's National Geodetic Survey provides official US antenna calibrations,
+  CORS network data, and geodetic reference products.
+website: https://www.ngs.noaa.gov/
 
 servers:
   - id: ngs_https

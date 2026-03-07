@@ -4,14 +4,14 @@
 # GeoForschungsZentrum Potsdam, Germany.
 # Primary center for GRACE/GRACE-FO data and MGEX products.
 
-center:
-  code: GFZ
-  name: GFZ Potsdam
-  description: >
-    German Research Centre for Geosciences in Potsdam. Major IGS analysis
-    center and primary distributor of GRACE/GRACE-FO mission data.
-    Produces GPS (GFZ) and MGEX (GBM) products.
-  website: https://www.gfz-potsdam.de/
+
+code: GFZ
+name: GFZ Potsdam
+description: >
+  German Research Centre for Geosciences in Potsdam. Major IGS analysis
+  center and primary distributor of GRACE/GRACE-FO mission data.
+  Produces GPS (GFZ) and MGEX (GBM) products.
+website: https://www.gfz-potsdam.de/
 
 servers:
   - id: gfz_ftp
@@ -45,8 +45,8 @@ products:
       pattern: gnss/products/final/w{gps_week}/
       rapid_pattern: gnss/products/rapid/w{gps_week}/
     filename:
-      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-      regex: "{ac}.*{qual}.*{year}{doy}.*SP3"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
 
@@ -65,8 +65,8 @@ products:
       gps_week_based: true
       pattern: gnss/products/final/w{gps_week}/
     filename:
-      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-      regex: "{ac}.*{qual}.*{year}{doy}.*CLK"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]
 

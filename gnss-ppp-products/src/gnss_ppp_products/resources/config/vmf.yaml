@@ -4,14 +4,14 @@
 # Troposphere products from TU Wien (Vienna University of Technology).
 # Primary source for VMF1/VMF3 tropospheric mapping functions and delays.
 
-center:
-  code: VMF
-  name: TU Wien (Vienna)
-  description: >
-    Vienna University of Technology provides Vienna Mapping Functions
-    (VMF) for tropospheric delay modeling. VMF products include hydrostatic
-    and wet mapping coefficients and zenith delay values.
-  website: https://vmf.geo.tuwien.ac.at/
+
+code: VMF
+name: TU Wien (Vienna)
+description: >
+  Vienna University of Technology provides Vienna Mapping Functions
+  (VMF) for tropospheric delay modeling. VMF products include hydrostatic
+  and wet mapping coefficients and zenith delay values.
+website: https://vmf.geo.tuwien.ac.at/
 
 servers:
   - id: vmf_https
