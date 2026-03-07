@@ -124,7 +124,7 @@ class GNSSCenterConfig(BaseModel):
             if server is None:
                 raise ValueError(f"Product {product.type} references unknown server_id {product.server_id}")
             # build each combination of quality/solution/itervals for the product
-          
+            #TODO: create list_no_solution() and list_no_intervals()(maybe) so we go straight to the regex. we can default quality levels
             for quality in product.qualities:
                 for solution in product.solutions:
                     for interval in product.intervals:
