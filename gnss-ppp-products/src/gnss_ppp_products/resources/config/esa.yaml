@@ -43,7 +43,7 @@ products:
       gps_week_based: true
       pattern: gnss/products/{gps_week}/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
       regex: "ESA.*{qual}.*{year}{doy}.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
@@ -61,7 +61,7 @@ products:
       gps_week_based: true
       pattern: gnss/products/{gps_week}/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
       regex: "ESA.*{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]

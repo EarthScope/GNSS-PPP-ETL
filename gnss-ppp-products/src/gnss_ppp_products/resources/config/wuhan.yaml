@@ -5,14 +5,14 @@
 # - WUM (Wuhan University MGEX)
 # - WMC (Wuhan Multi-Constellation demonstration)
 
-center:
-  code: WUM
-  name: Wuhan University
-  description: >
-    Wuhan University GNSS Research Center provides multi-GNSS precise 
-    products through the IGS MGEX campaign. Known for rapid availability
-    and comprehensive constellation support.
-  website: http://www.igs.gnsswhu.cn/
+
+code: WUM
+name: Wuhan University
+description: >
+  Wuhan University GNSS Research Center provides multi-GNSS precise 
+  products through the IGS MGEX campaign. Known for rapid availability
+  and comprehensive constellation support.
+website: http://www.igs.gnsswhu.cn/
 
 servers:
   - id: wuhan_ftp
@@ -23,7 +23,7 @@ servers:
     notes: Primary FTP server, no authentication required
 
 # Default filename pattern follows IGS long-form convention:
-# {ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_{content}.{ext}.gz
+# {solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_{content}.{ext}.gz
 defaults:
   version: "0"
   coverage: "01D"
@@ -46,7 +46,7 @@ products:
     directory:
       pattern: pub/whu/phasebias/{year}/orbit/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
       regex: "{qual}.*{year}{doy}.*ORB.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
@@ -65,7 +65,7 @@ products:
     directory:
       pattern: pub/whu/phasebias/{year}/clock/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
       regex: "{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]
@@ -82,7 +82,7 @@ products:
     directory:
       pattern: pub/whu/phasebias/{year}/orbit/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
       regex: "{qual}.*{year}{doy}.*ERP"
     intervals: ["01D"]
     extensions: [".ERP.gz", ".erp.gz"]
@@ -101,7 +101,7 @@ products:
     directory:
       pattern: pub/whu/phasebias/{year}/bias/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
       regex: "{qual}.*{year}{doy}.*BIA"
     intervals: ["01D"]
     extensions: [".BIA.gz", ".bia.gz", ".BSX.gz"]
@@ -118,7 +118,7 @@ products:
     directory:
       pattern: pub/whu/phasebias/{year}/orbit/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ATT.OBX.gz"
+      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ATT.OBX.gz"
       regex: "{qual}.*{year}{doy}.*OBX"
     intervals: ["30S"]
     extensions: [".OBX.gz", ".obx.gz"]
@@ -156,7 +156,7 @@ products:
     directory:
       pattern: pub/gps/products/ionex/{year}/{doy}/
     filename:
-      template: "{ac}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
+      template: "{solution_prefix}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
       regex: "{qual}.*{year}{doy}.*GIM.*INX"
     intervals: ["01H", "02H"]
     extensions: [".INX.gz", ".ionex.gz", ".I.Z"]

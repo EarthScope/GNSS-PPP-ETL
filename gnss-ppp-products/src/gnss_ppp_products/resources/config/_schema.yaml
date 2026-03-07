@@ -40,7 +40,7 @@
 #     filename:
 #       template: str      # Filename template (exact match)
 #       regex: str         # Regex pattern for searching
-#       # Placeholders: {ac}, {v}, {sol}, {qual}, {year}, {doy}, {interval}, {ext}
+#       # Placeholders: {ac}, {v}, {solution_code}, {qual}, {year}, {doy}, {interval}, {ext}
 #     intervals:           # Available sampling intervals
 #       - "05M"            # 5 minutes
 #       - "30S"            # 30 seconds
@@ -64,7 +64,7 @@
 # Product placeholders:
 #   {ac}        - Analysis center code (WUM, COD, etc.)
 #   {v}         - Version (usually 0)
-#   {sol}       - Solution type (OPS, MGX, DEM)
+#   {solution_code}       - Solution type (OPS, MGX, DEM)
 #   {qual}      - Quality level (FIN, RAP, ULT)
 #   {interval}  - Sampling interval (05M, 30S, etc.)
 #   {coverage}  - Data coverage (01D, 01H, etc.)

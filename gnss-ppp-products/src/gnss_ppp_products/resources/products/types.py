@@ -53,11 +53,11 @@ class TemporalCoverage(str, Enum):
 class ProductQuality(str, Enum):
     """Quality/latency levels for products."""
     
-    FINAL = "final"        # Post-processed, highest accuracy (~2 week latency)
-    RAPID = "rapid"        # Near real-time (~1 day latency)
-    ULTRA_RAPID = "ultra"  # Ultra-rapid products (~3-6 hour latency)
-    REAL_TIME = "rts"      # Real-time streaming
-    PREDICTED = "predicted"  # Forecast/predicted products
+    FINAL = "FIN"        # Post-processed, highest accuracy (~2 week latency)
+    RAPID = "RAP"        # Near real-time (~1 day latency)
+    ULTRA_RAPID = "ULR"  # Ultra-rapid products (~3-6 hour latency)
+    REAL_TIME = "RTS"      # Real-time streaming
+    PREDICTED = "PRED"  # Forecast/predicted products
 
 
 class ProductCategory(str, Enum):
@@ -481,6 +481,7 @@ class ProductType(Enum):
     def temporal_coverage(self) -> TemporalCoverage:
         """Shortcut for .value.temporal_coverage."""
         return self.value.temporal_coverage
+    
 
 
 # ---------------------------------------------------------------------------

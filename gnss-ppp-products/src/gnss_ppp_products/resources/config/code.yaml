@@ -46,7 +46,7 @@ products:
       gps_week_based: true
       pattern: CODE/{year}/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
       regex: "COD.*{qual}.*{year}{doy}.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
@@ -63,7 +63,7 @@ products:
     directory:
       pattern: CODE/{year}/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
       regex: "COD.*{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]
@@ -80,7 +80,7 @@ products:
     directory:
       pattern: CODE/{year}/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
+      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
       regex: "COD.*{qual}.*{year}{doy}.*ERP"
     intervals: ["01D"]
     extensions: [".ERP.gz", ".erp.gz"]
@@ -97,7 +97,7 @@ products:
     directory:
       pattern: CODE/{year}/
     filename:
-      template: "{ac}{v}{sol}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
+      template: "{ac}{v}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
       # Legacy format also available
       legacy_template: "P1C1{yy}{month}.DCB.Z"
       regex: "COD.*{qual}.*{year}{doy}.*BIA|DCB"
