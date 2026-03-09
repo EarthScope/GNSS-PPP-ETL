@@ -90,7 +90,7 @@ products:
         filename:
           template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
           regex: "{qual}.*{year}{doy}.*ERP"
-    intervals: ["01D"]
+    intervals: ["30S", "05M"]
     extensions: [".ERP.gz", ".erp.gz"]
 
   - id: wuhan_bias
@@ -111,7 +111,7 @@ products:
         filename:
           template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
           regex: "{qual}.*{year}{doy}.*BIA"
-    intervals: ["01D"]
+    intervals: ["30S", "05M"]
     extensions: [".BIA.gz", ".bia.gz", ".BSX.gz"]
 
   - id: wuhan_obx

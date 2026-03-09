@@ -78,3 +78,19 @@ from .local import (
     LocalDataSource,
     PrideDataSource,
 )
+
+from .resource import GNSSCenterConfig
+
+from pathlib import Path
+
+config_path = Path(__file__).parent / "config"
+
+WUHAN = GNSSCenterConfig.from_yaml(config_path / "wuhan.yaml")
+CDDIS = GNSSCenterConfig.from_yaml(config_path / "cddis.yaml")
+IGS = GNSSCenterConfig.from_yaml(config_path / "igs.yaml")
+
+RESOURCE_COLLECTIONS = {
+    "WUHAN": WUHAN,
+    "CDDIS": CDDIS,
+    "IGS": IGS,
+}

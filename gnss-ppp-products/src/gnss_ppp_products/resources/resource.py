@@ -6,7 +6,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from ..resources.remote.utils import _parse_date, _date_to_gps_week
-from .products import SampleInterval, ProductCoverage, ProductQuality, ProductType, Solution
+from .products import SampleInterval, ProductCoverage, ProductQuality, ProductType, Solution,TemporalCoverage
 
 
 class TimeIndex(str, Enum):
@@ -98,6 +98,7 @@ class FilenameConfig(BaseModel):
             )
         else:
             filename = self.regex.format(
+                solution_prefix=solution.prefix if solution else None,
                 qual=quality.value,
                 year=year,
                 doy=doy,
@@ -259,7 +260,7 @@ class RemoteProductAddress(BaseModel):
     directory: str
     filename: str
     file_id: str  # Which file config was used
-    type: str
+    type: ProductType
     quality: ProductQuality
     solution: Optional[Solution] = None
 
@@ -283,6 +284,10 @@ class GNSSCenterConfig(BaseModel):
     def list_products(
             self,
             date: datetime.datetime | datetime.date,
+            product_type: Optional[ProductType] = None,
+            product_quality: Optional[ProductQuality] = None,
+            sample_interval: Optional[SampleInterval] = None,
+            temporal_coverage: Optional[TemporalCoverage] = None,
             file_id: Optional[str] = None
     ) -> List[RemoteProductAddress]:
         """
@@ -294,6 +299,14 @@ class GNSSCenterConfig(BaseModel):
             The date to query products for
         file_id : str, optional
             Specific file ID to filter (e.g., "current", "archive")
+        product_type : ProductType, optional
+            Specific product type to filter
+        product_quality : ProductQuality, optional
+            Specific product quality to filter
+        sample_interval : SampleInterval, optional
+            Specific sample interval to filter
+        temporal_coverage : TemporalCoverage, optional
+            Specific temporal coverage to filter
         """
         product_addresses: list[RemoteProductAddress] = []
         for product in self.products:
@@ -313,31 +326,30 @@ class GNSSCenterConfig(BaseModel):
             files_to_use = [f for f in files_to_use if f.is_valid_for_date(date)]
             
             # Build each combination of quality/solution/intervals/files
-            qualities = product.qualities or [None]
+            qualities = [x for x in product.qualities if not product_quality or x == product_quality] or [None]
             solutions = product.solutions or [None]
-            intervals = product.intervals or [None]
-            
+ 
             for file_config in files_to_use:
                 for quality in qualities:
                     for solution in solutions:
-                        for interval in intervals:
-                            filename = file_config.filename.build(
-                                date=date,
-                                solution=solution,
-                                interval=interval.value if interval else None,
-                                quality=quality
-                            )
-                            directory = file_config.build_directory(date)
+            
+                        filename = file_config.filename.build(
+                            date=date,
+                            solution=solution,
+                            quality=quality
+                            
+                        )
+                        directory = file_config.build_directory(date)
 
-                            address = RemoteProductAddress(
-                                server=server,
-                                directory=directory,
-                                filename=filename,
-                                file_id=file_config.id,
-                                type=product.type,
-                                quality=quality,
-                                solution=solution
-                            )
-                            product_addresses.append(address)
+                        address = RemoteProductAddress(
+                            server=server,
+                            directory=directory,
+                            filename=filename,
+                            file_id=file_config.id,
+                            type=product.type,
+                            quality=quality,
+                            solution=solution
+                        )
+                        product_addresses.append(address)
 
         return product_addresses

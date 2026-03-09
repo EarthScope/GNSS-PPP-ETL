@@ -88,7 +88,7 @@ products:
         filename:
           template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
           regex: "IGS.*{qual}.*{year}{doy}.*ERP"
-    intervals: ["01D"]
+    intervals: ["30S"]
     
 
   - id: igs_bias
@@ -107,7 +107,7 @@ products:
         filename:
           template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
           regex: "IGS.*{qual}.*{year}{doy}.*BIA"
-    intervals: ["01D"]
+    intervals: ["30S"]
 
   - id: igs_obx
     type: OBX
