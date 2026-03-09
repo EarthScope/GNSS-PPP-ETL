@@ -15,8 +15,8 @@ import logging
 from pathlib import Path
 from typing import Tuple
 from .base import _date_to_gps_week, _parse_date,_date_to_gps_week_day,_date_to_year_doy
-from ..products.types import ProductType,TemporalCoverage
-from ..products.collections import ORBIT_CLOCK_PRODUCTS, NAVIGATION_PRODUCTS, ATMOSPHERIC_PRODUCTS, IONOSPHERE_PRODUCTS, TROPOSPHERE_PRODUCTS, ANTENNA_PRODUCTS, REFERENCE_PRODUCTS, OROGRAPHY_PRODUCTS, LEO_PRODUCTS
+from .._products.types import ProductType,TemporalCoverage
+from .._products.collections import ORBIT_CLOCK_PRODUCTS, NAVIGATION_PRODUCTS, ATMOSPHERIC_PRODUCTS, IONOSPHERE_PRODUCTS, TROPOSPHERE_PRODUCTS, ANTENNA_PRODUCTS, REFERENCE_PRODUCTS, OROGRAPHY_PRODUCTS, LEO_PRODUCTS
 
 class LocalDataSource:
     """Local data sources for GNSS PPP products."""

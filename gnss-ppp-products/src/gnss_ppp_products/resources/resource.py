@@ -4,16 +4,9 @@ from fileinput import filename
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from enum import Enum
-from .products.types import ProductType,ProductTypeInfo,ProductQuality
-from ..resources.remote.utils import _parse_date, _date_to_gps_week
 
-class CoverageIntervals(Enum):
-    S_30 = "30S"
-    M_5 = "05M"
-    M_15 = "15M"
-    H_1 = "01H"
-    H_2 = "02H"
-    D_1 = "01D"
+from ..resources.remote.utils import _parse_date, _date_to_gps_week
+from .products import SampleInterval,ProductCoverage,ProductQuality, ProductType,Solution
 
 class ServerProtocol(str, Enum):
     FTP = "ftp"
@@ -29,13 +22,8 @@ class Server(BaseModel):
     auth_required: bool = False
     notes: Optional[str] = None
 
-class Solution(BaseModel):
-    code: str
-    prefix: str
-
 class Directory(BaseModel):
     pattern: str
-
     def build(self, date: datetime.datetime | datetime.date) -> str:
         year, doy = _parse_date(date)
         yy = str(year)[-2:]
@@ -51,13 +39,30 @@ class Filename(BaseModel):
             self,
             date:datetime.datetime | datetime.date, 
             solution: Optional[Solution] = None,
-            interval:Optional[str] = None,
-            quality: Optional[ProductQuality] = ProductQuality.FINAL,
+            interval:Optional[str | SampleInterval] = None,
+            quality: Optional[ProductQuality |str] = ProductQuality.FINAL,
             version: Optional[str] = "0",
-            coverage: Optional[str] = "01D",
+            coverage: Optional[str|ProductCoverage] = ProductCoverage.D_1,
             ) -> str:
         year, doy = _parse_date(date)
         yy = str(year)[-2:]
+
+        if isinstance(interval,str):
+            try:
+                interval = SampleInterval(interval)
+            except ValueError:
+                raise ValueError(f"Invalid interval value: {interval}")
+        if isinstance(quality,str):
+            try:    
+                quality = ProductQuality(quality)
+            except ValueError:
+                raise ValueError(f"Invalid quality value: {quality}")
+        if isinstance(coverage,str):
+            try:
+                coverage = ProductCoverage(coverage)
+            except ValueError:
+                raise ValueError(f"Invalid coverage value: {coverage}")
+            
         if solution is not None and interval is not None:
             filename = self.template.format(
                 solution_prefix=solution.prefix,
@@ -66,29 +71,29 @@ class Filename(BaseModel):
                 qual=quality.value,
                 year=year,
                 doy=doy,
-                coverage=coverage,
-                interval=interval
+                coverage=coverage.value,
+                interval=interval.value if interval else None
             )
         else:
             filename = self.regex.format(
                 qual=quality.value,
                 year=year,
                 doy=doy,
-                coverage=coverage,
-                interval=interval,
+                coverage=coverage.value,
+                interval=interval.value if interval else None,
                 yy=yy
             )
         return filename
 
 
-class Product(BaseModel):
-    type: str # string for now
+class ProductConfig(BaseModel):
+    type: ProductType
     qualities: List[ProductQuality]  # e.g., ['FIN', 'RAP']
     server_id: str  # e.g., 'wuhan_ftp'
     solutions: List[Solution]  # e.g., [{'code': 'OPS', 'prefix': 'BRD'}]
     directory: Directory
     filename: Filename
-    intervals: Optional[List[CoverageIntervals]] = None  # e.g., ['05M', '15M']
+    intervals: Optional[List[SampleInterval]] = None  # e.g., ['05M', '15M']
     extensions: List[str]  # e.g., ['.rnx', '.rnx.gz']
 
 class RemoteProductAddress(BaseModel):
@@ -106,7 +111,7 @@ class GNSSCenterConfig(BaseModel):
     description: Optional[str] = None
     website: Optional[str] = None
     servers: List[Server]
-    products: List[Product]
+    products: List[ProductConfig]
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "GNSSCenterConfig":

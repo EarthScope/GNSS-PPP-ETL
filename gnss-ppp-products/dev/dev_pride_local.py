@@ -1,5 +1,5 @@
 from gnss_ppp_products.resources.local import PrideDataSource
-from gnss_ppp_products.resources.products import ProductType, TemporalCoverage
+from gnss_ppp_products.resources._products import ProductType, TemporalCoverage
 from datetime import datetime
 
 PRIDE_ROOT = "/Volumes/DunbarSSD/Project/SeafloorGeodesy/SFGMain/Pride"
