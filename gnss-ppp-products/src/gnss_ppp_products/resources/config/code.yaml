@@ -41,13 +41,13 @@ products:
       - code: MGX
         prefix: COD
         description: CODE MGEX
-    directory:
-      # CODE organizes by GPS week for orbit products
-      gps_week_based: true
-      pattern: CODE/{year}/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-      regex: "COD.*{qual}.*{year}{doy}.*SP3"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY, GPS_WEEK]
+        directory: CODE/{year}/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+          regex: "COD.*{qual}.*{year}{doy}.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
 
@@ -60,11 +60,13 @@ products:
     solutions:
       - code: OPS
         prefix: COD
-    directory:
-      pattern: CODE/{year}/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-      regex: "COD.*{qual}.*{year}{doy}.*CLK"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: CODE/{year}/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+          regex: "COD.*{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]
 
@@ -77,11 +79,13 @@ products:
     solutions:
       - code: OPS
         prefix: COD
-    directory:
-      pattern: CODE/{year}/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
-      regex: "COD.*{qual}.*{year}{doy}.*ERP"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: CODE/{year}/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
+          regex: "COD.*{qual}.*{year}{doy}.*ERP"
     intervals: ["01D"]
     extensions: [".ERP.gz", ".erp.gz"]
 
@@ -94,13 +98,19 @@ products:
     solutions:
       - code: OPS
         prefix: COD
-    directory:
-      pattern: CODE/{year}/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
-      # Legacy format also available
-      legacy_template: "P1C1{yy}{month}.DCB.Z"
-      regex: "COD.*{qual}.*{year}{doy}.*BIA|DCB"
+    files:
+      - id: longform
+        timeindices: [YEAR, DOY]
+        directory: CODE/{year}/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
+          regex: "COD.*{qual}.*{year}{doy}.*BIA"
+      - id: legacy
+        timeindices: [YEAR, MONTH]
+        directory: CODE/{year}/
+        filename:
+          template: "P1C1{yy}{month}.DCB.Z"
+          regex: "P1C1{yy}.*DCB"
     intervals: ["01D"]
     extensions: [".BIA.gz", ".DCB.Z", ".BSX.gz"]
 
@@ -113,14 +123,21 @@ products:
     solutions:
       - code: OPS
         prefix: COD
-    directory:
-      pattern: CODE/{year}/
-    filename:
-      # New long-form (2022+)
-      template: "COD0OPS{qual}_{year}{doy}0000_01D_01H_GIM.INX.gz"
-      # Legacy short-form (pre-2022)
-      legacy_template: "CODG{doy}0.{yy}I.Z"
-      regex: "COD.*{qual}.*{year}{doy}.*GIM|CODG{doy}"
+    files:
+      - id: longform
+        timeindices: [YEAR, DOY]
+        directory: CODE/{year}/
+        filename:
+          template: "COD0OPS{qual}_{year}{doy}0000_01D_01H_GIM.INX.gz"
+          regex: "COD.*{qual}.*{year}{doy}.*GIM"
+        valid_from: "2022-01-01"
+      - id: legacy
+        timeindices: [YEAR, DOY]
+        directory: CODE/{year}/
+        filename:
+          template: "CODG{doy}0.{yy}I.Z"
+          regex: "CODG{doy}.*\\.{yy}I"
+        valid_to: "2021-12-31"
     intervals: ["01H", "02H"]
     extensions: [".INX.gz", ".I.Z", ".ionex.gz"]
     notes: >

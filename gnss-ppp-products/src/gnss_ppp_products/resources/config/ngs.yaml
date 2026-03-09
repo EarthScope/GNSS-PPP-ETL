@@ -30,16 +30,22 @@ products:
     description: NGS ANTEX antenna calibrations
     qualities: [FIN]
     solutions:
-      - code: OPS
-        prefix: ngs
-    directory:
-      pattern: ANTCAL/LoadFile/
-    filename:
-      # NGS ANTEX files named by reference frame
-      template: "ngs{frame}.atx"
-      # Available frames: igs14, igs20, etc.
-      regex: "ngs(08|14|20)\\.atx"
-    frames: ["08", "14", "20"]
+      - code: refframe_2022
+        prefix: ngs20
+        description: NGS calibrations for IGS20 frame
+      - code: refframe_2017
+        prefix: ngs14
+        description: NGS calibrations for IGS14 frame
+      - code: refframe_2011
+        prefix: ngs08
+        description: NGS calibrations for IGS08 frame
+    files:
+      - id: current
+        timeindices: []
+        directory: ANTCAL/LoadFile/
+        filename:
+          template: "{solution_prefix}.atx"
+          regex: "ngs(08|14|20)\\.atx"
     extensions: [".atx"]
     static: true  # Frame-versioned, not date-specific
     notes: >

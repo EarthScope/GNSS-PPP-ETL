@@ -5,8 +5,11 @@ from pydantic import BaseModel
 class Solution(BaseModel):
     code: str
     prefix: str
+    description: str = ""
+    valid_from: str = None
+    valid_to: str = None
 
-class SampleInterval(Enum):
+class SampleInterval(str, Enum):
     S_30 = "30S"
     M_5 = "05M"
     M_15 = "15M"
@@ -22,8 +25,10 @@ class ProductQuality(str, Enum):
     FINAL = "FIN"        # Post-processed, highest accuracy (~2 week latency)
     RAPID = "RAP"        # Near real-time (~1 day latency)
     ULTRA_RAPID = "ULR"  # Ultra-rapid products (~3-6 hour latency)
+    ULTRA_RAPID_ALT = "ULT"  # Ultra-rapid (alternative naming)
     REAL_TIME = "RTS"      # Real-time streaming
     PREDICTED = "PRED"  # Forecast/predicted products
+    PREDICTED_ALT = "PRD"  # Predicted (alternative naming)
 
 class TemporalCoverage(str, Enum):
     """Temporal coverage/cadence of products."""
@@ -61,6 +66,7 @@ class ProductType(Enum):
     SUM = "SUM"
     IONX = "IONX"
     RINEX3_NAV = "RINEX3_NAV"
+    RINEX2_NAV = "RINEX2_NAV"  # Generic RINEX 2 navigation
     RINEX2_NAV_GPS = "RINEX2_NAV_GPS"
     RINEX2_NAV_GLONASS = "RINEX2_NAV_GLONASS"
     RINEX2_NAV_MIXED = "RINEX2_NAV_MIXED"  # Mixed GPS+GLONASS RINEX 2.x navigation files
@@ -105,7 +111,13 @@ class ProductType(Enum):
     # -------------------------------------------------------------------------
     
     GRACE_GNV = "GRACE_GNV"  # GRACE/GRACE-FO GPS navigation Level-1B data
+    GRACE_ACC = "GRACE_ACC"  # GRACE/GRACE-FO accelerometer data
+    GRACE_SCA = "GRACE_SCA"  # GRACE/GRACE-FO star camera data
+    GRACE_KBR = "GRACE_KBR"  # GRACE/GRACE-FO K-Band ranging data
+    GRACE_LRI = "GRACE_LRI"  # GRACE-FO Laser Ranging Interferometer data
     
-    GRACE_ACC = "GRACE_ACC"  # GRACE/GRACE-FO acceler
-    
+
+    # -------------------------------------------------------------------------
+    # Orography Products
+    # -------------------------------------------------------------------------
     

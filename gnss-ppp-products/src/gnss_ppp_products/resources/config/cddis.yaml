@@ -44,11 +44,13 @@ products:
         prefix: WUM
       - code: OPS
         prefix: COD
-    directory:
-      pattern: gnss/products/{gps_week}/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*SP3"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY, GPS_WEEK]
+        directory: gnss/products/{gps_week}/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
 
@@ -65,12 +67,13 @@ products:
         prefix: GBM
       - code: MGX
         prefix: WUM
-    directory:
-      gps_week_based: true
-      pattern: gnss/products/{gps_week}/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*CLK"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY, GPS_WEEK]
+        directory: gnss/products/{gps_week}/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]
 
@@ -89,12 +92,19 @@ products:
         prefix: JPL
       - code: OPS
         prefix: ESA
-    directory:
-      pattern: gnss/products/ionex/{year}/{doy}/
-    filename:
-      template: "{solution_prefix}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
-      legacy_template: "{solution_prefix}g{doy}0.{yy}i.Z"
-      regex: "{solution_prefix}.*{qual}.*{year}{doy}.*GIM|{solution_prefix}g{doy}"
+    files:
+      - id: longform
+        timeindices: [YEAR, DOY]
+        directory: gnss/products/ionex/{year}/{doy}/
+        filename:
+          template: "{solution_prefix}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
+          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*GIM"
+      - id: legacy
+        timeindices: [YEAR, DOY]
+        directory: gnss/products/ionex/{year}/{doy}/
+        filename:
+          template: "{solution_prefix}g{doy}0.{yy}i.Z"
+          regex: "{solution_prefix}g{doy}.*\\.{yy}i"
     intervals: ["01H", "02H"]
     extensions: [".INX.gz", ".I.Z", ".ionex.gz"]
 
@@ -107,57 +117,65 @@ products:
     solutions:
       - code: OPS
         prefix: BRD
-    directory:
-      pattern: gnss/data/daily/{year}/{doy}/{yy}p/
-    filename:
-      template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
-      regex: "BRDC.*{year}{doy}.*rnx"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: gnss/data/daily/{year}/{doy}/{yy}p/
+        filename:
+          template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
+          regex: "BRDC.*{year}{doy}.*rnx"
     extensions: [".rnx.gz"]
 
   - id: cddis_nav_gps
     type: RINEX2_NAV
     server_id: cddis_ftps
     available: true
-    description: Legacy RINEX 2 navigation
+    description: Legacy RINEX 2 GPS navigation
     qualities: [FIN]
     solutions:
       - code: OPS
         prefix: brdc
-    directory:
-      pattern: gnss/data/daily/{year}/{doy}/{yy}n/
-    filename:
-      template: "brdc{doy}0.{yy}n.Z"
-      regex: "brdc{doy}0\\.{yy}n"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: gnss/data/daily/{year}/{doy}/{yy}n/
+        filename:
+          template: "brdc{doy}0.{yy}n.Z"
+          regex: "brdc{doy}0\\.{yy}n"
     extensions: [".n.Z", ".g.Z", ".p.Z"]
 
   - id: cddis_nav_glonass
     type: RINEX2_NAV
     server_id: cddis_ftps
     available: true
-    description: Legacy RINEX 2 navigation
+    description: Legacy RINEX 2 GLONASS navigation
     qualities: [FIN]
     solutions:
       - code: OPS
         prefix: brdc
-    directory:
-      pattern: gnss/data/daily/{year}/{doy}/{yy}n/
-    filename:
-      template: "brdc{doy}0.{yy}g.Z"
-      regex: "brdc{doy}0\\.{yy}g"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: gnss/data/daily/{year}/{doy}/{yy}n/
+        filename:
+          template: "brdc{doy}0.{yy}g.Z"
+          regex: "brdc{doy}0\\.{yy}g"
     extensions: [".n.Z", ".g.Z", ".p.Z"]
 
   - id: cddis_nav_mixed
     type: RINEX2_NAV
     server_id: cddis_ftps
     available: true
-    description: Legacy RINEX 2 navigation
+    description: Legacy RINEX 2 mixed navigation
     qualities: [FIN]
     solutions:
       - code: OPS
         prefix: brdc
-    directory:
-      pattern: gnss/data/daily/{year}/{doy}/{yy}n/
-    filename:
-      template: "brdc{doy}0.{yy}p.Z"
-      regex: "brdc{doy}0\\.{yy}p"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: gnss/data/daily/{year}/{doy}/{yy}n/
+        filename:
+          template: "brdc{doy}0.{yy}p.Z"
+          regex: "brdc{doy}0\\.{yy}p"
     extensions: [".n.Z", ".g.Z", ".p.Z"]

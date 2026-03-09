@@ -23,7 +23,7 @@
 #
 # products:
 #   - id: str              # Unique product identifier (e.g., "wuhan_sp3_mgx")
-#     type: str            # Product type: SP3, CLK, ERP, BIAS, OBX, GIM, etc.
+#     type: str            # Product type: SP3, CLK, ERP, BIAS, OBX, GIM, ATX, etc.
 #     server_id: str       # Reference to server.id
 #     available: bool      # Whether this product is available
 #     description: str     # Human-readable description
@@ -32,21 +32,76 @@
 #       - RAP              # Rapid
 #       - ULT              # Ultra-rapid
 #     solutions:           # Solution types offered
-#       - code: str        # OPS, MGX, DEM
-#         prefix: str      # Analysis center prefix (WUM, COD, etc.)
-#     directory:
-#       pattern: str       # Directory pattern with placeholders
-#       # Placeholders: {year}, {doy}, {gps_week}, {month}, {day}
-#     filename:
-#       template: str      # Filename template (exact match)
-#       regex: str         # Regex pattern for searching
-#       # Placeholders: {ac}, {v}, {solution_code}, {qual}, {year}, {doy}, {interval}, {ext}
-#     intervals:           # Available sampling intervals
+#       - code: str        # OPS, MGX, DEM, refframe_2022, etc.
+#         prefix: str      # Filename prefix (WUM, COD, igs20, etc.)
+#         description: str # Optional description
+#         valid_from: str  # Optional: ISO date when solution became valid
+#         valid_to: str    # Optional: ISO date when solution expired
+#     intervals:           # Available sampling intervals (optional)
 #       - "05M"            # 5 minutes
 #       - "30S"            # 30 seconds
 #     coverage: str        # Default coverage (01D, 01H, etc.)
 #     extensions:          # File extensions
 #       - ".SP3.gz"
+#
+#     # NEW: files array replaces separate directory/filename fields
+#     files:               # List of file configurations
+#       - id: str          # Unique file identifier (e.g., "current", "archive")
+#         timeindices:     # Time index placeholders available for this file
+#           - YEAR         # 4-digit year
+#           - DOY          # Day of year (001-366)
+#           - GPS_WEEK     # GPS week number
+#           - MONTH        # 2-digit month
+#           - DAY          # 2-digit day
+#         directory: str   # Remote directory path with placeholders
+#         filename:
+#           template: str  # Filename template for exact match
+#           regex: str     # Regex pattern for searching/listing
+
+# ------------------------------------------------------------------------------
+# File Structure Examples
+# ------------------------------------------------------------------------------
+#
+# Standard date-based products (SP3, CLK, etc.):
+#   files:
+#     - id: "default"
+#       timeindices: [YEAR, DOY, GPS_WEEK]
+#       directory: pub/whu/phasebias/{year}/orbit/
+#       filename:
+#         template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+#         regex: "WUM.*{year}{doy}.*ORB.*SP3"
+#
+# Products with current + archive locations (ATX):
+#   files:
+#     - id: "current"
+#       timeindices: [YEAR, DOY, GPS_WEEK]
+#       directory: pub/station/general/
+#       filename:
+#         template: "{solution_prefix}.atx"
+#         regex: "igs.*\\.atx"
+#     - id: "archive"
+#       timeindices: [YEAR, DOY, GPS_WEEK]
+#       directory: pub/station/general/pcv_archive/
+#       filename:
+#         template: "{solution_prefix}_{gps_week}.atx"
+#         regex: "igs.*\\.atx"
+#
+# Products with date-based variants (CODE MGEX ATX):
+#   files:
+#     - id: "m20"
+#       timeindices: []
+#       directory: CODE_MGEX/CODE/
+#       filename:
+#         template: "M20.ATX"
+#         regex: "M20\\.ATX"
+#       valid_from: "2021-05-02"
+#     - id: "m14"
+#       timeindices: []
+#       directory: CODE_MGEX/CODE/
+#       filename:
+#         template: "M14.ATX"
+#         regex: "M14\\.ATX"
+#       valid_to: "2021-05-01"
 
 # ------------------------------------------------------------------------------
 # Placeholder Reference
@@ -62,9 +117,9 @@
 #   {dow}       - Day of week (0=Sunday, 6=Saturday)
 #
 # Product placeholders:
-#   {ac}        - Analysis center code (WUM, COD, etc.)
-#   {v}         - Version (usually 0)
-#   {solution_code}       - Solution type (OPS, MGX, DEM)
+#   {solution_prefix} - Solution prefix from solutions[].prefix (WUM, igs20, etc.)
+#   {solution_code}   - Solution code from solutions[].code (OPS, MGX, etc.)
+#   {version}   - Version (usually 0)
 #   {qual}      - Quality level (FIN, RAP, ULT)
 #   {interval}  - Sampling interval (05M, 30S, etc.)
 #   {coverage}  - Data coverage (01D, 01H, etc.)

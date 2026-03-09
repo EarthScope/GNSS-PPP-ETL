@@ -33,8 +33,6 @@ from enum import Enum, auto
 from dataclasses import dataclass, field
 from typing import List, Optional, Set
 
-'''
-
 
 # ---------------------------------------------------------------------------
 # Temporal and Quality Classifications
@@ -534,5 +532,3 @@ class ConstellationType(str, Enum):
     IRNSS = "I"     # IRNSS/NavIC (India)
     SBAS = "S"      # SBAS
     MIXED = "M"     # Multi-constellation
-
-'''

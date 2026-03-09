@@ -43,11 +43,13 @@ products:
       - code: DEM  
         prefix: WMC
         description: Multi-constellation demonstration
-    directory:
-      pattern: pub/whu/phasebias/{year}/orbit/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-      regex: "{solution_prefix}.*{year}{doy}.*ORB.*SP3"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: pub/whu/phasebias/{year}/orbit/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
+          regex: "{solution_prefix}.*{year}{doy}.*ORB.*SP3"
     intervals: ["05M", "15M"]
     extensions: [".SP3.gz", ".sp3.gz"]
 
@@ -62,11 +64,13 @@ products:
         prefix: WUM
       - code: DEM
         prefix: WMC
-    directory:
-      pattern: pub/whu/phasebias/{year}/clock/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-      regex: "{qual}.*{year}{doy}.*CLK"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: pub/whu/phasebias/{year}/clock/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
+          regex: "{qual}.*{year}{doy}.*CLK"
     intervals: ["30S", "05M"]
     extensions: [".CLK.gz", ".clk.gz"]
 
@@ -79,11 +83,13 @@ products:
     solutions:
       - code: MGX
         prefix: WUM
-    directory:
-      pattern: pub/whu/phasebias/{year}/orbit/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
-      regex: "{qual}.*{year}{doy}.*ERP"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: pub/whu/phasebias/{year}/orbit/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
+          regex: "{qual}.*{year}{doy}.*ERP"
     intervals: ["01D"]
     extensions: [".ERP.gz", ".erp.gz"]
 
@@ -98,11 +104,13 @@ products:
         prefix: WUM
       - code: DEM
         prefix: WMC
-    directory:
-      pattern: pub/whu/phasebias/{year}/bias/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
-      regex: "{qual}.*{year}{doy}.*BIA"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: pub/whu/phasebias/{year}/bias/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
+          regex: "{qual}.*{year}{doy}.*BIA"
     intervals: ["01D"]
     extensions: [".BIA.gz", ".bia.gz", ".BSX.gz"]
 
@@ -115,11 +123,13 @@ products:
     solutions:
       - code: DEM
         prefix: WMC
-    directory:
-      pattern: pub/whu/phasebias/{year}/orbit/
-    filename:
-      template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ATT.OBX.gz"
-      regex: "{qual}.*{year}{doy}.*OBX"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: pub/whu/phasebias/{year}/orbit/
+        filename:
+          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ATT.OBX.gz"
+          regex: "{qual}.*{year}{doy}.*OBX"
     intervals: ["30S"]
     extensions: [".OBX.gz", ".obx.gz"]
 
@@ -132,12 +142,13 @@ products:
     solutions:
       - code: OPS
         prefix: BRD
-    directory:
-      pattern: pub/gps/data/daily/{year}/{doy}/{yy}p
-    filename:
-      template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
-      regex: "BRDC.*{year}{doy}.*MN.*rnx"
-    intervals: []
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: pub/gps/data/daily/{year}/{doy}/{yy}p
+        filename:
+          template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
+          regex: "BRDC.*{year}{doy}.*MN.*rnx"
     extensions: [".rnx.gz"]
 
   - id: wuhan_gim
@@ -153,10 +164,12 @@ products:
         prefix: IGS
       - code: OPS  
         prefix: JPL
-    directory:
-      pattern: pub/gps/products/ionex/{year}/{doy}/
-    filename:
-      template: "{solution_prefix}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
-      regex: "{qual}.*{year}{doy}.*GIM.*INX"
+    files:
+      - id: default
+        timeindices: [YEAR, DOY]
+        directory: pub/gps/products/ionex/{year}/{doy}/
+        filename:
+          template: "{solution_prefix}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
+          regex: "{qual}.*{year}{doy}.*GIM.*INX"
     intervals: ["01H", "02H"]
     extensions: [".INX.gz", ".ionex.gz", ".I.Z"]

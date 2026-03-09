@@ -5,18 +5,7 @@ GNSS Product Types
 Exhaustive collection of all product types downloaded by remote resources.
 """
 
-from .types import (
-    # Core enums
-    TemporalCoverage,
-    ProductQuality,
-    ProductCategory,
-    FileFormat,
-    AnalysisCenter,
-    ConstellationType,
-    # Product type enum with metadata
-    ProductType,
-    ProductTypeInfo,
-)
+
 
 from .collections import (
     # Category-based collections
