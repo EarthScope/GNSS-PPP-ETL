@@ -91,6 +91,8 @@ IGS = GNSSCenterConfig.from_yaml(config_path / "igs.yaml")
 NGS = GNSSCenterConfig.from_yaml(config_path / "ngs.yaml")
 ESA = GNSSCenterConfig.from_yaml(config_path / "esa.yaml")
 CODE = GNSSCenterConfig.from_yaml(config_path / "code.yaml")
+GFZ = GNSSCenterConfig.from_yaml(config_path / "gfz.yaml")
+VMF = GNSSCenterConfig.from_yaml(config_path / "vmf.yaml")
 
 RESOURCE_COLLECTIONS = {
     "WUHAN": WUHAN,
@@ -99,5 +101,6 @@ RESOURCE_COLLECTIONS = {
     "NGS": NGS,
     "ESA": ESA,
     "CODE": CODE,
-
+    "GFZ": GFZ,
+    "VMF": VMF,
 }

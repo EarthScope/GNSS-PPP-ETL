@@ -2,7 +2,7 @@ import datetime
 from ftplib import FTP, FTP_TLS
 from pathlib import Path
 import re
-from typing import Optional, Tuple
+from typing import Generator, Optional, Tuple
 import julian
 from functools import lru_cache
 import logging
@@ -151,11 +151,10 @@ def ftp_download_file(
         dest_path.unlink(missing_ok=True)
         return False
 
-
 def find_best_match_in_listing(
     dir_listing: list[str],
     file_regex: str,
-) -> Optional[str]:
+) -> Generator [str, None, None]:
     """
     Search *dir_listing* with *file_regex* and return the first match, or
     *None* if nothing matches.
@@ -163,5 +162,5 @@ def find_best_match_in_listing(
     pattern = re.compile(file_regex)
     for entry in dir_listing:
         if pattern.search(entry):
-            return entry
+            yield entry
     return None

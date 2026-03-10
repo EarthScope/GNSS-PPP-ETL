@@ -34,7 +34,7 @@ def query(
             sample_interval=sample_interval,
             temporal_coverage=temporal_coverage
         )
-        
+        filenames = []
         for product in products:
             if product_type and product.type != product_type:
                 continue
@@ -45,11 +45,16 @@ def query(
                     except Exception as e:
                         print(f"Error listing FTP directory {product.server.hostname}/{product.directory}: {e}")
                         continue
-                    best_match = find_best_match_in_listing(listing, product.filename)
-                    if best_match:
+                    for best_match in find_best_match_in_listing(listing, product.filename):
+                        if best_match in filenames:
+                            continue  # Skip if we've already processed this filename
+                        filenames.append(best_match)
                         product.filename = best_match  # Update the product filename to the best match found in the listing
+                        
                         valid_candidates.append(product
                         )
+                        break
+                  
                 case ServerProtocol.HTTP | ServerProtocol.HTTPS:
                     try:
                         response = requests.get(f"{product.server.hostname}/{product.directory}")
