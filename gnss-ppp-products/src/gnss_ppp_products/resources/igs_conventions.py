@@ -5,6 +5,36 @@ https://igs.git-pages.gfz-potsdam.de/igs-cors-guidelines/en/data/filename/
 '''
 
 from enum import Enum
+class AnalysisCenter(str, Enum):
+    """
+    Analysis centers that produce GNSS products.
+    
+    Used for identifying product sources and applying center-specific
+    processing configurations.
+
+    See https://igs.org/acc/#analysis-centers
+    """
+    
+    # IGS Analysis Centers
+    COD = "COD"    # CODE (Center for Orbit Determination in Europe)
+    EMR = "EMR"    # Natural Resources Canada
+    ESA = "ESA"    # European Space Agency
+    GFZ = "GFZ"    # Helmholtz centre for geosciences (GFZ)
+    GRG = "GRG"    # CNES/CLS (GRGS)
+    IGS = "IGS"    # IGS combined solution
+    JPL = "JPL"    # Jet Propulsion Laboratory
+    MIT = "MIT"    # MIT
+    NGS = "NGS"    # NOAA/NGS
+    SIO = "SIO"    # Scripps Institution of Oceanography
+    UPC = "UPC"    # Universitat Politècnica de Catalunya
+    WHU = "WHU"    # Wuhan University
+    WMC = "WMC"    # Wuhan University MGEX Analysis Center
+    # MGEX Analysis Centers
+    CNE = "CNE"    # CNES (MGEX)
+    GBM = "GBM"    # GFZ (MGEX)
+    JAX = "JAX"    # JAXA (MGEX)
+    SHA = "SHA"    # Shanghai Observatory (MGEX)
+    WUM = "WUM"    # Wuhan University (MGEX)
 
 class ProductCampaignSpec(Enum):
     """Enumeration of campaign specifications for GNSS products."""
@@ -31,6 +61,7 @@ class ProductSampleInterval(str, Enum):
     M_15 = "15M"
     H_1 = "01H"
     H_2 = "02H"
+    D_1 = "01D"
 
 class ProductDuration(str, Enum):
     D_1 = "01D"

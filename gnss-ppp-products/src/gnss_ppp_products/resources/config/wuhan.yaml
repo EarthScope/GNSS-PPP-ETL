@@ -179,7 +179,7 @@ products:
     version: "0"
 
     directory: pub/gps/products/ionex/{year}/{doy}/
-    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_GIM.INX.*"
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_{content}.INX.*"
 
 rinex:
 
@@ -195,7 +195,7 @@ rinex:
       - monument: 0
         description: No monument code for broadcast navigation
     receiver_set:
-      - receiver: 0
+      - receiver: "0"
         description: No receiver code for broadcast navigation
     region_set:
       - region: IGN

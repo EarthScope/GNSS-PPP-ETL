@@ -2,7 +2,7 @@ import datetime
 from fileinput import filename
 from enum import Enum
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -10,6 +10,7 @@ from ..resources.remote.utils import _parse_date, _date_to_gps_week
 from .products import SampleInterval, ProductDuration, ProductQuality, Solution,TemporalCoverage
 
 from .igs_conventions import (
+    AnalysisCenter,
     ProductCampaignSpec,
     ProductSolutionType,
     ProductSampleInterval,
@@ -53,8 +54,8 @@ class Server(BaseModel):
 
 class ProductFileQuery(BaseModel):
     date: Optional[datetime.datetime | datetime.date] = None
-    center: Optional[str] = Field(default=None, regex=r"^[A-Z]{3}$")  # 3-letter uppercase code
-    version: Optional[str] = Field(default="0", regex=r"^\d+$")  # Version number, default "0"
+    center: Optional[str] = Field(default=None, pattern=r"^[A-Z]{3}$")  # 3-letter uppercase code
+    version: Optional[str] = Field(default="0", pattern=r"^\d+$")  # Version number, default "0"
     campaign: Optional[ProductCampaignSpec] = None
     interval: Optional[ProductSampleInterval] = None
     duration: Optional[ProductDuration] = None
@@ -105,8 +106,8 @@ class ProductFileQuery(BaseModel):
 
 class RinexFileQuery(BaseModel):
     date: Optional[datetime.datetime | datetime.date] = None
-    station: Optional[str] = Field(default=None, regex=r"^[A-Z]{4}$")  # 4-letter uppercase code
-    region: Optional[str] = Field(default=None, regex=r"^[A-Z]{3}$")  # 3-letter uppercase code
+    station: Optional[str] = Field(default=None, pattern=r"^[A-Z]{4}$")  # 4-letter uppercase code
+    region: Optional[str] = Field(default=None, pattern=r"^[A-Z]{3}$")  # 3-letter uppercase code
     monument: Optional[int] = Field(default=None, ge=0, le=9)  # Single digit monument number
     interval: Optional[ProductSampleInterval] = None
     duration: Optional[ProductDuration | Rinex2FileInterval] = None
@@ -267,228 +268,79 @@ class RinexFileQuery(BaseModel):
         if self.filename is None:
             self.filename = self.build_filename()
 
-class FilenameConfig(BaseModel):
-    """Configuration for filename template and regex pattern."""
-    template: str
-    regex: str
 
-    # "{center}{version}{campaign}{quality}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
-    def build(
-            self,
-            date: datetime.datetime | datetime.date,
-            center: Optional[str] = None,
-            campaign: Optional[str] = None,
-            interval: Optional[str | ProductSampleInterval] = None,
-            quality: Optional[ProductQuality | str] = ProductQuality.FINAL,
-            version: Optional[str] = "0",
-            duration: Optional[str | ProductDuration] = ProductDuration.D_1,
-    ) -> str:
-        year, doy = _parse_date(date)
-        yy = str(year)[-2:]
-        gps_week = _date_to_gps_week(date)
-        
-  
-        if isinstance(interval, str):
-            try:
-                interval = ProductSampleInterval(interval)
-            except ValueError:
-                raise ValueError(f"Invalid interval value: {interval}")
-        if isinstance(quality, str):
-            try:
-                quality = ProductQuality(quality)
-            except ValueError:
-                raise ValueError(f"Invalid quality value: {quality}")
-        if isinstance(coverage, str):
-            try:
-                coverage = ProductDuration(coverage)
-            except ValueError:
-                raise ValueError(f"Invalid coverage value: {coverage}")
-        
-        if center is None:
-            center = r"([A-Z]{3})"  # Match any 3-letter center code if not provided
-        if campaign is None:
-            campaign = r"([A-Z]{3})"  # Optional campaign code
-        if quality is None:
-            quality = "|".join(re.escape(q.value) for q in ProductQuality)  # Match any quality if not provided
-            quality = rf"({quality})"
-        if interval is None:
-            interval = "|".join(re.escape(i.value) for i in ProductSampleInterval)  # Match any interval if not provided
-            interval = rf"({interval})"
+class QualityConfig(BaseModel):
+    quality: ProductQuality
+    description: Optional[str] = None
 
-        if solution is not None and interval is not None:
-            filename = self.template.format(
-                solution_prefix=solution.prefix,
-                version=version,
-                solution_code=solution.code,
-                qual=quality.value,
-                year=year,
-                doy=doy,
-                gps_week=gps_week,
-                yy=yy,
-                month=month,
-                day=day,
-                dow=dow,
-                coverage=coverage.value,
-                interval=interval.value if interval else None
-            )
-        else:
-            filename = self.regex.format(
-                solution_prefix=solution.prefix if solution else None,
-                qual=quality.value,
-                year=year,
-                doy=doy,
-                gps_week=gps_week,
-                yy=yy,
-                month=month,
-                day=day,
-                dow=dow,
-                coverage=coverage.value,
-                interval=interval.value if interval else None,
-            )
-        return filename
+class StationConfig(BaseModel):
+    station:str
+    description: Optional[str] = None
 
-class ProductQuery
-class FileConfig(BaseModel):
-    """
-    Configuration for a single file location.
-    
-    Replaces the separate directory/filename fields with a unified
-    file configuration that can represent multiple file variants
-    (e.g., current vs archive, different date-based formats).
-    """
-    id: str
-    timeindices: List[TimeIndex] = Field(default_factory=list)
-    directory: str
-    filename: FilenameConfig
-    valid_from: Optional[str] = None  # ISO date string
-    valid_to: Optional[str] = None    # ISO date string
+class MonumentConfig(BaseModel):
+    monument:int
+    description: Optional[str] = None
 
-    def build_directory(self, date: datetime.datetime | datetime.date) -> str:
-        """Build the directory path with date placeholders filled in."""
-        year, doy = _parse_date(date)
-        yy = str(year)[-2:]
-        gps_week = _date_to_gps_week(date)
-        
-        # Extract month/day if date is datetime
-        if isinstance(date, datetime.datetime):
-            month = f"{date.month:02d}"
-            day = f"{date.day:02d}"
-            dow = str(date.weekday())  # 0=Monday in Python
-        else:
-            month = f"{date.month:02d}"
-            day = f"{date.day:02d}"
-            dow = str(date.weekday())
-        
-        directory = self.directory.format(
-            year=year,
-            doy=doy,
-            gps_week=gps_week,
-            yy=yy,
-            month=month,
-            day=day,
-            dow=dow
-        )
-        return directory
+class ReceiverConfig(BaseModel):
+    receiver:str
+    description: Optional[str] = None
+    class Config:
+        coerce=True
 
-    def is_valid_for_date(self, date: datetime.datetime | datetime.date) -> bool:
-        """Check if this file config is valid for the given date."""
-        if isinstance(date, datetime.datetime):
-            date = date.date()
-        
-        if self.valid_from:
-            valid_from = datetime.date.fromisoformat(self.valid_from)
-            if date < valid_from:
-                return False
-        
-        if self.valid_to:
-            valid_to = datetime.date.fromisoformat(self.valid_to)
-            if date > valid_to:
-                return False
-        
-        return True
+class RegionConfig(BaseModel):
+    region:str
+    description: Optional[str] = None
 
+class SampleIntervalConfig(BaseModel):
+    interval: ProductSampleInterval
+    description: Optional[str] = None
 
-# Keep legacy classes for backward compatibility during migration
-class Directory(BaseModel):
-    pattern: str
+class DurationConfig(BaseModel):
+    duration: ProductDuration | Rinex2FileInterval
+    description: Optional[str] = None
 
-    def build(self, date: datetime.datetime | datetime.date) -> str:
-        year, doy = _parse_date(date)
-        yy = str(year)[-2:]
-        gps_week = _date_to_gps_week(date)
-        directory = self.pattern.format(year=year, doy=doy, gps_week=gps_week, yy=yy)
-        return directory
+class SatelliteSystemConfig(BaseModel):
+    satellite_system: RinexSatelliteSystem
+    description: Optional[str] = None
 
-
-class Filename(BaseModel):
-    template: str
-    regex: str
-
-    def build(
-            self,
-            date: datetime.datetime | datetime.date,
-            solution: Optional[Solution] = None,
-            interval: Optional[str | ProductSampleInterval] = None,
-            quality: Optional[ProductQuality | str] = ProductQuality.FINAL,
-            version: Optional[str] = "0",
-            coverage: Optional[str | ProductDuration] = ProductDuration.D_1,
-    ) -> str:
-        year, doy = _parse_date(date)
-        yy = str(year)[-2:]
-
-        if isinstance(interval, str):
-            try:
-                interval = ProductSampleInterval(interval)
-            except ValueError:
-                raise ValueError(f"Invalid interval value: {interval}")
-        if isinstance(quality, str):
-            try:
-                quality = ProductQuality(quality)
-            except ValueError:
-                raise ValueError(f"Invalid quality value: {quality}")
-        if isinstance(coverage, str):
-            try:
-                coverage = ProductDuration(coverage)
-            except ValueError:
-                raise ValueError(f"Invalid coverage value: {coverage}")
-
-        if solution is not None and interval is not None:
-            filename = self.template.format(
-                solution_prefix=solution.prefix,
-                version=version,
-                solution_code=solution.code,
-                qual=quality.value,
-                year=year,
-                doy=doy,
-                coverage=coverage.value,
-                interval=interval.value if interval else None
-            )
-        else:
-            filename = self.regex.format(
-                qual=quality.value,
-                year=year,
-                doy=doy,
-                coverage=coverage.value,
-                interval=interval.value if interval else None,
-                yy=yy
-            )
-        return filename
-
+class CampaignConfig(BaseModel):
+    center: AnalysisCenter
+    campaign: ProductCampaignSpec
+    description: Optional[str] = None
 
 class ProductConfig(BaseModel):
     """Configuration for a GNSS product with the new files structure."""
     id: str
-    type: ProductType
+    version:str
+    filename:str
+    directory:str
+    format: ProductFileFormat
+    content: ProductContentType
     server_id: str
     available: bool = True
     description: Optional[str] = None
-    qualities: List[ProductQuality]
-    solutions: List[Solution]
-    files: List[FileConfig]
-    intervals: Optional[List[ProductSampleInterval]] = None
+    quality_set: List[QualityConfig]
+    campaign_set: List[CampaignConfig]
+    sampling_set: List[SampleIntervalConfig]
+    duration_set: List[DurationConfig]
     extensions: Optional[List[str]] = None
     notes: Optional[str] = None
 
+class RinexConfig(BaseModel):
+    id:str
+    content: Rinex3DataType | Rinex2DataType
+    version: Optional[RinexVersion] = RinexVersion.V3
+    available: bool = True
+    description: Optional[str] = None
+    station_set: List[StationConfig] # List of dicts with station code and optional monument number
+    monument_set: List[MonumentConfig]
+    receiver_set: List[ReceiverConfig]
+    region_set: List[RegionConfig]
+    sampling_set: List[SampleIntervalConfig]
+    satellite_system_set: List[SatelliteSystemConfig]
+    duration_set: List[DurationConfig]
+    directory: str
+    filename:str
 
 class RemoteProductAddress(BaseModel):
     server: Server
@@ -508,6 +360,7 @@ class GNSSCenterConfig(BaseModel):
     website: Optional[str] = None
     servers: List[Server]
     products: List[ProductConfig]
+    rinex: List[RinexConfig]
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "GNSSCenterConfig":
