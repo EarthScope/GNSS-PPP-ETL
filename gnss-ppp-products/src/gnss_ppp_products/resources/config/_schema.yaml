@@ -23,40 +23,50 @@
 #
 # products:
 #   - id: str              # Unique product identifier (e.g., "wuhan_sp3_mgx")
-#     type: str            # Product type: SP3, CLK, ERP, BIAS, OBX, GIM, ATX, etc.
+#     format: str          # Product format: SP3, CLK, ERP, BIA, OBX, GIM, ATX, etc.
+#     content: str         # Content type: ORB, CLK, ERP, OSB, ATT, GIM, etc.
 #     server_id: str       # Reference to server.id
 #     available: bool      # Whether this product is available
 #     description: str     # Human-readable description
-#     qualities:           # List of available quality levels
-#       - FIN              # Final
-#       - RAP              # Rapid
-#       - ULT              # Ultra-rapid
-#     solutions:           # Solution types offered
-#       - code: str        # OPS, MGX, DEM, refframe_2022, etc.
-#         prefix: str      # Filename prefix (WUM, COD, igs20, etc.)
+#     quality_set:         # List of available quality levels
+#       - quality: FIN     # Final
+#       - quality: RAP     # Rapid
+#       - quality: ULT     # Ultra-rapid
+#     campaign_set:        # Solution types offered
+#       - campaign: str    # OPS, MGX, DEM, refframe_2022, etc.
+#         center: str      # Center code (WUM, COD, igs20, etc.)
 #         description: str # Optional description
 #         valid_from: str  # Optional: ISO date when solution became valid
 #         valid_to: str    # Optional: ISO date when solution expired
-#     intervals:           # Available sampling intervals (optional)
-#       - "05M"            # 5 minutes
-#       - "30S"            # 30 seconds
-#     coverage: str        # Default coverage (01D, 01H, etc.)
-#     extensions:          # File extensions
-#       - ".SP3.gz"
-#
-#     # NEW: files array replaces separate directory/filename fields
-#     files:               # List of file configurations
-#       - id: str          # Unique file identifier (e.g., "current", "archive")
-#         timeindices:     # Time index placeholders available for this file
-#           - YEAR         # 4-digit year
-#           - DOY          # Day of year (001-366)
-#           - GPS_WEEK     # GPS week number
-#           - MONTH        # 2-digit month
-#           - DAY          # 2-digit day
-#         directory: str   # Remote directory path with placeholders
-#         filename:
-#           template: str  # Filename template for exact match
-#           regex: str     # Regex pattern for searching/listing
+#     sampling_set:        # Available sampling intervals
+#       - interval: "05M" # 5 minutes
+#       - interval: "30S" # 30 seconds
+#     duration_set:        # Data coverage durations
+#       - duration: "01D" # 1 day
+#     version: str         # Version (usually "0")
+#     directory: str       # Remote directory path with placeholders
+#     filename: str        # Filename template for exact match
+
+# rinex:
+#   - id: str              # Unique RINEX product identifier
+#     content: str          # RINEX content type: N, G, P, MN, etc.
+#     server_id: str        # Reference to server.id
+#     available: bool       # Whether this product is available
+#     description: str      # Human-readable description
+#     station_set:          # List of stations
+#       - station: str      # Station code (BRDC, etc.)
+#         description: str  # Optional description
+#     monument_set:         # List of monuments
+#       - monument: str     # Monument code
+#         description: str  # Optional description
+#     receiver_set:         # List of receivers
+#       - receiver: str     # Receiver code
+#         description: str  # Optional description
+#     region_set:           # List of regions
+#       - region: str       # Region code
+#         description: str  # Optional description
+#     directory: str        # Remote directory path with placeholders
+#     filename: str         # Filename template for exact match
 
 # ------------------------------------------------------------------------------
 # File Structure Examples

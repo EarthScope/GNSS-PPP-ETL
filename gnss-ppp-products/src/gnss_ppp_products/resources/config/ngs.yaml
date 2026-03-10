@@ -24,30 +24,27 @@ defaults:
 
 products:
   - id: ngs_atx
-    type: ATX
+    format: ATX
+    content: ANTEX
     server_id: ngs_https
     available: true
     description: NGS ANTEX antenna calibrations
-    qualities: [FIN]
-    solutions:
-      - code: refframe_2022
-        prefix: ngs20
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: refframe_2022
+        center: ngs20
         description: NGS calibrations for IGS20 frame
-      - code: refframe_2017
-        prefix: ngs14
+      - campaign: refframe_2017
+        center: ngs14
         description: NGS calibrations for IGS14 frame
-      - code: refframe_2011
-        prefix: ngs08
+      - campaign: refframe_2011
+        center: ngs08
         description: NGS calibrations for IGS08 frame
-    files:
-      - id: current
-        timeindices: []
-        directory: ANTCAL
-        filename:
-          template: "LoadFile?file={solution_prefix}.atx"
-          regex: "LoadFile\\?file={solution_prefix}\\.atx"
-    extensions: [".atx"]
-    static: true  # Frame-versioned, not date-specific
-    notes: >
-      NGS ANTEX includes additional US antenna calibrations not in IGS files.
-      Useful for CORS and other US stations.
+    sampling_set:
+      - interval: "STATIC"
+    duration_set:
+      - duration: "STATIC"
+    version: "0"
+    directory: ANTCAL
+    filename: "LoadFile?file={center}.atx"

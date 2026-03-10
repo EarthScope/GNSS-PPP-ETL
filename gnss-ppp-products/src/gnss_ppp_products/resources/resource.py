@@ -360,7 +360,7 @@ class GNSSCenterConfig(BaseModel):
     website: Optional[str] = None
     servers: List[Server]
     products: List[ProductConfig]
-    rinex: List[RinexConfig]
+    rinex: Optional[List[RinexConfig]] = None
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "GNSSCenterConfig":

@@ -27,62 +27,68 @@ defaults:
 
 products:
   - id: esa_sp3
-    type: SP3
+    format: SP3
+    content: ORB
     server_id: esa_ftp
     available: true
     description: Precise orbits
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: ESA
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: ESA
         description: GPS operational
-      - code: MGX
-        prefix: ESA
+      - campaign: MGX
+        center: ESA
         description: Multi-GNSS
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: gnss/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-          regex: "ESA.*{qual}.*{year}{doy}.*SP3"
-    intervals: ["05M", "15M"]
-    extensions: [".SP3.gz", ".sp3.gz"]
+    sampling_set:
+      - interval: "05M"
+      - interval: "15M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"
 
   - id: esa_clk
-    type: CLK
+    format: CLK
+    content: CLK
     server_id: esa_ftp
     available: true
     description: Precise clocks
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: ESA
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: gnss/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-          regex: "ESA.*{qual}.*{year}{doy}.*CLK"
-    intervals: ["30S", "05M"]
-    extensions: [".CLK.gz", ".clk.gz"]
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: ESA
+    sampling_set:
+      - interval: "30S"
+      - interval: "05M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_CLK.CLK.*"
 
   - id: esa_gim
-    type: GIM
+    format: INX
+    content: GIM
     server_id: esa_ftp
     available: true
     description: ESA Global Ionosphere Maps
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: ESA
-    files:
-      - id: default
-        timeindices: [YEAR, DOY]
-        directory: gnss/products/ionex/{year}/{doy}/
-        filename:
-          template: "ESA0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
-          regex: "ESA.*{qual}.*{year}{doy}.*GIM"
-    intervals: ["01H", "02H"]
-    extensions: [".INX.gz", ".ionex.gz"]
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: ESA
+    sampling_set:
+      - interval: "01H"
+      - interval: "02H"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/ionex/{year}/{doy}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_GIM.INX.*"

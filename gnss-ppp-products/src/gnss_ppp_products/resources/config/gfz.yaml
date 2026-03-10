@@ -28,156 +28,145 @@ defaults:
 
 products:
   - id: gfz_sp3
-    type: SP3
+    format: SP3
+    content: ORB
     server_id: gfz_ftp
     available: true
     description: Precise orbits
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: GFZ
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: GFZ
         description: GPS-only operational
-      - code: MGX
-        prefix: GBM
+      - campaign: MGX
+        center: GBM
         description: MGEX multi-GNSS
-    files:
-      - id: final
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: gnss/products/final/w{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*SP3"
-      - id: rapid
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: gnss/products/rapid/w{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*SP3"
-    intervals: ["05M", "15M"]
-    extensions: [".SP3.gz", ".sp3.gz"]
+    sampling_set:
+      - interval: "05M"
+      - interval: "15M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/final/w{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"
 
   - id: gfz_clk
-    type: CLK
+    format: CLK
+    content: CLK
     server_id: gfz_ftp
     available: true
     description: Precise clocks
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: GFZ
-      - code: MGX
-        prefix: GBM
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: gnss/products/final/w{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*CLK"
-    intervals: ["30S", "05M"]
-    extensions: [".CLK.gz", ".clk.gz"]
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: GFZ
+      - campaign: MGX
+        center: GBM
+    sampling_set:
+      - interval: "30S"
+      - interval: "05M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/final/w{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_CLK.CLK.*"
 
   # GRACE/GRACE-FO Level-1B Products
   - id: gfz_grace_gnv
-    type: GRACE_GNV
+    format: GNV
+    content: NAV
     server_id: gfz_ftp
     available: true
     description: GRACE/GRACE-FO GPS navigation data
-    qualities: [FIN]
-    solutions:
-      - code: L1B
-        prefix: GNV
-    files:
-      - id: grace
-        timeindices: [YEAR, MONTH, DAY]
-        directory: grace/Level-1B/JPL/RL03/{year}/
-        filename:
-          template: "GNV1B_{year}-{month}-{day}_{spacecraft}_04.dat.gz"
-          regex: "GNV1B_{year}-{month:02d}-{day:02d}_[AB]_"
-        valid_to: "2017-10-27"
-      - id: gracefo
-        timeindices: [YEAR, MONTH, DAY]
-        directory: grace-fo/Level-1B/JPL/RL04/{year}/
-        filename:
-          template: "GNV1B_{year}-{month}-{day}_{spacecraft}_04.dat.gz"
-          regex: "GNV1B_{year}-{month:02d}-{day:02d}_[CD]_"
-        valid_from: "2018-05-22"
-    spacecraft: [C, D]  # GRACE-C, GRACE-D (GRACE-FO)
-    extensions: [".dat.gz"]
-    notes: >
-      GRACE-FO uses spacecraft C and D. Original GRACE (A, B) ended 2017.
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: L1B
+        center: GNV
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename: "GNV1B_{year}-{month}-{day}_{spacecraft}_04.dat.*"
 
   - id: gfz_grace_acc
-    type: GRACE_ACC
+    format: ACC
+    content: ACC
     server_id: gfz_ftp
     available: true
     description: GRACE/GRACE-FO accelerometer data
-    qualities: [FIN]
-    solutions:
-      - code: L1B
-        prefix: ACC
-    files:
-      - id: default
-        timeindices: [YEAR, MONTH, DAY]
-        directory: grace-fo/Level-1B/JPL/RL04/{year}/
-        filename:
-          template: "ACC1B_{year}-{month}-{day}_{spacecraft}_04.dat.gz"
-          regex: "ACC1B_{year}-{month:02d}-{day:02d}_[CD]_"
-    spacecraft: [C, D]
-    extensions: [".dat.gz"]
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: L1B
+        center: ACC
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename: "ACC1B_{year}-{month}-{day}_{spacecraft}_04.dat.*"
 
   - id: gfz_grace_sca
-    type: GRACE_SCA
+    format: SCA
+    content: SCA
     server_id: gfz_ftp
     available: true
     description: GRACE/GRACE-FO star camera data
-    qualities: [FIN]
-    solutions:
-      - code: L1B
-        prefix: SCA
-    files:
-      - id: default
-        timeindices: [YEAR, MONTH, DAY]
-        directory: grace-fo/Level-1B/JPL/RL04/{year}/
-        filename:
-          template: "SCA1B_{year}-{month}-{day}_{spacecraft}_04.dat.gz"
-          regex: "SCA1B_{year}-{month:02d}-{day:02d}_[CD]_"
-    spacecraft: [C, D]
-    extensions: [".dat.gz"]
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: L1B
+        center: SCA
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename: "SCA1B_{year}-{month}-{day}_{spacecraft}_04.dat.*"
 
   - id: gfz_grace_kbr
-    type: GRACE_KBR
+    format: KBR
+    content: KBR
     server_id: gfz_ftp
     available: true
     description: GRACE/GRACE-FO K-Band ranging data
-    qualities: [FIN]
-    solutions:
-      - code: L1B
-        prefix: KBR
-    files:
-      - id: default
-        timeindices: [YEAR, MONTH, DAY]
-        directory: grace-fo/Level-1B/JPL/RL04/{year}/
-        filename:
-          template: "KBR1B_{year}-{month}-{day}_Y_04.dat.gz"
-          regex: "KBR1B_{year}-{month:02d}-{day:02d}_"
-    extensions: [".dat.gz"]
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: L1B
+        center: KBR
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename: "KBR1B_{year}-{month}-{day}_Y_04.dat.*"
 
   - id: gfz_grace_lri
-    type: GRACE_LRI
+    format: LRI
+    content: LRI
     server_id: gfz_ftp
     available: true
     description: GRACE-FO Laser Ranging Interferometer data
-    qualities: [FIN]
-    solutions:
-      - code: L1B
-        prefix: LRI
-    files:
-      - id: default
-        timeindices: [YEAR, MONTH, DAY]
-        directory: grace-fo/Level-1B/JPL/RL04/{year}/
-        filename:
-          template: "LRI1B_{year}-{month}-{day}_Y_04.dat.gz"
-          regex: "LRI1B_{year}-{month:02d}-{day:02d}_"
-    extensions: [".dat.gz"]
-    notes: LRI only available on GRACE-FO (2018+), not original GRACE.
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: L1B
+        center: LRI
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: grace-fo/Level-1B/JPL/RL04/{year}/
+    filename: "LRI1B_{year}-{month}-{day}_Y_04.dat.*"

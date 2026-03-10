@@ -30,152 +30,157 @@ defaults:
 
 products:
   - id: cddis_sp3
-    type: SP3
+    format: SP3
+    content: ORB
     server_id: cddis_ftps
     available: true
     description: Precise orbits (mirrors from all ACs)
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: IGS
-      - code: MGX
-        prefix: GBM
-      - code: MGX
-        prefix: WUM
-      - code: OPS
-        prefix: COD
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: gnss/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*SP3"
-    intervals: ["05M", "15M"]
-    extensions: [".SP3.gz", ".sp3.gz"]
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+      - campaign: MGX
+        center: GBM
+      - campaign: MGX
+        center: WUM
+      - campaign: OPS
+        center: COD
+    sampling_set:
+      - interval: "05M"
+      - interval: "15M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"
 
   - id: cddis_clk
-    type: CLK
+    format: CLK
+    content: CLK
     server_id: cddis_ftps
     available: true
     description: Precise clocks (mirrors from all ACs)
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: IGS
-      - code: MGX
-        prefix: GBM
-      - code: MGX
-        prefix: WUM
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: gnss/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*CLK"
-    intervals: ["30S", "05M"]
-    extensions: [".CLK.gz", ".clk.gz"]
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+      - campaign: MGX
+        center: GBM
+      - campaign: MGX
+        center: WUM
+    sampling_set:
+      - interval: "30S"
+      - interval: "05M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_CLK.CLK.*"
 
   - id: cddis_gim
-    type: GIM
+    format: INX
+    content: GIM
     server_id: cddis_ftps
     available: true
     description: Global Ionosphere Maps
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: COD
-      - code: OPS
-        prefix: IGS
-      - code: OPS
-        prefix: JPL
-      - code: OPS
-        prefix: ESA
-    files:
-      - id: longform
-        timeindices: [YEAR, DOY]
-        directory: gnss/products/ionex/{year}/{doy}/
-        filename:
-          template: "{solution_prefix}0OPS{qual}_{year}{doy}0000_01D_{interval}_GIM.INX.gz"
-          regex: "{solution_prefix}.*{qual}.*{year}{doy}.*GIM"
-      - id: legacy
-        timeindices: [YEAR, DOY]
-        directory: gnss/products/ionex/{year}/{doy}/
-        filename:
-          template: "{solution_prefix}g{doy}0.{yy}i.Z"
-          regex: "{solution_prefix}g{doy}.*\\.{yy}i"
-    intervals: ["01H", "02H"]
-    extensions: [".INX.gz", ".I.Z", ".ionex.gz"]
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: COD
+      - campaign: OPS
+        center: IGS
+      - campaign: OPS
+        center: JPL
+      - campaign: OPS
+        center: ESA
+    sampling_set:
+      - interval: "01H"
+      - interval: "02H"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/ionex/{year}/{doy}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_GIM.INX.*"
 
-  - id: cddis_nav3
-    type: RINEX3_NAV
-    server_id: cddis_ftps
-    available: true
-    description: Broadcast navigation
-    qualities: [FIN]
-    solutions:
-      - code: OPS
-        prefix: BRD
-    files:
-      - id: default
-        timeindices: [YEAR, DOY]
-        directory: gnss/data/daily/{year}/{doy}/{yy}p/
-        filename:
-          template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
-          regex: "BRDC.*{year}{doy}.*rnx"
-    extensions: [".rnx.gz"]
 
-  - id: cddis_nav_gps
-    type: RINEX2_NAV
-    server_id: cddis_ftps
-    available: true
-    description: Legacy RINEX 2 GPS navigation
-    qualities: [FIN]
-    solutions:
-      - code: OPS
-        prefix: brdc
-    files:
-      - id: default
-        timeindices: [YEAR, DOY]
-        directory: gnss/data/daily/{year}/{doy}/{yy}n/
-        filename:
-          template: "brdc{doy}0.{yy}n.Z"
-          regex: "brdc{doy}0\\.{yy}n"
-    extensions: [".n.Z", ".g.Z", ".p.Z"]
+  # - id: cddis_nav3
+  #   format: rnx
+  #   content: MN
+  #   server_id: cddis_ftps
+  #   available: true
+  #   description: Broadcast navigation
+  #   quality_set:
+  #     - quality: FIN
+  #   campaign_set:
+  #     - campaign: OPS
+  #       center: BRD
+  #       description: IGS broadcast navigation
+  #   sampling_set:
+  #     - interval: "01D"
+  #   duration_set:
+  #     - duration: "01D"
+  #   version: "C00"
+  #   directory: gnss/data/daily/{year}/{doy}/{yy}p/
+  #   filename: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.*"
 
-  - id: cddis_nav_glonass
-    type: RINEX2_NAV
-    server_id: cddis_ftps
-    available: true
-    description: Legacy RINEX 2 GLONASS navigation
-    qualities: [FIN]
-    solutions:
-      - code: OPS
-        prefix: brdc
-    files:
-      - id: default
-        timeindices: [YEAR, DOY]
-        directory: gnss/data/daily/{year}/{doy}/{yy}n/
-        filename:
-          template: "brdc{doy}0.{yy}g.Z"
-          regex: "brdc{doy}0\\.{yy}g"
-    extensions: [".n.Z", ".g.Z", ".p.Z"]
 
-  - id: cddis_nav_mixed
-    type: RINEX2_NAV
-    server_id: cddis_ftps
-    available: true
-    description: Legacy RINEX 2 mixed navigation
-    qualities: [FIN]
-    solutions:
-      - code: OPS
-        prefix: brdc
-    files:
-      - id: default
-        timeindices: [YEAR, DOY]
-        directory: gnss/data/daily/{year}/{doy}/{yy}n/
-        filename:
-          template: "brdc{doy}0.{yy}p.Z"
-          regex: "brdc{doy}0\\.{yy}p"
-    extensions: [".n.Z", ".g.Z", ".p.Z"]
+
+  # - id: cddis_nav_gps
+  #   content: N
+  #   server_id: cddis_ftps
+  #   available: true
+  #   description: Legacy RINEX 2 GPS navigation
+  #   station_set:
+  #     - station: brdc
+  #       description: Broadcast navigation (no station code)
+  #   monument_set:
+  #     - monument: 0
+  #       description: No monument code for broadcast navigation
+  #   receiver_set:
+  #     - receiver: "0"
+  #       description: No receiver code for broadcast navigation
+  #   region_set: []
+  #   directory: gnss/data/daily/{year}/{doy}/{yy}n/
+  #   filename: "brdc{doy}0.{yy}n.*"
+
+  # - id: cddis_nav_glonass
+  #   content: G
+  #   server_id: cddis_ftps
+  #   available: true
+  #   description: Legacy RINEX 2 GLONASS navigation
+  #   station_set:
+  #     - station: brdc
+  #       description: Broadcast navigation (no station code)
+  #   monument_set:
+  #     - monument: 0
+  #       description: No monument code for broadcast navigation
+  #   receiver_set:
+  #     - receiver: "0"
+  #       description: No receiver code for broadcast navigation
+  #   region_set: []
+  #   directory: gnss/data/daily/{year}/{doy}/{yy}n/
+  #   filename: "brdc{doy}0.{yy}g.*"
+
+  # - id: cddis_nav_mixed
+  #   content: P
+  #   server_id: cddis_ftps
+  #   available: true
+  #   description: Legacy RINEX 2 mixed navigation
+  #   station_set:
+  #     - station: brdc
+  #       description: Broadcast navigation (no station code)
+  #   monument_set:
+  #     - monument: 0
+  #       description: No monument code for broadcast navigation
+  #   receiver_set:
+  #     - receiver: "0"
+  #       description: No receiver code for broadcast navigation
+  #   region_set: []
+  #   directory: gnss/data/daily/{year}/{doy}/{yy}n/
+  #   filename: "brdc{doy}0.{yy}p.*"

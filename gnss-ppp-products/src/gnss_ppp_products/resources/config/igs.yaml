@@ -33,118 +33,126 @@ defaults:
   compressed: true
 
 products:
-  - id: igs_sp3
-    type: SP3
-    server_id: ign_ftp
-    available: true
-    description: IGS combined precise orbits
-    qualities: [FIN, RAP, ULT]
-    solutions:
-      - code: OPS
-        prefix: IGS
-        description: Combined GPS-only
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: pub/igs/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ORB.SP3.gz"
-          regex: "IGS.*{qual}.*{year}{doy}.*SP3"
-    intervals: ["15M"]
-    extensions: [".SP3.gz", ".sp3.gz", ".SP3.Z"]
-
-  - id: igs_clk
-    type: CLK
-    server_id: ign_ftp
-    available: true
-    description: IGS combined precise clocks
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: IGS
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: pub/igs/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_CLK.CLK.gz"
-          regex: "IGS.*{qual}.*{year}{doy}.*CLK"
-    intervals: ["30S", "05M"]
-    extensions: [".CLK.gz", ".clk.gz"]
-
-  - id: igs_erp
-    type: ERP
-    server_id: ign_ftp
-    available: true
-    description: IGS combined Earth rotation parameters
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: IGS
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: pub/igs/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_ERP.ERP.gz"
-          regex: "IGS.*{qual}.*{year}{doy}.*ERP"
-    intervals: ["30S"]
-    
-
-  - id: igs_bias
-    type: BIAS
-    server_id: ign_ftp
-    available: true
-    description: IGS combined biases
-    qualities: [FIN, RAP]
-    solutions:
-      - code: OPS
-        prefix: IGS
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: pub/igs/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_01D_OSB.BIA.gz"
-          regex: "IGS.*{qual}.*{year}{doy}.*BIA"
-    intervals: ["30S"]
-
-  - id: igs_obx
-    type: OBX
-    server_id: ign_ftp
-    available: true
-    description: IGS satellite attitude (ORBEX)
-    qualities: [FIN]
-    solutions:
-      - code: OPS
-        prefix: IGS
-    files:
-      - id: default
-        timeindices: [YEAR, DOY, GPS_WEEK]
-        directory: pub/igs/products/{gps_week}/
-        filename:
-          template: "{solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_ATT.OBX.gz"
-          regex: "IGS.*{qual}.*{year}{doy}.*OBX"
-    intervals: ["30S"]
-    extensions: [".OBX.gz", ".obx.gz"]
-
   - id: igs_nav
-    type: RINEX3_NAV
+    directory: pub/igs/products/{gps_week}/
+    content: MN
     server_id: ign_ftp
     available: true
     description: IGS merged broadcast navigation
-    qualities: [FIN]
-    solutions:
-      - code: OPS
-        prefix: BRD
-    files:
-      - id: default
-        timeindices: [YEAR, DOY]
-        directory: pub/igs/data/{year}/{doy}/
-        filename:
-          template: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.gz"
-          regex: "BRDC.*{year}{doy}.*rnx"
-    extensions: [".rnx.gz"]
+    station_set:
+      - station: BRDC
+        description: Broadcast navigation (no station code)
+    monument_set:
+      - monument: 0
+        description: No monument code for broadcast navigation
+    receiver_set:
+      - receiver: "0"
+        description: No receiver code for broadcast navigation
+    region_set: []
+    directory: pub/igs/data/{year}/{doy}/
+    filename: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.*"
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"
+
+  - id: igs_clk
+    format: CLK
+    content: CLK
+    server_id: ign_ftp
+    available: true
+    description: IGS combined precise clocks
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+    sampling_set:
+      - interval: "30S"
+      - interval: "05M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: pub/igs/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_CLK.CLK.*"
+
+  - id: igs_erp
+    format: ERP
+    content: ERP
+    server_id: ign_ftp
+    available: true
+    description: IGS combined Earth rotation parameters
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+    sampling_set:
+      - interval: "30S"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: pub/igs/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ERP.ERP.*"
+    
+
+  - id: igs_bias
+    format: BIA
+    content: OSB
+    server_id: ign_ftp
+    available: true
+    description: IGS combined biases
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+    sampling_set:
+      - interval: "30S"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: pub/igs/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_OSB.BIA.*"
+
+  - id: igs_obx
+    format: OBX
+    content: ATT
+    server_id: ign_ftp
+    available: true
+    description: IGS satellite attitude (ORBEX)
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+    sampling_set:
+      - interval: "30S"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: pub/igs/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ATT.OBX.*"
+
+  - id: igs_nav
+    format: rnx
+    content: MN
+    server_id: ign_ftp
+    available: true
+    description: IGS merged broadcast navigation
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: OPS
+        center: BRD
+        description: IGS broadcast navigation
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "C00"
+    directory: pub/igs/data/{year}/{doy}/
+    filename: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.*"
 
   - id: igs_atx
     type: ATX
