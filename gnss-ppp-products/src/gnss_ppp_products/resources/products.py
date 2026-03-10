@@ -6,8 +6,7 @@ class Solution(BaseModel):
     code: str
     prefix: str
     description: str = ""
-    valid_from: str = None
-    valid_to: str = None
+
 
 class SampleInterval(str, Enum):
     S_30 = "30S"
@@ -16,7 +15,7 @@ class SampleInterval(str, Enum):
     H_1 = "01H"
     H_2 = "02H"
 
-class ProductCoverage(str, Enum):
+class ProductDuration(str, Enum):
     D_1 = "01D"
 
 class ProductQuality(str, Enum):
@@ -25,10 +24,7 @@ class ProductQuality(str, Enum):
     FINAL = "FIN"        # Post-processed, highest accuracy (~2 week latency)
     RAPID = "RAP"        # Near real-time (~1 day latency)
     ULTRA_RAPID = "ULR"  # Ultra-rapid products (~3-6 hour latency)
-    ULTRA_RAPID_ALT = "ULT"  # Ultra-rapid (alternative naming)
     REAL_TIME = "RTS"      # Real-time streaming
-    PREDICTED = "PRED"  # Forecast/predicted products
-    PREDICTED_ALT = "PRD"  # Predicted (alternative naming)
 
 class TemporalCoverage(str, Enum):
     """Temporal coverage/cadence of products."""
@@ -115,9 +111,4 @@ class ProductType(Enum):
     GRACE_SCA = "GRACE_SCA"  # GRACE/GRACE-FO star camera data
     GRACE_KBR = "GRACE_KBR"  # GRACE/GRACE-FO K-Band ranging data
     GRACE_LRI = "GRACE_LRI"  # GRACE-FO Laser Ranging Interferometer data
-    
-
-    # -------------------------------------------------------------------------
-    # Orography Products
-    # -------------------------------------------------------------------------
     

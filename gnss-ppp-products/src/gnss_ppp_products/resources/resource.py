@@ -6,7 +6,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from ..resources.remote.utils import _parse_date, _date_to_gps_week
-from .products import SampleInterval, ProductCoverage, ProductQuality, ProductType, Solution,TemporalCoverage
+from .products import SampleInterval, ProductDuration, ProductQuality, ProductType, Solution,TemporalCoverage
 
 
 class TimeIndex(str, Enum):
@@ -48,7 +48,7 @@ class FilenameConfig(BaseModel):
             interval: Optional[str | SampleInterval] = None,
             quality: Optional[ProductQuality | str] = ProductQuality.FINAL,
             version: Optional[str] = "0",
-            coverage: Optional[str | ProductCoverage] = ProductCoverage.D_1,
+            coverage: Optional[str | ProductDuration] = ProductDuration.D_1,
     ) -> str:
         year, doy = _parse_date(date)
         yy = str(year)[-2:]
@@ -76,7 +76,7 @@ class FilenameConfig(BaseModel):
                 raise ValueError(f"Invalid quality value: {quality}")
         if isinstance(coverage, str):
             try:
-                coverage = ProductCoverage(coverage)
+                coverage = ProductDuration(coverage)
             except ValueError:
                 raise ValueError(f"Invalid coverage value: {coverage}")
 
@@ -196,7 +196,7 @@ class Filename(BaseModel):
             interval: Optional[str | SampleInterval] = None,
             quality: Optional[ProductQuality | str] = ProductQuality.FINAL,
             version: Optional[str] = "0",
-            coverage: Optional[str | ProductCoverage] = ProductCoverage.D_1,
+            coverage: Optional[str | ProductDuration] = ProductDuration.D_1,
     ) -> str:
         year, doy = _parse_date(date)
         yy = str(year)[-2:]
@@ -213,7 +213,7 @@ class Filename(BaseModel):
                 raise ValueError(f"Invalid quality value: {quality}")
         if isinstance(coverage, str):
             try:
-                coverage = ProductCoverage(coverage)
+                coverage = ProductDuration(coverage)
             except ValueError:
                 raise ValueError(f"Invalid coverage value: {coverage}")
 
