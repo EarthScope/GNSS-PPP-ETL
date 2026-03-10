@@ -56,7 +56,7 @@ class TestGRACEFOProducts:
     def test_gnv_query(self) -> None:
         """GRACE-FO GNV (GPS navigation) should be queryable."""
         log.info("Testing GRACE-FO GNV1B for %s", DATE_GRACE_FO)
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, source=SOURCE)
+        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, center=SOURCE)
         if len(results) > 0:
             product = results[0]
             assert product.type == ProductType.GRACE_GNV
@@ -68,7 +68,7 @@ class TestGRACEFOProducts:
     def test_acc_query(self) -> None:
         """GRACE-FO ACC (accelerometer) should be queryable."""
         log.info("Testing GRACE-FO ACC1B for %s", DATE_GRACE_FO)
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_ACC, source=SOURCE)
+        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_ACC, center=SOURCE)
         if len(results) > 0:
             product = results[0]
             assert product.type == ProductType.GRACE_ACC
@@ -80,7 +80,7 @@ class TestGRACEFOProducts:
     def test_sca_query(self) -> None:
         """GRACE-FO SCA (star camera) should be queryable."""
         log.info("Testing GRACE-FO SCA1B for %s", DATE_GRACE_FO)
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_SCA, source=SOURCE)
+        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_SCA, center=SOURCE)
         if len(results) > 0:
             product = results[0]
             assert product.type == ProductType.GRACE_SCA
@@ -91,7 +91,7 @@ class TestGRACEFOProducts:
 
     def test_gracefo_directory_structure(self) -> None:
         """GRACE-FO directory should contain grace-fo and year."""
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, source=SOURCE)
+        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, center=SOURCE)
         if len(results) > 0:
             directory = results[0].directory
             assert "grace-fo" in directory, f"Directory '{directory}' missing 'grace-fo'"
@@ -99,7 +99,7 @@ class TestGRACEFOProducts:
 
     def test_gracefo_filename_contains_date(self) -> None:
         """GRACE-FO filename should contain the date."""
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, source=SOURCE)
+        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, center=SOURCE)
         if len(results) > 0:
             filename = results[0].filename
             assert "2024" in filename, f"Filename '{filename}' missing year"
@@ -116,7 +116,7 @@ class TestGRACEOriginalProducts:
     def test_grace_gnv_query(self) -> None:
         """Original GRACE GNV should be queryable for pre-2017 dates."""
         log.info("Testing GRACE GNV1B for %s", DATE_GRACE)
-        results = query(date=DATE_GRACE, product_type=ProductType.GRACE_GNV, source=SOURCE)
+        results = query(date=DATE_GRACE, product_type=ProductType.GRACE_GNV, center=SOURCE)
         if len(results) > 0:
             product = results[0]
             assert product.type == ProductType.GRACE_GNV
@@ -127,7 +127,7 @@ class TestGRACEOriginalProducts:
 
     def test_grace_no_gracefo_for_old_dates(self) -> None:
         """GRACE-FO products should not appear for pre-2018 dates via valid_from."""
-        results = query(date=DATE_GRACE, product_type=ProductType.GRACE_GNV, source=SOURCE)
+        results = query(date=DATE_GRACE, product_type=ProductType.GRACE_GNV, center=SOURCE)
         for r in results:
             # If we get results, they should be from the 'grace' file config, not 'gracefo'
             if r.file_id == "gracefo":
@@ -148,7 +148,7 @@ class TestGRACEInstrumentAvailability:
         """At least one GRACE-FO instrument should return results."""
         found = []
         for ptype in self.GRACE_TYPES:
-            results = query(date=DATE_GRACE_FO, product_type=ptype, source=SOURCE)
+            results = query(date=DATE_GRACE_FO, product_type=ptype, center=SOURCE)
             if len(results) > 0:
                 found.append(ptype.value)
                 log.info("[%s] %s: %s", SOURCE, ptype.value, results[0].filename)

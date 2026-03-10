@@ -65,7 +65,7 @@ class TestReferenceTableQuery:
     def test_leap_seconds_query_wuhan(self) -> None:
         """Query for LEAP_SECONDS from WUHAN."""
         log.info("Testing LEAP_SECONDS query from WUHAN")
-        results = query(date=DUMMY_DATE, product_type=ProductType.LEAP_SECONDS, source="WUHAN")
+        results = query(date=DUMMY_DATE, product_type=ProductType.LEAP_SECONDS, center="WUHAN")
         if len(results) > 0:
             product = results[0]
             assert product.type == ProductType.LEAP_SECONDS
@@ -76,7 +76,7 @@ class TestReferenceTableQuery:
     def test_leap_seconds_query_cddis(self) -> None:
         """Query for LEAP_SECONDS from CDDIS."""
         log.info("Testing LEAP_SECONDS query from CDDIS")
-        results = query(date=DUMMY_DATE, product_type=ProductType.LEAP_SECONDS, source="CDDIS")
+        results = query(date=DUMMY_DATE, product_type=ProductType.LEAP_SECONDS, center="CDDIS")
         if len(results) > 0:
             product = results[0]
             assert product.type == ProductType.LEAP_SECONDS

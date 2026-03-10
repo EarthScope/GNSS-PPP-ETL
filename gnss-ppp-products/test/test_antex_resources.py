@@ -124,7 +124,7 @@ def igs_results(current_date: datetime.datetime, one_year_ago: datetime.datetime
     igs_current_products: List[RemoteProductAddress] = query(
         date=current_date,
         product_type=ProductType.ATX,
-        source="IGS"
+        center="IGS"
     )
     if igs_current_products:
         results[IGS_CURRENT] = probe_remote_file("IGS", IGS_CURRENT, igs_current_products[0])
@@ -133,7 +133,7 @@ def igs_results(current_date: datetime.datetime, one_year_ago: datetime.datetime
     igs_archived_products: List[RemoteProductAddress] = query(
         date=one_year_ago,
         product_type=ProductType.ATX,
-        source="IGS"
+        center="IGS"
     )
     if igs_archived_products:
         results[IGS_ARCHIVED] = probe_remote_file("IGS", IGS_ARCHIVED, igs_archived_products[0])
@@ -142,7 +142,7 @@ def igs_results(current_date: datetime.datetime, one_year_ago: datetime.datetime
     igs_itrf_products: List[RemoteProductAddress] = query(
         date=itrf_14_date,
         product_type=ProductType.ATX,
-        source="IGS"
+        center="IGS"
     )
     if igs_itrf_products:
         results[IGS_ITRF_14] = probe_remote_file("IGS", IGS_ITRF_14, igs_itrf_products[0])
@@ -159,7 +159,7 @@ def ngs_results(current_date: datetime.datetime, one_year_ago: datetime.datetime
     ngs_current_products: List[RemoteProductAddress] = query(
         date=current_date,
         product_type=ProductType.ATX,
-        source="NGS"
+        center="NGS"
     )
     if ngs_current_products:
         results[NGS_CURRENT] = probe_remote_file("NGS", NGS_CURRENT, ngs_current_products[0])
@@ -168,7 +168,7 @@ def ngs_results(current_date: datetime.datetime, one_year_ago: datetime.datetime
     ngs_past_products: List[RemoteProductAddress] = query(
         date=one_year_ago,
         product_type=ProductType.ATX,
-        source="NGS"
+        center="NGS"
     )
     if ngs_past_products:
         results[NGS_PAST] = probe_remote_file("NGS", NGS_PAST, ngs_past_products[0])
@@ -177,7 +177,7 @@ def ngs_results(current_date: datetime.datetime, one_year_ago: datetime.datetime
     ngs_itrf_products: List[RemoteProductAddress] = query(
         date=itrf_14_date,
         product_type=ProductType.ATX,
-        source="NGS"
+        center="NGS"
     )
     if ngs_itrf_products:
         results[NGS_ITRF_14] = probe_remote_file("NGS", NGS_ITRF_14, ngs_itrf_products[0])
@@ -194,7 +194,7 @@ def code_mgex_results(current_date: datetime.datetime) -> dict[str, AntexProbeRe
     code_mgex_products: List[RemoteProductAddress] = query(
         date=current_date,
         product_type=ProductType.ATX,
-        source="COD"
+        center="COD"
     )
     if code_mgex_products:
         results["code_mgex"] = probe_remote_file("CODE", "code_mgex", code_mgex_products[0])
@@ -236,7 +236,7 @@ class TestIGSAntex:
         results: List[RemoteProductAddress] = query(
             date=current_date,
             product_type=ProductType.ATX,
-            source="IGS"
+            center="IGS"
         )
         assert results is not None
         assert len(results) > 0, "No ANTEX products found from IGS"
@@ -271,7 +271,7 @@ class TestNGSAntex:
         results: List[RemoteProductAddress] = query(
             date=current_date,
             product_type=ProductType.ATX,
-            source="NGS"
+            center="NGS"
         )
         assert results is not None
         assert len(results) > 0, "No ANTEX products found from NGS"
@@ -292,7 +292,7 @@ class TestCODEMGEXAntex:
         results: List[RemoteProductAddress] = query(
             date=current_date,
             product_type=ProductType.ATX,
-            source="COD"
+            center="COD"
         )
         # CODE may or may not have ANTEX results depending on availability
         if results:
@@ -317,12 +317,12 @@ class TestMultiSourceAntex:
         igs_results = query(
             date=current_date,
             product_type=ProductType.ATX,
-            source="IGS"
+            center="IGS"
         )
         ngs_results = query(
             date=current_date,
             product_type=ProductType.ATX,
-            source="NGS"
+            center="NGS"
         )
 
         assert len(igs_results) > 0, "No ANTEX found from IGS"

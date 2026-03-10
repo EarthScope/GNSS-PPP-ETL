@@ -166,7 +166,7 @@ class TestCODEGIMProducts:
         results: List[RemoteProductAddress] = query(
             date=DATE_NEW_FORMAT,
             product_type=ProductType.GIM,
-            source="CODE"
+            center="CODE"
         )
         
         assert results is not None
@@ -186,7 +186,7 @@ class TestCODEGIMProducts:
         results: List[RemoteProductAddress] = query(
             date=DATE_LEGACY_FORMAT,
             product_type=ProductType.GIM,
-            source="CODE"
+            center="CODE"
         )
         
         assert results is not None
@@ -201,8 +201,8 @@ class TestCODEGIMProducts:
 
     def test_directory_structure(self) -> None:
         """Test that directory paths are correctly formatted."""
-        results_2025 = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, source="CODE")
-        results_2020 = query(date=DATE_LEGACY_FORMAT, product_type=ProductType.GIM, source="CODE")
+        results_2025 = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, center="CODE")
+        results_2020 = query(date=DATE_LEGACY_FORMAT, product_type=ProductType.GIM, center="CODE")
         
         if results_2025:
             assert results_2025[0].directory == "CODE/2025" or "CODE/2025" in results_2025[0].directory
@@ -214,7 +214,7 @@ class TestCODEGIMProducts:
         results: List[RemoteProductAddress] = query(
             date=DATE_NEW_FORMAT,
             product_type=ProductType.GIM,
-            source="CODE"
+            center="CODE"
         )
         
         assert results is not None
@@ -240,7 +240,7 @@ class TestWuhanGIMProducts:
             date=DATE_NEW_FORMAT,
             product_type=ProductType.IONX,
             product_quality=ProductQuality.FINAL,
-            source="WUHAN"
+            center="WUHAN"
         )
         
         if results and len(results) > 0:
@@ -253,7 +253,7 @@ class TestWuhanGIMProducts:
 
     def test_directory_structure(self) -> None:
         """Test that directory paths are correctly formatted."""
-        results = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, source="WUHAN")
+        results = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, center="WUHAN")
         
         if results:
             # Wuhan GIM paths: pub/gps/products/ionex/{year}/{doy}/
@@ -277,7 +277,7 @@ class TestCDDISGIMProducts:
             date=DATE_NEW_FORMAT,
             product_type=ProductType.GIM,
             product_quality=ProductQuality.FINAL,
-            source="CDDIS"
+            center="CDDIS"
         )
         
         if results and len(results) > 0:
@@ -290,7 +290,7 @@ class TestCDDISGIMProducts:
 
     def test_directory_structure(self) -> None:
         """Test that directory paths are correctly formatted."""
-        results = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, source="CDDIS")
+        results = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, center="CDDIS")
         
         if results:
             # CDDIS GIM paths: gnss/products/ionex/{year}/{doy}/
@@ -315,7 +315,7 @@ class TestCrossServerComparison:
         for date in [DATE_NEW_FORMAT, DATE_LEGACY_FORMAT]:
             probe = GIMProbeResult(server_name="CODE", date=date)
             try:
-                products = query(date=date, product_type=ProductType.GIM, source="CODE")
+                products = query(date=date, product_type=ProductType.GIM, center="CODE")
                 if products:
                     probe.product = products[0]
             except Exception as e:
@@ -329,7 +329,7 @@ class TestCrossServerComparison:
                 date=DATE_NEW_FORMAT,
                 product_type=ProductType.GIM,
                 product_quality=ProductQuality.FINAL,
-                source="WUHAN"
+                center="WUHAN"
             )
             if products:
                 probe.product = products[0]
@@ -344,7 +344,7 @@ class TestCrossServerComparison:
                 date=DATE_NEW_FORMAT,
                 product_type=ProductType.GIM,
                 product_quality=ProductQuality.FINAL,
-                source="CDDIS"
+                center="CDDIS"
             )
             if products:
                 probe.product = products[0]

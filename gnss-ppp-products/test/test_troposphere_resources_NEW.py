@@ -68,25 +68,25 @@ class TestVMF3Products:
     def test_vmf3_query_returns_results(self) -> None:
         """VMF3 query should return at least one result."""
         log.info("Testing VMF3 query for %s (DOY %03d)", DATE, DOY)
-        results = query(date=DATE, product_type=ProductType.VMF3, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF3, center=self.SOURCE)
         assert len(results) > 0, f"No VMF3 products found from {self.SOURCE}"
         log.info("[%s] Found %d VMF3 result(s)", self.SOURCE, len(results))
 
     def test_vmf3_correct_type(self) -> None:
         """VMF3 results should have correct product type."""
-        results = query(date=DATE, product_type=ProductType.VMF3, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF3, center=self.SOURCE)
         for product in results:
             assert product.type == ProductType.VMF3
 
     def test_vmf3_directory_contains_year(self) -> None:
         """VMF3 directory should contain the year."""
-        results = query(date=DATE, product_type=ProductType.VMF3, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF3, center=self.SOURCE)
         assert len(results) > 0
         assert "2025" in results[0].directory
 
     def test_vmf3_filename_contains_date(self) -> None:
         """VMF3 filename should contain YYYYMMDD date."""
-        results = query(date=DATE, product_type=ProductType.VMF3, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF3, center=self.SOURCE)
         assert len(results) > 0
         filename = results[0].filename
         # VMF uses YYYYMMDD format
@@ -97,7 +97,7 @@ class TestVMF3Products:
 
     def test_vmf3_has_multiple_resolutions(self) -> None:
         """VMF3 should have both 1x1 and 5x5 resolution files."""
-        results = query(date=DATE, product_type=ProductType.VMF3, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF3, center=self.SOURCE)
         file_ids = {r.file_id for r in results}
         log.info("[%s] VMF3 file IDs: %s", self.SOURCE, file_ids)
         # Config defines 1x1 and 5x5 files
@@ -117,19 +117,19 @@ class TestVMF1Products:
     def test_vmf1_query_returns_results(self) -> None:
         """VMF1 query should return at least one result."""
         log.info("Testing VMF1 query for %s (DOY %03d)", DATE, DOY)
-        results = query(date=DATE, product_type=ProductType.VMF1, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF1, center=self.SOURCE)
         assert len(results) > 0, f"No VMF1 products found from {self.SOURCE}"
         log.info("[%s] Found %d VMF1 result(s)", self.SOURCE, len(results))
 
     def test_vmf1_correct_type(self) -> None:
         """VMF1 results should have correct product type."""
-        results = query(date=DATE, product_type=ProductType.VMF1, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF1, center=self.SOURCE)
         for product in results:
             assert product.type == ProductType.VMF1
 
     def test_vmf1_directory_contains_year(self) -> None:
         """VMF1 directory should contain the year."""
-        results = query(date=DATE, product_type=ProductType.VMF1, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.VMF1, center=self.SOURCE)
         assert len(results) > 0
         assert "2025" in results[0].directory
 
@@ -148,7 +148,7 @@ class TestTroposphereAvailability:
         results = {}
         for ptype in [ProductType.VMF1, ProductType.VMF3]:
             try:
-                r = query(date=DATE, product_type=ptype, source="VMF")
+                r = query(date=DATE, product_type=ptype, center="VMF")
                 results[ptype.value] = r
             except Exception as e:
                 log.warning("[VMF] %s query error: %s", ptype.value, e)

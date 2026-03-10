@@ -57,7 +57,7 @@ class TestWuhanOrbitClock:
     def test_sp3_final(self) -> None:
         """Wuhan SP3 FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No SP3 FINAL found from {self.SOURCE}"
         product = results[0]
         assert product.type == ProductType.SP3
@@ -67,7 +67,7 @@ class TestWuhanOrbitClock:
     def test_clk_final(self) -> None:
         """Wuhan CLK FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No CLK FINAL found from {self.SOURCE}"
         product = results[0]
         assert product.type == ProductType.CLK
@@ -75,27 +75,27 @@ class TestWuhanOrbitClock:
 
     def test_erp(self) -> None:
         """Wuhan ERP should be available (RAPID or FINAL)."""
-        results = query(date=DATE, product_type=ProductType.ERP, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.ERP, center=self.SOURCE)
         assert len(results) > 0, f"No ERP found from {self.SOURCE}"
         log.info("[%s] ERP %s: %s", self.SOURCE, results[0].quality, results[0].filename)
 
     def test_bias_final(self) -> None:
         """Wuhan BIAS FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.BIAS,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No BIAS FINAL found from {self.SOURCE}"
         log.info("[%s] BIAS FINAL: %s", self.SOURCE, results[0].filename)
 
     def test_obx_final(self) -> None:
         """Wuhan OBX FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.OBX,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No OBX FINAL found from {self.SOURCE}"
         log.info("[%s] OBX FINAL: %s", self.SOURCE, results[0].filename)
 
     def test_sp3_directory_structure(self) -> None:
         """SP3 directory should contain year."""
-        results = query(date=DATE, product_type=ProductType.SP3, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.SP3, center=self.SOURCE)
         assert len(results) > 0
         assert "2025" in results[0].directory
 
@@ -113,7 +113,7 @@ class TestIGSOrbitClock:
     def test_sp3_final(self) -> None:
         """IGS SP3 FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No SP3 FINAL found from {self.SOURCE}"
         product = results[0]
         assert product.type == ProductType.SP3
@@ -123,19 +123,19 @@ class TestIGSOrbitClock:
     def test_clk_final(self) -> None:
         """IGS CLK FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No CLK FINAL found from {self.SOURCE}"
         log.info("[%s] CLK FINAL: %s", self.SOURCE, results[0].filename)
 
     def test_erp(self) -> None:
         """IGS ERP should be available (RAPID or FINAL)."""
-        results = query(date=DATE, product_type=ProductType.ERP, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.ERP, center=self.SOURCE)
         assert len(results) > 0, f"No ERP found from {self.SOURCE}"
         log.info("[%s] ERP %s: %s", self.SOURCE, results[0].quality, results[0].filename)
 
     def test_bias(self) -> None:
         """IGS BIAS should be queryable (may fail if FTP listing doesn't match)."""
-        results = query(date=DATE, product_type=ProductType.BIAS, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.BIAS, center=self.SOURCE)
         if len(results) > 0:
             log.info("[%s] BIAS: %s", self.SOURCE, results[0].filename)
         else:
@@ -143,7 +143,7 @@ class TestIGSOrbitClock:
 
     def test_gps_week_in_directory(self) -> None:
         """IGS orbit directory should use GPS week."""
-        results = query(date=DATE, product_type=ProductType.SP3, source=self.SOURCE)
+        results = query(date=DATE, product_type=ProductType.SP3, center=self.SOURCE)
         assert len(results) > 0
         assert str(GPS_WEEK) in results[0].directory
 
@@ -161,7 +161,7 @@ class TestCODEOrbitClock:
     def test_sp3_final(self) -> None:
         """CODE SP3 FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No SP3 FINAL found from {self.SOURCE}"
         assert "COD" in results[0].filename.upper()
         log.info("[%s] SP3 FINAL: %s", self.SOURCE, results[0].filename)
@@ -169,21 +169,21 @@ class TestCODEOrbitClock:
     def test_clk_final(self) -> None:
         """CODE CLK FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No CLK FINAL found from {self.SOURCE}"
         log.info("[%s] CLK FINAL: %s", self.SOURCE, results[0].filename)
 
     def test_erp_final(self) -> None:
         """CODE ERP FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.ERP,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No ERP FINAL found from {self.SOURCE}"
         log.info("[%s] ERP FINAL: %s", self.SOURCE, results[0].filename)
 
     def test_bias_final(self) -> None:
         """CODE BIAS FINAL should be available."""
         results = query(date=DATE, product_type=ProductType.BIAS,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         assert len(results) > 0, f"No BIAS FINAL found from {self.SOURCE}"
         log.info("[%s] BIAS FINAL: %s", self.SOURCE, results[0].filename)
 
@@ -201,7 +201,7 @@ class TestGFZOrbitClock:
     def test_sp3_final(self) -> None:
         """GFZ SP3 FINAL should be available (may fail if FTP is down)."""
         results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         if len(results) > 0:
             log.info("[%s] SP3 FINAL: %s", self.SOURCE, results[0].filename)
         else:
@@ -210,7 +210,7 @@ class TestGFZOrbitClock:
     def test_clk_final(self) -> None:
         """GFZ CLK FINAL should be available (may fail if FTP is down)."""
         results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, source=self.SOURCE)
+                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
         if len(results) > 0:
             log.info("[%s] CLK FINAL: %s", self.SOURCE, results[0].filename)
         else:
@@ -232,7 +232,7 @@ class TestCrossSourceOrbitAvailability:
         for source in ["WUHAN", "IGS", "CODE", "GFZ"]:
             try:
                 r = query(date=DATE, product_type=ProductType.SP3,
-                          product_quality=ProductQuality.FINAL, source=source)
+                          product_quality=ProductQuality.FINAL, center=source)
                 results[source] = r
             except Exception as e:
                 log.warning("[%s] SP3 query error: %s", source, e)

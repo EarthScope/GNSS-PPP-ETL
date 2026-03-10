@@ -66,7 +66,7 @@ class TestVMFOrography:
     def test_orography_query_returns_results(self) -> None:
         """Orography query should return at least one result."""
         log.info("Testing VMF orography query")
-        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, source=SOURCE)
+        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, center=SOURCE)
         assert len(results) > 0, f"No OROGRAPHY products found from {SOURCE}"
         log.info("[%s] Found %d orography result(s)", SOURCE, len(results))
         for r in results:
@@ -74,25 +74,25 @@ class TestVMFOrography:
 
     def test_orography_correct_type(self) -> None:
         """Results should have OROGRAPHY product type."""
-        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, source=SOURCE)
+        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, center=SOURCE)
         for product in results:
             assert product.type == ProductType.OROGRAPHY
 
     def test_orography_has_1x1_resolution(self) -> None:
         """Orography should include 1x1 resolution file."""
-        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, source=SOURCE)
+        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, center=SOURCE)
         file_ids = {r.file_id for r in results}
         assert "1x1" in file_ids, f"No 1x1 resolution found; got file_ids: {file_ids}"
 
     def test_orography_has_5x5_resolution(self) -> None:
         """Orography should include 5x5 resolution file."""
-        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, source=SOURCE)
+        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, center=SOURCE)
         file_ids = {r.file_id for r in results}
         assert "5x5" in file_ids, f"No 5x5 resolution found; got file_ids: {file_ids}"
 
     def test_orography_filenames(self) -> None:
         """Orography filenames should contain 'orography_ell'."""
-        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, source=SOURCE)
+        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, center=SOURCE)
         for product in results:
             assert "orography_ell" in product.filename, (
                 f"Unexpected orography filename: {product.filename}"
@@ -100,14 +100,14 @@ class TestVMFOrography:
 
     def test_orography_directory(self) -> None:
         """Orography files should be in station_files/GRID/ directory."""
-        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, source=SOURCE)
+        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, center=SOURCE)
         assert len(results) > 0
         for product in results:
             assert "station_files" in product.directory or "GRID" in product.directory
 
     def test_orography_uses_https(self) -> None:
         """Orography server should use HTTPS."""
-        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, source=SOURCE)
+        results = query(date=DUMMY_DATE, product_type=ProductType.OROGRAPHY, center=SOURCE)
         assert len(results) > 0
         for product in results:
             assert "https" in product.server.hostname or product.server.protocol.value == "https"

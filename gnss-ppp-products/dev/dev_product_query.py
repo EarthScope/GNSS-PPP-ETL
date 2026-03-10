@@ -16,7 +16,7 @@ for SOURCE in SOURCES:
    
         print(f"Querying for source: {SOURCE}, product type: {PRODUCT}")
         results: List[RemoteProductAddress] = query(
-            source=SOURCE,
+            center=SOURCE,
             product_quality=ProductQuality.FINAL,
             product_type=PRODUCT,
             date=date

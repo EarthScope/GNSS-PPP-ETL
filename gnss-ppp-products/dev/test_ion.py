@@ -39,7 +39,7 @@ from gnss_ppp_products.data_query import (
     query,ProductType)
 
 results = query(
-    source="WUHAN",
+    center="WUHAN",
     date=date,
     product_type=ProductType.GIM,
 )

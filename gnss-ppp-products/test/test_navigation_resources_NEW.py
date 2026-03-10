@@ -63,7 +63,7 @@ class TestWuhanNavigation:
     def test_rinex3_nav_found(self) -> None:
         """RINEX v3 merged broadcast should be available from Wuhan."""
         log.info("Testing %s RINEX3_NAV for %s (DOY %03d)", self.SOURCE, DATE_RINEX3, DOY_RINEX3)
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, source=self.SOURCE)
+        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
         assert len(results) > 0, f"No RINEX3_NAV found from {self.SOURCE}"
         product = results[0]
         assert product.type == ProductType.RINEX3_NAV
@@ -72,7 +72,7 @@ class TestWuhanNavigation:
 
     def test_rinex3_directory_structure(self) -> None:
         """Navigation directory should contain year and DOY."""
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, source=self.SOURCE)
+        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
         assert len(results) > 0
         directory = results[0].directory
         assert "2025" in directory
@@ -80,7 +80,7 @@ class TestWuhanNavigation:
 
     def test_rinex3_filename_has_date(self) -> None:
         """Navigation filename should contain date identifiers."""
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, source=self.SOURCE)
+        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
         assert len(results) > 0
         filename = results[0].filename
         year = str(DATE_RINEX3.year)
@@ -103,7 +103,7 @@ class TestCDDISNavigation:
     def test_rinex3_nav_query(self) -> None:
         """RINEX v3 navigation should be queryable from CDDIS."""
         log.info("Testing %s RINEX3_NAV for %s", self.SOURCE, DATE_RINEX3)
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, source=self.SOURCE)
+        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
         # CDDIS requires FTPS, may not connect in all environments
         if len(results) > 0:
             assert results[0].type == ProductType.RINEX3_NAV
@@ -114,7 +114,7 @@ class TestCDDISNavigation:
     def test_rinex2_nav_query(self) -> None:
         """RINEX v2 GPS navigation should be queryable from CDDIS."""
         log.info("Testing %s RINEX2_NAV for %s", self.SOURCE, DATE_RINEX2)
-        results = query(date=DATE_RINEX2, product_type=ProductType.RINEX2_NAV, source=self.SOURCE)
+        results = query(date=DATE_RINEX2, product_type=ProductType.RINEX2_NAV, center=self.SOURCE)
         if len(results) > 0:
             assert results[0].type == ProductType.RINEX2_NAV
             log.info("[%s] RINEX2_NAV: %s", self.SOURCE, results[0].filename)
@@ -123,7 +123,7 @@ class TestCDDISNavigation:
 
     def test_rinex2_directory_structure(self) -> None:
         """RINEX v2 directory should contain year/DOY path."""
-        results = query(date=DATE_RINEX2, product_type=ProductType.RINEX2_NAV, source=self.SOURCE)
+        results = query(date=DATE_RINEX2, product_type=ProductType.RINEX2_NAV, center=self.SOURCE)
         if len(results) > 0:
             directory = results[0].directory
             assert "2010" in directory
@@ -142,7 +142,7 @@ class TestIGSNavigation:
     def test_rinex3_nav_found(self) -> None:
         """RINEX v3 merged broadcast should be available from IGS."""
         log.info("Testing %s RINEX3_NAV for %s", self.SOURCE, DATE_RINEX3)
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, source=self.SOURCE)
+        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
         assert len(results) > 0, f"No RINEX3_NAV found from {self.SOURCE}"
         product = results[0]
         assert product.type == ProductType.RINEX3_NAV
@@ -163,7 +163,7 @@ class TestCrossSourceNavAvailability:
         results = {}
         for source in ["WUHAN", "IGS"]:
             try:
-                r = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, source=source)
+                r = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=source)
                 results[source] = r
             except Exception as e:
                 log.warning("[%s] RINEX3_NAV query error: %s", source, e)

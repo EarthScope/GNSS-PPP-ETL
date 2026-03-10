@@ -12,11 +12,13 @@ from gnss_ppp_products.resources.remote.utils import ftp_list_directory,find_bes
 
 def query(
         date: datetime.datetime | datetime.date,
+        center: Optional[str] = None,
         product_type: ProductType = None,
         product_quality: Optional[ProductQuality] = None,
         sample_interval: Optional[SampleInterval] = None,
         temporal_coverage: Optional[TemporalCoverage] = None,
-        source: Optional[str] = None
+        solution: Optional[str] = None
+
 ):
     
     # Solve for a matching solution based on the provided parameters
@@ -25,7 +27,7 @@ def query(
     valid_candidates: List[RemoteProductAddress] = []
 
     for resource_name, resource in RESOURCE_COLLECTIONS.items():
-        if source and resource_name != source:
+        if center and resource_name != center:
             continue
         products: List[RemoteProductAddress] = resource.list_products(
             date,
@@ -50,9 +52,7 @@ def query(
                             continue  # Skip if we've already processed this filename
                         filenames.append(best_match)
                         product.filename = best_match  # Update the product filename to the best match found in the listing
-                        
-                        valid_candidates.append(product
-                        )
+                        valid_candidates.append(product)
                         break
                   
                 case ServerProtocol.HTTP | ServerProtocol.HTTPS:
@@ -71,7 +71,7 @@ def query(
                                 type=product.type,
                                 quality=product.quality,
                                 solution=product.solution
-                            )
+                                )
                             )
                     except Exception as e:
                         # Directory listing not available - use the filename pattern directly
@@ -86,7 +86,7 @@ def query(
                             type=product.type,
                             quality=product.quality,
                             solution=product.solution
-                        )
+                            )
                         )
 
     # Sort candidates by quality and return the best one
