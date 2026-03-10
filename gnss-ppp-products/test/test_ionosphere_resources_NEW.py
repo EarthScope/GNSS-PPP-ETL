@@ -238,16 +238,16 @@ class TestWuhanGIMProducts:
         # Wuhan hosts CODE products among others
         results: List[RemoteProductAddress] = query(
             date=DATE_NEW_FORMAT,
-            product_type=ProductType.GIM,
+            product_type=ProductType.IONX,
             product_quality=ProductQuality.FINAL,
             source="WUHAN"
         )
         
         if results and len(results) > 0:
-            product = results[0]
-            log.info("  Found: %s", product.filename)
-            assert product.type == ProductType.GIM
-            assert "igs.gnsswhu.cn" in product.server.hostname
+            
+            [log.info("  Found: %s", product.filename) for product in results]
+            assert all(product.type == ProductType.GIM for product in results)
+            assert all("igs.gnsswhu.cn" in product.server.hostname for product in results)
         else:
             log.warning("  Not found (may be expected for recent dates)")
 

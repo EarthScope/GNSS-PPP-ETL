@@ -42,10 +42,10 @@ products:
     files:
       - id: current
         timeindices: []
-        directory: ANTCAL/LoadFile/
+        directory: ANTCAL
         filename:
-          template: "{solution_prefix}.atx"
-          regex: "ngs(08|14|20)\\.atx"
+          template: "LoadFile?file={solution_prefix}.atx"
+          regex: "LoadFile\\?file={solution_prefix}\\.atx"
     extensions: [".atx"]
     static: true  # Frame-versioned, not date-specific
     notes: >

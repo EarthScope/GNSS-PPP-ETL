@@ -88,9 +88,16 @@ config_path = Path(__file__).parent / "config"
 WUHAN = GNSSCenterConfig.from_yaml(config_path / "wuhan.yaml")
 CDDIS = GNSSCenterConfig.from_yaml(config_path / "cddis.yaml")
 IGS = GNSSCenterConfig.from_yaml(config_path / "igs.yaml")
+NGS = GNSSCenterConfig.from_yaml(config_path / "ngs.yaml")
+ESA = GNSSCenterConfig.from_yaml(config_path / "esa.yaml")
+CODE = GNSSCenterConfig.from_yaml(config_path / "code.yaml")
 
 RESOURCE_COLLECTIONS = {
     "WUHAN": WUHAN,
     "CDDIS": CDDIS,
     "IGS": IGS,
+    "NGS": NGS,
+    "ESA": ESA,
+    "CODE": CODE,
+
 }

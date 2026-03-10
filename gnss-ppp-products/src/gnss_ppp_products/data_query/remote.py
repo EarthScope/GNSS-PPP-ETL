@@ -50,25 +50,37 @@ def query(
                         product.filename = best_match  # Update the product filename to the best match found in the listing
                         valid_candidates.append(product
                         )
-                case ServerProtocol.HTTP:
+                case ServerProtocol.HTTP | ServerProtocol.HTTPS:
                     try:
                         response = requests.get(f"{product.server.hostname}/{product.directory}")
                         response.raise_for_status()
-                    except Exception as e:
-                        print(f"Error accessing HTTP directory {product.server.hostname}/{product.directory}: {e}")
-                        continue
                         # Parse HTML to extract filenames
-                    filenames = _extract_filenames_from_html(response.text)
-                    matches = [f for f in filenames if re.match(product.filename, f)]
-                    if matches:
+                        filenames = _extract_filenames_from_html(response.text)
+                        matches = [f for f in filenames if re.match(product.filename, f)]
+                        if matches:
+                            valid_candidates.append(RemoteProductAddress(
+                                server=product.server,
+                                directory=product.directory,
+                                filename=matches[0],  # Assuming the first match is the best match; this can be improved
+                                file_id=product.file_id,
+                                type=product.type,
+                                quality=product.quality,
+                                solution=product.solution
+                            )
+                            )
+                    except Exception as e:
+                        # Directory listing not available - use the filename pattern directly
+                        # Remove regex escapes to get actual filename (e.g., "ngs20\.atx" -> "ngs20.atx")
+                        actual_filename = product.filename.replace('\\', '')
+                        print(f"Directory listing not available for {product.server.hostname}/{product.directory}, using direct filename: {actual_filename}")
                         valid_candidates.append(RemoteProductAddress(
                             server=product.server,
                             directory=product.directory,
-                            filename=matches[0],  # Assuming the first match is the best match; this can be improved
-                            product_type=product.product_type,
+                            filename=actual_filename,
+                            file_id=product.file_id,
+                            type=product.type,
                             quality=product.quality,
-                            sample_interval=product.sample_interval,
-                            temporal_coverage=product.temporal_coverage
+                            solution=product.solution
                         )
                         )
 
