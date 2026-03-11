@@ -25,17 +25,16 @@ date = datetime(2025, 1, 15)
 #         print(product.model_dump_json(indent=2))
 #         print(f"Best match for {product.filename}: {best_match}")
 
-# cddis = GNSSCenterConfig.from_yaml(config_dir / "cddis.yaml")
-# products = cddis.list_products(date)
-# for product in products:
+cddis = GNSSCenterConfig.from_yaml(config_dir / "cddis.yaml")
+products = cddis.build_product_queries(date)
+for product in products:
 
-#     listing = ftp_list_directory(
-#         ftpserver=product.server.hostname,
-#         directory=product.directory,
-#         use_tls=True
-#     )
-#     #print(listing)
-#     best_match = find_best_match_in_listing(listing, product.filename)
-#     if best_match:
-#         print(product.model_dump_json(indent=2))
-#         print(f"Best match for {product.filename}: {best_match}")
+    listing = ftp_list_directory(
+        ftpserver=product.server.hostname,
+        directory=product.directory,
+        use_tls=True
+    )
+    #print(listing)
+    for best_match in find_best_match_in_listing(listing, product.filename):
+        print(product.model_dump_json(indent=2))
+        print(f"Best match for {product.filename}: {best_match}")

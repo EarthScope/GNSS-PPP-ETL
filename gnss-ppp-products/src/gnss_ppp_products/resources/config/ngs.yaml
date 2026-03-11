@@ -22,29 +22,32 @@ servers:
 defaults:
   compressed: false
 
-products:
-  - id: ngs_atx
-    format: ATX
-    content: ANTEX
-    server_id: ngs_https
-    available: true
-    description: NGS ANTEX antenna calibrations
-    quality_set:
-      - quality: FIN
-    campaign_set:
-      - campaign: refframe_2022
-        center: ngs20
-        description: NGS calibrations for IGS20 frame
-      - campaign: refframe_2017
-        center: ngs14
-        description: NGS calibrations for IGS14 frame
-      - campaign: refframe_2011
-        center: ngs08
-        description: NGS calibrations for IGS08 frame
-    sampling_set:
-      - interval: "STATIC"
-    duration_set:
-      - duration: "STATIC"
-    version: "0"
-    directory: ANTCAL
-    filename: "LoadFile?file={center}.atx"
+products: []
+  # NOTE: NGS ATX product commented out — ATX format, ANTEX content, STATIC
+  # interval/duration, and non-standard center codes (ngs20, ngs14, ngs08) are
+  # not in the current IGS long-form convention enums.
+  # - id: ngs_atx
+  #   format: ATX
+  #   content: ANTEX
+  #   server_id: ngs_https
+  #   available: true
+  #   description: NGS ANTEX antenna calibrations
+  #   quality_set:
+  #     - quality: FIN
+  #   campaign_set:
+  #     - campaign: refframe_2022
+  #       center: ngs20
+  #       description: NGS calibrations for IGS20 frame
+  #     - campaign: refframe_2017
+  #       center: ngs14
+  #       description: NGS calibrations for IGS14 frame
+  #     - campaign: refframe_2011
+  #       center: ngs08
+  #       description: NGS calibrations for IGS08 frame
+  #   sampling_set:
+  #     - interval: "STATIC"
+  #   duration_set:
+  #     - duration: "STATIC"
+  #   version: "0"
+  #   directory: ANTCAL
+  #   filename: "LoadFile?file={center}.atx"

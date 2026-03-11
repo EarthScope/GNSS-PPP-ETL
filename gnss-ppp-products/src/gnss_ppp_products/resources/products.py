@@ -24,6 +24,7 @@ class ProductQuality(str, Enum):
     FINAL = "FIN"        # Post-processed, highest accuracy (~2 week latency)
     RAPID = "RAP"        # Near real-time (~1 day latency)
     ULTRA_RAPID = "ULR"  # Ultra-rapid products (~3-6 hour latency)
+    PREDICTED = "PRD"    # Predicted products (extrapolated from recent data)
     REAL_TIME = "RTS"      # Real-time streaming
 
 class TemporalCoverage(str, Enum):

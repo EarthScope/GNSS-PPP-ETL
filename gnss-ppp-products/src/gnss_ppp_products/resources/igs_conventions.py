@@ -35,6 +35,8 @@ class AnalysisCenter(str, Enum):
     JAX = "JAX"    # JAXA (MGEX)
     SHA = "SHA"    # Shanghai Observatory (MGEX)
     WUM = "WUM"    # Wuhan University (MGEX)
+    # Pseudo-centers (broadcast, reference tables, etc.)
+    BRD = "BRD"    # Broadcast navigation (pseudo-center)
 
 class ProductCampaignSpec(Enum):
     """Enumeration of campaign specifications for GNSS products."""
@@ -51,8 +53,10 @@ class ProductSolutionType(Enum):
     FIN = "FIN"
     NRT = "NRT"
     PRD = "PRD"
+    RAP = "RAP"
     RTS = "RTS"
     SNX = "SNX"
+    ULR = "ULR"
     ULT = "ULT"
 
 class ProductSampleInterval(str, Enum):

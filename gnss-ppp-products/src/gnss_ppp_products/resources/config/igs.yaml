@@ -33,24 +33,25 @@ defaults:
   compressed: true
 
 products:
-  - id: igs_nav
-    directory: pub/igs/products/{gps_week}/
-    content: MN
+  - id: igs_sp3
+    format: SP3
+    content: ORB
     server_id: ign_ftp
     available: true
-    description: IGS merged broadcast navigation
-    station_set:
-      - station: BRDC
-        description: Broadcast navigation (no station code)
-    monument_set:
-      - monument: 0
-        description: No monument code for broadcast navigation
-    receiver_set:
-      - receiver: "0"
-        description: No receiver code for broadcast navigation
-    region_set: []
-    directory: pub/igs/data/{year}/{doy}/
-    filename: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.*"
+    description: IGS combined precise orbits
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+    sampling_set:
+      - interval: "05M"
+      - interval: "15M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: pub/igs/products/{gps_week}/
     filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"
 
   - id: igs_clk
@@ -134,62 +135,56 @@ products:
     directory: pub/igs/products/{gps_week}/
     filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ATT.OBX.*"
 
+  # NOTE: igs_atx commented out — ATX files do not follow the IGS long-form
+  # filename convention and cannot be represented in the current ProductConfig schema.
+  # - id: igs_atx
+  #   format: ATX
+  #   content: ATT
+  #   server_id: igs_http
+  #   available: true
+  #   description: IGS ANTEX antenna calibrations
+  #   quality_set:
+  #     - quality: FIN
+  #   campaign_set:
+  #     - campaign: OPS
+  #       center: IGS
+  #   sampling_set:
+  #     - interval: "01D"
+  #   duration_set:
+  #     - duration: "01D"
+  #   version: "0"
+  #   directory: pub/station/general/
+  #   filename: "igs20.atx"
+  #   notes: >
+  #     ANTEX files are not date-specific but frame-specific (igs14, igs20).
+  #     Archive contains weekly snapshots; current file is latest.
+
+rinex:
+
   - id: igs_nav
-    format: rnx
-    content: MN
+    content: N
     server_id: ign_ftp
     available: true
-    description: IGS merged broadcast navigation
-    quality_set:
-      - quality: FIN
-    campaign_set:
-      - campaign: OPS
-        center: BRD
-        description: IGS broadcast navigation
+    description: IGS merged broadcast navigation (RINEX 3)
+    station_set:
+      - station: BRDC
+        description: Broadcast navigation (no station code)
+    monument_set:
+      - monument: 0
+        description: No monument code for broadcast navigation
+    receiver_set:
+      - receiver: "0"
+        description: No receiver code for broadcast navigation
+    region_set:
+      - region: IGS
+        description: IGS region code
+    data_source: R
     sampling_set:
       - interval: "01D"
     duration_set:
       - duration: "01D"
-    version: "C00"
+    satellite_system_set:
+      - satellite_system: M
+        description: Mixed RINEX 3 navigation file
     directory: pub/igs/data/{year}/{doy}/
-    filename: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.*"
-
-  - id: igs_atx
-    type: ATX
-    server_id: igs_http
-    available: true
-    description: IGS ANTEX antenna calibrations
-    qualities: [FIN]
-    solutions:
-      - code: refframe_2022
-        prefix: igs20
-        description: IGS20 reference frame ANTEX
-      - code: refframe_2017
-        prefix: igs14
-        description: IGS14 reference frame ANTEX
-      - code: refframe_2011
-        prefix: igs08
-        description: IGS08 reference frame ANTEX
-      - code: refframe_2006
-        prefix: igs05
-        description: IGS05 reference frame ANTEX
-
-
-    files:
-      - id: "igs_atx_current"
-        timeindices: ["YEAR","DOY","GPS_WEEK"]
-        directory: pub/station/general/
-        filename:
-          template: "{solution_prefix}.atx"
-          regex: "{solution_prefix}\\.atx"
-          
-      - id: "igs_atx_archive"
-        timeindices: ["YEAR","DOY","GPS_WEEK"]
-        directory: pub/station/general/pcv_archive/
-        filename:
-          template: "{solution_prefix}_{gps_week}.atx"
-          regex: "{solution_prefix}_{gps_week}\\.atx"
-
-    notes: >
-      ANTEX files are not date-specific but frame-specific (igs14, igs20).
-      Archive contains weekly snapshots; current file is latest.
+    filename: "{station}{monument}{receiver}{region}_{data_source}_{year}{doy}0000_{duration}_{satellite_system}{content}.rnx.*"

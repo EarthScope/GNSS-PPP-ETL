@@ -11,11 +11,10 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from ..products import Solution, ProductQuality, TemporalCoverage
-from ..igs_conventions import ProductSampleInterval, ProductType
+from ..products import ProductQuality
 from .server import Server
-from .products import ProductConfig, RemoteProductAddress
-from .rinex import RinexConfig
+from .products import ProductConfig, ProductFileQuery
+from .rinex import RinexConfig, RinexFileQuery
 
 
 class GNSSCenterConfig(BaseModel):
@@ -35,75 +34,44 @@ class GNSSCenterConfig(BaseModel):
             data = yaml.safe_load(f)
         return cls(**data)
 
-    def list_products(
-            self,
-            date: datetime.datetime | datetime.date,
-            product_type: Optional[ProductType] = None,
-            product_quality: Optional[ProductQuality] = None,
-            sample_interval: Optional[ProductSampleInterval] = None,
-            temporal_coverage: Optional[TemporalCoverage] = None,
-            file_id: Optional[str] = None
-    ) -> List[RemoteProductAddress]:
+    def build_product_queries(
+        self,
+        date: datetime.datetime | datetime.date,
+        product_quality: Optional[ProductQuality] = None,
+    ) -> List[ProductFileQuery]:
         """
-        Get product addresses matching the specified criteria.
-        
+        Expand all product configs into file queries for the given date.
+
         Parameters
         ----------
         date : datetime.datetime | datetime.date
-            The date to query products for
-        file_id : str, optional
-            Specific file ID to filter (e.g., "current", "archive")
-        product_type : ProductType, optional
-            Specific product type to filter
+            The date to query products for.
         product_quality : ProductQuality, optional
-            Specific product quality to filter
-        sample_interval : SampleInterval, optional
-            Specific sample interval to filter
-        temporal_coverage : TemporalCoverage, optional
-            Specific temporal coverage to filter
+            If given, only include queries matching this quality level.
         """
-        product_addresses: list[RemoteProductAddress] = []
+        queries: list[ProductFileQuery] = []
         for product in self.products:
             if not product.available:
                 continue
-                
-            server = next((s for s in self.servers if s.id == product.server_id), None)
-            if server is None:
-                raise ValueError(f"Product {product.type} references unknown server_id {product.server_id}")
-            
-            # Filter files by file_id if specified
-            files_to_use = product.files
-            if file_id:
-                files_to_use = [f for f in product.files if f.id == file_id]
-            
-            # Filter files by date validity
-            files_to_use = [f for f in files_to_use if f.is_valid_for_date(date)]
-            
-            # Build each combination of quality/solution/intervals/files
-            qualities = [x for x in product.qualities if not product_quality or x == product_quality] or [None]
-            solutions = product.solutions or [None]
- 
-            for file_config in files_to_use:
-                for quality in qualities:
-                    for solution in solutions:
-            
-                        filename = file_config.filename.build(
-                            date=date,
-                            solution=solution,
-                            quality=quality
-                            
-                        )
-                        directory = file_config.build_directory(date)
+            for query in product.build(date):
+                if product_quality and query.quality != product_quality.value:
+                    continue
+                query.server = next((s for s in self.servers if s.id == product.server_id), None)
+                queries.append(query)
+        return queries
 
-                        address = RemoteProductAddress(
-                            server=server,
-                            directory=directory,
-                            filename=filename,
-                            file_id=file_config.id,
-                            type=product.type,
-                            quality=quality,
-                            solution=solution
-                        )
-                        product_addresses.append(address)
-
-        return product_addresses
+    def build_rinex_queries(
+        self,
+        date: datetime.datetime | datetime.date,
+    ) -> List[RinexFileQuery]:
+        """Expand all rinex configs into file queries for the given date."""
+        queries: list[RinexFileQuery] = []
+        if not self.rinex:
+            return queries
+        for rinex in self.rinex:
+            if not rinex.available:
+                continue
+            for query in rinex.build(date):
+                query.server = next((s for s in self.servers if s.id == rinex.server_id), None)
+                queries.append(query)
+        return queries

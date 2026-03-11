@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+from ..remote.utils import _parse_date, _date_to_gps_week
 from ..igs_conventions import (
     ProductSampleInterval,
     ProductDuration,
@@ -20,21 +21,53 @@ from ..igs_conventions import (
 
 
 # ---------------------------------------------------------------------------
+# Regex fallback patterns for RINEX filename placeholders
+# ---------------------------------------------------------------------------
+
+_RINEX_PLACEHOLDER_REGEX: dict[str, str] = {
+    "station":          r"[A-Z0-9]{4}",
+    "monument":         r"\d",
+    "receiver":         r"[A-Z0-9]",
+    "region":           r"[A-Z]{3}",
+    "data_source":      r"[A-Z]",
+    "year":             r"\d{4}",
+    "doy":              r"\d{3}",
+    "duration":         r"\d{2}[SMHD]",
+    "interval":         r"\d{2}[SMHD]",
+    "satellite_system": r"[GRECJILM]",
+    "content":          r"[A-Z]",
+    "gps_week":         r"\d{4}",
+    "yy":               r"\d{2}",
+    "month":            r"\d{2}",
+    "day":              r"\d{2}",
+}
+
+
+class _RinexRegexFallbackDict(dict):
+    """Dict that returns regex patterns for unknown RINEX placeholder keys."""
+
+    def __missing__(self, key: str) -> str:
+        return _RINEX_PLACEHOLDER_REGEX.get(key, ".+")
+
+
+# ---------------------------------------------------------------------------
 # RINEX filename query
 # ---------------------------------------------------------------------------
 
 
 class RinexFileQuery(BaseModel):
     date: Optional[datetime.datetime | datetime.date] = None
-    station: Optional[str] = Field(default=None, pattern=r"^[A-Z]{4}$")  # 4-letter uppercase code
-    region: Optional[str] = Field(default=None, pattern=r"^[A-Z]{3}$")  # 3-letter uppercase code
-    monument: Optional[int] = Field(default=None, ge=0, le=9)  # Single digit monument number
-    interval: Optional[ProductSampleInterval] = None
+    station: Optional[str] = None
+    region: Optional[str] = None
+    monument: Optional[int] = None
+    receiver: Optional[str] = None
+    interval: Optional[ProductSampleInterval | Rinex2FileInterval] = None
     duration: Optional[ProductDuration | Rinex2FileInterval] = None
-    satellite_system: Optional[RinexSatelliteSystem] = RinexSatelliteSystem.MIXED  # e.g., "G" for GPS, "R" for GLONASS, etc.
-    content: Optional[Rinex3DataType | Rinex2DataType] = Rinex3DataType.OBS  # e.g., "OBS", "NAV", etc.
-    filename: Optional[str] = None  # Optional pre-built filename; if not provided, will be built from other fields
-    version: RinexVersion = RinexVersion.V3  # Default to RINEX v3; can be overridden to v2 for legacy files
+    satellite_system: Optional[RinexSatelliteSystem] = None
+    content: Optional[Rinex3DataType | Rinex2DataType] = None
+    filename: Optional[str] = None
+    directory: Optional[str] = None
+    version: RinexVersion = RinexVersion.V3
     data_source: Optional[Rinex3DataSource] = Rinex3DataSource.R
 
     @classmethod
@@ -88,6 +121,7 @@ class RinexFileQuery(BaseModel):
             station=station,
             region=region,
             monument=monument,
+            receiver=receiver,
             interval=interval,
             duration=coverage,
             satellite_system=satellite_system,
@@ -160,28 +194,53 @@ class RinexFileQuery(BaseModel):
             return cls._from_filename_v3_v4(filename)
         else:
             return cls._from_filename_v2(filename)
-        
-    def build_filename(self) -> str:
-        match self.version:
-            case RinexVersion.V3 | RinexVersion.V4:
-                if not all([self.station, self.monument is not None, self.region, self.duration, self.satellite_system, self.content, self.date]):
-                    raise ValueError("Cannot build RINEX v3/v4 filename: missing required fields")
-                match self.content:
-                    case Rinex3DataType.OBS | Rinex3DataType.MET:
-                        filename = f"{self.station}{self.monument}{self.region}_{self.data_source.value}_{self.date.year}{self.date.timetuple().tm_yday:03d}_{self.duration.value}_{self.interval.value}_{self.satellite_system.value}{self.content.value}.rnx"
-                    case _:
-                        filename = f"{self.station}{self.monument}{self.region}_{self.data_source.value}_{self.date.year}{self.date.timetuple().tm_yday:03d}_{self.duration.value}_{self.satellite_system.value}{self.content.value}.rnx"
-            case _:
-                if not all([self.station, self.interval, self.content, self.date]):
-                    raise ValueError("Cannot build RINEX v2 filename: missing required fields")
-                yy = str(self.date.year)[-2:]
-                doy = self.date.timetuple().tm_yday
-                filename = f"{self.station}{doy:03d}{self.interval.value}.{yy}{self.content.value}"
-        return filename
-    
-    def model_post_init(self, __context):
-        if self.filename is None:
-            self.filename = self.build_filename()
+
+    # -- substitution helpers ------------------------------------------------
+
+    def _substitution_map(self) -> dict[str, str]:
+        """Collect known field values as a ``{placeholder: value}`` mapping."""
+        subs: dict[str, str] = {}
+        if self.date is not None:
+            year, doy = _parse_date(self.date)
+            subs["year"] = year
+            subs["doy"] = doy
+            subs["gps_week"] = str(_date_to_gps_week(self.date))
+            subs["yy"] = str(self.date.year)[-2:]
+            subs["month"] = f"{self.date.month:02d}"
+            subs["day"] = f"{self.date.day:02d}"
+        if self.station is not None:
+            subs["station"] = self.station
+        if self.monument is not None:
+            subs["monument"] = str(self.monument)
+        if self.receiver is not None:
+            subs["receiver"] = self.receiver
+        if self.region is not None:
+            subs["region"] = self.region
+        if self.data_source is not None:
+            subs["data_source"] = self.data_source.value
+        if self.interval is not None:
+            subs["interval"] = self.interval.value
+        if self.duration is not None:
+            subs["duration"] = self.duration.value
+        if self.satellite_system is not None:
+            subs["satellite_system"] = self.satellite_system.value
+        if self.content is not None:
+            subs["content"] = self.content.value
+        return subs
+
+    def build_query(self, template: str) -> str:
+        """
+        Build a filename pattern from a template string.
+
+        Known field values are substituted literally; missing fields
+        become regex patterns suitable for matching against directory
+        listings.
+        """
+        return template.format_map(_RinexRegexFallbackDict(self._substitution_map()))
+
+    def build_directory(self, template: str) -> str:
+        """Build a directory path from a template, substituting known values."""
+        return template.format_map(_RinexRegexFallbackDict(self._substitution_map()))
 
 
 # ---------------------------------------------------------------------------
@@ -200,8 +259,6 @@ class MonumentConfig(BaseModel):
 class ReceiverConfig(BaseModel):
     receiver: str
     description: Optional[str] = None
-    class Config:
-        coerce=True
 
 class RegionConfig(BaseModel):
     region: str
@@ -214,9 +271,11 @@ class SatelliteSystemConfig(BaseModel):
 class RinexConfig(BaseModel):
     id: str
     content: Rinex3DataType | Rinex2DataType
+    server_id: Optional[str] = None
     version: Optional[RinexVersion] = RinexVersion.V3
     available: bool = True
     description: Optional[str] = None
+    data_source: Optional[Rinex3DataSource] = Rinex3DataSource.R
     station_set: List[StationConfig]
     monument_set: List[MonumentConfig]
     receiver_set: List[ReceiverConfig]
@@ -227,6 +286,38 @@ class RinexConfig(BaseModel):
     directory: str
     filename: str
 
-
+    def build(self, date: datetime.datetime | datetime.date) -> List[RinexFileQuery]:
+        """Expand config into all combinations of station/monument/receiver/region/sat-sys/sampling/duration."""
+        queries: list[RinexFileQuery] = []
+        stations = [s.station for s in self.station_set] or [None]
+        monuments = [m.monument for m in self.monument_set] or [None]
+        receivers = [r.receiver for r in self.receiver_set] or [None]
+        regions = [r.region for r in self.region_set] or [None]
+        sat_systems = [s.satellite_system for s in self.satellite_system_set] or [None]
+        samplings = [s.interval for s in self.sampling_set] or [None]
+        durations = [d.duration for d in self.duration_set] or [None]
+        for station in stations:
+            for monument in monuments:
+                for receiver in receivers:
+                    for region in regions:
+                        for sat_sys in sat_systems:
+                            for sampling in samplings:
+                                for duration in durations:
+                                    query = RinexFileQuery(
+                                        date=date,
+                                        station=station,
+                                        monument=monument,
+                                        receiver=receiver,
+                                        region=region,
+                                        satellite_system=sat_sys,
+                                        interval=sampling,
+                                        duration=duration,
+                                        content=self.content,
+                                        data_source=self.data_source,
+                                    )
+                                    query.filename = query.build_query(self.filename)
+                                    query.directory = query.build_directory(self.directory)
+                                    queries.append(query)
+        return queries
 from .products import SampleIntervalConfig, DurationConfig  # noqa: E402
 RinexConfig.model_rebuild()
