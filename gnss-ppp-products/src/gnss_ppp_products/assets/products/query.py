@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 import datetime
 
@@ -57,13 +58,13 @@ class ProductFileQuery(ProductBase):
             subs["month"] = f"{self.date.month:02d}"
             subs["day"] = f"{self.date.day:02d}"
         if self.center is not None:
-            subs["center"] = self.center
+            subs["center"] = self.center.value if isinstance(self.center, Enum) else self.center
         if self.version is not None:
-            subs["version"] = self.version
+            subs["version"] = str(self.version)
         if self.campaign is not None:
-            subs["campaign"] = self.campaign.value
+            subs["campaign"] = self.campaign.value if isinstance(self.campaign, Enum) else self.campaign
         if self.solution is not None:
-            subs["quality"] = self.solution.value if isinstance(self.solution, str) else self.solution.value
+            subs["quality"] = self.solution if isinstance(self.solution, str) else self.solution.value
         if self.interval is not None:
             subs["interval"] = self.interval.value
         if self.duration is not None:

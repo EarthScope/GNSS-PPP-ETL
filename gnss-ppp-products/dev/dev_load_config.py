@@ -99,22 +99,22 @@ for center in [igs,wuhan,cddis]:
         found_products.extend(process_product_query(product))
     
 
-    for rnx in center.build_rinex_queries(date):
-        found_rinex.extend(process_product_query(rnx))
+    # for rnx in center.build_rinex_queries(date):
+    #     found_rinex.extend(process_product_query(rnx))
 
-    for atx in center.build_antennae_queries(date):
-        strict_queries = []
-        current_queries = []
-        for found in process_product_query(atx):
-            if not found:
-                continue
-            if found.date < date:
-                strict_queries.append(found)
-            elif found.date == date:
-                current_queries.append(found)
-        if strict_queries:
-            found_antennae.append(max(strict_queries, key=lambda q: q.date))
-        found_antennae.extend(current_queries)
+    # for atx in center.build_antennae_queries(date):
+    #     strict_queries = []
+    #     current_queries = []
+    #     for found in process_product_query(atx):
+    #         if not found:
+    #             continue
+    #         if found.date < date:
+    #             strict_queries.append(found)
+    #         elif found.date == date:
+    #             current_queries.append(found)
+    #     if strict_queries:
+    #         found_antennae.append(max(strict_queries, key=lambda q: q.date))
+    #     found_antennae.extend(current_queries)
 
 class Results(BaseModel):
     products: List[ProductFileQuery]
