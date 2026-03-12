@@ -1,383 +1,201 @@
 """
-Integration test suite: Ionosphere correction products via unified query interface.
+Tests: Ionosphere (GIM) products via GNSSCenterConfig.
 
-Metadata
---------
-Date under test : 2025-01-01  (DOY 001), 2020-06-15 (DOY 167 - legacy format)
-Products probed : GIM (Global Ionosphere Maps)
-Servers         : CODE (ftp.aiub.unibe.ch), Wuhan (igs.gnsswhu.cn), CDDIS (gdc.cddis.eosdis.nasa.gov)
+Load center configs for CODE (FTP), Wuhan (FTP), and CDDIS (FTPS),
+then verify that ProductFileQuery objects for GIM ionosphere maps
+build correctly.  Integration tests probe each server.
 
-Usage
------
-Run all integration tests::
-
-    uv run pytest test/test_ionosphere_resources.py -v
-
-Skip in offline environments::
-
-    uv run pytest -m "not integration"
+Products tested : GIM (Global Ionosphere Maps) in INX format
+Servers         : code_ftp, wuhan_ftp, cddis_ftps
 """
 from __future__ import annotations
 
 import datetime
-import logging
-from dataclasses import dataclass
-from typing import Optional, List
+from pathlib import Path
 
 import pytest
-import requests
 
-from gnss_ppp_products.data_query import query, ProductType, ProductQuality
-from gnss_ppp_products.resources.resource import RemoteProductAddress
-
-log = logging.getLogger(__name__)
-
-pytestmark = pytest.mark.integration
+from gnss_ppp_products.assets.center.config import GNSSCenterConfig
+from gnss_ppp_products.assets.products.query import ProductFileQuery
+from gnss_ppp_products.assets.server.config import ServerProtocol
+from gnss_ppp_products.server.products import process_product_query
 
 # ---------------------------------------------------------------------------
-# Test parameters
+# Fixtures
 # ---------------------------------------------------------------------------
 
-# Test date with new long-form naming (post-2022)
-DATE_NEW_FORMAT = datetime.date(2025, 1, 1)
-DOY_NEW: int = DATE_NEW_FORMAT.timetuple().tm_yday  # 1
-
-# Test date with legacy naming (pre-2022)
-DATE_LEGACY_FORMAT = datetime.date(2020, 6, 15)
-DOY_LEGACY: int = DATE_LEGACY_FORMAT.timetuple().tm_yday  # 167
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "assets" / "config_files"
+DATE = datetime.date(2025, 1, 1)
 
 
-# ---------------------------------------------------------------------------
-# Result containers
-# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def code_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "code.yaml")
 
 
-@dataclass
-class GIMProbeResult:
-    """Outcome of querying a GIM product."""
+@pytest.fixture(scope="module")
+def wuhan_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "wuhan.yaml")
 
-    server_name: str
-    date: datetime.date
-    quality: Optional[str] = None
-    product: Optional[RemoteProductAddress] = None
-    error: Optional[str] = None
 
-    @property
-    def found(self) -> bool:
-        return self.product is not None
+@pytest.fixture(scope="module")
+def cddis_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "cddis.yaml")
 
-    @property
-    def filename(self) -> str:
-        return self.product.filename if self.product else "not found"
 
-    @property
-    def full_url(self) -> str:
-        if self.product:
-            return f"{self.product.server.hostname}/{self.product.directory}/{self.product.filename}"
-        return "—"
+def _gim_queries(center: GNSSCenterConfig) -> list[ProductFileQuery]:
+    """Filter product queries to only GIM content."""
+    return [q for q in center.build_product_queries(DATE) if "GIM" in (q.filename or "")]
+
+
+@pytest.fixture(scope="module")
+def code_gim_queries(code_center) -> list[ProductFileQuery]:
+    return _gim_queries(code_center)
+
+
+@pytest.fixture(scope="module")
+def wuhan_gim_queries(wuhan_center) -> list[ProductFileQuery]:
+    return _gim_queries(wuhan_center)
+
+
+@pytest.fixture(scope="module")
+def cddis_gim_queries(cddis_center) -> list[ProductFileQuery]:
+    return _gim_queries(cddis_center)
 
 
 # ---------------------------------------------------------------------------
-# Helper functions
+# Unit: CODE GIM queries (FTP)
 # ---------------------------------------------------------------------------
 
 
-def probe_gim_file(server: str, label: str, product: Optional[RemoteProductAddress]) -> GIMProbeResult:
-    """
-    Check if a GIM file exists at the remote location via HEAD request or FTP check.
-    
-    For HTTP(S) servers, use HEAD request.
-    For FTP, just verify we got a product with filename.
-    """
-    result = GIMProbeResult(server_name=server, date=datetime.date.today())
-    
-    if product is None:
-        log.warning(f"[{label}] No product address returned")
-        result.error = "Query returned None"
-        return result
-    
-    result.product = product
-    
-    # Build full URL
-    if product.server.protocol.value in ("http", "https"):
-        directory = product.directory.rstrip('/')
-        url = f"{product.server.hostname}/{directory}/{product.filename}"
-        log.info(f"Probing {label}: {url}")
-        
-        try:
-            response = requests.head(url, timeout=30, allow_redirects=True)
-            if response.status_code == 200:
-                log.info(f"[{label}] Found: {product.filename} (HTTP {response.status_code})")
-            else:
-                log.warning(f"[{label}] Not found: HTTP {response.status_code}")
-                result.error = f"HTTP {response.status_code}"
-                result.product = None
-        except requests.RequestException as e:
-            log.error(f"[{label}] Request failed: {e}")
-            result.error = str(e)
-            result.product = None
-    else:
-        # FTP - just verify we got a result with a filename
-        directory = product.directory.rstrip('/')
-        url = f"{product.server.protocol.value}://{product.server.hostname}/{directory}/{product.filename}"
-        log.info(f"Queried {label}: {url}")
-        if product.filename:
-            log.info(f"[{label}] Found: {product.filename}")
-        else:
-            result.error = "No filename"
-            result.product = None
-    
-    return result
+class TestCODEGIMExpansion:
+    """Verify CODE center config produces GIM queries."""
 
+    def test_queries_returned(self, code_gim_queries) -> None:
+        assert len(code_gim_queries) > 0
 
-def _print_summary(title: str, results: list[GIMProbeResult]) -> None:
-    """Print formatted summary table."""
-    log.info("")
-    log.info("=" * 80)
-    log.info(f" {title}")
-    log.info("=" * 80)
-    
-    for result in results:
-        status = "✓ FOUND" if result.found else "✗ NOT FOUND"
-        quality_str = result.quality or "N/A"
-        log.info(
-            f"  [{result.server_name}] {result.date} | Quality: {quality_str} | {status}"
-        )
-        if result.found:
-            log.info(f"      → {result.filename}")
-        if result.error:
-            log.info(f"      ERROR: {result.error}")
-    
-    log.info("=" * 80)
+    def test_query_types(self, code_gim_queries) -> None:
+        for q in code_gim_queries:
+            assert isinstance(q, ProductFileQuery)
+
+    def test_server_attached(self, code_gim_queries) -> None:
+        for q in code_gim_queries:
+            assert q.server is not None
+            assert q.server.id == "code_ftp"
+
+    def test_server_protocol_is_ftp(self, code_gim_queries) -> None:
+        for q in code_gim_queries:
+            assert q.server.protocol == ServerProtocol.FTP
+
+    def test_filename_contains_gim(self, code_gim_queries) -> None:
+        for q in code_gim_queries:
+            assert "GIM" in q.filename
+
+    def test_directory_contains_year(self, code_gim_queries) -> None:
+        for q in code_gim_queries:
+            assert "2025" in q.directory
 
 
 # ---------------------------------------------------------------------------
-# CODE GIM Tests
+# Unit: Wuhan GIM queries (FTP)
 # ---------------------------------------------------------------------------
 
 
-class TestCODEGIMProducts:
-    """Tests for CODE GIM product queries via unified interface."""
+class TestWuhanGIMExpansion:
+    """Verify Wuhan center config produces GIM queries over FTP."""
 
-    def test_query_new_format(self) -> None:
-        """Test querying GIM with new long-form naming (post-2022)."""
-        log.info("Testing CODE GIM query for %s (DOY %03d) - new format", DATE_NEW_FORMAT, DOY_NEW)
-        
-        results: List[RemoteProductAddress] = query(
-            date=DATE_NEW_FORMAT,
-            product_type=ProductType.GIM,
-            center="CODE"
-        )
-        
-        assert results is not None
-        assert len(results) > 0, f"Expected GIM file for {DATE_NEW_FORMAT}, got None"
-        
-        product = results[0]
-        assert product.type == ProductType.GIM
-        assert "COD" in product.filename or "GIM" in product.filename.upper()
-        assert "ftp.aiub.unibe.ch" in product.server.hostname
-        
-        log.info("  Found: %s", product.filename)
+    def test_queries_returned(self, wuhan_gim_queries) -> None:
+        assert len(wuhan_gim_queries) > 0
 
-    def test_query_legacy_format(self) -> None:
-        """Test querying GIM with legacy naming (pre-2022)."""
-        log.info("Testing CODE GIM query for %s (DOY %03d) - legacy format", DATE_LEGACY_FORMAT, DOY_LEGACY)
-        
-        results: List[RemoteProductAddress] = query(
-            date=DATE_LEGACY_FORMAT,
-            product_type=ProductType.GIM,
-            center="CODE"
-        )
-        
-        assert results is not None
-        assert len(results) > 0, f"Expected GIM file for {DATE_LEGACY_FORMAT}, got None"
-        
-        product = results[0]
-        assert product.type == ProductType.GIM
-        # Legacy format: CODG{doy}0.{yy}I.Z
-        assert "CODG" in product.filename or "codg" in product.filename.lower()
-        
-        log.info("  Found: %s", product.filename)
+    def test_server_protocol_is_ftp(self, wuhan_gim_queries) -> None:
+        for q in wuhan_gim_queries:
+            assert q.server.protocol == ServerProtocol.FTP
 
-    def test_directory_structure(self) -> None:
-        """Test that directory paths are correctly formatted."""
-        results_2025 = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, center="CODE")
-        results_2020 = query(date=DATE_LEGACY_FORMAT, product_type=ProductType.GIM, center="CODE")
-        
-        if results_2025:
-            assert results_2025[0].directory == "CODE/2025" or "CODE/2025" in results_2025[0].directory
-        if results_2020:
-            assert results_2020[0].directory == "CODE/2020" or "CODE/2020" in results_2020[0].directory
+    def test_directory_ionex_path(self, wuhan_gim_queries) -> None:
+        for q in wuhan_gim_queries:
+            assert "ionex" in q.directory
 
-    def test_query_returns_result(self) -> None:
-        """CODE query should return valid RemoteProductAddress."""
-        results: List[RemoteProductAddress] = query(
-            date=DATE_NEW_FORMAT,
-            product_type=ProductType.GIM,
-            center="CODE"
-        )
-        
-        assert results is not None
-        assert len(results) > 0, "No GIM products found from CODE"
-        assert results[0].filename is not None
-        assert results[0].type == ProductType.GIM
+    def test_multiple_centers_in_filenames(self, wuhan_gim_queries) -> None:
+        """Wuhan mirrors GIM from COD, IGS, JPL."""
+        centers = {q.filename[:3] for q in wuhan_gim_queries}
+        assert len(centers) >= 2, f"Expected multiple centers, got {centers}"
 
 
 # ---------------------------------------------------------------------------
-# Wuhan GIM Tests
+# Unit: CDDIS GIM queries (FTPS)
 # ---------------------------------------------------------------------------
 
 
-class TestWuhanGIMProducts:
-    """Tests for GIM product queries from Wuhan University via unified interface."""
+class TestCDDISGIMExpansion:
+    """Verify CDDIS center config produces GIM queries over FTPS."""
 
-    def test_query_code_final(self) -> None:
-        """Test querying CODE final GIM from Wuhan mirror."""
-        log.info("Testing Wuhan GIM query for %s - CODE FINAL", DATE_NEW_FORMAT)
-        
-        # Wuhan hosts CODE products among others
-        results: List[RemoteProductAddress] = query(
-            date=DATE_NEW_FORMAT,
-            product_type=ProductType.IONX,
-            product_quality=ProductQuality.FINAL,
-            center="WUHAN"
-        )
-        
-        if results and len(results) > 0:
-            
-            [log.info("  Found: %s", product.filename) for product in results]
-            assert all(product.type == ProductType.GIM for product in results)
-            assert all("igs.gnsswhu.cn" in product.server.hostname for product in results)
-        else:
-            log.warning("  Not found (may be expected for recent dates)")
+    def test_queries_returned(self, cddis_gim_queries) -> None:
+        assert len(cddis_gim_queries) > 0
 
-    def test_directory_structure(self) -> None:
-        """Test that directory paths are correctly formatted."""
-        results = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, center="WUHAN")
-        
-        if results:
-            # Wuhan GIM paths: pub/gps/products/ionex/{year}/{doy}/
-            assert "pub/gps/products/ionex/2025/001" in results[0].directory or \
-                   "ionex" in results[0].directory
+    def test_server_protocol_is_ftps(self, cddis_gim_queries) -> None:
+        for q in cddis_gim_queries:
+            assert q.server.protocol == ServerProtocol.FTPS
+
+    def test_directory_contains_ionex(self, cddis_gim_queries) -> None:
+        for q in cddis_gim_queries:
+            assert "ionex" in q.directory
+
+    def test_filename_contains_gim(self, cddis_gim_queries) -> None:
+        for q in cddis_gim_queries:
+            assert "GIM" in q.filename
 
 
 # ---------------------------------------------------------------------------
-# CDDIS GIM Tests  
+# Integration: Probe CODE FTP for GIM
 # ---------------------------------------------------------------------------
 
 
-class TestCDDISGIMProducts:
-    """Tests for GIM product queries from NASA CDDIS via unified interface."""
-
-    def test_query_code(self) -> None:
-        """Test querying CODE GIM from CDDIS."""
-        log.info("Testing CDDIS GIM query for %s - CODE", DATE_NEW_FORMAT)
-        
-        results: List[RemoteProductAddress] = query(
-            date=DATE_NEW_FORMAT,
-            product_type=ProductType.GIM,
-            product_quality=ProductQuality.FINAL,
-            center="CDDIS"
-        )
-        
-        if results and len(results) > 0:
-            product = results[0]
-            log.info("  Found: %s", product.filename)
-            assert product.type == ProductType.GIM
-            assert "cddis" in product.server.hostname.lower()
-        else:
-            log.warning("  Not found (CDDIS may require FTPS)")
-
-    def test_directory_structure(self) -> None:
-        """Test that directory paths are correctly formatted."""
-        results = query(date=DATE_NEW_FORMAT, product_type=ProductType.GIM, center="CDDIS")
-        
-        if results:
-            # CDDIS GIM paths: gnss/products/ionex/{year}/{doy}/
-            assert "gnss/products/ionex/2025/001" in results[0].directory or \
-                   "ionex" in results[0].directory
-
-
-# ---------------------------------------------------------------------------
-# Cross-server comparison tests
-# ---------------------------------------------------------------------------
-
-
-class TestCrossServerComparison:
-    """Compare availability across different servers."""
+@pytest.mark.integration
+class TestCODEGIMFTPProbe:
+    """Probe CODE FTP server for GIM files."""
 
     @pytest.fixture(scope="class")
-    def probe_results(self) -> list[GIMProbeResult]:
-        """Probe all servers for GIM availability."""
-        results: list[GIMProbeResult] = []
-        
-        # CODE primary server
-        for date in [DATE_NEW_FORMAT, DATE_LEGACY_FORMAT]:
-            probe = GIMProbeResult(server_name="CODE", date=date)
-            try:
-                products = query(date=date, product_type=ProductType.GIM, center="CODE")
-                if products:
-                    probe.product = products[0]
-            except Exception as e:
-                probe.error = str(e)
-            results.append(probe)
-        
-        # Wuhan mirror
-        probe = GIMProbeResult(server_name="Wuhan", date=DATE_NEW_FORMAT, quality="FINAL")
-        try:
-            products = query(
-                date=DATE_NEW_FORMAT,
-                product_type=ProductType.GIM,
-                product_quality=ProductQuality.FINAL,
-                center="WUHAN"
-            )
-            if products:
-                probe.product = products[0]
-        except Exception as e:
-            probe.error = str(e)
-        results.append(probe)
-        
-        # CDDIS mirror
-        probe = GIMProbeResult(server_name="CDDIS", date=DATE_NEW_FORMAT, quality="FINAL")
-        try:
-            products = query(
-                date=DATE_NEW_FORMAT,
-                product_type=ProductType.GIM,
-                product_quality=ProductQuality.FINAL,
-                center="CDDIS"
-            )
-            if products:
-                probe.product = products[0]
-        except Exception as e:
-            probe.error = str(e)
-        results.append(probe)
-        
-        _print_summary("Cross-Server GIM Availability", results)
-        return results
+    def probe_results(self, code_gim_queries) -> list[ProductFileQuery]:
+        target = next(
+            (q for q in code_gim_queries if "FIN" in q.filename and "01H" in q.filename),
+            None,
+        )
+        assert target is not None, "No CODE GIM FIN 01H query found"
+        return process_product_query(target)
 
-    def test_code_primary_available(self, probe_results: list[GIMProbeResult]) -> None:
-        """Test that CODE primary server has GIM files."""
-        code_results = [r for r in probe_results if r.server_name == "CODE"]
-        found_count = sum(1 for r in code_results if r.found)
-        
-        assert found_count >= 1, "Expected at least one GIM file from CODE primary server"
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No GIM files found on CODE FTP"
 
-    def test_at_least_one_server_available(self, probe_results: list[GIMProbeResult]) -> None:
-        """Test that at least one server has the requested product."""
-        found_any = any(r.found for r in probe_results)
-        
-        assert found_any, "Expected at least one server to have GIM products"
+    def test_filename_contains_gim(self, probe_results) -> None:
+        for result in probe_results:
+            assert "GIM" in result.filename
+
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server.protocol == ServerProtocol.FTP
 
 
 # ---------------------------------------------------------------------------
-# Product type tests
+# Integration: Probe Wuhan FTP for GIM
 # ---------------------------------------------------------------------------
 
 
-class TestProductTypeGIM:
-    """Tests for GIM ProductType properties."""
+@pytest.mark.integration
+class TestWuhanGIMFTPProbe:
+    """Probe Wuhan FTP server for GIM files."""
 
-    def test_gim_product_type_exists(self) -> None:
-        """Test that GIM product type is defined."""
-        assert ProductType.GIM is not None
-        assert ProductType.GIM.value == "GIM"
+    @pytest.fixture(scope="class")
+    def probe_results(self, wuhan_gim_queries) -> list[ProductFileQuery]:
+        target = next(
+            (q for q in wuhan_gim_queries if "COD" in q.filename and "FIN" in q.filename),
+            None,
+        )
+        assert target is not None, "No Wuhan GIM COD FIN query found"
+        return process_product_query(target)
+
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No GIM files found on Wuhan FTP"
+
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server.protocol == ServerProtocol.FTP

@@ -1,94 +1,106 @@
 """
-Integration test suite: Reference table products via unified config-based query interface.
+Tests: Reference table products via GNSSCenterConfig (Wuhan).
 
-Metadata
---------
-Products probed : LEAP_SECONDS, SAT_PARAMETERS
-Sources         : WUHAN, CDDIS
+Load the Wuhan center config—FTP server—and verify that
+ReferenceTableFileQuery objects build correctly.  Integration tests
+probe the Wuhan FTP server to find actual reference table files.
 
-Note: Reference tables are currently only partially modeled in YAML configs.
-The Wuhan config has navigation products but leap_seconds/sat_parameters 
-require explicit YAML product entries. This test validates what's available
-and documents the migration path.
-
-Usage
------
-Run all integration tests::
-
-    uv run pytest test/test_reference_tables.py -v
-
-Skip in offline environments::
-
-    uv run pytest -m "not integration"
+Products tested : leap_seconds, sat_parameters
+Server          : wuhan_ftp  (ftp://igs.gnsswhu.cn)
 """
 from __future__ import annotations
 
-import logging
-from typing import List
-import datetime
+from pathlib import Path
 
 import pytest
 
-from gnss_ppp_products.data_query import query, ProductType, ProductQuality
-from gnss_ppp_products.resources.resource import RemoteProductAddress
-
-log = logging.getLogger(__name__)
-
-pytestmark = pytest.mark.integration
-
-# ---------------------------------------------------------------------------
-# Test parameters
-# ---------------------------------------------------------------------------
-
-# Reference tables are static but query() requires a date
-DUMMY_DATE = datetime.date(2025, 1, 1)
-
+from gnss_ppp_products.assets.center.config import GNSSCenterConfig
+from gnss_ppp_products.assets.reference_tables.query import ReferenceTableFileQuery
+from gnss_ppp_products.assets.reference_tables.base import ReferenceTableType
+from gnss_ppp_products.assets.server.config import ServerProtocol
+from gnss_ppp_products.server.products import process_product_query
 
 # ---------------------------------------------------------------------------
-# Reference Table Query Tests
+# Fixtures
+# ---------------------------------------------------------------------------
+
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "assets" / "config_files"
+
+
+@pytest.fixture(scope="module")
+def wuhan_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "wuhan.yaml")
+
+
+@pytest.fixture(scope="module")
+def reference_table_queries(wuhan_center) -> list[ReferenceTableFileQuery]:
+    return wuhan_center.build_reference_table_queries()
+
+
+# ---------------------------------------------------------------------------
+# Unit: Config → Query expansion
 # ---------------------------------------------------------------------------
 
 
-class TestReferenceTableQuery:
-    """Tests for reference table products via unified interface."""
+class TestReferenceTableQueryExpansion:
+    """Verify that Wuhan center config expands reference table queries."""
 
-    def test_leap_seconds_type_exists(self) -> None:
-        """LEAP_SECONDS product type should exist."""
-        assert ProductType.LEAP_SECONDS is not None
-        assert ProductType.LEAP_SECONDS.value == "LEAP_SECONDS"
+    def test_queries_returned(self, reference_table_queries) -> None:
+        assert len(reference_table_queries) > 0
 
-    def test_sat_parameters_type_exists(self) -> None:
-        """SAT_PARAMETERS product type should exist."""
-        assert ProductType.SAT_PARAMETERS is not None
-        assert ProductType.SAT_PARAMETERS.value == "SAT_PARAMETERS"
+    def test_query_types(self, reference_table_queries) -> None:
+        for q in reference_table_queries:
+            assert isinstance(q, ReferenceTableFileQuery)
 
-    def test_leap_seconds_query_wuhan(self) -> None:
-        """Query for LEAP_SECONDS from WUHAN."""
-        log.info("Testing LEAP_SECONDS query from WUHAN")
-        results = query(date=DUMMY_DATE, product_type=ProductType.LEAP_SECONDS, center="WUHAN")
-        if len(results) > 0:
-            product = results[0]
-            assert product.type == ProductType.LEAP_SECONDS
-            log.info("[WUHAN] LEAP_SECONDS: %s", product.filename)
-        else:
-            log.warning("[WUHAN] LEAP_SECONDS not yet configured in YAML")
+    def test_server_attached(self, reference_table_queries) -> None:
+        for q in reference_table_queries:
+            assert q.server is not None
+            assert q.server.id == "wuhan_ftp"
 
-    def test_leap_seconds_query_cddis(self) -> None:
-        """Query for LEAP_SECONDS from CDDIS."""
-        log.info("Testing LEAP_SECONDS query from CDDIS")
-        results = query(date=DUMMY_DATE, product_type=ProductType.LEAP_SECONDS, center="CDDIS")
-        if len(results) > 0:
-            product = results[0]
-            assert product.type == ProductType.LEAP_SECONDS
-            log.info("[CDDIS] LEAP_SECONDS: %s", product.filename)
-        else:
-            log.warning("[CDDIS] LEAP_SECONDS not yet configured in YAML")
+    def test_server_protocol_is_ftp(self, reference_table_queries) -> None:
+        for q in reference_table_queries:
+            assert q.server.protocol == ServerProtocol.FTP
 
-    def test_reference_table_query_any_source(self) -> None:
-        """LEAP_SECONDS should be queryable from at least one source (if configured)."""
-        results = query(date=DUMMY_DATE, product_type=ProductType.LEAP_SECONDS)
-        log.info("LEAP_SECONDS from all sources: %d result(s)", len(results))
-        # This may return 0 if no YAML configs define LEAP_SECONDS yet
-        # Once configs are added, strengthen this assertion
-        for r in results:
-            log.info("  Source: %s, File: %s", r.server.name, r.filename)
+    def test_leap_seconds_present(self, reference_table_queries) -> None:
+        leap = [q for q in reference_table_queries if q.filename == "leap.sec"]
+        assert len(leap) == 1
+
+    def test_sat_parameters_present(self, reference_table_queries) -> None:
+        sat = [q for q in reference_table_queries if q.filename == "sat_parameters"]
+        assert len(sat) == 1
+
+    def test_directory(self, reference_table_queries) -> None:
+        for q in reference_table_queries:
+            assert q.directory == "pub/whu/phasebias/table"
+
+
+# ---------------------------------------------------------------------------
+# Integration: Probe Wuhan FTP server
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestReferenceTableFTPProbe:
+    """Probe Wuhan FTP to find reference table files."""
+
+    @pytest.fixture(scope="class")
+    def leap_probe(self, reference_table_queries) -> list[ReferenceTableFileQuery]:
+        target = next((q for q in reference_table_queries if q.filename == "leap.sec"), None)
+        assert target is not None
+        return process_product_query(target)
+
+    @pytest.fixture(scope="class")
+    def sat_probe(self, reference_table_queries) -> list[ReferenceTableFileQuery]:
+        target = next((q for q in reference_table_queries if q.filename == "sat_parameters"), None)
+        assert target is not None
+        return process_product_query(target)
+
+    def test_leap_seconds_found(self, leap_probe) -> None:
+        assert len(leap_probe) > 0, "leap.sec not found on Wuhan FTP"
+
+    def test_sat_parameters_found(self, sat_probe) -> None:
+        assert len(sat_probe) > 0, "sat_parameters not found on Wuhan FTP"
+
+    def test_server_preserved(self, leap_probe) -> None:
+        for result in leap_probe:
+            assert result.server.protocol == ServerProtocol.FTP

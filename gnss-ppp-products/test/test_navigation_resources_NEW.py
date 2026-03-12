@@ -1,200 +1,193 @@
 """
-Integration test suite: Navigation (broadcast ephemeris) products via unified config-based query interface.
+Tests: Navigation (broadcast ephemeris) products via GNSSCenterConfig.
 
-Metadata
---------
-Dates under test:
-    RINEX v3: 2025-01-01  (DOY 001) - modern merged broadcast
-    RINEX v2: 2010-01-01  (DOY 001) - legacy per-constellation
-Products probed : RINEX3_NAV, RINEX2_NAV
-Sources         : WUHAN, CDDIS, IGS
+Load center configs for Wuhan (FTP), CDDIS (FTPS), and IGS (FTP),
+then verify that RinexFileQuery objects for broadcast navigation
+build correctly.  Integration tests probe each server.
 
-Usage
------
-Run all integration tests::
-
-    uv run pytest test/test_navigation_resources.py -v
-
-Skip in offline environments::
-
-    uv run pytest -m "not integration"
+Products tested : RINEX3 broadcast navigation (BRDC)
+Servers         : wuhan_ftp, cddis_ftps, ign_ftp
 """
 from __future__ import annotations
 
 import datetime
-import logging
-from typing import List
+from pathlib import Path
 
 import pytest
 
-from gnss_ppp_products.data_query import query, ProductType, ProductQuality
-from gnss_ppp_products.resources.resource import RemoteProductAddress
-
-log = logging.getLogger(__name__)
-
-pytestmark = pytest.mark.integration
+from gnss_ppp_products.assets.center.config import GNSSCenterConfig
+from gnss_ppp_products.assets.rinex.query import RinexFileQuery
+from gnss_ppp_products.assets.server.config import ServerProtocol
+from gnss_ppp_products.server.products import process_product_query
 
 # ---------------------------------------------------------------------------
-# Test parameters
+# Fixtures
 # ---------------------------------------------------------------------------
 
-# RINEX v3 merged broadcast
-DATE_RINEX3 = datetime.date(2025, 1, 1)
-DOY_RINEX3: int = DATE_RINEX3.timetuple().tm_yday
-
-# RINEX v2 legacy format (older date)
-DATE_RINEX2 = datetime.date(2010, 1, 1)
-DOY_RINEX2: int = DATE_RINEX2.timetuple().tm_yday
-
-# Sources with navigation products
-NAV_SOURCES = ["WUHAN", "CDDIS", "IGS"]
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "assets" / "config_files"
+DATE = datetime.date(2025, 1, 1)
 
 
-# ---------------------------------------------------------------------------
-# Wuhan Navigation Tests
-# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def wuhan_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "wuhan.yaml")
 
 
-class TestWuhanNavigation:
-    """Tests for Wuhan navigation products via unified interface."""
+@pytest.fixture(scope="module")
+def cddis_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "cddis.yaml")
 
-    SOURCE = "WUHAN"
 
-    def test_rinex3_nav_found(self) -> None:
-        """RINEX v3 merged broadcast should be available from Wuhan."""
-        log.info("Testing %s RINEX3_NAV for %s (DOY %03d)", self.SOURCE, DATE_RINEX3, DOY_RINEX3)
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
-        assert len(results) > 0, f"No RINEX3_NAV found from {self.SOURCE}"
-        product = results[0]
-        assert product.type == ProductType.RINEX3_NAV
-        assert "BRDC" in product.filename or "rnx" in product.filename.lower()
-        log.info("[%s] RINEX3_NAV: %s", self.SOURCE, product.filename)
+@pytest.fixture(scope="module")
+def igs_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "igs.yaml")
 
-    def test_rinex3_directory_structure(self) -> None:
-        """Navigation directory should contain year and DOY."""
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
-        assert len(results) > 0
-        directory = results[0].directory
-        assert "2025" in directory
-        assert "001" in directory or "25p" in directory
 
-    def test_rinex3_filename_has_date(self) -> None:
-        """Navigation filename should contain date identifiers."""
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
-        assert len(results) > 0
-        filename = results[0].filename
-        year = str(DATE_RINEX3.year)
-        doy = f"{DOY_RINEX3:03d}"
-        assert year in filename or doy in filename, (
-            f"Filename '{filename}' missing date (year={year}, doy={doy})"
-        )
+@pytest.fixture(scope="module")
+def wuhan_nav_queries(wuhan_center) -> list[RinexFileQuery]:
+    return wuhan_center.build_rinex_queries(DATE)
+
+
+@pytest.fixture(scope="module")
+def cddis_nav_queries(cddis_center) -> list[RinexFileQuery]:
+    return cddis_center.build_rinex_queries(DATE)
+
+
+@pytest.fixture(scope="module")
+def igs_nav_queries(igs_center) -> list[RinexFileQuery]:
+    return igs_center.build_rinex_queries(DATE)
 
 
 # ---------------------------------------------------------------------------
-# CDDIS Navigation Tests
+# Unit: Wuhan Navigation (FTP)
 # ---------------------------------------------------------------------------
 
 
-class TestCDDISNavigation:
-    """Tests for CDDIS navigation products via unified interface."""
+class TestWuhanNavigationExpansion:
+    """Verify Wuhan center config produces RINEX nav queries."""
 
-    SOURCE = "CDDIS"
+    def test_queries_returned(self, wuhan_nav_queries) -> None:
+        assert len(wuhan_nav_queries) > 0
 
-    def test_rinex3_nav_query(self) -> None:
-        """RINEX v3 navigation should be queryable from CDDIS."""
-        log.info("Testing %s RINEX3_NAV for %s", self.SOURCE, DATE_RINEX3)
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
-        # CDDIS requires FTPS, may not connect in all environments
-        if len(results) > 0:
-            assert results[0].type == ProductType.RINEX3_NAV
-            log.info("[%s] RINEX3_NAV: %s", self.SOURCE, results[0].filename)
-        else:
-            log.warning("[%s] RINEX3_NAV not found (FTPS may be required)", self.SOURCE)
+    def test_query_types(self, wuhan_nav_queries) -> None:
+        for q in wuhan_nav_queries:
+            assert isinstance(q, RinexFileQuery)
 
-    def test_rinex2_nav_query(self) -> None:
-        """RINEX v2 GPS navigation should be queryable from CDDIS."""
-        log.info("Testing %s RINEX2_NAV for %s", self.SOURCE, DATE_RINEX2)
-        results = query(date=DATE_RINEX2, product_type=ProductType.RINEX2_NAV, center=self.SOURCE)
-        if len(results) > 0:
-            assert results[0].type == ProductType.RINEX2_NAV
-            log.info("[%s] RINEX2_NAV: %s", self.SOURCE, results[0].filename)
-        else:
-            log.warning("[%s] RINEX2_NAV not found (FTPS may be required)", self.SOURCE)
+    def test_server_attached(self, wuhan_nav_queries) -> None:
+        for q in wuhan_nav_queries:
+            assert q.server is not None
+            assert q.server.id == "wuhan_ftp"
 
-    def test_rinex2_directory_structure(self) -> None:
-        """RINEX v2 directory should contain year/DOY path."""
-        results = query(date=DATE_RINEX2, product_type=ProductType.RINEX2_NAV, center=self.SOURCE)
-        if len(results) > 0:
-            directory = results[0].directory
-            assert "2010" in directory
+    def test_server_protocol_is_ftp(self, wuhan_nav_queries) -> None:
+        for q in wuhan_nav_queries:
+            assert q.server.protocol == ServerProtocol.FTP
 
+    def test_filename_contains_brdc(self, wuhan_nav_queries) -> None:
+        for q in wuhan_nav_queries:
+            assert "BRDC" in q.filename
 
-# ---------------------------------------------------------------------------
-# IGS Navigation Tests
-# ---------------------------------------------------------------------------
+    def test_directory_contains_year(self, wuhan_nav_queries) -> None:
+        for q in wuhan_nav_queries:
+            assert "2025" in q.directory
 
-
-class TestIGSNavigation:
-    """Tests for IGS navigation products via unified interface."""
-
-    SOURCE = "IGS"
-
-    def test_rinex3_nav_found(self) -> None:
-        """RINEX v3 merged broadcast should be available from IGS."""
-        log.info("Testing %s RINEX3_NAV for %s", self.SOURCE, DATE_RINEX3)
-        results = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=self.SOURCE)
-        assert len(results) > 0, f"No RINEX3_NAV found from {self.SOURCE}"
-        product = results[0]
-        assert product.type == ProductType.RINEX3_NAV
-        assert "BRDC" in product.filename
-        log.info("[%s] RINEX3_NAV: %s", self.SOURCE, product.filename)
+    def test_satellite_system_expansion(self, wuhan_nav_queries) -> None:
+        """Wuhan provides E (Galileo) and M (Mixed) navigation."""
+        filenames = {q.filename for q in wuhan_nav_queries}
+        assert any("EN" in f for f in filenames) or any("MN" in f for f in filenames)
 
 
 # ---------------------------------------------------------------------------
-# Cross-Source Comparison
+# Unit: CDDIS Navigation (FTPS)
 # ---------------------------------------------------------------------------
 
 
-class TestCrossSourceNavAvailability:
-    """Test navigation products across multiple sources."""
+class TestCDDISNavigationExpansion:
+    """Verify CDDIS center config produces RINEX nav queries over FTPS."""
+
+    def test_queries_returned(self, cddis_nav_queries) -> None:
+        assert len(cddis_nav_queries) > 0
+
+    def test_server_protocol_is_ftps(self, cddis_nav_queries) -> None:
+        for q in cddis_nav_queries:
+            assert q.server.protocol == ServerProtocol.FTPS
+
+    def test_directory_cddis_path(self, cddis_nav_queries) -> None:
+        for q in cddis_nav_queries:
+            assert "gnss/data/daily" in q.directory
+
+    def test_filename_has_rnx(self, cddis_nav_queries) -> None:
+        for q in cddis_nav_queries:
+            assert ".rnx" in q.filename
+
+
+# ---------------------------------------------------------------------------
+# Unit: IGS Navigation (FTP via IGN)
+# ---------------------------------------------------------------------------
+
+
+class TestIGSNavigationExpansion:
+    """Verify IGS center config produces RINEX nav queries over FTP."""
+
+    def test_queries_returned(self, igs_nav_queries) -> None:
+        assert len(igs_nav_queries) > 0
+
+    def test_server_protocol_is_ftp(self, igs_nav_queries) -> None:
+        for q in igs_nav_queries:
+            assert q.server.protocol == ServerProtocol.FTP
+
+    def test_directory_igs_path(self, igs_nav_queries) -> None:
+        for q in igs_nav_queries:
+            assert "pub/igs/data" in q.directory
+
+
+# ---------------------------------------------------------------------------
+# Integration: Probe Wuhan FTP for navigation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestWuhanNavigationFTPProbe:
+    """Probe Wuhan FTP for broadcast navigation files."""
 
     @pytest.fixture(scope="class")
-    def all_nav_results(self) -> dict[str, List[RemoteProductAddress]]:
-        results = {}
-        for source in ["WUHAN", "IGS"]:
-            try:
-                r = query(date=DATE_RINEX3, product_type=ProductType.RINEX3_NAV, center=source)
-                results[source] = r
-            except Exception as e:
-                log.warning("[%s] RINEX3_NAV query error: %s", source, e)
-                results[source] = []
-        return results
+    def probe_results(self, wuhan_nav_queries) -> list[RinexFileQuery]:
+        target = next(
+            (q for q in wuhan_nav_queries if "MN" in q.filename),
+            None,
+        )
+        assert target is not None, "No Wuhan mixed-nav query found"
+        return process_product_query(target)
 
-    def test_at_least_one_source_has_nav(self, all_nav_results) -> None:
-        """RINEX3 NAV should be available from at least 1 source."""
-        available = [s for s, r in all_nav_results.items() if len(r) > 0]
-        log.info("RINEX3_NAV available from: %s", available)
-        assert len(available) >= 1, f"RINEX3_NAV not found from any source"
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No nav files found on Wuhan FTP"
 
-    def test_all_results_correct_type(self, all_nav_results) -> None:
-        """All returned products must have RINEX3_NAV type."""
-        for source, results in all_nav_results.items():
-            for product in results:
-                assert product.type == ProductType.RINEX3_NAV
+    def test_filename_contains_brdc(self, probe_results) -> None:
+        for result in probe_results:
+            assert "BRDC" in result.filename
+
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server.protocol == ServerProtocol.FTP
 
 
 # ---------------------------------------------------------------------------
-# Product Type Existence
+# Integration: Probe IGS/IGN FTP for navigation
 # ---------------------------------------------------------------------------
 
 
-class TestNavigationProductTypes:
-    """Verify navigation product types exist."""
+@pytest.mark.integration
+class TestIGSNavigationFTPProbe:
+    """Probe IGS (IGN France) FTP for broadcast navigation files."""
 
-    def test_rinex3_nav_exists(self) -> None:
-        assert ProductType.RINEX3_NAV is not None
-        assert ProductType.RINEX3_NAV.value == "RINEX3_NAV"
+    @pytest.fixture(scope="class")
+    def probe_results(self, igs_nav_queries) -> list[RinexFileQuery]:
+        target = igs_nav_queries[0] if igs_nav_queries else None
+        assert target is not None, "No IGS nav query found"
+        return process_product_query(target)
 
-    def test_rinex2_nav_exists(self) -> None:
-        assert ProductType.RINEX2_NAV is not None
-        assert ProductType.RINEX2_NAV.value == "RINEX2_NAV"
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No nav files found on IGS FTP"
+
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server.protocol == ServerProtocol.FTP

@@ -1,186 +1,110 @@
 """
-Integration test suite: LEO satellite products (GRACE/GRACE-FO) via unified config-based query interface.
+Tests: LEO satellite products (GRACE/GRACE-FO) via GNSSCenterConfig (GFZ).
 
-Metadata
---------
-Date under test : 2024-01-15 (GRACE-FO), 2016-06-15 (GRACE)
-Products probed : GRACE_GNV, GRACE_ACC, GRACE_SCA
-Source          : GFZ (isdcftp.gfz-potsdam.de)
+Load the GFZ center config—FTP server—and verify that LEOFileQuery
+objects build correctly.  Integration tests probe the GFZ FTP server.
 
-Usage
------
-Run all integration tests::
-
-    uv run pytest test/test_leo_resources.py -v
-
-Skip in offline environments::
-
-    uv run pytest -m "not integration"
+Products tested : GNV, ACC, SCA, KBR, LRI instruments for GRACE-FO/GRACE
+Server          : gfz_ftp  (ftp://isdcftp.gfz-potsdam.de)
 """
 from __future__ import annotations
 
 import datetime
-import logging
-from typing import List
+from pathlib import Path
 
 import pytest
 
-from gnss_ppp_products.data_query import query, ProductType, ProductQuality
-from gnss_ppp_products.resources.resource import RemoteProductAddress
-
-log = logging.getLogger(__name__)
-
-pytestmark = pytest.mark.integration
+from gnss_ppp_products.assets.center.config import GNSSCenterConfig
+from gnss_ppp_products.assets.leo.query import LEOFileQuery
+from gnss_ppp_products.assets.server.config import ServerProtocol
+from gnss_ppp_products.server.products import process_product_query
 
 # ---------------------------------------------------------------------------
-# Test parameters
+# Fixtures
 # ---------------------------------------------------------------------------
 
-# GRACE-FO test date (mission started 2018)
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "assets" / "config_files"
 DATE_GRACE_FO = datetime.date(2024, 1, 15)
 
-# Original GRACE test date (mission ended 2017)
-DATE_GRACE = datetime.date(2016, 6, 15)
 
-SOURCE = "GFZ"
-
-
-# ---------------------------------------------------------------------------
-# GRACE-FO Tests
-# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def gfz_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "gfz.yaml")
 
 
-class TestGRACEFOProducts:
-    """Tests for GRACE-FO products via unified interface."""
-
-    def test_gnv_query(self) -> None:
-        """GRACE-FO GNV (GPS navigation) should be queryable."""
-        log.info("Testing GRACE-FO GNV1B for %s", DATE_GRACE_FO)
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, center=SOURCE)
-        if len(results) > 0:
-            product = results[0]
-            assert product.type == ProductType.GRACE_GNV
-            assert "GNV1B" in product.filename
-            log.info("[%s] GRACE-FO GNV: %s", SOURCE, product.filename)
-        else:
-            log.warning("[%s] GRACE-FO GNV not found (FTP may be unavailable)", SOURCE)
-
-    def test_acc_query(self) -> None:
-        """GRACE-FO ACC (accelerometer) should be queryable."""
-        log.info("Testing GRACE-FO ACC1B for %s", DATE_GRACE_FO)
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_ACC, center=SOURCE)
-        if len(results) > 0:
-            product = results[0]
-            assert product.type == ProductType.GRACE_ACC
-            assert "ACC1B" in product.filename
-            log.info("[%s] GRACE-FO ACC: %s", SOURCE, product.filename)
-        else:
-            log.warning("[%s] GRACE-FO ACC not found", SOURCE)
-
-    def test_sca_query(self) -> None:
-        """GRACE-FO SCA (star camera) should be queryable."""
-        log.info("Testing GRACE-FO SCA1B for %s", DATE_GRACE_FO)
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_SCA, center=SOURCE)
-        if len(results) > 0:
-            product = results[0]
-            assert product.type == ProductType.GRACE_SCA
-            assert "SCA1B" in product.filename
-            log.info("[%s] GRACE-FO SCA: %s", SOURCE, product.filename)
-        else:
-            log.warning("[%s] GRACE-FO SCA not found", SOURCE)
-
-    def test_gracefo_directory_structure(self) -> None:
-        """GRACE-FO directory should contain grace-fo and year."""
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, center=SOURCE)
-        if len(results) > 0:
-            directory = results[0].directory
-            assert "grace-fo" in directory, f"Directory '{directory}' missing 'grace-fo'"
-            assert "2024" in directory, f"Directory '{directory}' missing year"
-
-    def test_gracefo_filename_contains_date(self) -> None:
-        """GRACE-FO filename should contain the date."""
-        results = query(date=DATE_GRACE_FO, product_type=ProductType.GRACE_GNV, center=SOURCE)
-        if len(results) > 0:
-            filename = results[0].filename
-            assert "2024" in filename, f"Filename '{filename}' missing year"
+@pytest.fixture(scope="module")
+def leo_queries(gfz_center) -> list[LEOFileQuery]:
+    return gfz_center.build_leo_queries(DATE_GRACE_FO)
 
 
 # ---------------------------------------------------------------------------
-# Original GRACE Tests (date validation)
+# Unit: Config → Query expansion
 # ---------------------------------------------------------------------------
 
 
-class TestGRACEOriginalProducts:
-    """Tests for original GRACE products (pre-2018)."""
+class TestLEOQueryExpansion:
+    """Verify that GFZ center config expands LEO queries correctly."""
 
-    def test_grace_gnv_query(self) -> None:
-        """Original GRACE GNV should be queryable for pre-2017 dates."""
-        log.info("Testing GRACE GNV1B for %s", DATE_GRACE)
-        results = query(date=DATE_GRACE, product_type=ProductType.GRACE_GNV, center=SOURCE)
-        if len(results) > 0:
-            product = results[0]
-            assert product.type == ProductType.GRACE_GNV
-            assert "GNV1B" in product.filename
-            log.info("[%s] GRACE GNV: %s", SOURCE, product.filename)
-        else:
-            log.warning("[%s] GRACE GNV not found (expected for pre-2017 date)", SOURCE)
+    def test_queries_returned(self, leo_queries) -> None:
+        assert len(leo_queries) > 0
 
-    def test_grace_no_gracefo_for_old_dates(self) -> None:
-        """GRACE-FO products should not appear for pre-2018 dates via valid_from."""
-        results = query(date=DATE_GRACE, product_type=ProductType.GRACE_GNV, center=SOURCE)
-        for r in results:
-            # If we get results, they should be from the 'grace' file config, not 'gracefo'
-            if r.file_id == "gracefo":
-                pytest.fail("GRACE-FO file config returned for pre-2018 date")
+    def test_query_types(self, leo_queries) -> None:
+        for q in leo_queries:
+            assert isinstance(q, LEOFileQuery)
 
+    def test_server_attached(self, leo_queries) -> None:
+        for q in leo_queries:
+            assert q.server is not None
+            assert q.server.id == "gfz_ftp"
 
-# ---------------------------------------------------------------------------
-# Cross-Instrument Availability
-# ---------------------------------------------------------------------------
+    def test_server_protocol_is_ftp(self, leo_queries) -> None:
+        for q in leo_queries:
+            assert q.server.protocol == ServerProtocol.FTP
 
+    def test_grace_fo_queries_exist(self, leo_queries) -> None:
+        gracefo = [q for q in leo_queries if "grace-fo" in q.directory]
+        assert len(gracefo) > 0
 
-class TestGRACEInstrumentAvailability:
-    """Test GRACE instrument product availability."""
+    def test_instrument_coverage(self, leo_queries) -> None:
+        """Multiple instruments should appear across queries."""
+        instruments = set()
+        for q in leo_queries:
+            for instr in ("GNV1B", "ACC1B", "SCA1B", "KBR1B", "LRI1B"):
+                if instr in q.filename:
+                    instruments.add(instr)
+        assert len(instruments) >= 3, f"Expected >=3 instruments, got {instruments}"
 
-    GRACE_TYPES = [ProductType.GRACE_GNV, ProductType.GRACE_ACC, ProductType.GRACE_SCA]
-
-    def test_at_least_one_instrument_queryable(self) -> None:
-        """At least one GRACE-FO instrument should return results."""
-        found = []
-        for ptype in self.GRACE_TYPES:
-            results = query(date=DATE_GRACE_FO, product_type=ptype, center=SOURCE)
-            if len(results) > 0:
-                found.append(ptype.value)
-                log.info("[%s] %s: %s", SOURCE, ptype.value, results[0].filename)
-        log.info("GRACE-FO instruments found: %s", found)
-        # GFZ FTP may be flaky, so allow test to pass if query works without error
-        assert True  # Test passes if no exceptions raised
+    def test_directories_contain_year(self, leo_queries) -> None:
+        for q in leo_queries:
+            assert "2024" in q.directory
 
 
 # ---------------------------------------------------------------------------
-# Product Type Existence
+# Integration: Probe GFZ FTP server
 # ---------------------------------------------------------------------------
 
 
-class TestLEOProductTypes:
-    """Verify LEO product types exist."""
+@pytest.mark.integration
+class TestLEOFTPProbe:
+    """Probe GFZ FTP to find GRACE-FO Level-1B files."""
 
-    def test_grace_gnv_exists(self) -> None:
-        assert ProductType.GRACE_GNV is not None
-        assert ProductType.GRACE_GNV.value == "GRACE_GNV"
+    @pytest.fixture(scope="class")
+    def probe_results(self, leo_queries) -> list[LEOFileQuery]:
+        target = next(
+            (q for q in leo_queries if "GNV1B" in q.filename and "grace-fo" in q.directory),
+            None,
+        )
+        assert target is not None, "No GRACE-FO GNV query found"
+        return process_product_query(target)
 
-    def test_grace_acc_exists(self) -> None:
-        assert ProductType.GRACE_ACC is not None
-        assert ProductType.GRACE_ACC.value == "GRACE_ACC"
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No files found on GFZ FTP server"
 
-    def test_grace_sca_exists(self) -> None:
-        assert ProductType.GRACE_SCA is not None
-        assert ProductType.GRACE_SCA.value == "GRACE_SCA"
+    def test_filename_contains_gnv(self, probe_results) -> None:
+        for result in probe_results:
+            assert "GNV1B" in result.filename
 
-    def test_grace_kbr_exists(self) -> None:
-        assert ProductType.GRACE_KBR is not None
-        assert ProductType.GRACE_KBR.value == "GRACE_KBR"
-
-    def test_grace_lri_exists(self) -> None:
-        assert ProductType.GRACE_LRI is not None
-        assert ProductType.GRACE_LRI.value == "GRACE_LRI"
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server is not None
+            assert result.server.protocol == ServerProtocol.FTP

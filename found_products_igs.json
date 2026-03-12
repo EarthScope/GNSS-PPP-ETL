@@ -967,6 +967,102 @@
       }
     }
   ],
-  "rinex": [],
-  "antennae": []
+  "rinex": [
+    {
+      "date": "2025-01-15T07:00:00+00:00",
+      "center": null,
+      "format": null,
+      "content": "N",
+      "campaign": null,
+      "filename": "BRDC00IGS_R_20250150000_01D_MN.rnx.gz",
+      "directory": "pub/igs/data/2025/015/",
+      "description": null,
+      "notes": null,
+      "station": "BRDC",
+      "region": "IGS",
+      "monument": 0,
+      "receiver": "0",
+      "interval": "01D",
+      "duration": "01D",
+      "satellite_system": "M",
+      "version": "3",
+      "data_source": "R",
+      "server": {
+        "id": "ign_ftp",
+        "name": "IGN France FTP",
+        "protocol": "ftp",
+        "hostname": "ftp://igs.ign.fr",
+        "auth_required": false,
+        "notes": "IGN France FTP mirror"
+      }
+    },
+    {
+      "date": "2025-01-15T07:00:00+00:00",
+      "center": null,
+      "format": null,
+      "content": "N",
+      "campaign": null,
+      "filename": "BRDC00IGS_R_20250150000_01D_MN.rnx.gz",
+      "directory": "gnss/data/daily/2025/015/25p/",
+      "description": null,
+      "notes": null,
+      "station": "BRDC",
+      "region": "IGS",
+      "monument": 0,
+      "receiver": "0",
+      "interval": "01D",
+      "duration": "01D",
+      "satellite_system": "M",
+      "version": "3",
+      "data_source": "R",
+      "server": {
+        "id": "cddis_ftps",
+        "name": "CDDIS FTPS",
+        "protocol": "ftps",
+        "hostname": "ftp://gdc.cddis.eosdis.nasa.gov",
+        "auth_required": false,
+        "notes": "Requires FTPS (explicit TLS). Anonymous login with email address. May require NASA Earthdata login for some products.\n"
+      }
+    }
+  ],
+  "antennae": [
+    {
+      "date": "2024-12-01T00:00:00+00:00",
+      "center": "IGS",
+      "format": "ATX",
+      "content": "ATT",
+      "campaign": "STATIC",
+      "filename": "igs20_2343.atx",
+      "directory": "pub/station/general/pcv_archive/",
+      "description": null,
+      "notes": null,
+      "server": {
+        "id": "igs_http",
+        "name": "IGS HTTP",
+        "protocol": "https",
+        "hostname": "https://files.igs.org",
+        "auth_required": false,
+        "notes": "IGS HTTP server for ANTEX and station data"
+      }
+    },
+    {
+      "date": "2024-12-01T00:00:00+00:00",
+      "center": "IGS",
+      "format": "ATX",
+      "content": "ATT",
+      "campaign": "STATIC",
+      "filename": "igs20_2343.atx",
+      "directory": "pub/station/general/pcv_archive/",
+      "description": null,
+      "notes": null,
+      "server": {
+        "id": "igs_http",
+        "name": "IGS HTTP",
+        "protocol": "https",
+        "hostname": "https://files.igs.org",
+        "auth_required": false,
+        "notes": "IGS HTTP server for ANTEX and station data"
+      }
+    }
+  ]
 }

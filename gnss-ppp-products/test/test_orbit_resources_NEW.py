@@ -1,296 +1,253 @@
 """
-Integration test suite: Orbit/Clock products via unified config-based query interface.
+Tests: Orbit/Clock products via GNSSCenterConfig.
 
-Metadata
---------
-Date under test : 2025-01-01  (DOY 001, GPS week 2347)
-Products probed : SP3, CLK, ERP, BIAS, OBX
-Sources         : WUHAN, CDDIS, IGS, ESA, CODE, GFZ
+Load center configs for Wuhan (FTP), IGS (FTP), and CODE (FTP),
+then verify that ProductFileQuery objects for orbit/clock products
+build correctly.  Integration tests probe each server.
 
-Usage
------
-Run all integration tests::
-
-    uv run pytest test/test_orbit_resources.py -v
-
-Skip in offline environments::
-
-    uv run pytest -m "not integration"
+Products tested : SP3, CLK, ERP, BIA, OBX
+Servers         : wuhan_ftp, ign_ftp, code_ftp
 """
 from __future__ import annotations
 
 import datetime
-import logging
-from typing import List
+from pathlib import Path
 
 import pytest
 
-from gnss_ppp_products.data_query import query, ProductType, ProductQuality
-from gnss_ppp_products.resources.resource import RemoteProductAddress
-
-log = logging.getLogger(__name__)
-
-pytestmark = pytest.mark.integration
+from gnss_ppp_products.assets.center.config import GNSSCenterConfig
+from gnss_ppp_products.assets.products.query import ProductFileQuery
+from gnss_ppp_products.assets.server.config import ServerProtocol
+from gnss_ppp_products.server.products import process_product_query
 
 # ---------------------------------------------------------------------------
-# Test parameters
+# Fixtures
 # ---------------------------------------------------------------------------
 
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "assets" / "config_files"
 DATE = datetime.date(2025, 1, 1)
-DOY: int = DATE.timetuple().tm_yday  # 1
-GPS_WEEK: int = (DATE - datetime.date(1980, 1, 6)).days // 7  # 2347
-
-# Sources known to have orbit/clock products in YAML configs
-ORBIT_SOURCES = ["WUHAN", "CDDIS", "IGS", "ESA", "CODE", "GFZ"]
+GPS_WEEK = (DATE - datetime.date(1980, 1, 6)).days // 7  # 2347
 
 
-# ---------------------------------------------------------------------------
-# Wuhan Orbit/Clock Tests
-# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def wuhan_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "wuhan.yaml")
 
 
-class TestWuhanOrbitClock:
-    """Tests for Wuhan orbit/clock products via unified interface."""
+@pytest.fixture(scope="module")
+def igs_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "igs.yaml")
 
-    SOURCE = "WUHAN"
 
-    def test_sp3_final(self) -> None:
-        """Wuhan SP3 FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No SP3 FINAL found from {self.SOURCE}"
-        product = results[0]
-        assert product.type == ProductType.SP3
-        assert "SP3" in product.filename.upper() or "ORB" in product.filename.upper()
-        log.info("[%s] SP3 FINAL: %s", self.SOURCE, product.filename)
+@pytest.fixture(scope="module")
+def code_center() -> GNSSCenterConfig:
+    return GNSSCenterConfig.from_yaml(CONFIG_DIR / "code.yaml")
 
-    def test_clk_final(self) -> None:
-        """Wuhan CLK FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No CLK FINAL found from {self.SOURCE}"
-        product = results[0]
-        assert product.type == ProductType.CLK
-        log.info("[%s] CLK FINAL: %s", self.SOURCE, product.filename)
 
-    def test_erp(self) -> None:
-        """Wuhan ERP should be available (RAPID or FINAL)."""
-        results = query(date=DATE, product_type=ProductType.ERP, center=self.SOURCE)
-        assert len(results) > 0, f"No ERP found from {self.SOURCE}"
-        log.info("[%s] ERP %s: %s", self.SOURCE, results[0].quality, results[0].filename)
+def _orbit_queries(center: GNSSCenterConfig) -> list[ProductFileQuery]:
+    """All product queries (orbit, clock, erp, bias, obx) excluding GIM."""
+    return [q for q in center.build_product_queries(DATE) if "GIM" not in (q.filename or "")]
 
-    def test_bias_final(self) -> None:
-        """Wuhan BIAS FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.BIAS,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No BIAS FINAL found from {self.SOURCE}"
-        log.info("[%s] BIAS FINAL: %s", self.SOURCE, results[0].filename)
 
-    def test_obx_final(self) -> None:
-        """Wuhan OBX FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.OBX,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No OBX FINAL found from {self.SOURCE}"
-        log.info("[%s] OBX FINAL: %s", self.SOURCE, results[0].filename)
+@pytest.fixture(scope="module")
+def wuhan_orbit_queries(wuhan_center) -> list[ProductFileQuery]:
+    return _orbit_queries(wuhan_center)
 
-    def test_sp3_directory_structure(self) -> None:
-        """SP3 directory should contain year."""
-        results = query(date=DATE, product_type=ProductType.SP3, center=self.SOURCE)
-        assert len(results) > 0
-        assert "2025" in results[0].directory
+
+@pytest.fixture(scope="module")
+def igs_orbit_queries(igs_center) -> list[ProductFileQuery]:
+    return _orbit_queries(igs_center)
+
+
+@pytest.fixture(scope="module")
+def code_orbit_queries(code_center) -> list[ProductFileQuery]:
+    return _orbit_queries(code_center)
 
 
 # ---------------------------------------------------------------------------
-# IGS Orbit/Clock Tests
+# Unit: Wuhan Orbit/Clock (FTP)
 # ---------------------------------------------------------------------------
 
 
-class TestIGSOrbitClock:
-    """Tests for IGS combined orbit/clock products via unified interface."""
+class TestWuhanOrbitExpansion:
+    """Verify Wuhan center config produces orbit/clock product queries."""
 
-    SOURCE = "IGS"
+    def test_queries_returned(self, wuhan_orbit_queries) -> None:
+        assert len(wuhan_orbit_queries) > 0
 
-    def test_sp3_final(self) -> None:
-        """IGS SP3 FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No SP3 FINAL found from {self.SOURCE}"
-        product = results[0]
-        assert product.type == ProductType.SP3
-        assert "IGS" in product.filename.upper()
-        log.info("[%s] SP3 FINAL: %s", self.SOURCE, product.filename)
+    def test_query_types(self, wuhan_orbit_queries) -> None:
+        for q in wuhan_orbit_queries:
+            assert isinstance(q, ProductFileQuery)
 
-    def test_clk_final(self) -> None:
-        """IGS CLK FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No CLK FINAL found from {self.SOURCE}"
-        log.info("[%s] CLK FINAL: %s", self.SOURCE, results[0].filename)
+    def test_server_attached(self, wuhan_orbit_queries) -> None:
+        for q in wuhan_orbit_queries:
+            assert q.server is not None
+            assert q.server.id == "wuhan_ftp"
 
-    def test_erp(self) -> None:
-        """IGS ERP should be available (RAPID or FINAL)."""
-        results = query(date=DATE, product_type=ProductType.ERP, center=self.SOURCE)
-        assert len(results) > 0, f"No ERP found from {self.SOURCE}"
-        log.info("[%s] ERP %s: %s", self.SOURCE, results[0].quality, results[0].filename)
+    def test_server_protocol_is_ftp(self, wuhan_orbit_queries) -> None:
+        for q in wuhan_orbit_queries:
+            assert q.server.protocol == ServerProtocol.FTP
 
-    def test_bias(self) -> None:
-        """IGS BIAS should be queryable (may fail if FTP listing doesn't match)."""
-        results = query(date=DATE, product_type=ProductType.BIAS, center=self.SOURCE)
-        if len(results) > 0:
-            log.info("[%s] BIAS: %s", self.SOURCE, results[0].filename)
-        else:
-            log.warning("[%s] BIAS not found (FTP listing may not match)", self.SOURCE)
+    def test_sp3_present(self, wuhan_orbit_queries) -> None:
+        sp3 = [q for q in wuhan_orbit_queries if "SP3" in q.filename]
+        assert len(sp3) > 0
 
-    def test_gps_week_in_directory(self) -> None:
-        """IGS orbit directory should use GPS week."""
-        results = query(date=DATE, product_type=ProductType.SP3, center=self.SOURCE)
-        assert len(results) > 0
-        assert str(GPS_WEEK) in results[0].directory
+    def test_clk_present(self, wuhan_orbit_queries) -> None:
+        clk = [q for q in wuhan_orbit_queries if "CLK" in q.filename]
+        assert len(clk) > 0
 
+    def test_erp_present(self, wuhan_orbit_queries) -> None:
+        erp = [q for q in wuhan_orbit_queries if "ERP" in q.filename]
+        assert len(erp) > 0
 
-# ---------------------------------------------------------------------------
-# CODE Orbit/Clock Tests
-# ---------------------------------------------------------------------------
+    def test_bias_present(self, wuhan_orbit_queries) -> None:
+        bia = [q for q in wuhan_orbit_queries if "BIA" in q.filename]
+        assert len(bia) > 0
 
+    def test_obx_present(self, wuhan_orbit_queries) -> None:
+        obx = [q for q in wuhan_orbit_queries if "OBX" in q.filename]
+        assert len(obx) > 0
 
-class TestCODEOrbitClock:
-    """Tests for CODE orbit/clock products via unified interface."""
+    def test_directories_contain_year(self, wuhan_orbit_queries) -> None:
+        for q in wuhan_orbit_queries:
+            assert "2025" in q.directory
 
-    SOURCE = "CODE"
+    def test_filename_contains_wum_or_wmc(self, wuhan_orbit_queries) -> None:
+        centers = {q.filename[:3] for q in wuhan_orbit_queries}
+        assert centers & {"WUM", "WMC"}, f"Expected WUM/WMC, got {centers}"
 
-    def test_sp3_final(self) -> None:
-        """CODE SP3 FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No SP3 FINAL found from {self.SOURCE}"
-        assert "COD" in results[0].filename.upper()
-        log.info("[%s] SP3 FINAL: %s", self.SOURCE, results[0].filename)
-
-    def test_clk_final(self) -> None:
-        """CODE CLK FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No CLK FINAL found from {self.SOURCE}"
-        log.info("[%s] CLK FINAL: %s", self.SOURCE, results[0].filename)
-
-    def test_erp_final(self) -> None:
-        """CODE ERP FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.ERP,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No ERP FINAL found from {self.SOURCE}"
-        log.info("[%s] ERP FINAL: %s", self.SOURCE, results[0].filename)
-
-    def test_bias_final(self) -> None:
-        """CODE BIAS FINAL should be available."""
-        results = query(date=DATE, product_type=ProductType.BIAS,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        assert len(results) > 0, f"No BIAS FINAL found from {self.SOURCE}"
-        log.info("[%s] BIAS FINAL: %s", self.SOURCE, results[0].filename)
+    def test_quality_expansion(self, wuhan_orbit_queries) -> None:
+        """Both FIN and RAP should appear."""
+        filenames = " ".join(q.filename for q in wuhan_orbit_queries)
+        assert "FIN" in filenames
+        assert "RAP" in filenames
 
 
 # ---------------------------------------------------------------------------
-# GFZ Orbit/Clock Tests
+# Unit: IGS Orbit/Clock (FTP via IGN)
 # ---------------------------------------------------------------------------
 
 
-class TestGFZOrbitClock:
-    """Tests for GFZ Potsdam orbit/clock products via unified interface."""
+class TestIGSOrbitExpansion:
+    """Verify IGS center config produces orbit/clock queries."""
 
-    SOURCE = "GFZ"
+    def test_queries_returned(self, igs_orbit_queries) -> None:
+        assert len(igs_orbit_queries) > 0
 
-    def test_sp3_final(self) -> None:
-        """GFZ SP3 FINAL should be available (may fail if FTP is down)."""
-        results = query(date=DATE, product_type=ProductType.SP3,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        if len(results) > 0:
-            log.info("[%s] SP3 FINAL: %s", self.SOURCE, results[0].filename)
-        else:
-            log.warning("[%s] SP3 FINAL not found (GFZ FTP may be unavailable)", self.SOURCE)
+    def test_server_protocol_is_ftp(self, igs_orbit_queries) -> None:
+        for q in igs_orbit_queries:
+            assert q.server.protocol == ServerProtocol.FTP
 
-    def test_clk_final(self) -> None:
-        """GFZ CLK FINAL should be available (may fail if FTP is down)."""
-        results = query(date=DATE, product_type=ProductType.CLK,
-                        product_quality=ProductQuality.FINAL, center=self.SOURCE)
-        if len(results) > 0:
-            log.info("[%s] CLK FINAL: %s", self.SOURCE, results[0].filename)
-        else:
-            log.warning("[%s] CLK FINAL not found (GFZ FTP may be unavailable)", self.SOURCE)
+    def test_directory_contains_gps_week(self, igs_orbit_queries) -> None:
+        for q in igs_orbit_queries:
+            assert str(GPS_WEEK) in q.directory
+
+    def test_filename_contains_igs(self, igs_orbit_queries) -> None:
+        for q in igs_orbit_queries:
+            assert "IGS" in q.filename
 
 
 # ---------------------------------------------------------------------------
-# Cross-Source Comparison
+# Unit: CODE Orbit/Clock (FTP)
 # ---------------------------------------------------------------------------
 
 
-class TestCrossSourceOrbitAvailability:
-    """Test that orbit products are available across multiple sources."""
+class TestCODEOrbitExpansion:
+    """Verify CODE center config produces orbit/clock queries."""
+
+    def test_queries_returned(self, code_orbit_queries) -> None:
+        assert len(code_orbit_queries) > 0
+
+    def test_server_protocol_is_ftp(self, code_orbit_queries) -> None:
+        for q in code_orbit_queries:
+            assert q.server.protocol == ServerProtocol.FTP
+
+    def test_directory_contains_year(self, code_orbit_queries) -> None:
+        for q in code_orbit_queries:
+            assert "2025" in q.directory
+
+    def test_filename_contains_cod(self, code_orbit_queries) -> None:
+        for q in code_orbit_queries:
+            assert "COD" in q.filename
+
+
+# ---------------------------------------------------------------------------
+# Integration: Probe Wuhan FTP for SP3
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestWuhanOrbitFTPProbe:
+    """Probe Wuhan FTP for SP3 orbit files."""
 
     @pytest.fixture(scope="class")
-    def all_sp3_results(self) -> dict[str, List[RemoteProductAddress]]:
-        """Query SP3 from all FTP-based sources."""
-        results = {}
-        for source in ["WUHAN", "IGS", "CODE", "GFZ"]:
-            try:
-                r = query(date=DATE, product_type=ProductType.SP3,
-                          product_quality=ProductQuality.FINAL, center=source)
-                results[source] = r
-            except Exception as e:
-                log.warning("[%s] SP3 query error: %s", source, e)
-                results[source] = []
-        return results
-
-    def test_at_least_two_sources_have_sp3(self, all_sp3_results) -> None:
-        """SP3 should be available from at least 2 sources."""
-        available = [s for s, r in all_sp3_results.items() if len(r) > 0]
-        log.info("SP3 available from: %s", available)
-        assert len(available) >= 2, (
-            f"SP3 only found from {available}; expected at least 2 sources"
+    def probe_results(self, wuhan_orbit_queries) -> list[ProductFileQuery]:
+        target = next(
+            (q for q in wuhan_orbit_queries if "SP3" in q.filename and "WUM" in q.filename and "FIN" in q.filename and "05M" in q.filename),
+            None,
         )
+        assert target is not None, "No Wuhan SP3 WUM FIN 05M query found"
+        return process_product_query(target)
 
-    def test_sp3_filenames_contain_date(self, all_sp3_results) -> None:
-        """All SP3 filenames should contain date information."""
-        year = str(DATE.year)
-        doy = f"{DOY:03d}"
-        for source, results in all_sp3_results.items():
-            for product in results:
-                has_date = year in product.filename or doy in product.filename
-                assert has_date, (
-                    f"[{source}] SP3 filename '{product.filename}' missing date info"
-                )
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No SP3 files found on Wuhan FTP"
 
-    def test_all_results_are_sp3_type(self, all_sp3_results) -> None:
-        """All returned products must have SP3 type."""
-        for source, results in all_sp3_results.items():
-            for product in results:
-                assert product.type == ProductType.SP3, (
-                    f"[{source}] Expected SP3 type, got {product.type}"
-                )
+    def test_filename_contains_sp3(self, probe_results) -> None:
+        for result in probe_results:
+            assert "SP3" in result.filename or result.filename.endswith(".SP3.gz")
+
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server.protocol == ServerProtocol.FTP
 
 
 # ---------------------------------------------------------------------------
-# Product Type Existence Tests
+# Integration: Probe IGS/IGN FTP for SP3
 # ---------------------------------------------------------------------------
 
 
-class TestOrbitProductTypes:
-    """Verify orbit/clock product types exist in the enum."""
+@pytest.mark.integration
+class TestIGSOrbitFTPProbe:
+    """Probe IGS (IGN France) FTP for SP3 orbit files."""
 
-    def test_sp3_exists(self) -> None:
-        assert ProductType.SP3 is not None
-        assert ProductType.SP3.value == "SP3"
+    @pytest.fixture(scope="class")
+    def probe_results(self, igs_orbit_queries) -> list[ProductFileQuery]:
+        target = next(
+            (q for q in igs_orbit_queries if q.format.value == "SP3" and "IGS" in q.filename.upper()),
+            None,
+        )
+        assert target is not None, "No IGS SP3 FIN query found"
+        return process_product_query(target)
 
-    def test_clk_exists(self) -> None:
-        assert ProductType.CLK is not None
-        assert ProductType.CLK.value == "CLK"
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No SP3 files found on IGS FTP"
 
-    def test_erp_exists(self) -> None:
-        assert ProductType.ERP is not None
-        assert ProductType.ERP.value == "ERP"
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server.protocol == ServerProtocol.FTP
 
-    def test_bias_exists(self) -> None:
-        assert ProductType.BIAS is not None
-        assert ProductType.BIAS.value == "BIAS"
 
-    def test_obx_exists(self) -> None:
-        assert ProductType.OBX is not None
-        assert ProductType.OBX.value == "OBX"
+# ---------------------------------------------------------------------------
+# Integration: Probe CODE FTP for SP3
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestCODEOrbitFTPProbe:
+    """Probe CODE FTP for SP3 orbit files."""
+
+    @pytest.fixture(scope="class")
+    def probe_results(self, code_orbit_queries) -> list[ProductFileQuery]:
+        target = next(
+            (q for q in code_orbit_queries if "SP3" in q.filename and "FIN" in q.filename),
+            None,
+        )
+        assert target is not None, "No CODE SP3 FIN query found"
+        return process_product_query(target)
+
+    def test_found_files(self, probe_results) -> None:
+        assert len(probe_results) > 0, "No SP3 files found on CODE FTP"
+
+    def test_server_preserved(self, probe_results) -> None:
+        for result in probe_results:
+            assert result.server.protocol == ServerProtocol.FTP
