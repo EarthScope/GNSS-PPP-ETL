@@ -25,65 +25,71 @@ defaults:
   compressed: false  # VMF files are typically uncompressed
 
 products: []
-  # NOTE: VMF products commented out — VMF1/VMF3/OROGRAPHY formats, GRID content,
-  # 6H interval, OP campaign, and VMFG/VMF3/orography center codes are not in the
-  # current IGS long-form convention enums. These products use a different filename
-  # convention than the standard IGS products.
-  # - id: vmf_vmf1
-  #   format: VMF1
-  #   content: GRID
-  #   server_id: vmf_https
-  #   available: true
-  #   description: Vienna Mapping Functions version 1
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: OP
-  #       center: VMFG
-  #       description: Operational VMF1 grids
-  #   sampling_set:
-  #     - interval: "6H"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: trop_products/GRID/2.5x2/VMF1/VMF1_OP/{year}/
-  #   filename: "VMFG_{year}{month}{day}.H{hour}"
 
-  # - id: vmf_vmf3
-  #   format: VMF3
-  #   content: GRID
-  #   server_id: vmf_https
-  #   available: true
-  #   description: Vienna Mapping Functions version 3 (recommended)
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: OP
-  #       center: VMF3
-  #       description: Operational VMF3 grids
-  #   sampling_set:
-  #     - interval: "6H"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: trop_products/GRID/1x1/VMF3/VMF3_OP/{year}/
-  #   filename: "VMF3_{year}{month}{day}.H{hour}"
+troposphere:
+  - id: vmf_vmf1
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 1 (2.5x2 grid)
+    product_set:
+      - product: VMF1
+    resolution_set:
+      - resolution: "2.5x2"
+    hour_set:
+      - hour: H00
+      - hour: H06
+      - hour: H12
+      - hour: H18
+    directory: "trop_products/GRID/{resolution}/VMF1/VMF1_OP/{year}/"
+    filename: "{product}_{year}{month}{day}.{hh}"
 
-  # - id: vmf_orography
-  #   format: OROGRAPHY
-  #   content: GRID
-  #   server_id: vmf_https
-  #   available: true
-  #   description: Ellipsoidal terrain height grids for VMF interpolation
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: static
-  #       center: orography
-  #   sampling_set:
-  #     - interval: "STATIC"
-  #   duration_set:
-  #     - duration: "STATIC"
-  #   version: "0"
-  #   directory: station_files/GRID/
-  #   filename: "orography_ell_1x1"
+  - id: vmf_vmf3_1x1
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 3 (1x1 grid, recommended)
+    product_set:
+      - product: VMF3
+    resolution_set:
+      - resolution: "1x1"
+    hour_set:
+      - hour: H00
+      - hour: H06
+      - hour: H12
+      - hour: H18
+    directory: "trop_products/GRID/{resolution}/VMF3/VMF3_OP/{year}/"
+    filename: "{product}_{year}{month}{day}.{hh}"
+
+  - id: vmf_vmf3_5x5
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 3 (5x5 grid)
+    product_set:
+      - product: VMF3
+    resolution_set:
+      - resolution: "5x5"
+    hour_set:
+      - hour: H00
+      - hour: H06
+      - hour: H12
+      - hour: H18
+    directory: "trop_products/GRID/{resolution}/VMF3/VMF3_OP/{year}/"
+    filename: "{product}_{year}{month}{day}.{hh}"
+
+orography:
+  - id: vmf_orography_1x1
+    server_id: vmf_https
+    available: true
+    description: Ellipsoidal terrain height grid (1x1) for VMF interpolation
+    resolution_set:
+      - resolution: "1x1"
+    directory: "station_coord_files"
+    filename: "orography_ell_{resolution}"
+
+  - id: vmf_orography_5x5
+    server_id: vmf_https
+    available: true
+    description: Ellipsoidal terrain height grid (5x5) for VMF interpolation
+    resolution_set:
+      - resolution: "5x5"
+    directory: "station_coord_files"
+    filename: "orography_ell_{resolution}"

@@ -195,3 +195,12 @@ rinex:
   #   region_set: []
   #   directory: gnss/data/daily/{year}/{doy}/{yy}n/
   #   filename: "brdc{doy}0.{yy}p.*"
+
+reference_tables:
+  - id: cddis_leap_seconds
+    server_id: cddis_ftps
+    available: true
+    description: IERS leap seconds file
+    table_type: leap_seconds
+    directory: "pub/products/iers"
+    filename: "leapsec.dat"

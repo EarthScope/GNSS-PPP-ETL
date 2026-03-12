@@ -213,3 +213,20 @@ rinex:
 
     directory: pub/gps/data/daily/{year}/{doy}/{yy}p
     filename: "{station}{monument}{receiver}{region}_{data_source}_{year}{doy}0000_{duration}_{satellite_system}{content}.rnx.*"
+
+reference_tables:
+  - id: wuhan_leap_seconds
+    server_id: wuhan_ftp
+    available: true
+    description: Leap seconds table (PRIDE-PPPAR)
+    table_type: leap_seconds
+    directory: "pub/whu/phasebias/table"
+    filename: "leap.sec"
+
+  - id: wuhan_sat_parameters
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite physical parameters table
+    table_type: sat_parameters
+    directory: "pub/whu/phasebias/table"
+    filename: "sat_parameters"

@@ -75,99 +75,43 @@ products:
     directory: gnss/products/final/w{gps_week}/
     filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_CLK.CLK.*"
 
-  # NOTE: GRACE/GRACE-FO products commented out — their format/content types
-  # (GNV, ACC, SCA, KBR, LRI) are not in the current IGS long-form enums.
-  # - id: gfz_grace_gnv
-  #   format: GNV
-  #   content: NAV
-  #   server_id: gfz_ftp
-  #   available: true
-  #   description: GRACE/GRACE-FO GPS navigation data
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: L1B
-  #       center: GNV
-  #   sampling_set:
-  #     - interval: "01D"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: grace-fo/Level-1B/JPL/RL04/{year}/
-  #   filename: "GNV1B_{year}-{month}-{day}_{spacecraft}_04.dat.*"
+leo:
+  - id: gfz_grace_fo
+    server_id: gfz_ftp
+    available: true
+    description: GRACE-FO Level-1B instrument data
+    mission_set:
+      - mission: grace-fo
+        description: GRACE Follow-On (2018+)
+    instrument_set:
+      - instrument: GNV
+        description: GPS Navigation
+      - instrument: ACC
+        description: Accelerometer
+      - instrument: SCA
+        description: Star Camera Assembly
+      - instrument: KBR
+        description: K-Band Ranging
+      - instrument: LRI
+        description: Laser Ranging Interferometer
+    directory: "{mission}/Level-1B/JPL/{instrument}/RL04/{year}/"
+    filename: "{instrument}_{year}-{month}-{day}_{spacecraft}_\\d+\\..*"
 
-  # - id: gfz_grace_acc
-  #   format: ACC
-  #   content: ACC
-  #   server_id: gfz_ftp
-  #   available: true
-  #   description: GRACE/GRACE-FO accelerometer data
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: L1B
-  #       center: ACC
-  #   sampling_set:
-  #     - interval: "01D"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: grace-fo/Level-1B/JPL/RL04/{year}/
-  #   filename: "ACC1B_{year}-{month}-{day}_{spacecraft}_04.dat.*"
-
-  # - id: gfz_grace_sca
-  #   format: SCA
-  #   content: SCA
-  #   server_id: gfz_ftp
-  #   available: true
-  #   description: GRACE/GRACE-FO star camera data
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: L1B
-  #       center: SCA
-  #   sampling_set:
-  #     - interval: "01D"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: grace-fo/Level-1B/JPL/RL04/{year}/
-  #   filename: "SCA1B_{year}-{month}-{day}_{spacecraft}_04.dat.*"
-
-  # - id: gfz_grace_kbr
-  #   format: KBR
-  #   content: KBR
-  #   server_id: gfz_ftp
-  #   available: true
-  #   description: GRACE/GRACE-FO K-Band ranging data
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: L1B
-  #       center: KBR
-  #   sampling_set:
-  #     - interval: "01D"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: grace-fo/Level-1B/JPL/RL04/{year}/
-  #   filename: "KBR1B_{year}-{month}-{day}_Y_04.dat.*"
-
-  # - id: gfz_grace_lri
-  #   format: LRI
-  #   content: LRI
-  #   server_id: gfz_ftp
-  #   available: true
-  #   description: GRACE-FO Laser Ranging Interferometer data
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: L1B
-  #       center: LRI
-  #   sampling_set:
-  #     - interval: "01D"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: grace-fo/Level-1B/JPL/RL04/{year}/
-  #   filename: "LRI1B_{year}-{month}-{day}_Y_04.dat.*"
+  - id: gfz_grace
+    server_id: gfz_ftp
+    available: true
+    description: GRACE (original) Level-1B instrument data
+    mission_set:
+      - mission: grace
+        description: Original GRACE (2002-2017)
+    instrument_set:
+      - instrument: GNV
+        description: GPS Navigation
+      - instrument: ACC
+        description: Accelerometer
+      - instrument: SCA
+        description: Star Camera Assembly
+      - instrument: KBR
+        description: K-Band Ranging
+    directory: "{mission}/Level-1B/JPL/{instrument}/RL02/{year}/"
+    filename: "{instrument}_{year}-{month}-{day}_{spacecraft}_\\d+\\..*"
