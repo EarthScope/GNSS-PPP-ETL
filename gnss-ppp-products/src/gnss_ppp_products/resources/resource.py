@@ -11,7 +11,7 @@ Existing ``from .resource import X`` imports continue to work.
 """
 
 # Server models
-from .models.server import Server, ServerProtocol, TimeIndex
+from .models.server import Server, ServerProtocol
 
 # Product models
 from .models.products import (

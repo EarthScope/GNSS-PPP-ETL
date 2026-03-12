@@ -5,7 +5,7 @@ RINEX filename queries and RINEX-specific YAML configuration schemas.
 import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, field_serializer
 
 from ..remote.utils import _parse_date, _date_to_gps_week
 from ..igs_conventions import (
@@ -19,7 +19,7 @@ from ..igs_conventions import (
     RinexVersion,
 )
 
-
+from .server import Server
 # ---------------------------------------------------------------------------
 # Regex fallback patterns for RINEX filename placeholders
 # ---------------------------------------------------------------------------
@@ -57,6 +57,7 @@ class _RinexRegexFallbackDict(dict):
 
 class RinexFileQuery(BaseModel):
     date: Optional[datetime.datetime | datetime.date] = None
+    server: Optional[Server] = None
     station: Optional[str] = None
     region: Optional[str] = None
     monument: Optional[int] = None
@@ -70,6 +71,19 @@ class RinexFileQuery(BaseModel):
     version: RinexVersion = RinexVersion.V3
     data_source: Optional[Rinex3DataSource] = Rinex3DataSource.R
 
+    @field_serializer("date")
+    def _serialize_date(self, date: Optional[datetime.datetime | datetime.date]) -> Optional[str]:
+        if date is None:
+            return None
+        return date.astimezone(datetime.timezone.utc).isoformat()
+    
+    @field_validator("date")
+    def _validate_date(cls, date: Optional[datetime.datetime | datetime.date]) -> Optional[datetime.datetime | datetime.date]:
+        if date is None:
+            return None
+        if isinstance(date, str):
+            return datetime.datetime.fromisoformat(date).astimezone(datetime.timezone.utc)
+        return date
     @classmethod
     def _from_filename_v3_v4(cls, filename: str) -> "RinexFileQuery":
         '''

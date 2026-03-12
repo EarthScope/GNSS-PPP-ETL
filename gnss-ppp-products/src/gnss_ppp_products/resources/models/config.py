@@ -9,15 +9,13 @@ ProductConfig and RinexConfig).
 import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel
-
 from ..products import ProductQuality
 from .server import Server
 from .products import ProductConfig, ProductFileQuery
 from .rinex import RinexConfig, RinexFileQuery
+from .base import BaseConfig
 
-
-class GNSSCenterConfig(BaseModel):
+class GNSSCenterConfig(BaseConfig):
     """Configuration for a GNSS product center."""
     name: str
     code: str

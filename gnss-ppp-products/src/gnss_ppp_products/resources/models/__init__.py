@@ -10,7 +10,7 @@ Pydantic BaseModels organized by domain:
     - results: Unified result dataclass re-exports
 """
 
-from .server import Server, ServerProtocol, TimeIndex
+from .server import Server, ServerProtocol
 from .products import (
     ProductFileQuery,
     QualityConfig,

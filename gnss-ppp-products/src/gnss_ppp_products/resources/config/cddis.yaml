@@ -109,26 +109,38 @@ products:
     filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_GIM.INX.*"
 
 
-  # - id: cddis_nav3
-  #   format: rnx
-  #   content: MN
-  #   server_id: cddis_ftps
-  #   available: true
-  #   description: Broadcast navigation
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: OPS
-  #       center: BRD
-  #       description: IGS broadcast navigation
-  #   sampling_set:
-  #     - interval: "01D"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "C00"
-  #   directory: gnss/data/daily/{year}/{doy}/{yy}p/
-  #   filename: "BRDC00IGS_R_{year}{doy}0000_01D_MN.rnx.*"
+rinex:
+  - id: cddis_nav3
+    format: rnx
+    content: N
+    server_id: cddis_ftps
+    available: true
+    description: RINEX 3 broadcast navigation (multi-GNSS)
+    station_set:
+      - station: BRDC
+        description: Broadcast navigation (no station code)
+    monument_set:
+      - monument: 0
+        description: No monument code for broadcast navigation
+    receiver_set:
+      - receiver: "0"
+        description: No receiver code for broadcast navigation
+    region_set:
+      - region: IGS
+        description: No region code for broadcast navigation
+    data_source: R
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    satellite_system_set:
+      - satellite_system: E
+        description: Galileo RINEX 3 navigation file
+      - satellite_system: M
+        description: Mixed RINEX 3 navigation file
 
+    directory: gnss/data/daily/{year}/{doy}/{yy}p/
+    filename: "{station}{monument}{receiver}{region}_{data_source}_{year}{doy}0000_{duration}_{satellite_system}{content}.rnx.*"
 
 
   # - id: cddis_nav_gps

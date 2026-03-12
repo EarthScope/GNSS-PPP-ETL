@@ -5,8 +5,8 @@ IGS product filename queries and YAML configuration schemas.
 import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
-
+from pydantic import  Field, field_serializer, field_validator
+from .base import BaseConfig
 from ..remote.utils import _parse_date, _date_to_gps_week
 from ..products import Solution, ProductQuality, TemporalCoverage
 from ..igs_conventions import (
@@ -59,7 +59,7 @@ class _RegexFallbackDict(dict):
 # ---------------------------------------------------------------------------
 
 
-class ProductFileQuery(BaseModel):
+class ProductFileQuery(BaseConfig):
     date: Optional[datetime.datetime | datetime.date] = None
     server: Optional[Server] = None
     center: Optional[str] = None
@@ -73,6 +73,20 @@ class ProductFileQuery(BaseModel):
     filename: Optional[str] = None
     directory: Optional[str] = None
 
+    @field_serializer("date")
+    def _serialize_date(self, date: Optional[datetime.datetime | datetime.date]) -> Optional[str]:
+        if date is None:
+            return None
+        return date.astimezone(datetime.timezone.utc).isoformat()
+    
+    @field_validator("date")
+    def _validate_date(cls, date: Optional[datetime.datetime | datetime.date]) -> Optional[datetime.datetime | datetime.date]:
+        if date is None:
+            return None
+        if isinstance(date, str):
+            return datetime.datetime.fromisoformat(date).astimezone(datetime.timezone.utc)
+        return date
+    
     @classmethod
     def from_filename(cls, filename: str) -> "ProductFileQuery":
         center_solution, yeardoy, coverage, sample, content = filename.split("_")
@@ -165,24 +179,24 @@ class ProductFileQuery(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class QualityConfig(BaseModel):
+class QualityConfig(BaseConfig):
     quality: ProductQuality
     description: Optional[str] = None
 
-class SampleIntervalConfig(BaseModel):
+class SampleIntervalConfig(BaseConfig):
     interval: ProductSampleInterval
     description: Optional[str] = None
 
-class DurationConfig(BaseModel):
+class DurationConfig(BaseConfig):
     duration: ProductDuration | Rinex2FileInterval
     description: Optional[str] = None
 
-class CampaignConfig(BaseModel):
+class CampaignConfig(BaseConfig):
     center: AnalysisCenter
     campaign: ProductCampaignSpec
     description: Optional[str] = None
 
-class ProductConfig(BaseModel):
+class ProductConfig(BaseConfig):
     """Configuration for a GNSS product with the new files structure."""
     id: str
     version: str
@@ -227,7 +241,7 @@ class ProductConfig(BaseModel):
                         queries.append(query)
         return queries
 
-class RemoteProductAddress(BaseModel):
+class RemoteProductAddress(BaseConfig):
     server: Server
     directory: str
     filename: str
