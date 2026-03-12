@@ -2,75 +2,30 @@ import datetime
 from ftplib import FTP, FTP_TLS
 from pathlib import Path
 import re
-from typing import Generator, Optional, Tuple
+from typing import Generator, List, Optional, Tuple
 import julian
 from functools import lru_cache
 import logging
 logger = logging.getLogger(__name__)
 
-def _parse_date(date: datetime.date | datetime.datetime) -> Tuple[str, str]:
-    """
-    Parse a date or datetime object and return the year and day of year (DOY) as strings.
-    Args:
-        date (datetime.date | datetime.datetime): The date or datetime object to parse.
-    Returns:
-        Tuple[str, str]: A tuple containing the year and the day of year (DOY) as strings.
-    """
-
-    if isinstance(date, datetime.datetime):
-        date = date.date()
-    year = str(date.year)
-    doy = date.timetuple().tm_yday
-    if doy < 10:
-        doy = f"00{doy}"
-    elif doy < 100:
-        doy = f"0{doy}"
-    doy = str(doy)
-    return year, doy
-
-
-GNSS_START_TIME = datetime.datetime(
-    1980, 1, 6, tzinfo=datetime.timezone.utc
-)  # GNSS start time
-
-
-def _date_to_gps_week(date: datetime.date | datetime.datetime) -> int:
-    """
-    Convert a given date to the corresponding GPS week number.
-
-    The GPS week number is calculated as the number of weeks since the start of the GPS epoch (January 6, 1980).
-
-    Args:
-        date (datetime.date | datetime.datetime): The date to be converted. Can be either a datetime.date or datetime.datetime object.
-
-    Returns:
-        int: The GPS week number corresponding to the given date.
-    """
-    # get the number of weeks since the start of the GPS epoch
-
-    if isinstance(date, datetime.datetime):
-        date = date.date()
-    time_since_epoch = date - GNSS_START_TIME.date()
-    gps_week = time_since_epoch.days // 7
-    return gps_week
-
-def datetime_to_mjd(date: datetime.date | datetime.datetime) -> float:
-    """
-    Convert a given date to Modified Julian Date (MJD).
-
-    MJD is calculated as the number of days (including fractional days) since midnight on November 17, 1858.
-
-    Args:
-        date (datetime.date | datetime.datetime): The date to be converted. Can be either a datetime.date or datetime.datetime object.
-
-    Returns:
-        float: The Modified Julian Date corresponding to the given date.
-    """
-    # Convert date to datetime if necessary (julian library requires datetime with hour/minute/second)
-    if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
-        date = datetime.datetime.combine(date, datetime.time.min)
-    mjd = julian.to_jd(date, fmt='mjd')
-    return mjd
+def ftp_can_connect(ftpserver,timeout:int=10,use_tls:bool=False) -> bool:
+    clean = ftpserver.replace("ftp://", "")
+    try:
+        if use_tls:
+            ftp = FTP_TLS(clean, timeout=timeout)
+            ftp.set_pasv(True)
+            ftp.login()
+            ftp.prot_p()  # Switch to secure data connection
+        else:
+            ftp = FTP(clean, timeout=timeout)
+            ftp.set_pasv(True)
+            ftp.login()
+        with ftp:
+            ftp.cwd("/")
+            return True
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Failed to connect to FTP server {ftpserver} | {e}")
+        return False
 
 @lru_cache(maxsize=128)
 def ftp_list_directory(
@@ -164,3 +119,19 @@ def ftp_find_best_match_in_listing(
         if pattern.search(entry):
             yield entry
     return None
+
+def ftp_protocol(
+    ftpserver: str,
+    directory: str,
+    filename: str,
+    use_tls: bool = False
+) -> List[str]:
+        try:
+            listing = ftp_list_directory(ftpserver, directory, use_tls=use_tls)
+        except Exception as e:
+            print(f"Error listing FTP directory {ftpserver}/{directory}: {e}")
+            return []
+        matches = list(ftp_find_best_match_in_listing(listing, filename))
+        if not matches:
+            print(f"No matches found for {filename} in FTP directory {ftpserver}/{directory}")
+        return matches

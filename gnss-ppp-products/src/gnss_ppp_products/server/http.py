@@ -1,8 +1,18 @@
 import re
-from typing import Optional
+from typing import List, Optional
 from requests import get, Response
 from functools import lru_cache
+from urllib.parse import unquote
 
+def http_can_connect(httpserver, timeout: int = 10) -> bool:
+    try:
+        response = get(httpserver, timeout=timeout)
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        print(f"Failed to connect to HTTP server {httpserver} | {e}")
+        return False
+    
 def extract_filenames_from_html(html: str) -> list[str]:
     """
     Extract filenames from an Apache/nginx HTML directory listing.
@@ -13,8 +23,6 @@ def extract_filenames_from_html(html: str) -> list[str]:
     pattern = r'<a href="([^"?/][^"?]*)"'
     matches = re.findall(pattern, html)
     # Filter out non-file entries and decode URL encoding
-    from urllib.parse import unquote
-
     filenames = []
     for match in matches:
         decoded = unquote(match)
@@ -37,3 +45,22 @@ def http_list_directory(
     except Exception as e:
         print(f"Error listing HTTP directory {server}/{directory}: {e}")
         return None
+
+def http_protocol(
+    httpserver:str,
+    directory:str,
+    filequery:str
+) -> List[str]:
+    out = []
+    listing: Optional[str] = http_list_directory(
+        server=httpserver,
+        directory=directory
+    )
+    if listing is None:
+        return out
+    for filename in extract_filenames_from_html(listing):
+        if re.match(filequery, filename):
+    
+            print(f"Best match for {filequery}: {filename}")
+            out.append(filename)
+    return out
