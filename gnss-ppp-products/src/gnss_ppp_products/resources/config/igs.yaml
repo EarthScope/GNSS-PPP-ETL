@@ -20,6 +20,7 @@ servers:
     protocol: ftp
     auth_required: false
     notes: IGN France FTP mirror
+
   - id: igs_http
     name: IGS HTTP
     hostname: https://files.igs.org
@@ -137,28 +138,38 @@ products:
 
   # NOTE: igs_atx commented out — ATX files do not follow the IGS long-form
   # filename convention and cannot be represented in the current ProductConfig schema.
-  # - id: igs_atx
-  #   format: ATX
-  #   content: ATT
-  #   server_id: igs_http
-  #   available: true
-  #   description: IGS ANTEX antenna calibrations
-  #   quality_set:
-  #     - quality: FIN
-  #   campaign_set:
-  #     - campaign: OPS
-  #       center: IGS
-  #   sampling_set:
-  #     - interval: "01D"
-  #   duration_set:
-  #     - duration: "01D"
-  #   version: "0"
-  #   directory: pub/station/general/
-  #   filename: "igs20.atx"
-  #   notes: >
-  #     ANTEX files are not date-specific but frame-specific (igs14, igs20).
-  #     Archive contains weekly snapshots; current file is latest.
 
+antennae:
+  - id: igs_atx
+    format: ATX
+    content: ATT
+    server_id: igs_http
+    available: true
+    campaign_set:
+      - campaign: STATIC
+        center: IGS
+    description: IGS ANTEX antenna calibrations
+    directory: pub/station/general/
+    filename: "{center}{reference_frame}_?{gps_week}?.atx.*"
+    notes: >
+      ANTEX files are not date-specific but frame-specific (igs14, igs20).
+      Archive contains weekly snapshots; current file is latest.
+
+  - id: igs_atx_archive
+    format: ATX
+    content: ATT
+    server_id: igs_http
+    available: true
+    campaign_set:
+      - campaign: STATIC
+        center: IGS
+    description: IGS ANTEX antenna calibrations archive
+    directory: pub/station/general/pcv_archive/
+    filename: "{center}{reference_frame}_{gps_week}.atx.*"
+    notes: >
+      ANTEX files are not date-specific but frame-specific (igs14, igs20).
+      Archive contains weekly snapshots; current file is latest.
+      
 rinex:
 
   - id: igs_nav

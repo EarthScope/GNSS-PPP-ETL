@@ -15,6 +15,8 @@ from .products import ProductConfig, ProductFileQuery
 from .rinex import RinexConfig, RinexFileQuery
 from .base import BaseConfig
 
+from .antennae_calibration import AntennaeCalibrationConfig, AntennaeCalibrationQuery
+
 class GNSSCenterConfig(BaseConfig):
     """Configuration for a GNSS product center."""
     name: str
@@ -24,6 +26,7 @@ class GNSSCenterConfig(BaseConfig):
     servers: List[Server]
     products: List[ProductConfig]
     rinex: Optional[List[RinexConfig]] = None
+    antennae: Optional[List[AntennaeCalibrationConfig]] = None
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "GNSSCenterConfig":
@@ -55,6 +58,7 @@ class GNSSCenterConfig(BaseConfig):
                 if product_quality and query.quality != product_quality.value:
                     continue
                 query.server = next((s for s in self.servers if s.id == product.server_id), None)
+                assert query.server is not None, f"No matching server for product query: {query}"
                 queries.append(query)
         return queries
 
@@ -71,5 +75,23 @@ class GNSSCenterConfig(BaseConfig):
                 continue
             for query in rinex.build(date):
                 query.server = next((s for s in self.servers if s.id == rinex.server_id), None)
+                assert query.server is not None, f"No matching server for RINEX query: {query}"
                 queries.append(query)
+        return queries
+
+    def build_antennae_queries(
+        self,
+        date: datetime.datetime | datetime.date,
+    ) -> List[AntennaeCalibrationQuery]:
+        """Expand all antennae calibration configs into file queries for the given date."""
+        queries: list[AntennaeCalibrationQuery] = []
+        if not self.antennae:
+            return queries
+        for ant in self.antennae:
+            if not ant.available:
+                continue
+            for query in ant.build(date):
+                query.server = next((s for s in self.servers if s.id == ant.server_id), None)
+                assert query.server is not None, f"No matching server for antennae calibration query: {query}"   
+            queries.append(query)
         return queries

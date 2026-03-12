@@ -9,20 +9,20 @@ date = datetime.date(2025, 3, 10)
 # Fully specified - exact filename
 q = ProductFileQuery(content="ORB", format="SP3", center="WUM", quality="FIN", campaign="MGX")
 q.date = date
-print("Full:          ", q.build_query(TPL))
+print("Full:          ", q.build_filename(TPL))
 
 # Missing center & quality → regex fallback
 q2 = ProductFileQuery(content="ORB", format="SP3")
 q2.date = date
-print("Partial:       ", q2.build_query(TPL))
+print("Partial:       ", q2.build_filename(TPL))
 
 # No date → date fields become regex
 q3 = ProductFileQuery(center="WUM", quality="FIN")
-print("No date:       ", q3.build_query(TPL))
+print("No date:       ", q3.build_filename(TPL))
 
 # Nothing specified → pure regex
 q4 = ProductFileQuery()
-print("Empty:         ", q4.build_query(TPL))
+print("Empty:         ", q4.build_filename(TPL))
 
 # RINEX test
 RTPL = "{station}{monument}{receiver}{region}_{data_source}_{year}{doy}0000_{duration}_{satellite_system}{content}.rnx.*"

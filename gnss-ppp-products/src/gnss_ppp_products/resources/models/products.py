@@ -148,7 +148,7 @@ class ProductFileQuery(BaseConfig):
             subs["format"] = self.format.value
         return subs
 
-    def build_query(self, template: str) -> str:
+    def build_filename(self, template: str) -> str:
         """
         Build a filename pattern from a template string.
 
@@ -167,11 +167,11 @@ class ProductFileQuery(BaseConfig):
         str
             Pattern string with all placeholders resolved.
         """
-        return template.format_map(_RegexFallbackDict(self._substitution_map()))
+        self.filename = template.format_map(_RegexFallbackDict(self._substitution_map()))
 
     def build_directory(self, template: str) -> str:
         """Build a directory path from a template, substituting known values."""
-        return template.format_map(_RegexFallbackDict(self._substitution_map()))
+        self.directory = template.format_map(_RegexFallbackDict(self._substitution_map()))
 
 
 # ---------------------------------------------------------------------------
@@ -236,8 +236,8 @@ class ProductConfig(BaseConfig):
                             content=self.content,
                             format=self.format,
                         )
-                        query.filename = query.build_query(self.filename)
-                        query.directory = query.build_directory(self.directory)
+                        query.build_filename(self.filename)
+                        query.build_directory(self.directory)
                         queries.append(query)
         return queries
 

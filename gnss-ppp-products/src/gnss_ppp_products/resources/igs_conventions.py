@@ -88,6 +88,7 @@ class ProductFileFormat(str, Enum):
     SUM  = "SUM"   # Summary of the indicated product / combination summary
     TRO  = "TRO"   # SINEX_TRO troposphere product format
     YAML = "YAML"  # YAML Ain't Markup Language
+    ATX  = "ATX"   # ANTEX antenna calibration format
 
 class ProductContentType(str, Enum):
     """

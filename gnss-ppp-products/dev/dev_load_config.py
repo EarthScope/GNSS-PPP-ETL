@@ -1,12 +1,15 @@
 import re
 from typing import List, Optional, Union
+from gnss_ppp_products.resources.models.antennae_calibration import AntennaeCalibrationQuery
 from gnss_ppp_products.resources.models.products import ProductFileQuery
 from gnss_ppp_products.resources.models.rinex import RinexFileQuery
 from gnss_ppp_products.resources.resource import GNSSCenterConfig
-from datetime import datetime
+import datetime
 from gnss_ppp_products.resources.remote.utils import ftp_list_directory,find_best_match_in_listing
 from gnss_ppp_products.server import ftp,http
 from pathlib import Path
+
+from pydantic import BaseModel
 
 
 
@@ -41,7 +44,7 @@ def http_protocol(
     
             print(f"Best match for {filequery}: {filename}")
             out.append(filename)
-    return filename
+    return out
 
 
 def process_product_query(product_query) -> Optional[List[Union[ProductFileQuery, RinexFileQuery]]]:
@@ -70,6 +73,9 @@ def process_product_query(product_query) -> Optional[List[Union[ProductFileQuery
                 )
                 for match in matches:
                     updated_query = product_query.copy(update={"filename": match})
+                    if hasattr(updated_query,"load_date_from_filename"):
+                        updated_query.load_date_from_filename()
+
                     print(updated_query.model_dump_json(indent=2))
                     out.append(updated_query)
             except Exception as e:
@@ -81,19 +87,40 @@ config_dir = Path(
 )
 
 
-date = datetime(2025, 1, 15)
+date = datetime.datetime(2025, 1, 15).astimezone(datetime.timezone.utc)
 wuhan = GNSSCenterConfig.from_yaml(config_dir / "wuhan.yaml")
 cddis = GNSSCenterConfig.from_yaml(config_dir / "cddis.yaml")
 igs = GNSSCenterConfig.from_yaml(config_dir / "igs.yaml")
 found_products = []
-for center in [wuhan, cddis, igs]:
-    for product in center.build_product_queries(date):
-        found_products.extend(process_product_query(product))
+found_rinex = []
+found_antennae = []
+
+for center in [igs]:
+    # for product in center.build_product_queries(date):
+    #     found_products.extend(process_product_query(product))
     
 
-    for rnx in center.build_rinex_queries(date):
-        found_products.extend(process_product_query(rnx))
+    # for rnx in center.build_rinex_queries(date):
+    #     found_rinex.extend(process_product_query(rnx))
 
-with open("found_products.json", "w") as f:
-    import json
-    json.dump([p.model_dump_json() for p in found_products], f, indent=2)
+    for atx in center.build_antennae_queries(date):
+        strict_queries = []
+        current_queries = []
+        for found in process_product_query(atx):
+            if found.date < date:
+                strict_queries.append(found)
+            elif found.date == date:
+                current_queries.append(found)
+        if strict_queries:
+            found_antennae.append(max(strict_queries, key=lambda q: q.date))
+        found_antennae.extend(current_queries)
+
+class Results(BaseModel):
+    products: List[ProductFileQuery]
+    rinex: List[RinexFileQuery]
+    antennae: List[AntennaeCalibrationQuery] = []
+
+
+with open("found_products_igs.json", "w") as f:
+  
+    f.write(Results(products=found_products, rinex=found_rinex, antennae=found_antennae).model_dump_json(indent=2))
