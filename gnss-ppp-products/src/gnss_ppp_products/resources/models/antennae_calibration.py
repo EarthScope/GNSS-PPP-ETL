@@ -7,9 +7,12 @@ from gnss_ppp_products.resources.remote.utils import _date_to_gps_week, _parse_d
 from .server import Server
 
 from .base import BaseConfig
-from ..igs_conventions import (
+from ..types import (
+    AnalysisCenter,
+    ProductCampaignSpec,
     ProductFileFormat,
     ProductContentType,
+    RinexVersion,
 )
 
 _ANTENNAE_PLACEHOLDER_REGEX: dict[str, str] = {

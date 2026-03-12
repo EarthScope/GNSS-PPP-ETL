@@ -11,7 +11,7 @@ Pydantic BaseModels organized by domain:
 """
 
 from .server import Server, ServerProtocol
-from .products import (
+from ...assets.products.products import (
     ProductFileQuery,
     QualityConfig,
     CampaignConfig,

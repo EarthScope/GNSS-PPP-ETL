@@ -14,7 +14,7 @@ Existing ``from .resource import X`` imports continue to work.
 from .models.server import Server, ServerProtocol
 
 # Product models
-from .models.products import (
+from ..assets.products.products import (
     ProductFileQuery,
     QualityConfig,
     CampaignConfig,

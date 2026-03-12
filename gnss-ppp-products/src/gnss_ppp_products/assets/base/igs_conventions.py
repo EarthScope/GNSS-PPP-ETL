@@ -47,6 +47,7 @@ class ProductCampaignSpec(Enum):
     Rnn = "Rnn" # Reprocessing Campaign nn (where nn is a zero-padded integer)
     TGA = "TGA" # Tide Gauge Benchmark Monitoring campaign
     TST = "TST" # Test campaign (used for testing and validation)
+    STATIC = "STATIC" # Static product (not associated with a specific campaign, used for reference products like antenna calibrations)
 
 class ProductSolutionType(Enum):
 

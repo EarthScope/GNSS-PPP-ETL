@@ -1,6 +1,6 @@
 """Quick test of build_query regex fallback behavior."""
 import datetime
-from gnss_ppp_products.resources.models.products import ProductFileQuery
+from gnss_ppp_products.assets.products.products import ProductFileQuery
 from gnss_ppp_products.resources.models.rinex import RinexFileQuery
 
 TPL = "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"

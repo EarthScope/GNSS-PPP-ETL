@@ -1,7 +1,7 @@
 import re
 from typing import List, Optional, Union
 from gnss_ppp_products.resources.models.antennae_calibration import AntennaeCalibrationQuery
-from gnss_ppp_products.resources.models.products import ProductFileQuery
+from gnss_ppp_products.assets.products.products import ProductFileQuery
 from gnss_ppp_products.resources.models.rinex import RinexFileQuery
 from gnss_ppp_products.resources.resource import GNSSCenterConfig
 import datetime

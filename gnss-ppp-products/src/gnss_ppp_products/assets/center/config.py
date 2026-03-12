@@ -6,18 +6,16 @@ products.py and rinex.py (GNSSCenterConfig references both
 ProductConfig and RinexConfig).
 """
 
+from pydantic import BaseModel
 import datetime
 from typing import List, Optional
 
-from ..types import ProductQuality
-from .server import Server
-from ...assets.products.products import ProductConfig, ProductFileQuery
-from .rinex import RinexConfig, RinexFileQuery
-from .base import BaseConfig
+from ..products import ProductConfig, ProductFileQuery
+from ..antennae import  AntennaeCalibrationQuery,AntennaeConfig
+from ..rinex import RinexFileQuery,RinexConfig
+from ..server import Server
 
-from .antennae_calibration import AntennaeCalibrationConfig, AntennaeCalibrationQuery
-
-class GNSSCenterConfig(BaseConfig):
+class GNSSCenterConfig(BaseModel):
     """Configuration for a GNSS product center."""
     name: str
     code: str
@@ -26,7 +24,7 @@ class GNSSCenterConfig(BaseConfig):
     servers: List[Server]
     products: List[ProductConfig]
     rinex: Optional[List[RinexConfig]] = None
-    antennae: Optional[List[AntennaeCalibrationConfig]] = None
+    antennae: Optional[List[AntennaeConfig]] = None
 
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "GNSSCenterConfig":
@@ -38,7 +36,6 @@ class GNSSCenterConfig(BaseConfig):
     def build_product_queries(
         self,
         date: datetime.datetime | datetime.date,
-        product_quality: Optional[ProductQuality] = None,
     ) -> List[ProductFileQuery]:
         """
         Expand all product configs into file queries for the given date.
@@ -47,16 +44,12 @@ class GNSSCenterConfig(BaseConfig):
         ----------
         date : datetime.datetime | datetime.date
             The date to query products for.
-        product_quality : ProductQuality, optional
-            If given, only include queries matching this quality level.
         """
         queries: list[ProductFileQuery] = []
         for product in self.products:
             if not product.available:
                 continue
             for query in product.build(date):
-                if product_quality and query.quality != product_quality.value:
-                    continue
                 query.server = next((s for s in self.servers if s.id == product.server_id), None)
                 assert query.server is not None, f"No matching server for product query: {query}"
                 queries.append(query)
@@ -93,5 +86,5 @@ class GNSSCenterConfig(BaseConfig):
             for query in ant.build(date):
                 query.server = next((s for s in self.servers if s.id == ant.server_id), None)
                 assert query.server is not None, f"No matching server for antennae calibration query: {query}"   
-            queries.append(query)
+                queries.append(query)
         return queries

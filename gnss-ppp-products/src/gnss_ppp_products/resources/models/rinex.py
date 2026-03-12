@@ -8,7 +8,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator, field_serializer
 
 from ..remote.utils import _parse_date, _date_to_gps_week
-from ..igs_conventions import (
+from ...assets.base.igs_conventions import (
     ProductSampleInterval,
     ProductDuration,
     Rinex3DataType,
@@ -333,5 +333,5 @@ class RinexConfig(BaseModel):
                                     query.directory = query.build_directory(self.directory)
                                     queries.append(query)
         return queries
-from .products import SampleIntervalConfig, DurationConfig  # noqa: E402
+from ...assets.products.products import SampleIntervalConfig, DurationConfig  # noqa: E402
 RinexConfig.model_rebuild()
