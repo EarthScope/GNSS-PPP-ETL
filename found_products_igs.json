@@ -1,5 +1,44 @@
 {
   "products": [],
   "rinex": [],
-  "antennae": []
+  "antennae": [
+    {
+      "date": "2024-12-01T00:00:00+00:00",
+      "center": "IGS",
+      "format": "ATX",
+      "content": "ATT",
+      "campaign": "STATIC",
+      "filename": "igs20_2343.atx",
+      "directory": "pub/station/general/pcv_archive/",
+      "description": null,
+      "notes": null,
+      "server": {
+        "id": "igs_http",
+        "name": "IGS HTTP",
+        "protocol": "https",
+        "hostname": "https://files.igs.org",
+        "auth_required": false,
+        "notes": "IGS HTTP server for ANTEX and station data"
+      }
+    },
+    {
+      "date": "2024-12-01T00:00:00+00:00",
+      "center": "IGS",
+      "format": "ATX",
+      "content": "ATT",
+      "campaign": "STATIC",
+      "filename": "igs20_2343.atx",
+      "directory": "pub/station/general/pcv_archive/",
+      "description": null,
+      "notes": null,
+      "server": {
+        "id": "igs_http",
+        "name": "IGS HTTP",
+        "protocol": "https",
+        "hostname": "https://files.igs.org",
+        "auth_required": false,
+        "notes": "IGS HTTP server for ANTEX and station data"
+      }
+    }
+  ]
 }

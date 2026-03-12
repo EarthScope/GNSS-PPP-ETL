@@ -2,7 +2,7 @@ import datetime
 from typing import List, Optional
 
 from .base import AntennaeBase
-from .query import AntennaeCalibrationQuery
+from .query import AntennaeFileQuery
 from ..base.config import CampaignConfig
 
 
@@ -14,17 +14,17 @@ class AntennaeConfig(AntennaeBase):
     server_id: str
     campaign_set: List[CampaignConfig]
 
-    def build(self,date: datetime.date | datetime.datetime) -> List[AntennaeCalibrationQuery]:
+    def build(self,date: datetime.date | datetime.datetime) -> List[AntennaeFileQuery]:
         assert self.directory is not None, "AntennaeConfig must have a directory template to build queries"
         assert self.filename is not None, "AntennaeConfig must have a filename template to build queries"
 
 
 
-        default_query = AntennaeCalibrationQuery(
+        default_query = AntennaeFileQuery(
             date=date)
         default_query.build_directory(self.directory)
         default_query.build_filename(self.filename)
-        queries: List[AntennaeCalibrationQuery] = [default_query]
+        queries: List[AntennaeFileQuery] = [default_query]
         for campaign_info in self.campaign_set:
             query = default_query.model_copy(update={
                 "center": campaign_info.center,
@@ -35,4 +35,4 @@ class AntennaeConfig(AntennaeBase):
             query.build_directory(self.directory)
             query.build_filename(self.filename)
             queries.append(query)
-        return list(set(queries))
+        return queries

@@ -1,11 +1,8 @@
 import re
 from typing import List, Optional, Union
-from gnss_ppp_products.resources.models.antennae_calibration import AntennaeCalibrationQuery
-from gnss_ppp_products.assets.products.products import ProductFileQuery
-from gnss_ppp_products.resources.models.rinex import RinexFileQuery
-from gnss_ppp_products.resources.resource import GNSSCenterConfig
+from gnss_ppp_products.assets import GNSSCenterConfig,RinexFileQuery,ProductFileQuery,AntennaeFileQuery
+
 import datetime
-from gnss_ppp_products.resources.remote.utils import ftp_list_directory,find_best_match_in_listing
 from gnss_ppp_products.server import ftp,http
 from pathlib import Path
 
@@ -64,6 +61,7 @@ def process_product_query(product_query) -> Optional[List[Union[ProductFileQuery
                     out.append(updated_query)
             except Exception as e:
                 print(f"Error querying FTP: {e}")
+                return out
         case "HTTP" | "HTTPS":
             try:
                 matches = http_protocol(
@@ -80,10 +78,11 @@ def process_product_query(product_query) -> Optional[List[Union[ProductFileQuery
                     out.append(updated_query)
             except Exception as e:
                 print(f"Error querying HTTP: {e}")
+                return out
     return out
 
 config_dir = Path(
-    "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/gnss-ppp-products/src/gnss_ppp_products/resources/config/"
+    "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/gnss-ppp-products/src/gnss_ppp_products/assets/config_files"
 )
 
 
@@ -95,18 +94,20 @@ found_products = []
 found_rinex = []
 found_antennae = []
 
-for center in [igs]:
-    # for product in center.build_product_queries(date):
-    #     found_products.extend(process_product_query(product))
+for center in [igs,wuhan,cddis]:
+    for product in center.build_product_queries(date):
+        found_products.extend(process_product_query(product))
     
 
-    # for rnx in center.build_rinex_queries(date):
-    #     found_rinex.extend(process_product_query(rnx))
+    for rnx in center.build_rinex_queries(date):
+        found_rinex.extend(process_product_query(rnx))
 
     for atx in center.build_antennae_queries(date):
         strict_queries = []
         current_queries = []
         for found in process_product_query(atx):
+            if not found:
+                continue
             if found.date < date:
                 strict_queries.append(found)
             elif found.date == date:
@@ -118,7 +119,7 @@ for center in [igs]:
 class Results(BaseModel):
     products: List[ProductFileQuery]
     rinex: List[RinexFileQuery]
-    antennae: List[AntennaeCalibrationQuery] = []
+    antennae: List[AntennaeFileQuery] = []
 
 
 with open("found_products_igs.json", "w") as f:

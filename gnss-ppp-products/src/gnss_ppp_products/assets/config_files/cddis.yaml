@@ -111,7 +111,6 @@ products:
 
 rinex:
   - id: cddis_nav3
-    format: rnx
     content: N
     server_id: cddis_ftps
     available: true

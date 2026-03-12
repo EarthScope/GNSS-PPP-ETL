@@ -11,7 +11,7 @@ import datetime
 from typing import List, Optional
 
 from ..products import ProductConfig, ProductFileQuery
-from ..antennae import  AntennaeCalibrationQuery,AntennaeConfig
+from ..antennae import  AntennaeFileQuery,AntennaeConfig
 from ..rinex import RinexFileQuery,RinexConfig
 from ..server import Server
 
@@ -75,9 +75,9 @@ class GNSSCenterConfig(BaseModel):
     def build_antennae_queries(
         self,
         date: datetime.datetime | datetime.date,
-    ) -> List[AntennaeCalibrationQuery]:
+    ) -> List[AntennaeFileQuery]:
         """Expand all antennae calibration configs into file queries for the given date."""
-        queries: list[AntennaeCalibrationQuery] = []
+        queries: list[AntennaeFileQuery] = []
         if not self.antennae:
             return queries
         for ant in self.antennae:

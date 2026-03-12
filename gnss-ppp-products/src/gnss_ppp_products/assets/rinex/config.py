@@ -87,3 +87,7 @@ class RinexConfig(RinexBase):
             query.build_directory(self.directory)
             queries.append(query)
         return queries
+
+    def __init__(self, **data):
+        super().__init__(**data)
+       

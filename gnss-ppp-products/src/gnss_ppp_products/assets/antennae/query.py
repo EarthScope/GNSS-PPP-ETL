@@ -11,7 +11,7 @@ from .base import (
     AnalysisCenter)
 from .utils import determine_frame,gps_week_to_date
 
-class AntennaeCalibrationQuery(AntennaeBase):
+class AntennaeFileQuery(AntennaeBase):
     campaign: Optional[ProductCampaignSpec] = ProductCampaignSpec.STATIC
     server: Optional[Server] = None
     center: Optional[AnalysisCenter] = AnalysisCenter.IGS 
@@ -27,7 +27,7 @@ class AntennaeCalibrationQuery(AntennaeBase):
         return subs
 
     @classmethod
-    def from_filename(cls, filename: str) -> "AntennaeCalibrationQuery":
+    def from_filename(cls, filename: str) -> "AntennaeFileQuery":
         center: str = AnalysisCenter(filename[:3])
         date = cls._date_from_filename(filename)
 

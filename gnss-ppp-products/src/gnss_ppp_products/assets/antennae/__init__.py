@@ -1,2 +1,2 @@
 from .config import AntennaeConfig
-from .query import AntennaeCalibrationQuery
+from .query import AntennaeFileQuery
