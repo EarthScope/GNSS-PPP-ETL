@@ -4,6 +4,7 @@ requires-python = ">=3.10,<3.15"
 version = "0.1.0"
 dependencies = [
     "dagster==1.12.12",
+    "fsspec>=2024.0",
     "julian>=0.14",
     "pydantic>=2.0",
     "pyyaml>=6.0",
