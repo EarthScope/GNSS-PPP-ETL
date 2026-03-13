@@ -1,0 +1,118 @@
+# Local Storage Configuration
+# ===========================
+#
+# Maps every GNSS product type defined in gnss_ppp_products to its
+# local directory within the base storage directory.
+#
+# Each collection groups product types that share the same directory.
+# A lookup of ProductType → local path is derived from these collections.
+#
+# Path templates
+# --------------
+# Templates may contain the following placeholders:
+#   {year}      – 4-digit year           (e.g. 2025)
+#   {doy}       – 3-digit day-of-year    (e.g. 015, zero-padded)
+#   {gps_week}  – GPS week number        (e.g. 2348)
+#
+# Temporal categories
+# -------------------
+#   daily   – One file (or set) per calendar day
+#   hourly  – Multiple files per day (e.g. 6-hourly VMF grids)
+#   epoch   – Released per reference-frame epoch, not per day
+#   static  – Essentially permanent; updated very infrequently
+#
+# Directory hierarchy (PRIDE convention)
+# --------------------------------------
+#   <base_dir>/
+#   ├── products/{year}/product/common/  ← orbit, clock, bias, iono, tropo
+#   ├── products/{year}/{doy}/leo/       ← LEO satellite products
+#   ├── rinex/{year}/{doy}/              ← broadcast navigation RINEX
+#   └── static/
+#       ├── atx/                         ← ANTEX antenna calibrations
+#       ├── atmosphere/                  ← orography grids
+#       └── tables/                      ← leap seconds, sat parameters
+
+# -- General settings --------------------------------------------------------
+
+
+# -- Collections: directory → product types ----------------------------------
+
+collections:
+
+  # ---------------------------------------------------------------------------
+  # Common daily products  (orbit, clock, bias, ionosphere, troposphere)
+  # ---------------------------------------------------------------------------
+  common:
+    directory: "products/{year}/product/common"
+    temporal: daily
+    description: "Precise orbit/clock, biases, ionosphere, and troposphere grids"
+    types:
+      - SP3               # Precise satellite orbits
+      - CLK               # Precise satellite/station clock corrections
+      - ERP               # Earth Rotation Parameters (pole, UT1-UTC, LOD)
+      - BIAS              # Satellite code/phase biases (DCB/DSB/OSB)
+      - OBX               # ORBEX satellite attitude quaternions
+      - SUM               # Solution summary files
+      - IONX              # IONEX ionospheric TEC grid
+      - GIM               # Global Ionosphere Map (VTEC)
+      - VMF1              # Vienna Mapping Functions 1 (6-hourly grids)
+      - VMF3              # Vienna Mapping Functions 3 (6-hourly grids)
+
+  # ---------------------------------------------------------------------------
+  # Broadcast navigation
+  # ---------------------------------------------------------------------------
+  navigation:
+    directory: "rinex/{year}/{doy}"
+    temporal: daily
+    description: "Broadcast ephemeris / navigation messages"
+    types:
+      - RINEX3_NAV        # RINEX 3.x multi-GNSS navigation
+      - RINEX2_NAV        # RINEX 2.x generic navigation
+      - RINEX2_NAV_GPS    # RINEX 2.x GPS navigation
+      - RINEX2_NAV_GLONASS # RINEX 2.x GLONASS navigation
+      - RINEX2_NAV_MIXED  # RINEX 2.x mixed GPS+GLONASS navigation
+
+  # ---------------------------------------------------------------------------
+  # LEO satellite products (GRACE / GRACE-FO)
+  # ---------------------------------------------------------------------------
+  leo:
+    directory: "products/{year}/{doy}/leo"
+    temporal: daily
+    description: "GRACE/GRACE-FO Level-1B instrument data"
+    types:
+      - GRACE_GNV         # GPS navigation
+      - GRACE_ACC         # Accelerometer
+      - GRACE_SCA         # Star camera assembly
+      - GRACE_KBR         # K-Band ranging
+      - GRACE_LRI         # Laser Ranging Interferometer (GRACE-FO only)
+
+  # ---------------------------------------------------------------------------
+  # Antenna calibrations
+  # ---------------------------------------------------------------------------
+  antennae:
+    directory: "static/atx"
+    temporal: epoch
+    description: "ANTEX antenna phase center calibrations"
+    types:
+      - ATX               # ANTEX antenna calibration files
+
+  # ---------------------------------------------------------------------------
+  # Reference tables
+  # ---------------------------------------------------------------------------
+  reference_tables:
+    directory: "static/tables"
+    temporal: static
+    description: "Auxiliary lookup tables (leap seconds, satellite metadata)"
+    types:
+      - LEAP_SECONDS      # UTC-TAI leap second offset table
+      - SAT_PARAMETERS    # Satellite metadata and properties
+
+  # ---------------------------------------------------------------------------
+  # Orography
+  # ---------------------------------------------------------------------------
+  orography:
+    directory: "static/atmosphere"
+    temporal: static
+    description: "Ellipsoidal terrain height grids for VMF interpolation"
+    types:
+      - OROGRAPHY          # 1×1° and 5×5° grids

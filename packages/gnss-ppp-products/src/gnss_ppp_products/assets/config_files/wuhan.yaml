@@ -1,0 +1,232 @@
+# Wuhan University GNSS Data Center
+# ==================================
+#
+# Primary source for MGEX multi-GNSS products including:
+# - WUM (Wuhan University MGEX)
+# - WMC (Wuhan Multi-Constellation demonstration)
+
+
+code: WUM
+name: Wuhan University
+description: >
+  Wuhan University GNSS Research Center provides multi-GNSS precise 
+  products through the IGS MGEX campaign. Known for rapid availability
+  and comprehensive constellation support.
+website: http://www.igs.gnsswhu.cn/
+
+servers:
+  - id: wuhan_ftp
+    name: Primary FTP
+    hostname: ftp://igs.gnsswhu.cn
+    protocol: ftp
+    auth_required: false
+    notes: Primary FTP server, no authentication required
+
+# Default filename pattern follows IGS long-form convention:
+# {solution_prefix}{version}{solution_code}{qual}_{year}{doy}0000_{coverage}_{interval}_{content}.{ext}.gz
+defaults:
+  version: "0"
+  coverage: "01D"
+  compressed: true
+
+products:
+  - id: wuhan_sp3
+    format: SP3
+    content: ORB
+    server_id: wuhan_ftp
+    available: true
+    description: Precise satellite orbits
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: MGX
+        center: WUM
+        description: MGEX multi-GNSS operational
+      - campaign: DEM  
+        center: WMC
+        description: Multi-constellation demonstration
+    sampling_set: 
+      - interval: "05M"
+      - interval: "15M"
+    duration_set: 
+      - duration: "01D"
+    version: "0"
+
+    directory: pub/whu/phasebias/{year}/orbit/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"
+
+ 
+
+  - id: wuhan_clk
+    format: CLK
+    content: CLK
+    server_id: wuhan_ftp
+    available: true
+    description: Precise satellite and station clocks
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: MGX
+        center: WUM
+        description: MGEX multi-GNSS operational
+      - campaign: DEM
+        center: WMC
+        description: Multi-constellation demonstration
+    sampling_set:
+      - interval: "30S"
+      - interval: "05M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+
+    directory: pub/whu/phasebias/{year}/clock/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_CLK.CLK.*"
+
+  - id: wuhan_erp
+    format: ERP
+    content: ERP
+    server_id: wuhan_ftp
+    available: true
+    description: Earth rotation parameters
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: MGX
+        center: WUM
+        description: MGEX multi-GNSS operational
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+
+    directory: pub/whu/phasebias/{year}/orbit/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ERP.ERP.*"
+
+  - id: wuhan_bias
+    format: BIA
+    content: OSB
+    server_id: wuhan_ftp
+    available: true
+    description: Observable-specific signal biases (OSB)
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: MGX
+        center: WUM
+        description: MGEX multi-GNSS operational
+      - campaign: DEM
+        center: WMC
+        description: Multi-constellation demonstration
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+
+    directory: pub/whu/phasebias/{year}/bias/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_OSB.BIA.*"
+
+  - id: wuhan_obx
+    format: OBX
+    content: ATT
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite attitude quaternions (ORBEX)
+    quality_set:
+      - quality: FIN
+    campaign_set:
+      - campaign: DEM
+        center: WMC
+        description: Multi-constellation demonstration
+    sampling_set:
+      - interval: "30S"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+
+    directory: pub/whu/phasebias/{year}/orbit/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ATT.OBX.*"
+
+  - id: wuhan_gim
+    format: INX
+    content: GIM
+    server_id: wuhan_ftp
+    available: true
+    description: Global Ionosphere Maps (mirrored from various centers)
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: COD
+        description: CODE ionosphere products
+      - campaign: OPS
+        center: IGS
+        description: IGS combined ionosphere products
+      - campaign: OPS
+        center: JPL
+        description: JPL ionosphere products
+    sampling_set:
+      - interval: "01H"
+      - interval: "02H"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+
+    directory: pub/gps/products/ionex/{year}/{doy}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_{content}.INX.*"
+
+rinex:
+
+  - id: wuhan_nav
+    content: N # RINEX navigation file
+    server_id: wuhan_ftp
+    available: true
+    description: RINEX 3 broadcast navigation (multi-GNSS)
+    station_set:
+      - station: BRDC
+        description: Broadcast navigation (no station code)
+    monument_set:
+      - monument: 0
+        description: No monument code for broadcast navigation
+    receiver_set:
+      - receiver: "0"
+        description: No receiver code for broadcast navigation
+    region_set:
+      - region: IGN
+        description: No region code for broadcast navigation
+    data_source: R
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    satellite_system_set:
+      - satellite_system: E
+        description: Galileo RINEX 3 navigation file
+      - satellite_system: M
+        description: Mixed RINEX 3 navigation file
+
+    directory: pub/gps/data/daily/{year}/{doy}/{yy}p
+    filename: "{station}{monument}{receiver}{region}_{data_source}_{year}{doy}0000_{duration}_{satellite_system}{content}.rnx.*"
+
+reference_tables:
+  - id: wuhan_leap_seconds
+    server_id: wuhan_ftp
+    available: true
+    description: Leap seconds table (PRIDE-PPPAR)
+    table_type: leap_seconds
+    directory: "pub/whu/phasebias/table"
+    filename: "leap.sec"
+
+  - id: wuhan_sat_parameters
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite physical parameters table
+    table_type: sat_parameters
+    directory: "pub/whu/phasebias/table"
+    filename: "sat_parameters"

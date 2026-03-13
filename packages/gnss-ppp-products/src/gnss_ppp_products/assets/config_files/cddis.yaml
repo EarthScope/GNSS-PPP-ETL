@@ -1,0 +1,206 @@
+# NASA CDDIS Archive
+# ==================
+#
+# Crustal Dynamics Data Information System at NASA Goddard.
+# Major archive for IGS products. Requires FTPS (TLS) for all connections.
+
+
+code: CDDIS
+name: NASA CDDIS
+description: >
+  NASA's Crustal Dynamics Data Information System archives and 
+  distributes space geodesy data including GNSS, SLR, VLBI, and DORIS.
+  Mirrors products from all IGS analysis centers.
+website: https://cddis.nasa.gov/
+
+servers:
+  - id: cddis_ftps
+    name: CDDIS FTPS
+    hostname: ftp://gdc.cddis.eosdis.nasa.gov
+    protocol: ftps
+    auth_required: false
+    notes: >
+      Requires FTPS (explicit TLS). Anonymous login with email address.
+      May require NASA Earthdata login for some products.
+
+defaults:
+  version: "0"
+  coverage: "01D"
+  compressed: true
+
+products:
+  - id: cddis_sp3
+    format: SP3
+    content: ORB
+    server_id: cddis_ftps
+    available: true
+    description: Precise orbits (mirrors from all ACs)
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+      - campaign: MGX
+        center: GBM
+      - campaign: MGX
+        center: WUM
+      - campaign: OPS
+        center: COD
+    sampling_set:
+      - interval: "05M"
+      - interval: "15M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_ORB.SP3.*"
+
+  - id: cddis_clk
+    format: CLK
+    content: CLK
+    server_id: cddis_ftps
+    available: true
+    description: Precise clocks (mirrors from all ACs)
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: IGS
+      - campaign: MGX
+        center: GBM
+      - campaign: MGX
+        center: WUM
+    sampling_set:
+      - interval: "30S"
+      - interval: "05M"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/{gps_week}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_CLK.CLK.*"
+
+  - id: cddis_gim
+    format: INX
+    content: GIM
+    server_id: cddis_ftps
+    available: true
+    description: Global Ionosphere Maps
+    quality_set:
+      - quality: FIN
+      - quality: RAP
+    campaign_set:
+      - campaign: OPS
+        center: COD
+      - campaign: OPS
+        center: IGS
+      - campaign: OPS
+        center: JPL
+      - campaign: OPS
+        center: ESA
+    sampling_set:
+      - interval: "01H"
+      - interval: "02H"
+    duration_set:
+      - duration: "01D"
+    version: "0"
+    directory: gnss/products/ionex/{year}/{doy}/
+    filename: "{center}{version}{campaign}{quality}_{year}{doy}0000_{duration}_{interval}_GIM.INX.*"
+
+
+rinex:
+  - id: cddis_nav3
+    content: N
+    server_id: cddis_ftps
+    available: true
+    description: RINEX 3 broadcast navigation (multi-GNSS)
+    station_set:
+      - station: BRDC
+        description: Broadcast navigation (no station code)
+    monument_set:
+      - monument: 0
+        description: No monument code for broadcast navigation
+    receiver_set:
+      - receiver: "0"
+        description: No receiver code for broadcast navigation
+    region_set:
+      - region: IGS
+        description: No region code for broadcast navigation
+    data_source: R
+    sampling_set:
+      - interval: "01D"
+    duration_set:
+      - duration: "01D"
+    satellite_system_set:
+      - satellite_system: E
+        description: Galileo RINEX 3 navigation file
+      - satellite_system: M
+        description: Mixed RINEX 3 navigation file
+
+    directory: gnss/data/daily/{year}/{doy}/{yy}p/
+    filename: "{station}{monument}{receiver}{region}_{data_source}_{year}{doy}0000_{duration}_{satellite_system}{content}.rnx.*"
+
+
+  # - id: cddis_nav_gps
+  #   content: N
+  #   server_id: cddis_ftps
+  #   available: true
+  #   description: Legacy RINEX 2 GPS navigation
+  #   station_set:
+  #     - station: brdc
+  #       description: Broadcast navigation (no station code)
+  #   monument_set:
+  #     - monument: 0
+  #       description: No monument code for broadcast navigation
+  #   receiver_set:
+  #     - receiver: "0"
+  #       description: No receiver code for broadcast navigation
+  #   region_set: []
+  #   directory: gnss/data/daily/{year}/{doy}/{yy}n/
+  #   filename: "brdc{doy}0.{yy}n.*"
+
+  # - id: cddis_nav_glonass
+  #   content: G
+  #   server_id: cddis_ftps
+  #   available: true
+  #   description: Legacy RINEX 2 GLONASS navigation
+  #   station_set:
+  #     - station: brdc
+  #       description: Broadcast navigation (no station code)
+  #   monument_set:
+  #     - monument: 0
+  #       description: No monument code for broadcast navigation
+  #   receiver_set:
+  #     - receiver: "0"
+  #       description: No receiver code for broadcast navigation
+  #   region_set: []
+  #   directory: gnss/data/daily/{year}/{doy}/{yy}n/
+  #   filename: "brdc{doy}0.{yy}g.*"
+
+  # - id: cddis_nav_mixed
+  #   content: P
+  #   server_id: cddis_ftps
+  #   available: true
+  #   description: Legacy RINEX 2 mixed navigation
+  #   station_set:
+  #     - station: brdc
+  #       description: Broadcast navigation (no station code)
+  #   monument_set:
+  #     - monument: 0
+  #       description: No monument code for broadcast navigation
+  #   receiver_set:
+  #     - receiver: "0"
+  #       description: No receiver code for broadcast navigation
+  #   region_set: []
+  #   directory: gnss/data/daily/{year}/{doy}/{yy}n/
+  #   filename: "brdc{doy}0.{yy}p.*"
+
+reference_tables:
+  - id: cddis_leap_seconds
+    server_id: cddis_ftps
+    available: true
+    description: IERS leap seconds file
+    table_type: leap_seconds
+    directory: "pub/products/iers"
+    filename: "leapsec.dat"

@@ -1,0 +1,25 @@
+[project]
+name = "pride-ppp"
+version = "0.1.0"
+requires-python = ">=3.10,<3.15"
+dependencies = [
+    "gnss-ppp-products",
+    "julian>=0.14",
+    "pandas>=2.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.0"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+gnss-ppp-products = { workspace = true }
