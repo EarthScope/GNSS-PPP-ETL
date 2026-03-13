@@ -1,0 +1,185 @@
+formats:
+
+  RINEX:
+    description: Receiver Independent Exchange Format used for GNSS observation, navigation, and meteorological data.
+
+    versions:
+
+      "2":
+        notes: >
+          Legacy format primarily used for GPS and GLONASS.
+          Station names are 4 characters. File naming is short
+          and strongly tied to day-of-year.
+
+        metadata:
+          - ssss      # 4 char station code
+          - doy       # day of year (001-366)
+          - yy        # 2 digit year
+          - t         # file type code
+
+        filename:
+
+          observation:
+            - "{ssss}{doy}0.{yy}{t}"
+         
+
+          navigation:
+            - "{ssss}{doy}0.{yy}{t}"
+
+          meteorological:
+            - "{ssss}{doy}0.{yy}m"
+
+        compression:
+          - ".Z"
+          - ".gz"
+
+      "3":
+        notes: >
+          Modern multi-GNSS format supporting GPS, GLONASS,
+          Galileo, BeiDou, QZSS, SBAS. Introduces long filenames
+          with extensive metadata encoding.
+
+        metadata:
+          - ssss       # 4 char station code
+          - monument   # 1 char monument/marker number
+          - R          # receiver number
+          - ccc        # 3 char data center / agency
+          - S          # data source (R=receiver, S=stream)
+          - YYYY       # 4 digit year
+          - doy        # day of year
+          - HH         # hour
+          - MM         # minute
+          - DDU        # file period (01D, 01H, 15M)
+          - FRU        # sampling interval (30S, 01S)
+          - D          # satellite system identifier
+          - T          # file type
+
+        filename:
+
+          observation:
+            - "{ssss}{monument}{R}{ccc}_{S}_{YYYY}{doy}{HH}{MM}_{DDU}_{FRU}_{D}O.rnx"
+
+          navigation:
+            - "{ssss}{monument}{R}{ccc}_{S}_{YYYY}{doy}{HH}{MM}_{DDU}_{D}N.rnx"
+
+          meteorological:
+            - "{ssss}{monument}{R}{ccc}_{S}_{YYYY}{doy}{HH}{MM}_{DDU}_{D}M.rnx"
+
+        compression:
+          - ".gz"
+          - ".crx.gz"
+
+      "4":
+        notes: >
+          Latest RINEX standard emphasizing improved navigation
+          message support and modern GNSS signals.
+
+        metadata:
+          - ssss
+          - monument
+          - R
+          - ccc
+          - S
+          - YYYY
+          - doy
+          - HH
+          - MM
+          - DDU
+          - FRU
+          - D
+          - T
+
+        filename:
+
+          observation:
+            - "{ssss}{monument}{R}{ccc}_{S}_{YYYY}{doy}{HH}{MM}_{DDU}_{FRU}_{D}O.rnx"
+
+          navigation:
+            - "{ssss}{monument}{R}{ccc}_{S}_{YYYY}{doy}{HH}{MM}_{DDU}_{D}N.rnx"
+
+          meteorological:
+            - "{ssss}{monument}{R}{ccc}_{S}_{YYYY}{doy}{HH}{MM}_{DDU}_{D}M.rnx"
+
+        compression:
+          - ".gz"
+          - ".crx.gz"
+
+
+products:
+
+  RINEX_OBS:
+    description: GNSS observation measurements recorded by receivers.
+
+    formats:
+
+      - format: RINEX
+        version: "2"
+        metadata:
+          - t: \b[dot]\b # observation file type code
+        filename: observation
+
+
+      - format: RINEX
+        version: "3"
+        metadata:
+          - T: \b[ONM]\b # RINEX 3 observation file type code
+          - D: \b[GRECEJSM]\b # RINEX 3 satellite system code
+        filename: observation
+
+      - format: RINEX
+        version: "4"
+        metadata:
+          - T: \b[ONM]\b # RINEX 4 observation file type code
+          - D: \b[GRECEJSM]\b # RINEX 4 satellite system code
+        filename: observation
+
+  RINEX_NAV:
+    description: Broadcast satellite ephemerides and clock parameters.
+
+    formats:
+
+      - format: RINEX
+        version: "2"
+        metadata:
+          - t: \b[ngh]\b # navigation file type code
+        filename: navigation
+
+      - format: RINEX
+        version: "3"
+        metadata:
+          - T: \b[ON]\b # RINEX 3 navigation file type code
+          - D: \b[GRECEJSM]\b # RINEX 3 satellite system code
+        filename: navigation
+
+      - format: RINEX
+        version: "4"
+        metadata:
+          - T: \b[ON]\b # RINEX 4 navigation file type code
+          - D: \b[GRECEJSM]\b # RINEX 4 satellite system code
+        filename: navigation
+
+  RINEX_MET:
+    description: Meteorological data associated with GNSS stations.
+
+    formats:
+
+      - format: RINEX
+        version: "2"
+        metadata:
+          - t: m # meteorological file type code
+        filename: meteorological
+
+      - format: RINEX
+        version: "3"
+        metadata:
+          - T: M # RINEX 3 meteorological file type code
+          - D: \b[GRECEJSM]\b # RINEX 3 satellite system code
+        filename: meteorological
+
+      - format: RINEX
+        version: "4"
+        metadata:
+          - T: M # RINEX 4 meteorological file type code
+          - D: \b[GRECEJSM]\b # RINEX 4 satellite system code
+        filename: meteorological
+    
