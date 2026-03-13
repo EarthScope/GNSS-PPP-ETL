@@ -1,7 +1,6 @@
 import re
 from typing import List, Optional, Union
 from gnss_ppp_products.assets import GNSSCenterConfig,RinexFileQuery,ProductFileQuery,AntennaeFileQuery
-
 import datetime
 from gnss_ppp_products.server import ftp,http
 from pathlib import Path
@@ -39,7 +38,7 @@ from gnss_ppp_products.server.antennae import process_antennae_query
 #     )
 #     for filename in http.extract_filenames_from_html(listing):
 #         if re.match(filequery, filename):
-    
+
 #             print(f"Best match for {filequery}: {filename}")
 #             out.append(filename)
 #     return out
@@ -83,7 +82,7 @@ from gnss_ppp_products.server.antennae import process_antennae_query
 #     return out
 
 config_dir = Path(
-    "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/gnss-ppp-products/src/gnss_ppp_products/assets/config_files"
+    "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/packages/gnss-ppp-products/src/gnss_ppp_products/assets/config_files"
 )
 
 

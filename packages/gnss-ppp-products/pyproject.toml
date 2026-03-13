@@ -3,11 +3,13 @@ name = "gnss_ppp_products"
 requires-python = ">=3.10,<3.15"
 version = "0.1.0"
 dependencies = [
+    "aiohttp>=3.13.3",
     "dagster==1.12.12",
     "fsspec>=2024.0",
     "julian>=0.14",
     "pydantic>=2.0",
     "pyyaml>=6.0",
+    "requests>=2.32.5",
 ]
 
 [dependency-groups]
