@@ -1,25 +1,9 @@
 """
-Self-contained PRIDE PPP-AR configuration models.
+PRIDE PPP-AR configuration file models.
 
-Copied from ``pride_tools/pride_file_config.py`` so that the
-``gnss_ppp_products`` package does not depend on the unpackaged
-``pride_tools`` module.  If ``pride_tools`` is later made installable,
-this module can be replaced with a single import statement.
-
-Usage
------
-::
-
-    from gnss_ppp_products.utils.pride_config import PRIDEPPPFileConfig, SatelliteProducts
-
-    config = PRIDEPPPFileConfig.load_default()
-    config.satellite_products = SatelliteProducts(
-        satellite_orbit="IGS0OPSRAP_20241750000_01D_15M_ORB.SP3",
-        satellite_clock="IGS0OPSRAP_20241750000_01D_30S_CLK.CLK",
-        ...
-    )
-    config.write_config_file("/path/to/pride_dir/2024/175/config_file")
+Read/write the ``config_file`` format consumed by the ``pdp3`` binary.
 """
+
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -34,7 +18,7 @@ pride_default_satellites: Dict[str, int] = {
     "G07": 1, "G08": 1, "G09": 1, "G10": 1, "G11": 1, "G12": 1,
     "G13": 1, "G14": 1, "G15": 1, "G16": 1, "G17": 1, "G18": 1,
     "G19": 1, "G20": 1, "G21": 1, "G22": 1, "G23": 1, "G24": 1,
-    "G25": 1, "G26": 1, "G27":  1, "G28": 1, "G29": 1, "G30": 1,
+    "G25": 1, "G26": 1, "G27": 1, "G28": 1, "G29": 1, "G30": 1,
     "G31": 1, "G32": 1, "R01": 1, "R02": 1, "R03": 1, "R04": 1,
     "R05": 1, "R06": 1, "R07": 1, "R08": 1, "R09": 1, "R10": 1,
     "R11": 1, "R12": 1, "R13": 1, "R14": 1, "R15": 1, "R16": 1,
@@ -110,7 +94,7 @@ class SatelliteProducts(BaseModel):
         "satellite_orbit", "satellite_clock", "erp", "quaternions", "code_phase_bias",
         mode="before",
     )
-    def override_patternmatch(cls, value: str, field: Field) -> str:  # noqa: N805
+    def override_patternmatch(cls, value: str, field) -> str:
         if value != "Default":
             return value
         match field.field_name:
@@ -143,26 +127,19 @@ class AmbiguityFixingOptions(BaseModel):
     ambiguity_duration: int = 600
     cutoff_elevation: int = 15
     pco_on_wide_lane: str = "YES"
-    widelane_decision: List[float] = Field(
-        default_factory=lambda: [0.20, 0.15, 1000.0]
-    )
-    narrowlane_decision: List[float] = Field(
-        default_factory=lambda: [0.15, 0.15, 1000.0]
-    )
-    critical_search: List[float] = Field(
-        default_factory=lambda: [3, 4, 1.8, 3.0]
-    )
+    widelane_decision: List[float] = Field(default_factory=lambda: [0.20, 0.15, 1000.0])
+    narrowlane_decision: List[float] = Field(default_factory=lambda: [0.15, 0.15, 1000.0])
+    critical_search: List[float] = Field(default_factory=lambda: [3, 4, 1.8, 3.0])
     truncate_at_midnight: str = "Default"
     verbose_output: str = "NO"
 
 
 class SatelliteList(BaseModel):
     satellites: Dict[str, int] = Field(
-        default_factory=lambda: pride_default_satellites.copy(),
+        default_factory=lambda: pride_default_satellites,
         description=(
             "Dictionary of satellites with their respective codes and PRN variances. "
-            "Keys are satellite codes (e.g. 'G01', 'R01') and values are their PRN "
-            "variances (e.g. 1, 2, 3)."
+            "Keys are satellite codes (e.g., 'G01', 'R01') and values are their PRN variances."
         ),
     )
 
@@ -184,50 +161,47 @@ class StationUsed(BaseModel):
     pozhm: float = Field(default=10.00, description="POZHM value")
 
 
-# ---------------------------------------------------------------------------
-# Top-level config model
-# ---------------------------------------------------------------------------
-
 class PRIDEPPPFileConfig(BaseModel):
     observation: ObservationConfig = Field(
-        description="Observation configuration for PRIDE PPP processing.",
+        description="Observation configuration for the PRIDE PPP processing.",
     )
     satellite_products: SatelliteProducts = Field(
-        description="Satellite product configuration.",
+        description="Satellite product configuration for the PRIDE PPP processing.",
     )
     processing: DataProcessingStrategies = Field(
         default_factory=DataProcessingStrategies,
-        description="Data processing strategies.",
+        description="Data processing strategies for the PRIDE PPP configuration.",
     )
     ambiguity: AmbiguityFixingOptions = Field(
         default_factory=AmbiguityFixingOptions,
-        description="Ambiguity fixing options.",
+        description="Options for ambiguity fixing in the processing.",
     )
     satellites: SatelliteList = Field(
         default_factory=SatelliteList,
-        description="GNSS satellite list with PRN variances.",
+        description="List of satellites used in the processing.",
     )
     station_used: List[StationUsed] = Field(
         default_factory=lambda: [StationUsed()],
-        description="List of stations used in processing.",
+        description="List of stations used in the processing.",
     )
 
     # ------------------------------------------------------------------
-    # I/O
+    # Write
     # ------------------------------------------------------------------
 
-    def write_config_file(self, filepath: str | Path) -> None:
-        """Write the PRIDE PPP-AR configuration to *filepath*."""
-        filepath = Path(filepath)
+    def write_config_file(self, filepath: str | Path):
+        """Write the PRIDE PPP configuration to a file."""
+        if isinstance(filepath, str):
+            filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-
-        # Ensure first two critical_search values are ints for PRIDE format
+        # fix critical search params so first 2 values in the list are integers
         for i in range(2):
             self.ambiguity.critical_search[i] = int(self.ambiguity.critical_search[i])
 
         with open(filepath, "w") as f:
             f.write("# Configuration template for PRIDE PPP-AR 3\n\n")
 
+            # Observation configuration
             f.write("## Observation configuration\n")
             obs = self.observation
             f.write(f"Frequency combination  = {obs.frequency_combination}\n")
@@ -236,6 +210,7 @@ class PRIDEPPPFileConfig(BaseModel):
             f.write(f"Session time           = {obs.session_time}\n")
             f.write(f"Table directory        = {obs.table_directory}\n\n")
 
+            # Satellite product
             f.write("## Satellite product\n")
             sat = self.satellite_products
             f.write(f"Product directory      = {sat.product_directory}\n")
@@ -246,6 +221,7 @@ class PRIDEPPPFileConfig(BaseModel):
             f.write(f"Code/phase bias        = {sat.code_phase_bias}\n")
             f.write(f"LEO quaternions        = {sat.leo_quaternions}\n\n")
 
+            # Data processing strategies
             f.write("## Data processing strategies\n")
             proc = self.processing
             f.write(f"Strict editing         = {proc.strict_editing}                 ! change to NO if using high-dynamic data with bad quality\n")
@@ -256,6 +232,7 @@ class PRIDEPPPFileConfig(BaseModel):
             f.write(f"Tides                  = {proc.tides}        ! remove any to shut it down, or changed to NON if not correcting tidal errors\n")
             f.write(f"Multipath              = {proc.multipath}                 ! use the multipath correction model (YES/NO)\n\n")
 
+            # Ambiguity fixing options
             f.write("## Ambiguity fixing options\n")
             amb = self.ambiguity
             f.write(f"Ambiguity co-var       = {amb.ambiguity_co_var}                 ! change to YES if the Ambiguity fixing method is LAMBDA\n")
@@ -268,14 +245,17 @@ class PRIDEPPPFileConfig(BaseModel):
             f.write(f"Truncate at midnight   = {amb.truncate_at_midnight}                 ! truncate all ambiguities at midnight to avoid day boundary discontinuity\n")
             f.write(f"Verbose output         = {amb.verbose_output}                      ! output detailed information of ambiguity resolution\n\n")
 
+            # Satellite list
             f.write("## Satellite list\n")
             f.write("# Inserting `#' at the beginning of individual GNSS PRN means not to use this satellite\n")
             f.write("+GNSS satellites\n")
             f.write("*PRN variance\n")
-            for satellite, prn_variance in self.satellites.satellites.items():
+            sats = self.satellites.satellites
+            for satellite, prn_variance in sats.items():
                 f.write(f" {satellite:>3}   {prn_variance}\n")
             f.write("-GNSS satellites\n\n")
 
+            # Option line header
             f.write("## Option line\n")
             f.write("# There should be only one option line to be processed\n")
             f.write("# Arguments can be replaced by command-line automatically\n")
@@ -289,45 +269,53 @@ class PRIDEPPPFileConfig(BaseModel):
             f.write("#                              VM3 -- Vienna Mapping Function (VMF3)\n")
             f.write("# Other arguments can be kept if you are not familiar with them\n")
 
+            # Station used
             if self.station_used:
                 f.write("+Station used\n")
                 f.write("*NAME TP MAP CLKm  PoDm EV ZTDm  PoDm HTGm  PoDm RAGm PHSc PoLns PoXEm PoYNm PoZHm\n")
                 for station in self.station_used:
                     f.write(
-                        f" {station.name} {station.tp}  {station.map} {station.clkm} "
-                        f"{station.podm} {station.ev} {station.ztdm:.2f} {station.podm} "
-                        f"{station.htgm} {station.podm} {station.ragm} {station.phsc:.2f} "
-                        f"{station.polns} {station.poxem:.2f} {station.poynm:.2f} {station.pozhm:.2f}\n"
+                        f" {station.name} {station.tp}  {station.map} {station.clkm} {station.podm} {station.ev} "
+                        f"{station.ztdm:.2f} {station.podm} {station.htgm} {station.podm} {station.ragm} "
+                        f"{station.phsc:.2f} {station.polns} {station.poxem:.2f} {station.poynm:.2f} {station.pozhm:.2f}\n"
                     )
                 f.write("-Station used\n")
 
-    @classmethod
-    def read_config_file(cls, file_path: str | Path) -> "PRIDEPPPFileConfig":
-        """Read a PRIDE PPP configuration file and return a model instance."""
-        with open(file_path, "r") as fh:
-            text = fh.read()
+    # ------------------------------------------------------------------
+    # Read / parse
+    # ------------------------------------------------------------------
 
-        def get_value(line: str) -> str:
+    @classmethod
+    def read_config_file(cls, file_path: str) -> "PRIDEPPPFileConfig":
+        """Reads a PRIDE PPP configuration file."""
+        with open(file_path, "r") as file:
+            text = file.read()
+
+        def get_value(line):
             return line.split("=", 1)[-1].strip().split("!")[0].strip()
 
-        def parse_satellite_list(lines: list[str]) -> dict[str, int]:
-            satellites: dict[str, int] = {}
+        def parse_satellite_list(lines):
+            satellites = {}
             for line in lines:
                 if (
                     not line.strip()
-                    or line.startswith(("#", "+", "-", "*"))
+                    or line.startswith("#")
+                    or line.startswith("+")
+                    or line.startswith("-")
+                    or line.startswith("*")
                 ):
                     continue
                 parts = line.split()
                 if len(parts) >= 2:
-                    prn, var = parts[0].lstrip("#"), int(parts[1])
-                    satellites[prn] = var
+                    prn, var = parts[0], int(parts[1])
+                    satellites[prn.lstrip("#")] = var
             return satellites
 
+        # Split into sections
         lines = text.splitlines()
-        sections: dict[str, list[str]] = {}
-        current_section: Optional[str] = None
-        section_lines: list[str] = []
+        sections: Dict[str, list] = {}
+        current_section = None
+        section_lines: list = []
         for line in lines:
             if line.startswith("##"):
                 if current_section:
@@ -339,9 +327,10 @@ class PRIDEPPPFileConfig(BaseModel):
         if current_section:
             sections[current_section] = section_lines
 
-        # Observation
+        # Parse Observation configuration
+        obs_lines = sections.get("observation_configuration", [])
         obs_kwargs: dict = {}
-        for line in sections.get("observation_configuration", []):
+        for line in obs_lines:
             if "Frequency combination" in line:
                 obs_kwargs["frequency_combination"] = get_value(line)
             elif "Interval" in line:
@@ -352,10 +341,12 @@ class PRIDEPPPFileConfig(BaseModel):
                 obs_kwargs["session_time"] = get_value(line)
             elif "Table directory" in line:
                 obs_kwargs["table_directory"] = get_value(line)
+        observation = ObservationConfig(**obs_kwargs)
 
-        # Satellite products
+        # Parse Satellite product
+        prod_lines = sections.get("satellite_product", [])
         prod_kwargs: dict = {}
-        for line in sections.get("satellite_product", []):
+        for line in prod_lines:
             if "Product directory" in line:
                 prod_kwargs["product_directory"] = get_value(line)
             elif "Satellite orbit" in line:
@@ -370,10 +361,12 @@ class PRIDEPPPFileConfig(BaseModel):
                 prod_kwargs["code_phase_bias"] = get_value(line)
             elif "LEO quaternions" in line:
                 prod_kwargs["leo_quaternions"] = get_value(line)
+        satellite_product = SatelliteProducts(**prod_kwargs)
 
-        # Processing strategies
+        # Parse Data processing strategies
+        proc_lines = sections.get("data_processing_strategies", [])
         proc_kwargs: dict = {}
-        for line in sections.get("data_processing_strategies", []):
+        for line in proc_lines:
             if "Strict editing" in line:
                 proc_kwargs["strict_editing"] = get_value(line)
             elif "RCK model" in line:
@@ -388,10 +381,12 @@ class PRIDEPPPFileConfig(BaseModel):
                 proc_kwargs["tides"] = get_value(line)
             elif "Multipath" in line:
                 proc_kwargs["multipath"] = get_value(line)
+        processing = DataProcessingStrategies(**proc_kwargs)
 
-        # Ambiguity options
+        # Parse Ambiguity fixing options
+        amb_lines = sections.get("ambiguity_fixing_options", [])
         amb_kwargs: dict = {}
-        for line in sections.get("ambiguity_fixing_options", []):
+        for line in amb_lines:
             if "Ambiguity co-var" in line:
                 amb_kwargs["ambiguity_co_var"] = get_value(line)
             elif "Ambiguity duration" in line:
@@ -410,49 +405,45 @@ class PRIDEPPPFileConfig(BaseModel):
                 amb_kwargs["truncate_at_midnight"] = get_value(line)
             elif "Verbose output" in line:
                 amb_kwargs["verbose_output"] = get_value(line)
+        ambiguity = AmbiguityFixingOptions(**amb_kwargs)
 
-        # Satellite list block
-        sat_start = sat_end = None
+        # Parse Satellite list
+        sat_start = None
+        sat_end = None
         for i, line in enumerate(lines):
             if "+GNSS satellites" in line:
-                sat_start = i + 2
+                sat_start = i + 2  # skip header lines
             if "-GNSS satellites" in line:
                 sat_end = i
-        satellites: dict[str, int] = {}
+        satellites = {}
         if sat_start and sat_end:
             satellites = parse_satellite_list(lines[sat_start:sat_end])
+        satellite_list = SatelliteList(satellites=satellites)
+
+        # Parse Station used (simple version)
+        station_used = [StationUsed()]
 
         return cls(
-            observation=ObservationConfig(**obs_kwargs),
-            satellite_products=SatelliteProducts(**prod_kwargs),
-            processing=DataProcessingStrategies(**proc_kwargs),
-            ambiguity=AmbiguityFixingOptions(**amb_kwargs),
-            satellites=SatelliteList(satellites=satellites) if satellites else SatelliteList(),
-            station_used=[StationUsed()],
+            observation=observation,
+            satellite_products=satellite_product,
+            processing=processing,
+            ambiguity=ambiguity,
+            satellites=satellite_list,
+            station_used=station_used,
         )
 
     @classmethod
     def load_default(cls) -> "PRIDEPPPFileConfig":
-        """
-        Load the PRIDE PPP-AR default config template from the PRIDE binary
-        installation.
+        """Loads a default PRIDE PPP configuration with predefined values."""
+        pdp_home = Path.home() / ".PRIDE_PPPAR_BIN"
+        if not pdp_home.exists():
+            pdp_home = Path("/opt/PRIDE-PPPAR/.PRIDE_PPPAR_BIN")
+            if not pdp_home.exists():
+                raise FileNotFoundError(f"PRIDE PPPAR directory not found: {pdp_home}")
 
-        Checks ``~/.PRIDE_PPPAR_BIN/config_template`` and falls back to
-        ``/opt/PRIDE-PPPAR/.PRIDE_PPPAR_BIN/config_template``.
-
-        Raises
-        ------
-        FileNotFoundError
-            When neither location contains the template.
-        """
-        candidates = [
-            Path.home() / ".PRIDE_PPPAR_BIN" / "config_template",
-            Path("/opt/PRIDE-PPPAR/.PRIDE_PPPAR_BIN/config_template"),
-        ]
-        for candidate in candidates:
-            if candidate.exists():
-                return cls.read_config_file(candidate)
-        raise FileNotFoundError(
-            "PRIDE PPP-AR config_template not found in any expected location: "
-            + ", ".join(str(p) for p in candidates)
-        )
+        config_path = pdp_home / "config_template"
+        if not config_path.exists():
+            raise FileNotFoundError(
+                f"PRIDE PPPAR config template not found: {config_path}"
+            )
+        return cls.read_config_file(config_path)

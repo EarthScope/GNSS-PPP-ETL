@@ -1,0 +1,150 @@
+"""
+PRIDE PPP-AR CLI configuration.
+
+Builds the ``pdp3`` command line from processing parameters.
+"""
+
+import os
+from enum import Enum
+from pathlib import Path
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
+
+class Constellations(str, Enum):
+    GPS = "G"
+    GLONASS = "R"
+    GALILEO = "E"
+    BDS = "C"
+    BDS_TWO = "2"
+    BDS_THREE = "3"
+    QZSS = "J"
+
+    @classmethod
+    def print_options(cls):
+        print("System options are:")
+        for option in cls:
+            print(f"{option.value} for {option.name}")
+
+
+class Tides(str, Enum):
+    SOLID = "S"
+    OCEAN = "O"
+    POLAR = "P"
+
+    @classmethod
+    def print_options(cls):
+        print("Tide options are:")
+        for option in cls:
+            print(f"{option.value} for {option.name}")
+
+
+class PrideCLIConfig(BaseModel):
+    """
+    Configuration for generating ``pdp3`` CLI commands.
+
+    Attributes
+    ----------
+    sample_frequency : float
+        Processing sample frequency in Hz.
+    system : str
+        Constellation string, e.g. ``"GREC23J"``.
+    frequency : list
+        Frequency combination per constellation.
+    loose_edit : bool
+        Enable loose editing (recommended for high-dynamic data).
+    cutoff_elevation : int
+        Elevation cutoff angle in degrees (0-60).
+    interval : float, optional
+        Processing interval in seconds (0.02-30).
+    high_ion : bool, optional
+        Correct 2nd-order ionospheric delay.
+    tides : str
+        Tide corrections (any combination of ``S``, ``O``, ``P``).
+    local_pdp3_path : str, optional
+        Explicit path to the ``pdp3`` binary.
+    override : bool
+        Re-process even if outputs already exist.
+    override_products_download : bool
+        Re-download products even if already present.
+    pride_configfile_path : Path, optional
+        Path to a PRIDE config file to pass via ``--config``.
+    """
+
+    sample_frequency: float = 1
+    system: str = "GREC23J"
+    frequency: list = ["G12", "R12", "E15", "C26", "J12"]
+    loose_edit: bool = True
+    cutoff_elevation: int = 7
+    interval: Optional[float] = None
+    high_ion: Optional[bool] = None
+    tides: str = "SOP"
+    local_pdp3_path: Optional[str] = Field(
+        None,
+        title="Local Path to pdp3 Binary",
+        description="Path to the local pdp3 binary. If not provided, the system PATH will be used.",
+    )
+    override: bool = False
+    override_products_download: bool = Field(
+        False, title="Flag to Override Existing Products Download",
+    )
+    pride_configfile_path: Optional[Path] = Field(
+        None,
+        title="Path to Pride Config File",
+        description="Path to the Pride config file. If not provided, the default config will be used.",
+    )
+
+    def __post_init__(self):
+        system = self.system.upper()
+        for char in system:
+            if char not in Constellations._value2member_map_:
+                Constellations.print_options()
+                raise ValueError(f"Invalid constellation character: {char}")
+
+        tides = self.tides.upper()
+        for char in tides:
+            if char not in Tides._value2member_map_:
+                Tides.print_options()
+                raise ValueError(f"Invalid tide character: {char}")
+
+    def generate_pdp_command(self, site: str, local_file_path: str) -> List[str]:
+        """Generate the ``pdp3`` command for the given parameters."""
+        if self.local_pdp3_path:
+            if "pdp3" in self.local_pdp3_path:
+                command = [self.local_pdp3_path]
+            else:
+                command = [os.path.join(self.local_pdp3_path, "pdp3")]
+        else:
+            command = ["pdp3"]
+
+        command.extend(["-m", "K"])
+        command.extend(["-i", str(self.sample_frequency)])
+
+        if self.system != "GREC23J":
+            command.extend(["--system", self.system])
+
+        if self.frequency != ["G12", "R12", "E15", "C26", "J12"]:
+            command.extend(["--frequency", " ".join(self.frequency)])
+
+        if self.loose_edit:
+            command.append("--loose-edit")
+
+        if self.cutoff_elevation != 7:
+            command.extend(["--cutoff-elev", str(self.cutoff_elevation)])
+
+        if self.interval:
+            command.extend(["--interval", str(self.interval)])
+
+        if self.high_ion:
+            command.append("--high-ion")
+
+        if self.tides != "SOP":
+            command.extend(["--tide-off", self.tides])
+
+        command.extend(["--site", site])
+
+        if self.pride_configfile_path:
+            command.extend(["--config", str(self.pride_configfile_path)])
+
+        command.append(str(local_file_path))

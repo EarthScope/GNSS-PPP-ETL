@@ -17,12 +17,3 @@ from .ftp_download import (
     ftp_download_file,
     find_best_match_in_listing,
 )
-from .pride_config import (
-    PRIDEPPPFileConfig,
-    SatelliteProducts,
-    ObservationConfig,
-    DataProcessingStrategies,
-    AmbiguityFixingOptions,
-    SatelliteList,
-    StationUsed,
-)

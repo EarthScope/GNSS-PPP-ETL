@@ -1,5 +1,6 @@
 import re
 from typing import List, Optional
+from anyio import Path
 from requests import get, Response
 from functools import lru_cache
 from urllib.parse import unquote
@@ -64,3 +65,26 @@ def http_protocol(
             print(f"Best match for {filequery}: {filename}")
             out.append(filename)
     return out
+
+def http_get_file(
+    httpserver:str,
+    directory:str,
+    filename:str,
+    dest_dir:Optional[Path]=None,
+    timeout:int=60
+) -> Optional[bytes]:
+    try:
+        with get(f"{httpserver}/{directory}/{filename}",timeout=timeout,stream=True) as response:
+            response.raise_for_status()
+            if dest_dir is not None:
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                file_path = dest_dir / filename
+            else:
+                file_path = filename
+            with open(file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+    except Exception as e:
+        print(f"Error fetching HTTP file {httpserver}/{directory}/{filename}: {e}")
+        return None
