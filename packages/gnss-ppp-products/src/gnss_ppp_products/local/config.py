@@ -82,7 +82,7 @@ class LocalStorageConfig:
 
     def __init__(self, base_dir: str | Path) -> None:
         self.dirs = BaseDirectory(base_dir)
-        self._schema = self._load_yaml()
+        self._schema = self.load_yaml()
         self._type_to_collection = self._build_lookup()
 
     # -- public API ----------------------------------------------------------
@@ -134,8 +134,8 @@ class LocalStorageConfig:
     # -- private helpers -----------------------------------------------------
 
     @staticmethod
-    def _load_yaml() -> LocalStorageSchema:
-        with open(_YAML_PATH) as fh:
+    def load_yaml(path: str | Path = _YAML_PATH) -> LocalStorageSchema:
+        with open(path) as fh:
             raw = yaml.safe_load(fh)
         return LocalStorageSchema.model_validate(raw)
 
@@ -163,7 +163,7 @@ class LocalStorageConfig:
         self,
         collection: CollectionConfig,
         name: str,
-        date: Optional[datetime.date],
+        date: Optional[datetime.datetime],
     ) -> Path:
         """Dispatch to the correct BaseDirectory method."""
         temporal = collection.temporal
@@ -178,7 +178,7 @@ class LocalStorageConfig:
         # static / epoch  → no date needed
         return self._resolve_static(name)
 
-    def _resolve_dated(self, name: str, date: datetime.date) -> Path:
+    def _resolve_dated(self, name: str, date:  datetime.datetime) -> Path:
         """Map date-organised collection names to directory builders."""
         if name == "common":
             return self.dirs.products.common(date)

@@ -63,28 +63,30 @@ class Task:
         Remote source definitions — each center's YAML config loaded
         into a Pydantic model.  Used to generate concrete file queries
         with server information attached.
-    local_storage_root : str or Path
-        Root directory for local product storage.  Passed to
-        :class:`~gnss_ppp_products.local.config.LocalStorageConfig`.
+    local_storage : str, Path, or LocalStorageConfig
+        Root directory for local product storage or an existing LocalStorageConfig instance.
     """
 
     def __init__(
         self,
         dependencies: List[ProductDependency],
         centers: List[GNSSCenterConfig],
-        local_storage_root: Union[str, Path],
+        local_storage: Union[str, Path, LocalStorageConfig],
     ) -> None:
         
         self.dependencies = dependencies
         self.centers = centers
-        self.local_config = LocalStorageConfig(local_storage_root)
+        if isinstance(local_storage, LocalStorageConfig):
+            self.local_config = local_storage
+        else:
+            self.local_config = LocalStorageConfig(local_storage)
         self._local_query = LocalFileQuery(self.local_config)
 
     # ------------------------------------------------------------------
     # Query generation
     # ------------------------------------------------------------------
 
-    def _build_queries(self, date: datetime.datetime) -> dict[DependencyType, list[FileQuery]]:
+    def _build_queries(self, date: datetime.datetime | datetime.date) -> dict[DependencyType, list[FileQuery]]:
         """Generate file queries for each dependency from all centers.
 
         Iterates over every dependency type, calls the matching
@@ -115,7 +117,7 @@ class Task:
 
         return queries
 
-    def resolve(self, date: datetime.datetime) -> TaskResult:
+    def resolve(self, date: datetime.datetime | datetime.date) -> TaskResult:
         """Resolve all dependencies for the given date.
 
         First builds file queries for each dependency type, then searches

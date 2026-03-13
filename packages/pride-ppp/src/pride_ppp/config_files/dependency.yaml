@@ -1,0 +1,43 @@
+# PRIDE-PPP Kinematic Processing — Product Dependencies
+# =====================================================
+#
+# Defines the GNSS product categories required for kinematic
+# PPP-AR processing using the PRIDE-PPP engine.
+#
+# Each dependency maps to a DependencyType in the gnss-ppp-products
+# Tasks SDK, which drives query generation from center configs.
+#
+# Centers listed under `centers` specify which analysis center YAML
+# configs to load for remote source definitions.
+
+mode: kinematic
+
+dependencies:
+  # Precise orbit, clock, bias, ERP, and OBX products
+  - type: products
+    required: true
+    description: >
+      Precise satellite orbits (SP3), clocks (CLK), Earth rotation
+      parameters (ERP), observable-specific biases (BIA), and
+      satellite attitude quaternions (OBX).
+
+  # Broadcast navigation RINEX
+  - type: rinex
+    required: true
+    description: >
+      Broadcast ephemeris / navigation messages in RINEX 3 format.
+      Used as a-priori orbit information and for satellite health flags.
+
+  # Reference tables (leap seconds, satellite parameters)
+  - type: reference_tables
+    required: false
+    description: >
+      Leap second table and satellite physical parameters.
+      Typically only need to be fetched once and updated infrequently.
+
+# Which analysis center configs to query for products.
+# Names correspond to YAML files in gnss_ppp_products/assets/config_files/.
+centers:
+  - wuhan
+  - igs
+  - cddis
