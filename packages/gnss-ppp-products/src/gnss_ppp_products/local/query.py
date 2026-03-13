@@ -20,7 +20,7 @@ from ..assets.troposphere.query import TroposphereFileQuery
 from ..assets.orography.query import OrographyFileQuery
 from ..assets.leo.query import LEOFileQuery
 from ..assets.reference_tables.query import ReferenceTableFileQuery
-
+from .utils import check_file
 from .config import LocalStorageConfig
 
 # Type alias for any FileQuery variant
@@ -184,7 +184,14 @@ class LocalFileQuery:
             p for p in directory.iterdir()
             if p.is_file() and pattern.search(p.name)
         ]
-        return sorted(matches, key=lambda p: p.name)
+        # Check matches for corrupted files (e.g. zero-byte downloads) and delete and exclude them
+        valid_matches = []
+        for p in matches:
+            if not check_file(p):
+                p.unlink()  # Delete the corrupted file
+            else:
+                valid_matches.append(p)
+        return sorted(valid_matches, key=lambda p: p.name)
 
     def exists(self, query: FileQuery) -> bool:
         """Return ``True`` if at least one local file matches *query*."""
