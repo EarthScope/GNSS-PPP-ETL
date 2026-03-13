@@ -33,10 +33,17 @@ class ProductDirectory:
         self.path.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
 
     def common(self, date: datetime) -> Path:
-        """Build a common directory path for a given date and product type."""
+        """Build the common product directory for a given date (year-level)."""
         year, doy = parse_date(date)
-        folder = self.path / str(year) / f"{doy:03d}" / "common"
-        folder.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
+        folder = self.path / str(year) / "product" / "common"
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
+
+    def leo(self, date: datetime) -> Path:
+        """Build an LEO products directory path for a given date."""
+        year, doy = parse_date(date)
+        folder = self.path / str(year) / f"{doy}" / "leo"
+        folder.mkdir(parents=True, exist_ok=True)
         return folder
 
 class RinexDirectory:
@@ -48,7 +55,7 @@ class RinexDirectory:
     def rinex(self, date: datetime) -> Path:
         """Build a Rinex directory path for a given date."""
         year, doy = parse_date(date)
-        folder = self.path / str(year) / f"{doy:03d}"
+        folder = self.path / str(year) / str(doy)
         folder.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
         return folder
         

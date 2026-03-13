@@ -24,17 +24,16 @@
 # Directory hierarchy (PRIDE convention)
 # --------------------------------------
 #   <base_dir>/
-#   ├── products/{year}/{doy}/common/  ← orbit, clock, bias, iono, tropo
-#   ├── products/{year}/{doy}/leo/     ← LEO satellite products
-#   ├── rinex/{year}/{doy}/            ← broadcast navigation RINEX
+#   ├── products/{year}/product/common/  ← orbit, clock, bias, iono, tropo
+#   ├── products/{year}/{doy}/leo/       ← LEO satellite products
+#   ├── rinex/{year}/{doy}/              ← broadcast navigation RINEX
 #   └── static/
-#       ├── atx/                       ← ANTEX antenna calibrations
-#       ├── atmosphere/                ← orography grids
-#       └── tables/                    ← leap seconds, sat parameters
+#       ├── atx/                         ← ANTEX antenna calibrations
+#       ├── atmosphere/                  ← orography grids
+#       └── tables/                      ← leap seconds, sat parameters
 
 # -- General settings --------------------------------------------------------
 
-strategy: pride          # Directory naming convention (pride | gps_week | year_doy)
 
 # -- Collections: directory → product types ----------------------------------
 
@@ -44,7 +43,7 @@ collections:
   # Common daily products  (orbit, clock, bias, ionosphere, troposphere)
   # ---------------------------------------------------------------------------
   common:
-    directory: "products/{year}/{doy}/common"
+    directory: "products/{year}/product/common"
     temporal: daily
     description: "Precise orbit/clock, biases, ionosphere, and troposphere grids"
     types:
@@ -54,7 +53,8 @@ collections:
       - BIAS              # Satellite code/phase biases (DCB/DSB/OSB)
       - OBX               # ORBEX satellite attitude quaternions
       - SUM               # Solution summary files
-      - GIM               # Global Ionosphere Map (VTEC, IONEX)
+      - IONX              # IONEX ionospheric TEC grid
+      - GIM               # Global Ionosphere Map (VTEC)
       - VMF1              # Vienna Mapping Functions 1 (6-hourly grids)
       - VMF3              # Vienna Mapping Functions 3 (6-hourly grids)
 
@@ -67,6 +67,7 @@ collections:
     description: "Broadcast ephemeris / navigation messages"
     types:
       - RINEX3_NAV        # RINEX 3.x multi-GNSS navigation
+      - RINEX2_NAV        # RINEX 2.x generic navigation
       - RINEX2_NAV_GPS    # RINEX 2.x GPS navigation
       - RINEX2_NAV_GLONASS # RINEX 2.x GLONASS navigation
       - RINEX2_NAV_MIXED  # RINEX 2.x mixed GPS+GLONASS navigation
@@ -84,8 +85,6 @@ collections:
       - GRACE_SCA         # Star camera assembly
       - GRACE_KBR         # K-Band ranging
       - GRACE_LRI         # Laser Ranging Interferometer (GRACE-FO only)
-      - GRACE_CLK         # Clock
-      - GRACE_THR         # Thruster
 
   # ---------------------------------------------------------------------------
   # Antenna calibrations
@@ -95,9 +94,7 @@ collections:
     temporal: epoch
     description: "ANTEX antenna phase center calibrations"
     types:
-      - ATX_IGS           # IGS combined ANTEX
-      - ATX_CODE_MGEX     # CODE MGEX ANTEX (M14/M20)
-      - ATX_NGS           # NGS/NOAA ANTEX
+      - ATX               # ANTEX antenna calibration files
 
   # ---------------------------------------------------------------------------
   # Reference tables
