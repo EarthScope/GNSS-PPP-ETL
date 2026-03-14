@@ -62,14 +62,16 @@ class ExtraAxisDef(BaseModel):
 class ProductQueryProfile(BaseModel):
     """Defines how a single product spec is queried.
 
+    Fixed metadata constraints (CNT, FMT, LEN, etc.) live in the
+    product spec and remote resource specs — *not* here.  The query
+    profile only declares which axes are searchable and how
+    the product is categorised.
+
     Attributes
     ----------
     axes : list[str]
         Ordered list of global axis names that apply to this product.
         Defines the recommended drill-down order.
-    fixed : dict[str, str]
-        Metadata field values baked into the product spec —
-        these constrain the regex but are not user-facing axes.
     extra_axes : dict[str, ExtraAxisDef]
         Product-specific axes beyond the global set.
     format_key : str
@@ -82,7 +84,6 @@ class ProductQueryProfile(BaseModel):
     """
 
     axes: List[str] = Field(default_factory=list)
-    fixed: Dict[str, str] = Field(default_factory=dict)
     extra_axes: Dict[str, ExtraAxisDef] = Field(default_factory=dict)
     format_key: str = ""
     temporal: str = "daily"

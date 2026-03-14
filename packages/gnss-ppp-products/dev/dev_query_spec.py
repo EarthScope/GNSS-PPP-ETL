@@ -38,17 +38,44 @@ for name in QuerySpecRegistry.spec_names:
     extra = list(p.extra_axes.keys())
     print(f"    {name:<12s}  axes={p.axes}"
           + (f"  extra={extra}" if extra else "")
-          + (f"  fixed={p.fixed}" if p.fixed else "")
           + f"  temporal={p.temporal}")
 
 # ──────────────────────────────────────────────────────────────────
-# 2. Progressive narrowing demo
+# 2. Allowed values — resource spec drives what's valid
+# ──────────────────────────────────────────────────────────────────
+print(f"\n{sep}")
+print("  Allowed Values (derived from resource specs, not query spec)")
+print(sep)
+
+q = ProductQuery(date=date)
+print(f"\n  Full catalog — allowed values per axis:")
+for axis, vals in q.axes_summary().items():
+    print(f"    {axis:<10s}: {vals}")
+
+q_orbit = q.narrow(spec="ORBIT")
+print(f"\n  After narrowing to ORBIT — allowed values shrink:")
+for axis, vals in q_orbit.axes_summary().items():
+    print(f"    {axis:<10s}: {vals}")
+
+print(f"\n  Validation — trying an invalid solution:")
+try:
+    q_orbit.narrow(solution="BOGUS")
+except ValueError as e:
+    print(f"    ValueError: {e}")
+
+print(f"\n  Validation — trying an invalid center:")
+try:
+    q.narrow(center="CDDIS")
+except ValueError as e:
+    print(f"    ValueError: {e}")
+
+# ──────────────────────────────────────────────────────────────────
+# 3. Progressive narrowing demo
 # ──────────────────────────────────────────────────────────────────
 print(f"\n{sep}")
 print(f"  Progressive Query Narrowing   (date = {date})")
 print(sep)
 
-q = ProductQuery(date=date)
 print(f"\n  ProductQuery(date={date})")
 print(f"    {q}")
 print(f"    specs:     {q.specs()}")
@@ -88,7 +115,7 @@ if b:
     print(f"    local:     {b.local_directory}")
 
 # ──────────────────────────────────────────────────────────────────
-# 3. Multi-product query
+# 4. Multi-product query
 # ──────────────────────────────────────────────────────────────────
 print(f"\n{sep}")
 print("  Multi-Product Query (all FIN products from IGS)")
@@ -102,34 +129,18 @@ for r in q_igs_fin.results:
     print(f"    [{r.spec:<10s}] {r.regex[:65]}")
 
 # ──────────────────────────────────────────────────────────────────
-# 4. Branching: compare WUM vs IGS orbits
+# 5. Branching: compare WUM vs IGS orbits
 # ──────────────────────────────────────────────────────────────────
 print(f"\n{sep}")
 print("  Branching: WUM vs IGS Orbits")
 print(sep)
 
-q_orbit = q.narrow(spec="ORBIT", solution="FIN")
+q_orbit_fin = q.narrow(spec="ORBIT", solution="FIN")
 for center in ["IGS", "WUM"]:
-    branch = q_orbit.narrow(center=center)
+    branch = q_orbit_fin.narrow(center=center)
     print(f"\n  {center} FIN orbits: {branch.count} variants")
     for r in branch.results:
         print(f"    campaign={r.campaign:<4s} sampling={r.sampling:<4s}  {r.regex[:60]}")
-
-# ──────────────────────────────────────────────────────────────────
-# 5. axes_summary() for discovery
-# ──────────────────────────────────────────────────────────────────
-print(f"\n{sep}")
-print("  axes_summary() — discover available filter values")
-print(sep)
-
-print("\n  Full catalog summary:")
-for axis, vals in q.axes_summary().items():
-    print(f"    {axis:<10s}: {vals}")
-
-print("\n  After narrowing to WUM:")
-q_wum = q.narrow(center="WUM")
-for axis, vals in q_wum.axes_summary().items():
-    print(f"    {axis:<10s}: {vals}")
 
 # ──────────────────────────────────────────────────────────────────
 # 6. Static products
@@ -172,7 +183,7 @@ for spec_name in ["ORBIT", "CLOCK", "ERP"]:
         print(f"           regex: {b.regex[:65]}")
 
 # ──────────────────────────────────────────────────────────────────
-# 9. Ergonomic dependency pattern preview
+# 9. Dependency pattern preview
 # ──────────────────────────────────────────────────────────────────
 print(f"\n{sep}")
 print("  Dependency Pattern Preview")

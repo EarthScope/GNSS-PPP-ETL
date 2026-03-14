@@ -115,11 +115,16 @@ axes:
 #
 # Each product spec declares:
 #   axes        — which search axes apply (subset of global axes)
-#   fixed       — metadata field values baked into the product spec
-#                 (these are NOT search axes — they constrain the regex)
 #   format_key  — identifies which filename template family to use
 #   temporal    — daily | hourly | static (governs date axis behavior)
 #   local_collection — which LocalResourceRegistry collection owns this
+#
+# Fixed metadata constraints (e.g. CNT, FMT, LEN) live in the
+# product spec and remote resource specs — NOT here.  The query
+# spec only defines *which axes are searchable* for each product.
+# At query time the engine validates that user-supplied axis values
+# are "allowed" by checking them against what the resource specs
+# actually provide in the catalog.
 #
 # "axes" is an ordered list: the recommended narrowing order for
 # progressive queries.  Users can specify any subset in any order,
@@ -131,52 +136,30 @@ products:
 
   ORBIT:
     axes: [date, center, campaign, solution, sampling]
-    fixed:
-      LEN: "01D"
-      CNT: ORB
-      FMT: SP3
     format_key: PRODUCT
     temporal: daily
     local_collection: products
 
   CLOCK:
     axes: [date, center, campaign, solution, sampling]
-    fixed:
-      LEN: "01D"
-      CNT: CLK
-      FMT: CLK
     format_key: PRODUCT
     temporal: daily
     local_collection: products
 
   ERP:
     axes: [date, center, campaign, solution]
-    fixed:
-      LEN: "01D"
-      CNT: ERP
-      FMT: ERP
-      SMP: "01D"
     format_key: PRODUCT
     temporal: daily
     local_collection: products
 
   BIA:
     axes: [date, center, campaign, solution]
-    fixed:
-      LEN: "01D"
-      CNT: OSB
-      FMT: BIA
     format_key: PRODUCT
     temporal: daily
     local_collection: products
 
   ATTOBX:
     axes: [date, center, campaign, solution]
-    fixed:
-      LEN: "01D"
-      CNT: ATT
-      FMT: OBX
-      SMP: "30S"
     format_key: PRODUCT
     temporal: daily
     local_collection: products
@@ -185,10 +168,6 @@ products:
 
   IONEX:
     axes: [date, center, campaign, solution, sampling]
-    fixed:
-      LEN: "01D"
-      CNT: GIM
-      FMT: INX
     format_key: PRODUCT
     temporal: daily
     local_collection: common
@@ -197,10 +176,6 @@ products:
 
   RNX3_BRDC:
     axes: [date, center]
-    fixed:
-      SSSS: BRDC
-      DDU: "01D"
-      S: R
     extra_axes:
       constellation:
         description: Satellite system code
@@ -218,7 +193,6 @@ products:
 
   VMF:
     axes: [date]
-    fixed: {}
     extra_axes:
       vmf_product:
         description: VMF model variant
@@ -240,15 +214,12 @@ products:
 
   OROGRAPHY:
     axes: []
-    fixed:
-      RESOLUTION: "5x5"
     format_key: VIENNA_MAPPING_FUNCTIONS
     temporal: static
     local_collection: table
 
   ATTATX:
     axes: [date, center]
-    fixed: {}
     extra_axes:
       antenna_format:
         description: Which ANTEX format variant (current vs. archive)
@@ -260,14 +231,12 @@ products:
 
   LEAP_SEC:
     axes: []
-    fixed: {}
     format_key: TABLE
     temporal: static
     local_collection: table
 
   SAT_PARAMS:
     axes: []
-    fixed: {}
     format_key: TABLE
     temporal: static
     local_collection: table

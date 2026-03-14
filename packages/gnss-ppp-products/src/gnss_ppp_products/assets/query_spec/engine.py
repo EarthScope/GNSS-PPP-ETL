@@ -196,7 +196,10 @@ class ProductQuery:
 
         Each keyword argument is an axis name (spec, center, campaign,
         solution, sampling, or any extra_axis) mapped to a value.
-        Unknown axis names are silently ignored.
+
+        Raises :class:`ValueError` if a supplied axis value is not
+        among the values currently allowed by the resource specs
+        (i.e. not present in the current result set).
 
         Examples::
 
@@ -206,6 +209,17 @@ class ProductQuery:
             q3 = q.narrow(spec="ORBIT", center="IGS",
                           solution="FIN", sampling="05M")
         """
+        # Validate that each requested value is allowed in the catalog
+        for axis_name, axis_value in axis_values.items():
+            if not axis_value:
+                continue
+            allowed = self.allowed_values(axis_name)
+            if allowed and axis_value.upper() not in {v.upper() for v in allowed}:
+                raise ValueError(
+                    f"axis '{axis_name}' value '{axis_value}' not allowed — "
+                    f"resource specs provide: {sorted(allowed)}"
+                )
+
         new_axes = {**self.axes, **{k: v for k, v in axis_values.items() if v}}
         filtered = self._results
 
@@ -278,6 +292,32 @@ class ProductQuery:
             "solution": self.solutions(),
             "sampling": self.samplings(),
         }
+
+    def allowed_values(self, axis_name: str) -> List[str]:
+        """Values currently allowed for *axis_name* by the resource specs.
+
+        Introspects the live result set — not a static list — so
+        allowed values naturally shrink as axes are pinned.
+        """
+        match axis_name:
+            case "spec":
+                return self.specs()
+            case "center":
+                return self.centers()
+            case "campaign":
+                return self.campaigns()
+            case "solution":
+                return self.solutions()
+            case "sampling":
+                return self.samplings()
+            case _:
+                # Extra axis — extract unique values from regex matches
+                v_upper = axis_name.upper()
+                vals: set[str] = set()
+                for r in self._results:
+                    if r.regex and v_upper in (r.regex or "").upper():
+                        vals.add(axis_name)
+                return sorted(vals) if vals else []
 
     # ------------------------------------------------------------------
     # Local resolution
