@@ -264,20 +264,21 @@ formats:
         filename:
           default:
             - "{PRODUCT}_{YYYY}{MONTH}{DAY}.{VMFHH}"
-    ANTENNAE:
-      description: >
-        Antenna information in ATX format, including phase center variations and offsets.
-      versions:
-        "1":
-          metadata:
-            - AAA  # analysis center code (e.g., "WUM", "COD")
-            - REFFRAME # Reference frame code (e.g., "ITRF2014")
-            - GPSWEEK # GPS week number
-          filename:
-            archive:
-              - "{AAA}{REFFRAME}_{GPSWEEK}.atx"
-            default:
-              - "{AAA}{REFFRAME}.atx"
+
+  ANTENNAE:
+    description: >
+      Antenna information in ATX format, including phase center variations and offsets.
+    versions:
+      "1":
+        metadata:
+          - AAA  # analysis center code (e.g., "WUM", "COD")
+          - REFFRAME # Reference frame code (e.g., "ITRF2014")
+          - GPSWEEK # GPS week number
+        filename:
+          archive:
+            - "{AAA}{REFFRAME}_{GPSWEEK}.atx"
+          default:
+            - "{AAA}{REFFRAME}.atx"
 
 products:
 
