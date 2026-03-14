@@ -1,0 +1,102 @@
+id: COD
+name: CODE (AIUB)
+description: >
+  Center for Orbit Determination in Europe at the Astronomical Institute
+  of the University of Bern. Provides high-precision GPS products and
+  ionosphere models.
+website: http://www.aiub.unibe.ch/
+
+servers:
+  - id: code_ftp
+    name: Primary FTP
+    hostname: ftp://ftp.aiub.unibe.ch
+    protocol: ftp
+    auth_required: false
+    notes: Primary AIUB FTP server
+
+products:
+  - id: code_orbit
+    spec: ORBIT
+    server_id: code_ftp
+    available: true
+    description: Precise satellite orbits
+    metadata:
+      AAA:
+        - COD
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+        - MGX
+      SMP:
+        - "05M"
+        - "15M"
+    directory: CODE/{YYYY}/
+
+  - id: code_clock
+    spec: CLOCK
+    server_id: code_ftp
+    available: true
+    description: Precise clocks
+    metadata:
+      AAA:
+        - COD
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+      SMP:
+        - "30S"
+        - "05M"
+    directory: CODE/{YYYY}/
+
+  - id: code_erp
+    spec: ERP
+    server_id: code_ftp
+    available: true
+    description: Earth rotation parameters
+    metadata:
+      AAA:
+        - COD
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+    directory: CODE/{YYYY}/
+
+  - id: code_bias
+    spec: BIA
+    server_id: code_ftp
+    available: true
+    description: Differential code biases (DCB/OSB)
+    metadata:
+      AAA:
+        - COD
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+    directory: CODE/{YYYY}/
+
+  - id: code_gim
+    spec: IONEX
+    server_id: code_ftp
+    available: true
+    description: Global Ionosphere Maps (CODE is primary producer)
+    metadata:
+      AAA:
+        - COD
+      TTT:
+        - FIN
+        - RAP
+        - PRD
+      PPP:
+        - OPS
+      SMP:
+        - "01H"
+        - "02H"
+    directory: CODE/{YYYY}/

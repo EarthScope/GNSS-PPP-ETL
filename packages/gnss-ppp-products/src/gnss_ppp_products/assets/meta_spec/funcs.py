@@ -10,11 +10,11 @@ GNSS_START_TIME = datetime.datetime(
 class IGSAntexReferenceFrameType(Enum):
     """Reference frame types for ANTEX files."""
 
-    IGS05 = "igs05"
-    IGS08 = "igs08"
-    IGS14 = "igs14"
-    IGS20 = "igs20"
-    IGSR3 = "igsR3"
+    IGS05 = "05"
+    IGS08 = "08"
+    IGS14 = "14"
+    IGS20 = "20"
+    IGSR3 = "R3"
 
 
 def _date_to_doy(date:datetime.datetime) -> str:

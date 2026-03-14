@@ -1,0 +1,55 @@
+id: GFZ
+name: GFZ Potsdam
+description: >
+  German Research Centre for Geosciences in Potsdam. Major IGS analysis
+  center producing GPS (GFZ) and MGEX (GBM) products.
+website: https://www.gfz-potsdam.de/
+
+servers:
+  - id: gfz_ftp
+    name: ISDC FTP
+    hostname: ftp://isdcftp.gfz-potsdam.de
+    protocol: ftp
+    auth_required: false
+    notes: Information System and Data Center (ISDC) FTP
+
+products:
+  - id: gfz_orbit
+    spec: ORBIT
+    server_id: gfz_ftp
+    available: true
+    description: Precise orbits
+    metadata:
+      AAA:
+        - GFZ
+        - GBM
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+        - MGX
+      SMP:
+        - "05M"
+        - "15M"
+    directory: gnss/products/final/w{GPSWK}/
+
+  - id: gfz_clock
+    spec: CLOCK
+    server_id: gfz_ftp
+    available: true
+    description: Precise clocks
+    metadata:
+      AAA:
+        - GFZ
+        - GBM
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+        - MGX
+      SMP:
+        - "30S"
+        - "05M"
+    directory: gnss/products/final/w{GPSWK}/

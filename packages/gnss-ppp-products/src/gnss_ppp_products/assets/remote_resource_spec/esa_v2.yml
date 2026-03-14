@@ -1,0 +1,70 @@
+id: ESA
+name: ESA/ESOC
+description: >
+  European Space Agency's European Space Operations center in Darmstadt.
+  Produces GPS products and is primary producer for Galileo.
+website: https://www.esa.int/
+
+servers:
+  - id: esa_ftp
+    name: ESA GNSS FTP
+    hostname: ftp://gssc.esa.int
+    protocol: ftp
+    auth_required: false
+    notes: ESA GNSS Science Support center
+
+products:
+  - id: esa_orbit
+    spec: ORBIT
+    server_id: esa_ftp
+    available: true
+    description: Precise orbits
+    metadata:
+      AAA:
+        - ESA
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+        - MGX
+      SMP:
+        - "05M"
+        - "15M"
+    directory: gnss/products/{GPSWK}/
+
+  - id: esa_clock
+    spec: CLOCK
+    server_id: esa_ftp
+    available: true
+    description: Precise clocks
+    metadata:
+      AAA:
+        - ESA
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+      SMP:
+        - "30S"
+        - "05M"
+    directory: gnss/products/{GPSWK}/
+
+  - id: esa_gim
+    spec: IONEX
+    server_id: esa_ftp
+    available: true
+    description: ESA Global Ionosphere Maps
+    metadata:
+      AAA:
+        - ESA
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+      SMP:
+        - "01H"
+        - "02H"
+    directory: gnss/products/ionex/{YYYY}/{DDD}/

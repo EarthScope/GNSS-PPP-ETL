@@ -1,0 +1,102 @@
+id: CDDIS
+name: NASA CDDIS
+description: >
+  NASA's Crustal Dynamics Data Information System archives and 
+  distributes space geodesy data including GNSS, SLR, VLBI, and DORIS.
+  Mirrors products from all IGS analysis centers.
+website: https://cddis.nasa.gov/
+
+servers:
+  - id: cddis_ftps
+    name: CDDIS FTPS
+    hostname: ftp://gdc.cddis.eosdis.nasa.gov
+    protocol: ftps
+    auth_required: false
+    notes: >
+      Requires FTPS (explicit TLS). Anonymous login with email address.
+      May require NASA Earthdata login for some products.
+
+products:
+  - id: cddis_orbit
+    spec: ORBIT
+    server_id: cddis_ftps
+    available: true
+    description: Precise orbits (mirrors from all ACs)
+    metadata:
+      AAA:
+        - IGS
+        - GBM
+        - WUM
+        - COD
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+        - MGX
+      SMP:
+        - "05M"
+        - "15M"
+    directory: gnss/products/{GPSWK}/
+
+  - id: cddis_clock
+    spec: CLOCK
+    server_id: cddis_ftps
+    available: true
+    description: Precise clocks (mirrors from all ACs)
+    metadata:
+      AAA:
+        - IGS
+        - GBM
+        - WUM
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+        - MGX
+      SMP:
+        - "30S"
+        - "05M"
+    directory: gnss/products/{GPSWK}/
+
+  - id: cddis_gim
+    spec: IONEX
+    server_id: cddis_ftps
+    available: true
+    description: Global Ionosphere Maps
+    metadata:
+      AAA:
+        - COD
+        - IGS
+        - JPL
+        - ESA
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+      SMP:
+        - "01H"
+        - "02H"
+    directory: gnss/products/ionex/{YYYY}/{DDD}/
+
+  - id: cddis_nav
+    spec: RNX3_BRDC
+    server_id: cddis_ftps
+    available: true
+    description: RINEX 3 broadcast navigation (multi-GNSS)
+    metadata:
+      CCC:
+        - IGS
+      D:
+        - E
+        - M
+    directory: gnss/data/daily/{YYYY}/{DDD}/{YY}p/
+
+  - id: cddis_leap_seconds
+    spec: LEAP_SEC
+    server_id: cddis_ftps
+    available: true
+    description: IERS leap seconds file
+    directory: pub/products/iers
