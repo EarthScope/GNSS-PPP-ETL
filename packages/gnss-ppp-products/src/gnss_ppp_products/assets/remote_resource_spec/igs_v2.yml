@@ -124,7 +124,7 @@ products:
     description: IGS combined antenna exchange format (ANTEX) files
     metadata:
       AAA:
-        - IGS
+        - igs
     directory: pub/station/general/
   
   - id: igs_atx_archive
@@ -137,5 +137,5 @@ products:
     description: IGS combined antenna exchange format (ANTEX) files (archive)
     metadata:
       AAA:
-        - IGS
+        - igs
     directory: pub/station/general/pcv_archive/

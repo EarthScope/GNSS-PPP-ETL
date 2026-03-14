@@ -1,9 +1,20 @@
 import datetime
+from enum import Enum
 from .registry import MetaDataRegistry
 
 GNSS_START_TIME = datetime.datetime(
     1980, 1, 6, tzinfo=datetime.timezone.utc
 )  # GNSS start time
+
+
+class IGSAntexReferenceFrameType(Enum):
+    """Reference frame types for ANTEX files."""
+
+    IGS05 = "igs05"
+    IGS08 = "igs08"
+    IGS14 = "igs14"
+    IGS20 = "igs20"
+    IGSR3 = "igsR3"
 
 
 def _date_to_doy(date:datetime.datetime) -> str:
@@ -160,3 +171,20 @@ def _date_to_gpswk(date: datetime.datetime) -> str:
     time_since_epoch = date - GNSS_START_TIME
     return str(time_since_epoch.days // 7)
 
+
+@MetaDataRegistry.computed(
+    name="REFFRAME"
+)
+def _date_to_igs_reframe(date: datetime.datetime) -> str:
+    """Determine the appropriate IGS frame based on date."""
+    date = date.date()
+    if date >= datetime.date(2022, 11, 27):
+        return IGSAntexReferenceFrameType.IGS20.value
+    elif date >= datetime.date(2017, 1, 29):
+        return IGSAntexReferenceFrameType.IGS14.value
+    elif date >= datetime.date(2011,4,17):
+        return IGSAntexReferenceFrameType.IGS08.value
+    elif date >= datetime.date(2006, 11, 5):
+        return IGSAntexReferenceFrameType.IGS05.value  # Assuming a placeholder for the earliest frame
+    else:
+        return None
