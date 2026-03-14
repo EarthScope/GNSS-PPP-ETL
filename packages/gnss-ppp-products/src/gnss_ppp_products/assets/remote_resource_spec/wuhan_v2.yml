@@ -1,0 +1,149 @@
+id: WUM
+name: Wuhan University
+description: >
+  Wuhan University GNSS Research Center provides multi-GNSS precise 
+  products through the IGS MGEX campaign. Known for rapid availability
+  and comprehensive constellation support.
+website: http://www.igs.gnsswhu.cn/
+
+servers:
+  - id: wuhan_ftp
+    name: Primary FTP
+    hostname: ftp://igs.gnsswhu.cn
+    protocol: ftp
+    auth_required: false
+    notes: Primary FTP server, no authentication required
+
+products:
+  - id: wuhan_orbit
+    spec: ORBIT
+    server_id: wuhan_ftp
+    available: true
+    description: Precise satellite orbits
+    metadata:
+      AAA:
+        - WUM
+        - WMC
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - MGX
+        - DEM
+      SMP:
+        - "05M"
+        - "15M"
+    directory: pub/whu/phasebias/{YYYY}/orbit/
+
+  - id: wuhan_clock
+    spec: CLOCK
+    server_id: wuhan_ftp
+    available: true
+    description: Precise satellite and station clocks
+    metadata:
+      AAA:
+        - WUM
+        - WMC
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - MGX
+        - DEM
+      SMP:
+        - "30S"
+        - "05M"
+    directory: pub/whu/phasebias/{YYYY}/clock/
+
+  - id: wuhan_erp
+    spec: ERP
+    server_id: wuhan_ftp
+    available: true
+    description: Earth rotation parameters
+    metadata:
+      AAA:
+        - WUM
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - MGX
+    directory: pub/whu/phasebias/{YYYY}/orbit/
+
+  - id: wuhan_bias
+    spec: BIA
+    server_id: wuhan_ftp
+    available: true
+    description: Observable-specific signal biases (OSB)
+    metadata:
+      AAA:
+        - WUM
+        - WMC
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - MGX
+        - DEM
+    directory: pub/whu/phasebias/{YYYY}/bias/
+
+  - id: wuhan_obx
+    spec: ATTOBX
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite attitude quaternions (ORBEX)
+    metadata:
+      AAA:
+        - WMC
+      TTT:
+        - FIN
+      PPP:
+        - DEM
+    directory: pub/whu/phasebias/{YYYY}/orbit/
+
+  - id: wuhan_gim
+    spec: IONEX
+    server_id: wuhan_ftp
+    available: true
+    description: Global Ionosphere Maps (mirrored from various centers)
+    metadata:
+      AAA:
+        - COD
+        - IGS
+        - JPL
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+      SMP:
+        - "01H"
+        - "02H"
+    directory: pub/gps/products/ionex/{YYYY}/{DDD}/
+
+  - id: wuhan_nav
+    spec: RNX3_BRDC
+    server_id: wuhan_ftp
+    available: true
+    description: RINEX 3 broadcast navigation (multi-GNSS)
+    metadata:
+      CCC:
+        - IGN
+      D:
+        - E
+        - M
+    directory: pub/gps/data/daily/{YYYY}/{DDD}/{YY}p
+
+  - id: wuhan_leap_seconds
+    spec: LEAP_SEC
+    server_id: wuhan_ftp
+    available: true
+    description: Leap seconds table (PRIDE-PPPAR)
+    directory: pub/whu/phasebias/table
+
+  - id: wuhan_sat_parameters
+    spec: SAT_PARAMS
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite physical parameters table
+    directory: pub/whu/phasebias/table

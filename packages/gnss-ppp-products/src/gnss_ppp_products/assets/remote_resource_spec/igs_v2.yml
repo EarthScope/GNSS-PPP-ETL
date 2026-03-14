@@ -1,0 +1,141 @@
+id: IGS
+name: IGS (via IGN France)
+description: >
+  International GNSS Service combined solutions hosted by Institut 
+  National de l'Information Géographique et Forestière (IGN France).
+  Combined products provide the official IGS reference solutions.
+website: https://igs.org/
+
+servers:
+  - id: ign_ftp
+    name: IGN France FTP
+    hostname: ftp://igs.ign.fr
+    protocol: ftp
+    auth_required: false
+    notes: IGN France FTP mirror
+
+  - id: igs_http
+    name: IGS HTTP
+    hostname: https://files.igs.org
+    protocol: https
+    auth_required: false
+    notes: IGS HTTP server for ANTEX and station data
+
+products:
+  - id: igs_orbit
+    spec: ORBIT
+    server_id: ign_ftp
+    available: true
+    description: IGS combined precise orbits
+    metadata:
+      AAA:
+        - IGS
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+      SMP:
+        - "05M"
+        - "15M"
+    directory: pub/igs/products/{GPSWK}/
+
+  - id: igs_clock
+    spec: CLOCK
+    server_id: ign_ftp
+    available: true
+    description: IGS combined precise clocks
+    metadata:
+      AAA:
+        - IGS
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+      SMP:
+        - "30S"
+        - "05M"
+    directory: pub/igs/products/{GPSWK}/
+
+  - id: igs_erp
+    spec: ERP
+    server_id: ign_ftp
+    available: true
+    description: IGS combined Earth rotation parameters
+    metadata:
+      AAA:
+        - IGS
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+    directory: pub/igs/products/{GPSWK}/
+
+  - id: igs_bias
+    spec: BIA
+    server_id: ign_ftp
+    available: true
+    description: IGS combined biases
+    metadata:
+      AAA:
+        - IGS
+      TTT:
+        - FIN
+        - RAP
+      PPP:
+        - OPS
+    directory: pub/igs/products/{GPSWK}/
+
+  - id: igs_obx
+    spec: ATTOBX
+    server_id: ign_ftp
+    available: true
+    description: IGS satellite attitude (ORBEX)
+    metadata:
+      AAA:
+        - IGS
+      TTT:
+        - FIN
+      PPP:
+        - OPS
+    directory: pub/igs/products/{GPSWK}/
+
+  - id: igs_nav
+    spec: RNX3_BRDC
+    server_id: ign_ftp
+    available: true
+    description: IGS merged broadcast navigation (RINEX 3)
+    metadata:
+      CCC:
+        - IGS
+      D:
+        - M
+    directory: pub/igs/data/{YYYY}/{DDD}/
+
+  - id: igs_atx
+    spec: 
+      ATTATX:
+        - format: 0
+
+    server_id: igs_http
+    available: true
+    description: IGS combined antenna exchange format (ANTEX) files
+    metadata:
+      AAA:
+        - IGS
+    directory: pub/station/general/
+  
+  - id: igs_atx_archive
+    spec: 
+      ATTATX:
+        - format: 1
+
+    server_id: igs_http
+    available: true
+    description: IGS combined antenna exchange format (ANTEX) files (archive)
+    metadata:
+      AAA:
+        - IGS
+    directory: pub/station/general/pcv_archive/
