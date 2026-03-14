@@ -152,6 +152,7 @@ class RemoteProduct(BaseModel):
 
     def to_regexes(
         self,
+        date: datetime.date | datetime.datetime | None = None,
     ) -> list[str]:
         """Build filename regexes incorporating centre-specific metadata.
 
@@ -160,12 +161,23 @@ class RemoteProduct(BaseModel):
         :data:`ProductSpecRegistry` (with the centre values taking
         precedence).
 
+        When *date* is provided, any metadata field that has a
+        ``compute`` function is substituted with the concrete
+        date-derived value (escaped as a regex literal) instead of
+        the generic regex pattern.  This narrows the match to a
+        single day/epoch.
+
         When the spec is a dict with explicit format indices, regexes
         are generated for each listed format index.  Otherwise, only
         format index 0 is used.
 
         Returns one regex per (format-index × metadata-combination × filename-template).
         """
+        if date is not None and isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
+            date = datetime.datetime(
+                date.year, date.month, date.day,
+                tzinfo=datetime.timezone.utc,
+            )
         spec_name = self.spec_name
         regexes: list[str] = []
 
@@ -216,6 +228,10 @@ class RemoteProduct(BaseModel):
                     hit = _ci_get(merged, field)
                     if hit is None:
                         hit = _ci_get(format_overrides, field)
+                    if hit is None and date is not None:
+                        meta_field = MetaDataRegistry.get(field)
+                        if meta_field and meta_field.compute:
+                            hit = re.escape(meta_field.compute(date))
                     if hit is None:
                         hit = _ci_get(MetaDataRegistry.defaults(), field)
                     parts.append(_strip_wb(hit) if hit is not None else ".+")
