@@ -9,17 +9,17 @@ and adds centre-specific metadata values and directory layout.
 
 Usage::
 
-    from gnss_ppp_products.assets.product_spec.productspec import ProductSpec
+    from gnss_ppp_products.assets.product_spec import ProductSpecRegistry
     from gnss_ppp_products.assets.remote_resource_spec.remote_resource import (
         RemoteResourceSpec,
     )
 
-    spec = ProductSpec.from_yaml()
+    spec = ProductSpecRegistry
     wuhan = RemoteResourceSpec.from_yaml("wuhan_v2.yml")
 
     # iterate products hosted by this centre
     for rp in wuhan.products:
-        regexes = rp.to_regexes(spec)
+        regexes = rp.to_regexes()
         ...
 """
 
@@ -35,7 +35,7 @@ import yaml
 from pydantic import BaseModel, Field
 
 from gnss_ppp_products.assets.meta_spec import MetaDataRegistry
-from gnss_ppp_products.assets.product_spec.productspec import ProductSpec
+from gnss_ppp_products.assets.product_spec import ProductSpecRegistry
 
 
 # ===================================================================
@@ -130,6 +130,7 @@ class RemoteProduct(BaseModel):
         return MetaDataRegistry.resolve(
             self.directory, date, computed_only=True
         )
+    
 
     # ------------------------------------------------------------------
     # Regex generation (delegates to ProductSpec)
@@ -151,13 +152,12 @@ class RemoteProduct(BaseModel):
 
     def to_regexes(
         self,
-        product_spec: ProductSpec,
     ) -> list[str]:
         """Build filename regexes incorporating centre-specific metadata.
 
         Merges the product-spec constraints with each metadata
         combination from this centre, then delegates to
-        :meth:`ProductSpec.to_regex` (with the centre values taking
+        :data:`ProductSpecRegistry` (with the centre values taking
         precedence).
 
         When the spec is a dict with explicit format indices, regexes
@@ -170,16 +170,16 @@ class RemoteProduct(BaseModel):
         regexes: list[str] = []
 
         for ref_index in self.format_indices:
-            templates = product_spec.resolve_filename_templates(
+            templates = ProductSpecRegistry.resolve_filename_templates(
                 spec_name, ref_index
             )
-            spec_constraints = product_spec.resolve_metadata_constraints(
+            spec_constraints = ProductSpecRegistry.resolve_metadata_constraints(
                 spec_name, ref_index
             )
 
-            product = product_spec.products[spec_name]
+            product = ProductSpecRegistry.products[spec_name]
             ref = product.formats[ref_index]
-            fmt = product_spec.formats[ref.format]
+            fmt = ProductSpecRegistry.formats[ref.format]
             ver = fmt.versions[ref.version]
             format_overrides = ver.get_metadata_overrides()
 
@@ -217,7 +217,7 @@ class RemoteProduct(BaseModel):
                     if hit is None:
                         hit = _ci_get(format_overrides, field)
                     if hit is None:
-                        hit = _ci_get(product_spec.metadata_defaults, field)
+                        hit = _ci_get(MetaDataRegistry.defaults(), field)
                     parts.append(_strip_wb(hit) if hit is not None else ".+")
                     last_end = m.end()
 
