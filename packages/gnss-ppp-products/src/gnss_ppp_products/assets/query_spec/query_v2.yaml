@@ -1,0 +1,273 @@
+# Query Specification v2
+# ======================
+#
+# Defines the search axes for unified product queries.  A "query" is a
+# set of axis values that progressively narrows the product space.
+# Omitting an axis means "match any value" — more axes pinned → fewer results.
+#
+# Design goals:
+#   1. Same axis vocabulary for remote and local resolution
+#   2. Each axis maps to concrete metadata fields in the filename templates
+#   3. Product specs declare which axes apply and what values are valid
+#   4. Axes compose naturally into dependency specs later
+#
+# Axis resolution order (most general → most specific):
+#   date → spec → center → campaign → solution → sampling
+#
+# ─── Axis definitions ──────────────────────────────────────────────
+#
+# Axes are the user-facing filter dimensions.  Each axis maps to one
+# or more underlying metadata fields depending on the product format.
+
+axes:
+
+  date:
+    description: Target epoch for the product
+    type: computed                        # resolved via MetaDataRegistry
+    required: true                        # most products need a date
+    maps_to: [YYYY, DDD, HH, MM]         # PRODUCT format time fields
+    notes: >
+      For daily products the time-of-day (HH, MM) defaults to 0000.
+      Static products (ATTATX, LEAP_SEC, etc.) ignore this axis.
+      Also resolves MONTH, DAY, GPSWK, GPSWEEK, YY, REFFRAME as needed.
+
+  spec:
+    description: Product specification name
+    type: enum
+    required: true
+    values:
+      - ORBIT
+      - CLOCK
+      - ERP
+      - BIA
+      - ATTOBX
+      - IONEX
+      - RNX3_BRDC
+      - VMF
+      - OROGRAPHY
+      - ATTATX
+      - LEAP_SEC
+      - SAT_PARAMS
+    notes: >
+      Selects the product definition from ProductSpecRegistry.
+      Determines which filename template, fixed constraints, and
+      local collection apply.
+
+  center:
+    description: Data center / provider
+    type: enum
+    maps_to: []                           # resolved via RemoteResourceRegistry
+    values_from: RemoteResourceRegistry   # dynamic; currently IGS, WUM
+    notes: >
+      Selects which remote resource entries to consider.  For local
+      queries, filters by the AAA code embedded in filenames.
+
+  campaign:
+    description: IGS campaign / project code
+    type: enum
+    maps_to: [PPP]
+    values:
+      - DEM    # Demonstration
+      - MGX    # Multi-GNSS Experiment
+      - OPS    # Operational
+    notes: >
+      Not all centers provide all campaigns.  The valid set per
+      center is defined in the remote resource spec metadata.
+      RINEX products (RNX3_BRDC) do not use this axis.
+
+  solution:
+    description: Solution quality / latency tier
+    type: enum
+    maps_to: [TTT]
+    values:
+      - FIN    # Final          (highest quality, highest latency)
+      - RAP    # Rapid          (good quality, moderate latency)
+      - ULT    # Ultra-rapid    (lower quality, low latency)
+      - NRT    # Near-real-time
+      - PRD    # Predicted
+      - RTS    # Real-time streaming
+      - SNX    # SINEX combination
+    sort_preference: [FIN, RAP, ULT, NRT, PRD, RTS, SNX]
+    notes: >
+      When unspecified, results are sorted by sort_preference
+      (best quality first).  RINEX and static products do not
+      use this axis.
+
+  sampling:
+    description: Temporal sampling interval of the product
+    type: enum
+    maps_to: [SMP]
+    values:
+      - "30S"
+      - "01S"
+      - "05M"
+      - "15M"
+      - "01H"
+      - "02H"
+      - "01D"
+    notes: >
+      Not all products have variable sampling.  ERP is always 01D,
+      ATTOBX is always 30S.  When a product has a fixed sampling
+      in its spec constraints, this axis is ignored.
+
+
+# ─── Product query profiles ───────────────────────────────────────
+#
+# Each product spec declares:
+#   axes        — which search axes apply (subset of global axes)
+#   fixed       — metadata field values baked into the product spec
+#                 (these are NOT search axes — they constrain the regex)
+#   format_key  — identifies which filename template family to use
+#   temporal    — daily | hourly | static (governs date axis behavior)
+#   local_collection — which LocalResourceRegistry collection owns this
+#
+# "axes" is an ordered list: the recommended narrowing order for
+# progressive queries.  Users can specify any subset in any order,
+# but the listed order hints at the natural drill-down path.
+
+products:
+
+  # ── Precise orbit / clock / bias products (PRODUCT format) ──────
+
+  ORBIT:
+    axes: [date, center, campaign, solution, sampling]
+    fixed:
+      LEN: "01D"
+      CNT: ORB
+      FMT: SP3
+    format_key: PRODUCT
+    temporal: daily
+    local_collection: products
+
+  CLOCK:
+    axes: [date, center, campaign, solution, sampling]
+    fixed:
+      LEN: "01D"
+      CNT: CLK
+      FMT: CLK
+    format_key: PRODUCT
+    temporal: daily
+    local_collection: products
+
+  ERP:
+    axes: [date, center, campaign, solution]
+    fixed:
+      LEN: "01D"
+      CNT: ERP
+      FMT: ERP
+      SMP: "01D"
+    format_key: PRODUCT
+    temporal: daily
+    local_collection: products
+
+  BIA:
+    axes: [date, center, campaign, solution]
+    fixed:
+      LEN: "01D"
+      CNT: OSB
+      FMT: BIA
+    format_key: PRODUCT
+    temporal: daily
+    local_collection: products
+
+  ATTOBX:
+    axes: [date, center, campaign, solution]
+    fixed:
+      LEN: "01D"
+      CNT: ATT
+      FMT: OBX
+      SMP: "30S"
+    format_key: PRODUCT
+    temporal: daily
+    local_collection: products
+
+  # ── Ionosphere / atmosphere (PRODUCT format) ────────────────────
+
+  IONEX:
+    axes: [date, center, campaign, solution, sampling]
+    fixed:
+      LEN: "01D"
+      CNT: GIM
+      FMT: INX
+    format_key: PRODUCT
+    temporal: daily
+    local_collection: common
+
+  # ── Navigation (RINEX format) ───────────────────────────────────
+
+  RNX3_BRDC:
+    axes: [date, center]
+    fixed:
+      SSSS: BRDC
+      DDU: "01D"
+      S: R
+    extra_axes:
+      constellation:
+        description: Satellite system code
+        maps_to: [D]
+        values:
+          - M    # Multi-GNSS
+          - E    # Galileo
+          - G    # GPS
+          - R    # GLONASS
+    format_key: RINEX
+    temporal: daily
+    local_collection: common
+
+  # ── Troposphere (VMF format) ────────────────────────────────────
+
+  VMF:
+    axes: [date]
+    fixed: {}
+    extra_axes:
+      vmf_product:
+        description: VMF model variant
+        maps_to: [PRODUCT]
+        values: [VMF1, VMF3]
+      resolution:
+        description: Grid resolution
+        maps_to: [RESOLUTION]
+        values: ["1x1", "2.5x2", "5x5"]
+      vmf_hour:
+        description: Sub-daily VMF epoch
+        maps_to: [VMFHH]
+        values: ["H00", "H06", "H12", "H18"]
+    format_key: VIENNA_MAPPING_FUNCTIONS
+    temporal: daily
+    local_collection: common
+
+  # ── Static products ─────────────────────────────────────────────
+
+  OROGRAPHY:
+    axes: []
+    fixed:
+      RESOLUTION: "5x5"
+    format_key: VIENNA_MAPPING_FUNCTIONS
+    temporal: static
+    local_collection: table
+
+  ATTATX:
+    axes: [date, center]
+    fixed: {}
+    extra_axes:
+      antenna_format:
+        description: Which ANTEX format variant (current vs. archive)
+        maps_to: []
+        values: [0, 1]
+    format_key: ANTENNAE
+    temporal: static
+    local_collection: table
+
+  LEAP_SEC:
+    axes: []
+    fixed: {}
+    format_key: TABLE
+    temporal: static
+    local_collection: table
+
+  SAT_PARAMS:
+    axes: []
+    fixed: {}
+    format_key: TABLE
+    temporal: static
+    local_collection: table

@@ -1,14 +1,14 @@
 # ESA / ESOC
 # ==========
 #
-# European Space Agency's European Space Operations Centre.
+# European Space Agency's European Space Operations center.
 # Produces GPS and Galileo products.
 
 
 code: ESA
 name: ESA/ESOC
 description: >
-  European Space Agency's European Space Operations Centre in Darmstadt.
+  European Space Agency's European Space Operations center in Darmstadt.
   Produces GPS products and is primary producer for Galileo.
 website: https://www.esa.int/
 
@@ -18,7 +18,7 @@ servers:
     hostname: ftp://gssc.esa.int
     protocol: ftp
     auth_required: false
-    notes: ESA GNSS Science Support Centre
+    notes: ESA GNSS Science Support center
 
 defaults:
   version: "0"

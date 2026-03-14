@@ -185,7 +185,7 @@ class WuhanIGS:
 
 
 class GSSC:
-    """GNSS Science Support Centre — ESA (gssc.esa.int)."""
+    """GNSS Science Support center — ESA (gssc.esa.int)."""
 
     ftpserver = "ftp://gssc.esa.int"
     daily_gps_dir = "gnss/data/daily"
@@ -208,7 +208,7 @@ class GSSC:
 
 
 class CLSIGS:
-    """CLS IGS data centre (igs.ign.fr)."""
+    """CLS IGS data center (igs.ign.fr)."""
 
     ftpserver = "ftp://igs.ign.fr"
     daily_gps_dir = "pub/igs/data"

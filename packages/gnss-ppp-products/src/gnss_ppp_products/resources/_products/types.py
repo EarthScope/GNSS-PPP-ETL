@@ -503,7 +503,7 @@ class AnalysisCenter(str, Enum):
     COD = "cod"    # CODE (Center for Orbit Determination in Europe)
     EMR = "emr"    # Natural Resources Canada
     ESA = "esa"    # European Space Agency
-    GFZ = "gfz"    # Helmholtz centre for geosciences (GFZ)
+    GFZ = "gfz"    # Helmholtz center for geosciences (GFZ)
     GRG = "grg"    # CNES/CLS (GRGS)
     IGS = "igs"    # IGS combined solution
     JPL = "jpl"    # Jet Propulsion Laboratory

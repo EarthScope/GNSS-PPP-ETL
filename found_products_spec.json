@@ -1,6 +1,6 @@
 [
   {
-    "centre": "IGS",
+    "center": "IGS",
     "product_id": "igs_orbit",
     "spec": "ORBIT",
     "server": "ftp://igs.ign.fr",
@@ -9,7 +9,7 @@
     "filename": "IGS0OPSFIN_20250150000_01D_15M_ORB.SP3.gz"
   },
   {
-    "centre": "IGS",
+    "center": "IGS",
     "product_id": "igs_orbit",
     "spec": "ORBIT",
     "server": "ftp://igs.ign.fr",
@@ -18,7 +18,7 @@
     "filename": "IGS0OPSRAP_20250150000_01D_15M_ORB.SP3.gz"
   },
   {
-    "centre": "IGS",
+    "center": "IGS",
     "product_id": "igs_clock",
     "spec": "CLOCK",
     "server": "ftp://igs.ign.fr",
@@ -27,7 +27,7 @@
     "filename": "IGS0OPSFIN_20250150000_01D_30S_CLK.CLK.gz"
   },
   {
-    "centre": "IGS",
+    "center": "IGS",
     "product_id": "igs_clock",
     "spec": "CLOCK",
     "server": "ftp://igs.ign.fr",
@@ -36,7 +36,7 @@
     "filename": "IGS0OPSFIN_20250150000_01D_05M_CLK.CLK.gz"
   },
   {
-    "centre": "IGS",
+    "center": "IGS",
     "product_id": "igs_clock",
     "spec": "CLOCK",
     "server": "ftp://igs.ign.fr",
@@ -45,7 +45,7 @@
     "filename": "IGS0OPSRAP_20250150000_01D_05M_CLK.CLK.gz"
   },
   {
-    "centre": "IGS",
+    "center": "IGS",
     "product_id": "igs_erp",
     "spec": "ERP",
     "server": "ftp://igs.ign.fr",
@@ -54,7 +54,7 @@
     "filename": "IGS0OPSRAP_20250150000_01D_01D_ERP.ERP.gz"
   },
   {
-    "centre": "IGS",
+    "center": "IGS",
     "product_id": "igs_nav",
     "spec": "RNX3_BRDC",
     "server": "ftp://igs.ign.fr",
@@ -63,7 +63,7 @@
     "filename": "BRDC00IGS_R_20250150000_01D_MN.rnx.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_orbit",
     "spec": "ORBIT",
     "server": "ftp://igs.gnsswhu.cn",
@@ -72,7 +72,7 @@
     "filename": "WUM0MGXRAP_20250150000_01D_05M_ORB.SP3.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_orbit",
     "spec": "ORBIT",
     "server": "ftp://igs.gnsswhu.cn",
@@ -81,7 +81,7 @@
     "filename": "WMC0DEMFIN_20250150000_01D_05M_ORB.SP3.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_orbit",
     "spec": "ORBIT",
     "server": "ftp://igs.gnsswhu.cn",
@@ -90,7 +90,7 @@
     "filename": "WMC0DEMRAP_20250150000_01D_05M_ORB.SP3.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_clock",
     "spec": "CLOCK",
     "server": "ftp://igs.gnsswhu.cn",
@@ -99,7 +99,7 @@
     "filename": "WUM0MGXRAP_20250150000_01D_30S_CLK.CLK.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_clock",
     "spec": "CLOCK",
     "server": "ftp://igs.gnsswhu.cn",
@@ -108,7 +108,7 @@
     "filename": "WMC0DEMFIN_20250150000_01D_30S_CLK.CLK.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_clock",
     "spec": "CLOCK",
     "server": "ftp://igs.gnsswhu.cn",
@@ -117,7 +117,7 @@
     "filename": "WMC0DEMRAP_20250150000_01D_30S_CLK.CLK.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_erp",
     "spec": "ERP",
     "server": "ftp://igs.gnsswhu.cn",
@@ -126,7 +126,7 @@
     "filename": "WUM0MGXRAP_20250150000_01D_01D_ERP.ERP.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_bias",
     "spec": "BIA",
     "server": "ftp://igs.gnsswhu.cn",
@@ -135,7 +135,7 @@
     "filename": "WUM0MGXRAP_20250150000_01D_01D_OSB.BIA.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_bias",
     "spec": "BIA",
     "server": "ftp://igs.gnsswhu.cn",
@@ -144,7 +144,7 @@
     "filename": "WMC0DEMFIN_20250150000_01D_01D_OSB.BIA.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_bias",
     "spec": "BIA",
     "server": "ftp://igs.gnsswhu.cn",
@@ -153,7 +153,7 @@
     "filename": "WMC0DEMRAP_20250150000_01D_01D_OSB.BIA.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_obx",
     "spec": "ATTOBX",
     "server": "ftp://igs.gnsswhu.cn",
@@ -162,7 +162,7 @@
     "filename": "WMC0DEMFIN_20250150000_01D_30S_ATT.OBX.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_gim",
     "spec": "IONEX",
     "server": "ftp://igs.gnsswhu.cn",
@@ -171,7 +171,7 @@
     "filename": "COD0OPSFIN_20250150000_01D_01H_GIM.INX.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_gim",
     "spec": "IONEX",
     "server": "ftp://igs.gnsswhu.cn",
@@ -180,7 +180,7 @@
     "filename": "COD0OPSRAP_20250150000_01D_01H_GIM.INX.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_gim",
     "spec": "IONEX",
     "server": "ftp://igs.gnsswhu.cn",
@@ -189,7 +189,7 @@
     "filename": "IGS0OPSFIN_20250150000_01D_02H_GIM.INX.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_gim",
     "spec": "IONEX",
     "server": "ftp://igs.gnsswhu.cn",
@@ -198,7 +198,7 @@
     "filename": "IGS0OPSRAP_20250150000_01D_02H_GIM.INX.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_gim",
     "spec": "IONEX",
     "server": "ftp://igs.gnsswhu.cn",
@@ -207,7 +207,7 @@
     "filename": "JPL0OPSFIN_20250150000_01D_02H_GIM.INX.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_gim",
     "spec": "IONEX",
     "server": "ftp://igs.gnsswhu.cn",
@@ -216,7 +216,7 @@
     "filename": "JPL0OPSRAP_20250150000_01D_02H_GIM.INX.gz"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_leap_seconds",
     "spec": "LEAP_SEC",
     "server": "ftp://igs.gnsswhu.cn",
@@ -225,7 +225,7 @@
     "filename": "leap.sec"
   },
   {
-    "centre": "WUM",
+    "center": "WUM",
     "product_id": "wuhan_sat_parameters",
     "spec": "SAT_PARAMS",
     "server": "ftp://igs.gnsswhu.cn",

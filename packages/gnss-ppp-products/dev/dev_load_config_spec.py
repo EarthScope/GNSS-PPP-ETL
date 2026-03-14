@@ -21,7 +21,7 @@ from gnss_ppp_products.server.http import http_list_directory, extract_filenames
 date = datetime.datetime(2025, 1, 15, tzinfo=datetime.timezone.utc)
 
 # ------------------------------------------------------------------
-# Query every product from every centre
+# Query every product from every center
 # ------------------------------------------------------------------
 found = []
 
@@ -30,11 +30,11 @@ for product in RemoteResourceRegistry.all_products:
         continue
 
     server = RemoteResourceRegistry.get_server_for_product(product.id)
-    centre = RemoteResourceRegistry.get_product_centre(product.id)
+    center = RemoteResourceRegistry.get_product_center(product.id)
     directory = product.resolve_directory(date)
     regexes = product.to_regexes(date)
 
-    print(f"\n=== [{centre.id}] {product.id}  (spec={product.spec_name}) ===")
+    print(f"\n=== [{center.id}] {product.id}  (spec={product.spec_name}) ===")
     print(f"    server:    {server.hostname}  ({server.protocol})")
     print(f"    directory: {directory}")
     print(f"    regexes:   {len(regexes)}")
@@ -70,7 +70,7 @@ for product in RemoteResourceRegistry.all_products:
     for m in matches:
         print(f"    MATCH: {m}")
         found.append({
-            "centre": centre.id,
+            "center": center.id,
             "product_id": product.id,
             "spec": product.spec_name,
             "server": hostname,

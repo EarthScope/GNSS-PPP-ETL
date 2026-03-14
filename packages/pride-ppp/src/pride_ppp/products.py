@@ -3,7 +3,7 @@ GNSS product download and management operations.
 
 Uses the ``gnss-ppp-products`` Tasks SDK to declaratively resolve and
 download orbit, clock, bias, ERP, OBX, and navigation products from
-multiple IGS data centres.
+multiple IGS data centers.
 
 Legacy functions (``get_gnss_products``, ``get_nav_file``) are preserved
 as the public API but now delegate to :func:`task_config.build_task`.
@@ -203,7 +203,7 @@ def get_gnss_products(
     """Generate or retrieve GNSS products for a given RINEX file or date.
 
     Uses the Tasks SDK to resolve products locally first, then
-    downloads anything missing from configured analysis centres.
+    downloads anything missing from configured analysis centers.
 
     Returns the path to a PRIDE config file that catalogs the products.
 

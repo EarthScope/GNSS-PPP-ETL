@@ -63,7 +63,7 @@ metadata_defaults:
   SSSS: "[A-Za-z0-9]{4}"         # 4-char station code
   MONUMENT: "[0-9]"              # 1-char monument / marker number
   R: "[0-9]"                     # receiver number
-  CCC: "[A-Za-z0-9]{3}"          # 3-char data-centre / agency code
+  CCC: "[A-Za-z0-9]{3}"          # 3-char data-center / agency code
   SSSMRCCC_: "[A-Z0-9]{9}_"      # optional station identifier block
 
   # Time fields
@@ -83,7 +83,7 @@ metadata_defaults:
   SMP: "\\d{2}[DHMS]"            # temporal sampling resolution
 
   # Product identifiers
-  AAA: "[A-Z0-9]{3}"             # analysis-centre code (WUM, COD, …)
+  AAA: "[A-Z0-9]{3}"             # analysis-center code (WUM, COD, …)
   V: "[0-9]"                     # version / solution identifier
   PPP: "[A-Z0-9]{3}"             # campaign / project code
   TTT: "[A-Z]{3}"                # solution type (FIN, RAP, ULT, …)

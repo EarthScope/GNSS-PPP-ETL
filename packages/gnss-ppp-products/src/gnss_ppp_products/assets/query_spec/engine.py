@@ -1,0 +1,365 @@
+"""
+Unified product query engine (regex cascade).
+
+Provides a single query interface over both remote and local product
+resources.  Queries narrow progressively: each axis value pins a
+metadata field, reducing the regex pattern space.  Omitted axes
+remain as wildcards.
+
+The engine is spec-driven — query profiles from ``query_v2.yaml``
+determine which axes apply to each product, what values are valid,
+and how they map to filename metadata fields.
+
+Usage::
+
+    from gnss_ppp_products.data_query.unified import ProductQuery
+    import datetime
+
+    q = ProductQuery(date=datetime.date(2025, 1, 15))
+    q.narrow(spec="ORBIT")                       # all ORBIT variants
+    q.narrow(spec="ORBIT", center="IGS")          # only IGS
+    q.narrow(spec="ORBIT", center="IGS",
+             solution="FIN", sampling="05M")       # single variant
+
+    for r in q.results:
+        print(r.regex, r.remote_url, r.local_dir)
+"""
+
+from __future__ import annotations
+
+import datetime
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, Iterator, List, Optional
+
+from gnss_ppp_products.assets.query_spec.registry import QuerySpecRegistry
+from gnss_ppp_products.assets.query_spec.query import ProductQueryProfile
+from gnss_ppp_products.assets.remote_resource_spec import RemoteResourceRegistry
+from gnss_ppp_products.assets.local_resource_spec import LocalResourceRegistry
+
+
+# ===================================================================
+# Query result
+# ===================================================================
+
+
+@dataclass(frozen=True)
+class QueryResult:
+    """A single resolved product variant from a query.
+
+    Contains everything needed to fetch (remote) or find (local) the
+    file.  One QueryResult corresponds to one filename regex that can
+    match exactly one file on disk or on a remote directory listing.
+    """
+
+    # ---- identity ----
+    spec:       str         # "ORBIT", "CLOCK", ...
+    center:     str         # "IGS", "WUM"
+    product_id: str         # "igs_orbit", "wuhan_clock"
+
+    # ---- query axis values (empty = wildcard in parent query) ----
+    campaign:   str = ""
+    solution:   str = ""
+    sampling:   str = ""
+
+    # ---- resolved locations ----
+    regex:          str = ""     # compiled filename regex
+    remote_server:  str = ""     # "ftp://igs.ign.fr"
+    remote_protocol: str = ""    # "ftp", "https"
+    remote_directory: str = ""   # "pub/igs/products/2349/"
+    local_collection: str = ""   # "products", "common", "table"
+    local_directory:  str = ""   # "2025/015/products"
+
+    @property
+    def remote_url(self) -> str:
+        """Full URL to the remote directory."""
+        if self.remote_server and self.remote_directory:
+            return f"{self.remote_server}/{self.remote_directory}"
+        return ""
+
+
+# ===================================================================
+# Catalog builder
+# ===================================================================
+
+
+def _build_catalog(
+    date: datetime.date,
+) -> List[QueryResult]:
+    """
+    Enumerate every concrete product variant from the registries,
+    informed by the query spec.
+
+    Expands all remote product metadata combinations into individual
+    QueryResults annotated with local storage info.
+    """
+    results: List[QueryResult] = []
+
+    for center_id, center in RemoteResourceRegistry.centers.items():
+        for rp in center.products:
+            if not rp.available:
+                continue
+
+            spec_name = rp.spec_name
+
+            # Check the query spec knows about this product
+            if spec_name not in QuerySpecRegistry.products:
+                continue
+
+            profile = QuerySpecRegistry.profile(spec_name)
+            server = RemoteResourceRegistry.get_server_for_product(rp.id)
+            directory = rp.resolve_directory(date)
+
+            # Build regexes (one per metadata combination)
+            try:
+                regexes = rp.to_regexes(date)
+            except Exception:
+                regexes = []
+
+            # Expand metadata combinations
+            combos = rp._metadata_combinations()
+
+            # Local storage mapping
+            try:
+                local_dir = LocalResourceRegistry.resolve_directory(spec_name, date)
+                local_coll = LocalResourceRegistry.collection_name_for_spec(spec_name)
+            except (KeyError, ValueError):
+                local_dir = ""
+                local_coll = ""
+
+            for i, combo in enumerate(combos):
+                regex = regexes[i] if i < len(regexes) else (regexes[0] if regexes else "")
+
+                results.append(QueryResult(
+                    spec=spec_name,
+                    center=center_id,
+                    product_id=rp.id,
+                    campaign=combo.get("PPP", ""),
+                    solution=combo.get("TTT", ""),
+                    sampling=combo.get("SMP", ""),
+                    regex=regex,
+                    remote_server=server.hostname,
+                    remote_protocol=server.protocol,
+                    remote_directory=directory,
+                    local_collection=local_coll,
+                    local_directory=local_dir,
+                ))
+
+    return results
+
+
+# ===================================================================
+# Query engine
+# ===================================================================
+
+
+class ProductQuery:
+    """
+    Progressive regex-cascade query over the product space.
+
+    Instantiate with a date, then call :meth:`narrow` with axis values
+    to filter.  Each call returns a **new** ProductQuery (the original
+    is unchanged), so you can branch from intermediate states.
+
+    Attributes
+    ----------
+    date : datetime.date
+        The target epoch.
+    axes : dict[str, str]
+        Currently pinned axis values.
+    results : list[QueryResult]
+        Matching product variants after all axis filters are applied.
+    """
+
+    def __init__(
+        self,
+        date: datetime.date,
+        *,
+        _results: Optional[List[QueryResult]] = None,
+        _axes: Optional[Dict[str, str]] = None,
+    ):
+        self.date = date
+        self.axes: Dict[str, str] = dict(_axes) if _axes else {}
+        self._results: List[QueryResult] = (
+            _results if _results is not None
+            else _build_catalog(date)
+        )
+
+    # ------------------------------------------------------------------
+    # Core API
+    # ------------------------------------------------------------------
+
+    def narrow(self, **axis_values: str) -> "ProductQuery":
+        """
+        Return a new query with additional axis filters applied.
+
+        Each keyword argument is an axis name (spec, center, campaign,
+        solution, sampling, or any extra_axis) mapped to a value.
+        Unknown axis names are silently ignored.
+
+        Examples::
+
+            q = ProductQuery(date)
+            q1 = q.narrow(spec="ORBIT")
+            q2 = q1.narrow(center="IGS", solution="FIN")
+            q3 = q.narrow(spec="ORBIT", center="IGS",
+                          solution="FIN", sampling="05M")
+        """
+        new_axes = {**self.axes, **{k: v for k, v in axis_values.items() if v}}
+        filtered = self._results
+
+        for axis_name, axis_value in axis_values.items():
+            if not axis_value:
+                continue
+            filtered = _apply_axis_filter(filtered, axis_name, axis_value)
+
+        return ProductQuery(
+            self.date,
+            _results=filtered,
+            _axes=new_axes,
+        )
+
+    @property
+    def results(self) -> List[QueryResult]:
+        """All matching product variants."""
+        return list(self._results)
+
+    @property
+    def count(self) -> int:
+        return len(self._results)
+
+    def best(self, prefer: Optional[List[str]] = None) -> Optional[QueryResult]:
+        """Return the highest-preference result, or None.
+
+        *prefer* defaults to the solution sort_preference from the query
+        spec (FIN > RAP > ULT > ...).
+        """
+        if not self._results:
+            return None
+        pref = prefer or QuerySpecRegistry.solution_preference
+        def _key(r: QueryResult) -> int:
+            try:
+                return pref.index(r.solution)
+            except ValueError:
+                return len(pref)
+        return min(self._results, key=_key)
+
+    # ------------------------------------------------------------------
+    # Discovery helpers
+    # ------------------------------------------------------------------
+
+    def specs(self) -> List[str]:
+        """Unique spec names in current results."""
+        return sorted({r.spec for r in self._results})
+
+    def centers(self) -> List[str]:
+        """Unique center names in current results."""
+        return sorted({r.center for r in self._results})
+
+    def campaigns(self) -> List[str]:
+        """Unique campaign values in current results."""
+        return sorted({r.campaign for r in self._results if r.campaign})
+
+    def solutions(self) -> List[str]:
+        """Unique solution values in current results."""
+        return sorted({r.solution for r in self._results if r.solution})
+
+    def samplings(self) -> List[str]:
+        """Unique sampling values in current results."""
+        return sorted({r.sampling for r in self._results if r.sampling})
+
+    def axes_summary(self) -> Dict[str, List[str]]:
+        """Current possible values for each axis dimension."""
+        return {
+            "spec": self.specs(),
+            "center": self.centers(),
+            "campaign": self.campaigns(),
+            "solution": self.solutions(),
+            "sampling": self.samplings(),
+        }
+
+    # ------------------------------------------------------------------
+    # Local resolution
+    # ------------------------------------------------------------------
+
+    def find_local(self, base_dir: Path) -> List[Dict]:
+        """Search for matching files on local disk.
+
+        Returns a list of dicts with ``result`` (QueryResult) and
+        ``files`` (list of Paths).
+        """
+        found = []
+        for r in self._results:
+            if not r.local_directory:
+                continue
+            d = base_dir / r.local_directory
+            if not d.exists():
+                continue
+            if not r.regex:
+                files = sorted(d.iterdir())
+            else:
+                pat = re.compile(r.regex, re.IGNORECASE)
+                files = sorted(
+                    p for p in d.iterdir()
+                    if p.is_file() and pat.search(p.name)
+                )
+            if files:
+                found.append({"result": r, "files": files})
+        return found
+
+    # ------------------------------------------------------------------
+    # Display
+    # ------------------------------------------------------------------
+
+    def __repr__(self) -> str:
+        pinned = ", ".join(f"{k}={v}" for k, v in self.axes.items())
+        return f"<ProductQuery({pinned or 'all'}): {self.count} results>"
+
+    def table(self) -> str:
+        """Formatted table of results."""
+        lines = [
+            f"{'spec':<12s} {'center':<6s} {'campaign':<9s} "
+            f"{'solution':<9s} {'sampling':<9s} {'regex':<50s}"
+        ]
+        lines.append("-" * len(lines[0]))
+        for r in self._results:
+            regex_short = r.regex[:50] if r.regex else "(none)"
+            lines.append(
+                f"{r.spec:<12s} {r.center:<6s} {r.campaign:<9s} "
+                f"{r.solution:<9s} {r.sampling:<9s} {regex_short}"
+            )
+        return "\n".join(lines)
+
+
+# ===================================================================
+# Axis filter implementation
+# ===================================================================
+
+
+def _apply_axis_filter(
+    results: List[QueryResult],
+    axis_name: str,
+    axis_value: str,
+) -> List[QueryResult]:
+    """Filter results by a single axis value."""
+
+    v = axis_value.upper()
+
+    match axis_name:
+        case "spec":
+            return [r for r in results if r.spec.upper() == v]
+        case "center":
+            return [r for r in results if r.center.upper() == v]
+        case "campaign":
+            return [r for r in results if r.campaign.upper() == v]
+        case "solution":
+            return [r for r in results if r.solution.upper() == v]
+        case "sampling":
+            return [r for r in results if r.sampling.upper() == v]
+        case _:
+            # Extra axis — check if the value appears in the regex
+            return [
+                r for r in results
+                if v in (r.regex or "").upper()
+            ]

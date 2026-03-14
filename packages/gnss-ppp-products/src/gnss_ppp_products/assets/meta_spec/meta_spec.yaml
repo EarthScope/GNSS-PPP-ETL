@@ -11,7 +11,7 @@ R:
   - description: Receiver number (0 if not specified)
 
 CCC:
-  - pattern: "[A-Za-z0-9]{3}"          # 3-char data-centre / agency code
+  - pattern: "[A-Za-z0-9]{3}"          # 3-char data-center / agency code
   - description: 3-character data center or agency code (e.g., "COD", "IGS", "JPL")
 
 SSSMRCCC_:
@@ -63,7 +63,7 @@ SMP:
 
 # Product identifiers
 AAA:
-  - pattern: "[A-Z0-9]{3}"             # analysis-centre code (WUM, COD, …)
+  - pattern: "[A-Z0-9]{3}"             # analysis-center code (WUM, COD, …)
 V:
   - pattern: "[0-9]"                     # version / solution identifier
 PPP:

@@ -1,11 +1,11 @@
 """
 Pydantic models for remote resource specifications (``*_v2.yml``).
 
-A :class:`RemoteResourceSpec` represents a single GNSS data centre
+A :class:`RemoteResourceSpec` represents a single GNSS data center
 (e.g. Wuhan, IGS/IGN) and the products it hosts.  Each
 :class:`RemoteProduct` references a product definition from the
 :class:`~gnss_ppp_products.assets.product_spec.productspec.ProductSpec`
-and adds centre-specific metadata values and directory layout.
+and adds center-specific metadata values and directory layout.
 
 Usage::
 
@@ -17,7 +17,7 @@ Usage::
     spec = ProductSpecRegistry
     wuhan = RemoteResourceSpec.from_yaml("wuhan_v2.yml")
 
-    # iterate products hosted by this centre
+    # iterate products hosted by this center
     for rp in wuhan.products:
         regexes = rp.to_regexes()
         ...
@@ -60,7 +60,7 @@ class Server(BaseModel):
 
 
 class RemoteProduct(BaseModel):
-    """A product hosted by this centre, linking to a ProductSpec entry.
+    """A product hosted by this center, linking to a ProductSpec entry.
 
     Attributes
     ----------
@@ -77,8 +77,8 @@ class RemoteProduct(BaseModel):
     description : str
         Human-readable description.
     metadata : dict[str, list[str]]
-        Centre-specific metadata values.  Keys are metadata field names;
-        values are the set of concrete values this centre provides for
+        center-specific metadata values.  Keys are metadata field names;
+        values are the set of concrete values this center provides for
         that field (e.g. ``AAA: ["WUM", "WMC"]``).
     directory : str
         Directory template on the remote server, may contain
@@ -137,7 +137,7 @@ class RemoteProduct(BaseModel):
     # ------------------------------------------------------------------
 
     def _metadata_combinations(self) -> list[dict[str, str]]:
-        """Expand the centre metadata lists into every combination.
+        """Expand the center metadata lists into every combination.
 
         For example ``{AAA: [WUM, WMC], TTT: [FIN, RAP]}`` yields
         four dicts: ``{AAA: WUM, TTT: FIN}``, ``{AAA: WUM, TTT: RAP}``,
@@ -154,11 +154,11 @@ class RemoteProduct(BaseModel):
         self,
         date: datetime.date | datetime.datetime | None = None,
     ) -> list[str]:
-        """Build filename regexes incorporating centre-specific metadata.
+        """Build filename regexes incorporating center-specific metadata.
 
         Merges the product-spec constraints with each metadata
-        combination from this centre, then delegates to
-        :data:`ProductSpecRegistry` (with the centre values taking
+        combination from this center, then delegates to
+        :data:`ProductSpecRegistry` (with the center values taking
         precedence).
 
         When *date* is provided, any metadata field that has a
@@ -213,7 +213,7 @@ class RemoteProduct(BaseModel):
         regexes: list[str] = []
 
         for combo in self._metadata_combinations():
-            # Merge: centre values > spec constraints > format overrides > root defaults
+            # Merge: center values > spec constraints > format overrides > root defaults
             merged = {**spec_constraints, **combo}
 
             for tmpl in templates:
@@ -259,22 +259,22 @@ class RemoteProduct(BaseModel):
 
 
 class RemoteResourceSpec(BaseModel):
-    """Root model for a centre's ``*_v2.yml`` remote resource spec.
+    """Root model for a center's ``*_v2.yml`` remote resource spec.
 
     Attributes
     ----------
     id : str
-        Short centre identifier (e.g. ``"WUM"``, ``"IGS"``).
+        Short center identifier (e.g. ``"WUM"``, ``"IGS"``).
     name : str
         Human-readable name.
     description : str
         Detailed description.
     website : str
-        Centre website URL.
+        center website URL.
     servers : list[Server]
         Available remote servers.
     products : list[RemoteProduct]
-        Products hosted by this centre.
+        Products hosted by this center.
     """
 
     id: str
