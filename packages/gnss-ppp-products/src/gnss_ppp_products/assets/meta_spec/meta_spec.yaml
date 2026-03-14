@@ -88,3 +88,11 @@ PRODUCT:
   - pattern: "[A-Za-z0-9]+"        # VMF product id  (VMF1, VMF3)
 RESOLUTION:
   - pattern: "[0-9x.]+"         # grid resolution (2.5x2, 5x5)
+
+# GPS time
+GPSWK:
+  - pattern: "\\d{4}"              # GPS week number
+  - description: GPS week number since January 6, 1980
+GPSWEEK:
+  - pattern: "\\d+"               # GPS week number (alias)
+  - description: GPS week number (alias for GPSWK)

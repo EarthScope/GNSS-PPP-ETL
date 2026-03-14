@@ -1,9 +1,8 @@
 from __future__ import annotations
-from calendar import c
+
 import re
 import datetime
-from turtle import st
-from pydantic import BaseModel,field
+from pydantic import BaseModel
 import yaml
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
@@ -102,28 +101,43 @@ class _MetadataRegistry:
 
         Drop-in replacement for ``metadata_defaults`` in ProductSpec.
         """
-        return {f.name: f.pattern for f in self._fields.values()}
+        return {f.name: f.pattern for f in self._fields.values() if f.pattern is not None}
 
-    def resolve(self, template:str,date:datetime.datetime) -> str:
-        """Compute concrete values for all datetime-derived fields.
+    def resolve(
+        self,
+        template: str,
+        date: datetime.datetime,
+        *,
+        computed_only: bool = False,
+    ) -> str:
+        """Substitute metadata placeholders in *template*.
 
-        Returns ``{name: value}`` only for fields that have a
-        ``compute`` function.  Non-computable fields are omitted.
+        Parameters
+        ----------
+        template : str
+            A string containing ``{FIELD}`` placeholders.
+        date : datetime.datetime
+            The date/time used to evaluate computed fields.
+        computed_only : bool
+            When ``True``, only fields that have a ``compute`` function
+            are substituted — non-computable placeholders are left
+            untouched (useful for directory templates where patterns
+            would be meaningless).  When ``False`` (default), non-
+            computable fields fall back to their regex ``pattern``.
         """
-        # find all template fields that have a compute function, call it with the date, and return the results as a dict
-        # f"{YYYY}_{DDD}" -> ["YYYY","DDD"] -> {"YYYY": compute(YYYY), "DDD": compute(DDD)}
-        templates_fields: List[str] = extract_template_fields(template)
-        values = {}
-        for key in templates_fields:
-            if getattr(self._fields[key], "compute", None):
-                values[key] = self._fields[key].compute(date)
-            else:
-                values[key] = self._fields[key].pattern
+        template_fields: List[str] = extract_template_fields(template)
+        values: Dict[str, str] = {}
+        for key in template_fields:
+            field = self._fields.get(key)
+            if field is None:
+                continue
+            if field.compute is not None:
+                values[key] = field.compute(date)
+            elif not computed_only and field.pattern is not None:
+                values[key] = field.pattern
 
-        # now we update the template with the computed values, replacing {YYYY} with the computed year, etc.
         for key, value in values.items():
-            to_replace = "{" + key + "}"
-            template = template.replace(to_replace, value)
+            template = template.replace("{" + key + "}", value)
         return template
 
     @classmethod

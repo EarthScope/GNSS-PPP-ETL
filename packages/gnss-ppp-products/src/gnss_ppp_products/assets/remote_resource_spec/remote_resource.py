@@ -34,20 +34,8 @@ from typing import Dict, List, Optional, Union
 import yaml
 from pydantic import BaseModel, Field
 
+from gnss_ppp_products.assets.meta_spec import MetaDataRegistry
 from gnss_ppp_products.assets.product_spec.productspec import ProductSpec
-
-# ---------------------------------------------------------------------------
-# GPS-week helper
-# ---------------------------------------------------------------------------
-
-_GPS_EPOCH = datetime.date(1980, 1, 6)
-
-
-def _gps_week(d: datetime.date) -> int:
-    """Return the GPS week number for *d*."""
-    if isinstance(d, datetime.datetime):
-        d = d.date()
-    return (d - _GPS_EPOCH).days // 7
 
 
 # ===================================================================
@@ -131,33 +119,17 @@ class RemoteProduct(BaseModel):
     def resolve_directory(self, date: datetime.date | datetime.datetime) -> str:
         """Substitute date-derived placeholders in the directory template.
 
-        Supported placeholders: ``{YYYY}``, ``{YY}``, ``{DDD}``,
-        ``{GPSWK}``, ``{MONTH}``, ``{DAY}``, ``{HH}``, ``{MM}``.
+        Only fields with a registered ``compute`` function are resolved;
+        non-computable placeholders are left untouched.
         """
-        if isinstance(date, datetime.datetime):
-            d = date.date()
-            hh = f"{date.hour:02d}"
-            mm = f"{date.minute:02d}"
-        else:
-            d = date
-            hh = "00"
-            mm = "00"
-
-        doy = d.timetuple().tm_yday
-        replacements = {
-            "YYYY": f"{d.year:04d}",
-            "YY": f"{d.year % 100:02d}",
-            "DDD": f"{doy:03d}",
-            "GPSWK": str(_gps_week(d)),
-            "MONTH": f"{d.month:02d}",
-            "DAY": f"{d.day:02d}",
-            "HH": hh,
-            "MM": mm,
-        }
-        result = self.directory
-        for key, value in replacements.items():
-            result = result.replace(f"{{{key}}}", value)
-        return result
+        if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
+            date = datetime.datetime(
+                date.year, date.month, date.day,
+                tzinfo=datetime.timezone.utc,
+            )
+        return MetaDataRegistry.resolve(
+            self.directory, date, computed_only=True
+        )
 
     # ------------------------------------------------------------------
     # Regex generation (delegates to ProductSpec)

@@ -1,6 +1,4 @@
 import datetime
-from re import M
-from tkinter import N
 from .registry import MetaDataRegistry
 
 GNSS_START_TIME = datetime.datetime(
@@ -133,4 +131,32 @@ def _date_to_month(date:datetime.datetime) -> str:
         str: The MONTH string corresponding to the given date, formatted with leading zeros if necessary.
     """
     return date.strftime("%m").zfill(2)
+
+
+@MetaDataRegistry.computed(name="YY")
+def _date_to_yy(date: datetime.datetime) -> str:
+    """2-digit year."""
+    return date.strftime("%y")
+
+
+@MetaDataRegistry.computed(name="HH")
+def _date_to_hh(date: datetime.datetime) -> str:
+    """2-digit hour (00-23)."""
+    return date.strftime("%H")
+
+
+@MetaDataRegistry.computed(name="MM")
+def _date_to_mm(date: datetime.datetime) -> str:
+    """2-digit minute (00-59)."""
+    return date.strftime("%M")
+
+
+@MetaDataRegistry.computed(
+    name="GPSWK",
+    description="GPS week number since January 6, 1980",
+)
+def _date_to_gpswk(date: datetime.datetime) -> str:
+    """GPS week number (same calculation as GPSWEEK, aliased for directory templates)."""
+    time_since_epoch = date - GNSS_START_TIME
+    return str(time_since_epoch.days // 7)
 
