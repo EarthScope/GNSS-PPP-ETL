@@ -73,6 +73,7 @@ class QueryResult:
     remote_directory: str = ""   # "pub/igs/products/2349/"
     local_collection: str = ""   # "products", "common", "table"
     local_directory:  str = ""   # "2025/015/products"
+    extras: Dict[str, str] = field(default_factory=dict)  # non-standard metadata (e.g. INSTRUMENT)
 
     @property
     def remote_url(self) -> str:
@@ -186,6 +187,14 @@ def _build_catalog(
             for i, combo in enumerate(combos):
                 regex = regexes[i] if i < len(regexes) else (regexes[0] if regexes else "")
 
+                # Resolve metadata-combo placeholders in directory
+                dir_resolved = directory
+                for key, value in combo.items():
+                    dir_resolved = dir_resolved.replace(f"{{{key}}}", value)
+
+                # Non-standard metadata for extra-axis filtering
+                extras = {k: v for k, v in combo.items() if k not in ("PPP", "TTT", "SMP")}
+
                 results.append(QueryResult(
                     spec=spec_name,
                     center=center_id,
@@ -196,9 +205,10 @@ def _build_catalog(
                     regex=regex,
                     remote_server=server.hostname,
                     remote_protocol=server.protocol,
-                    remote_directory=directory,
+                    remote_directory=dir_resolved,
                     local_collection=local_coll,
                     local_directory=local_dir,
+                    extras=extras,
                 ))
 
     return results
@@ -338,6 +348,10 @@ class ProductQuery:
         """Unique sampling values in current results."""
         return sorted({r.sampling for r in self._results if r.sampling})
 
+    def instruments(self) -> List[str]:
+        """Unique instrument values in current results (LEO products)."""
+        return sorted({r.extras.get("INSTRUMENT", "") for r in self._results} - {""})
+
     def axes_summary(self) -> Dict[str, List[str]]:
         """Current possible values for each axis dimension."""
         return {
@@ -346,6 +360,7 @@ class ProductQuery:
             "campaign": self.campaigns(),
             "solution": self.solutions(),
             "sampling": self.samplings(),
+            "instrument": self.instruments(),
         }
 
     def allowed_values(self, axis_name: str) -> List[str]:
@@ -366,13 +381,16 @@ class ProductQuery:
             case "sampling":
                 return self.samplings()
             case _:
-                # Extra axis — extract unique values from regex matches
+                # Extra axis — check extras dict first, then regex fallback
                 v_upper = axis_name.upper()
                 vals: set[str] = set()
                 for r in self._results:
-                    if r.regex and v_upper in (r.regex or "").upper():
-                        vals.add(axis_name)
-                return sorted(vals) if vals else []
+                    ev = r.extras.get(v_upper, "")
+                    if ev:
+                        vals.add(ev)
+                if vals:
+                    return sorted(vals)
+                return []
 
     # ------------------------------------------------------------------
     # Local resolution
@@ -453,8 +471,10 @@ def _apply_axis_filter(
         case "sampling":
             return [r for r in results if r.sampling.upper() == v]
         case _:
-            # Extra axis — check if the value appears in the regex
+            # Extra axis — check extras dict first, then regex fallback
+            v_upper = axis_name.upper()
             return [
                 r for r in results
-                if v in (r.regex or "").upper()
+                if r.extras.get(v_upper, "").upper() == v
+                or (not r.extras.get(v_upper) and v in (r.regex or "").upper())
             ]

@@ -99,3 +99,16 @@ GPSWEEK:
 
 REFFRAME:
   - pattern: "igs[0-9A-Z]{2}"     # IGS reference frame name (e.g., "igs20", "igs14", "igsR3")
+
+# LEO (GRACE / GRACE-FO) specific
+INSTRUMENT:
+  - pattern: "[A-Z]{3}1B"
+  - description: LEO instrument code with level suffix (e.g., GNV1B, ACC1B)
+
+SPACECRAFT:
+  - pattern: "[CD]"
+  - description: Spacecraft identifier (C or D for GRACE/GRACE-FO)
+
+RELNUM:
+  - pattern: "\\d+\\..*"
+  - description: Release/version number followed by file extension

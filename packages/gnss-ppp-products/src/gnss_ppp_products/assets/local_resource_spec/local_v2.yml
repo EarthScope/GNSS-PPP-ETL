@@ -73,3 +73,13 @@ collections:
       - LEAP_SEC
       - SAT_PARAMS
       - OROGRAPHY
+
+  # ---------------------------------------------------------------------------
+  # LEO satellite instrument data
+  # ---------------------------------------------------------------------------
+  leo:
+    directory: "{YYYY}/{DDD}/leo"
+    temporal: daily
+    description: "LEO satellite Level-1B instrument data (GRACE, GRACE-FO)"
+    specs:
+      - LEO_L1B

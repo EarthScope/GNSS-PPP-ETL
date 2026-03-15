@@ -53,3 +53,30 @@ products:
         - "30S"
         - "05M"
     directory: gnss/products/final/w{GPSWEEK}/
+
+  - id: gfz_grace_fo_l1b
+    spec: LEO_L1B
+    server_id: gfz_ftp
+    available: true
+    description: GRACE-FO Level-1B instrument data
+    metadata:
+      INSTRUMENT:
+        - GNV1B
+        - ACC1B
+        - SCA1B
+        - KBR1B
+        - LRI1B
+    directory: grace-fo/Level-1B/JPL/{INSTRUMENT}/RL04/{YYYY}/
+
+  - id: gfz_grace_l1b
+    spec: LEO_L1B
+    server_id: gfz_ftp
+    available: true
+    description: GRACE Level-1B instrument data
+    metadata:
+      INSTRUMENT:
+        - GNV1B
+        - ACC1B
+        - SCA1B
+        - KBR1B
+    directory: grace/Level-1B/JPL/{INSTRUMENT}/RL02/{YYYY}/

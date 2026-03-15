@@ -48,6 +48,7 @@ axes:
       - ATTATX
       - LEAP_SEC
       - SAT_PARAMS
+      - LEO_L1B
     notes: >
       Selects the product definition from ProductSpecRegistry.
       Determines which filename template, fixed constraints, and
@@ -240,3 +241,27 @@ products:
     format_key: TABLE
     temporal: static
     local_collection: table
+
+  # ── LEO satellite instrument data ───────────────────────────────
+
+  LEO_L1B:
+    axes: [date, center]
+    extra_axes:
+      instrument:
+        description: LEO instrument code with 1B suffix
+        maps_to: [INSTRUMENT]
+        values:
+          - GNV1B
+          - ACC1B
+          - SCA1B
+          - KBR1B
+          - LRI1B
+          - AHK1B
+          - THR1B
+          - CLK1B
+          - GPS1B
+          - MAS1B
+          - TIM1B
+    format_key: LEO_L1B
+    temporal: daily
+    local_collection: leo

@@ -98,6 +98,11 @@ metadata_defaults:
   # VMF-specific
   PRODUCT: "[A-Za-z0-9]+"        # VMF product id  (VMF1, VMF3)
   RESOLUTION: "[0-9x.]+"         # grid resolution (2.5x2, 5x5)
+
+  # LEO (GRACE / GRACE-FO) specific
+  INSTRUMENT: "[A-Z]{3}1B"       # instrument code + level (GNV1B, ACC1B, …)
+  SPACECRAFT: "[CD]"              # spacecraft identifier (C or D)
+  RELNUM: "\\d+\\..*"            # release number + file extension
 formats:
 
   RINEX:
@@ -264,6 +269,25 @@ formats:
         filename:
           default:
             - "{PRODUCT}_{YYYY}{MONTH}{DAY}.{VMFHH}"
+
+  LEO_L1B:
+    description: >
+      LEO satellite Level-1B instrument data format used for
+      GRACE and GRACE-FO missions hosted at GFZ ISDC.
+    versions:
+      "1":
+        metadata:
+          - INSTRUMENT  # e.g., GNV1B, ACC1B, SCA1B
+          - YYYY
+          - MONTH
+          - DAY
+          - SPACECRAFT:
+              default: "[CD]"
+          - RELNUM:
+              default: "\\d+\\..*"
+        filename:
+          default:
+            - "{INSTRUMENT}_{YYYY}-{MONTH}-{DAY}_{SPACECRAFT}_{RELNUM}"
 
   ANTENNAE:
     description: >
@@ -513,6 +537,16 @@ products:
         filename:
           default:
             - "orography_ell_{RESOLUTION}"
+
+  LEO_L1B:
+    description: >
+      LEO satellite Level-1B instrument data (GRACE, GRACE-FO).
+
+    formats:
+
+      - format: LEO_L1B
+        version: "1"
+        filename: default
 
   ATTATX:
     description: >
