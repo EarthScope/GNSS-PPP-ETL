@@ -17,6 +17,6 @@ from .query import QuerySpec
 
 QuerySpecRegistry = QuerySpec.from_yaml()
 
-from .engine import ProductQuery, QueryResult
+from .engine import ProductQuery, QueryResult, select_best_antex
 
-__all__ = ["QuerySpecRegistry", "ProductQuery", "QueryResult"]
+__all__ = ["QuerySpecRegistry", "ProductQuery", "QueryResult", "select_best_antex"]

@@ -268,17 +268,21 @@ formats:
   ANTENNAE:
     description: >
       Antenna information in ATX format, including phase center variations and offsets.
+      Filenames use the IGS reference frame name (e.g. igs20) — there is no
+      separate analysis-center prefix.  Archive files carry a GPS-week
+      suffix; the query should match any week and select the most recent
+      file whose week is <= the target date.
     versions:
       "1":
         metadata:
-          - AAA  # analysis center code (e.g., "WUM", "COD")
-          - REFFRAME # Reference frame code (e.g., "ITRF2014")
-          - GPSWEEK # GPS week number
+          - REFFRAME  # Full IGS frame name (e.g., "igs20", "igs14")
+          - GPSWEEK:
+              default: "\\d+"  # match any GPS week — caller picks max <= target
         filename:
           archive:
-            - "{AAA}{REFFRAME}_{GPSWEEK}.atx"
+            - "{REFFRAME}_{GPSWEEK}.atx"
           default:
-            - "{AAA}{REFFRAME}.atx"
+            - "{REFFRAME}.atx"
 
 products:
 

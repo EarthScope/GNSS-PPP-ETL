@@ -36,6 +36,9 @@ from typing import Dict, Iterator, List, Optional
 from gnss_ppp_products.assets.query_spec.registry import QuerySpecRegistry
 from gnss_ppp_products.assets.query_spec.query import ProductQueryProfile
 from gnss_ppp_products.assets.remote_resource_spec import RemoteResourceRegistry
+
+_GPS_EPOCH = datetime.datetime(1980, 1, 6, tzinfo=datetime.timezone.utc)
+_GPSWEEK_RE = re.compile(r"_(\d{4})\.atx")
 from gnss_ppp_products.assets.local_resource_spec import LocalResourceRegistry
 
 
@@ -77,6 +80,58 @@ class QueryResult:
         if self.remote_server and self.remote_directory:
             return f"{self.remote_server}/{self.remote_directory}"
         return ""
+
+
+# ===================================================================
+# ANTEX best-match selection
+# ===================================================================
+
+
+def _gpsweek_from_filename(filename: str) -> Optional[int]:
+    """Extract a GPS week number from an ANTEX archive filename.
+
+    Expects names like ``igs20_2350.atx`` or ``igs20_2350.atx.gz``.
+    Returns ``None`` if no week number is found.
+    """
+    m = _GPSWEEK_RE.search(filename)
+    return int(m.group(1)) if m else None
+
+
+def select_best_antex(
+    filenames: List[str],
+    target_date: datetime.date,
+) -> Optional[str]:
+    """Pick the most recent ANTEX archive file whose GPS week ≤ the target.
+
+    Parameters
+    ----------
+    filenames
+        Directory listing entries that already match the ATTATX regex
+        (e.g. ``["igs20_2343.atx", "igs20_2350.atx"]``).
+    target_date
+        The epoch for which the ANTEX file is needed.
+
+    Returns
+    -------
+    str or None
+        The best-matching filename, or *None* if no file qualifies.
+    """
+    target_dt = datetime.datetime(
+        target_date.year, target_date.month, target_date.day,
+        tzinfo=datetime.timezone.utc,
+    )
+    target_week = (target_dt - _GPS_EPOCH).days // 7
+
+    best_name: Optional[str] = None
+    best_week: int = -1
+
+    for fn in filenames:
+        week = _gpsweek_from_filename(fn)
+        if week is not None and week <= target_week and week > best_week:
+            best_week = week
+            best_name = fn
+
+    return best_name
 
 
 # ===================================================================

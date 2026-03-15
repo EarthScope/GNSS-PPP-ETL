@@ -98,4 +98,4 @@ GPSWEEK:
   - description: GPS week number (alias for GPSWK)
 
 REFFRAME:
-  - pattern: "[g-i0-9]+"         # Reference frame code (e.g., "IGS14", "ITRF2014")
+  - pattern: "igs[0-9A-Z]{2}"     # IGS reference frame name (e.g., "igs20", "igs14", "igsR3")

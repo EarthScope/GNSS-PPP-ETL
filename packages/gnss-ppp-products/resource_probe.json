@@ -1,10 +1,10 @@
 {
   "summary": {
     "probe_date": "2025-01-15",
-    "timestamp": "2026-03-14T22:32:29.920702+00:00",
+    "timestamp": "2026-03-15T00:10:40.542739+00:00",
     "total_variants": 234,
-    "available": 49,
-    "missing": 185,
+    "available": 50,
+    "missing": 184,
     "errors": 0
   },
   "results_by_spec": {
@@ -33,11 +33,17 @@
         "campaign": "",
         "solution": "",
         "sampling": "",
-        "regex": "igs20_2349\\.atx",
+        "regex": "igs20_\\d+\\.atx",
         "remote_url": "https://files.igs.org/pub/station/general/pcv_archive/",
         "protocol": "https",
-        "available": false,
-        "matched_files": [],
+        "available": true,
+        "matched_files": [
+          "igs20_2220.atx",
+          "igs20_2221.atx",
+          "igs20_2226.atx",
+          "igs20_2233.atx",
+          "igs20_2239.atx"
+        ],
         "error": null
       }
     ],
