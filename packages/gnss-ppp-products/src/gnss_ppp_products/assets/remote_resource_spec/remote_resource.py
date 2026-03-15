@@ -82,7 +82,7 @@ class RemoteProduct(BaseModel):
         that field (e.g. ``AAA: ["WUM", "WMC"]``).
     directory : str
         Directory template on the remote server, may contain
-        placeholders like ``{YYYY}``, ``{DDD}``, ``{GPSWK}``.
+        placeholders like ``{YYYY}``, ``{DDD}``, ``{GPSWEEK}``.
     """
 
     id: str

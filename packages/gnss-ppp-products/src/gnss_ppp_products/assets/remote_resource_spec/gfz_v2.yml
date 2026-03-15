@@ -32,7 +32,7 @@ products:
       SMP:
         - "05M"
         - "15M"
-    directory: gnss/products/final/w{GPSWK}/
+    directory: gnss/products/final/w{GPSWEEK}/
 
   - id: gfz_clock
     spec: CLOCK
@@ -52,4 +52,4 @@ products:
       SMP:
         - "30S"
         - "05M"
-    directory: gnss/products/final/w{GPSWK}/
+    directory: gnss/products/final/w{GPSWEEK}/

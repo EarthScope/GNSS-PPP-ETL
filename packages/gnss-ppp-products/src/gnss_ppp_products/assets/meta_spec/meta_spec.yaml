@@ -90,12 +90,12 @@ RESOLUTION:
   - pattern: "[0-9x.]+"         # grid resolution (2.5x2, 5x5)
 
 # GPS time
-GPSWK:
+GPSWEEK:
   - pattern: "\\d{4}"              # GPS week number
   - description: GPS week number since January 6, 1980
 GPSWEEK:
   - pattern: "\\d+"               # GPS week number (alias)
-  - description: GPS week number (alias for GPSWK)
+  - description: GPS week number (alias for GPSWEEK)
 
 REFFRAME:
   - pattern: "igs[0-9A-Z]{2}"     # IGS reference frame name (e.g., "igs20", "igs14", "igsR3")

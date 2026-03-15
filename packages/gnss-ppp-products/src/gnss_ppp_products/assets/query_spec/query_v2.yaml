@@ -29,7 +29,7 @@ axes:
     notes: >
       For daily products the time-of-day (HH, MM) defaults to 0000.
       Static products (ATTATX, LEAP_SEC, etc.) ignore this axis.
-      Also resolves MONTH, DAY, GPSWK, GPSWEEK, YY, REFFRAME as needed.
+      Also resolves MONTH, DAY, GPSWEEK, GPSWEEK, YY, REFFRAME as needed.
 
   spec:
     description: Product specification name

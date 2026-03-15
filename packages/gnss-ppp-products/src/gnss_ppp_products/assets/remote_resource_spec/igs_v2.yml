@@ -38,7 +38,7 @@ products:
       SMP:
         - "05M"
         - "15M"
-    directory: pub/igs/products/{GPSWK}/
+    directory: pub/igs/products/{GPSWEEK}/
 
   - id: igs_clock
     spec: CLOCK
@@ -56,7 +56,7 @@ products:
       SMP:
         - "30S"
         - "05M"
-    directory: pub/igs/products/{GPSWK}/
+    directory: pub/igs/products/{GPSWEEK}/
 
   - id: igs_erp
     spec: ERP
@@ -71,7 +71,7 @@ products:
         - RAP
       PPP:
         - OPS
-    directory: pub/igs/products/{GPSWK}/
+    directory: pub/igs/products/{GPSWEEK}/
 
   - id: igs_bias
     spec: BIA
@@ -86,7 +86,7 @@ products:
         - RAP
       PPP:
         - OPS
-    directory: pub/igs/products/{GPSWK}/
+    directory: pub/igs/products/{GPSWEEK}/
 
   - id: igs_obx
     spec: ATTOBX
@@ -100,7 +100,7 @@ products:
         - FIN
       PPP:
         - OPS
-    directory: pub/igs/products/{GPSWK}/
+    directory: pub/igs/products/{GPSWEEK}/
 
   - id: igs_nav
     spec: RNX3_BRDC

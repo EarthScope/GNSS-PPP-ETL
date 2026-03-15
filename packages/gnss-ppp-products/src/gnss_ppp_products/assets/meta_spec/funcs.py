@@ -165,23 +165,12 @@ def _date_to_mm(date: datetime.datetime) -> str:
     """2-digit minute (00-59)."""
     return date.strftime("%M")
 
-
-@MetaDataRegistry.computed(
-    name="GPSWK",
-    description="GPS week number since January 6, 1980",
-)
-def _date_to_gpswk(date: datetime.datetime) -> str:
-    """GPS week number (same calculation as GPSWEEK, aliased for directory templates)."""
-    time_since_epoch = date - GNSS_START_TIME
-    return str(time_since_epoch.days // 7)
-
-
 @MetaDataRegistry.computed(
     name="REFFRAME"
 )
 def _date_to_igs_reframe(date: datetime.datetime) -> str:
     """Determine the appropriate IGS frame based on date."""
-    date = date.date()
+    date = date.date() if isinstance(date, datetime.datetime) and not isinstance(date, datetime.date) else date
     if date >= datetime.date(2022, 11, 27):
         return IGSAntexReferenceFrameType.IGS20.value
     elif date >= datetime.date(2017, 1, 29):
