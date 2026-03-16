@@ -6,8 +6,6 @@ hardcoded YAML paths and no global singleton created at import time.
 Callers create instances via ``_MetadataRegistry.load_from_yaml(path)``.
 """
 
-from __future__ import annotations
-
 import re
 import datetime
 from pydantic import BaseModel
@@ -15,6 +13,7 @@ import yaml
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+from .models import MetadataField
 
 def extract_template_fields(template: str) -> list[str]:
     """Extract all metadata field names from a template string.
@@ -22,15 +21,6 @@ def extract_template_fields(template: str) -> list[str]:
     E.g. ``"orography_ell_{RESOLUTION}"`` → ``["RESOLUTION"]``
     """
     return re.findall(r"{(\w+)}", template)
-
-
-class MetadataField(BaseModel):
-    """A single registered metadata key."""
-
-    name: str
-    pattern: Optional[str] = None
-    compute: Optional[Callable[[datetime.date], str]] = None
-    description: Optional[str] = None
 
 
 class _MetadataRegistry:
@@ -99,10 +89,6 @@ class _MetadataRegistry:
     def get(self, name: str) -> Optional[MetadataField]:
         return self._fields.get(name)
 
-    @property
-    def fields(self) -> Dict[str, MetadataField]:
-        return dict(self._fields)
-
     # -- bulk operations ---------------------------------------------
 
     def defaults(self) -> Dict[str, str]:
@@ -133,7 +119,7 @@ class _MetadataRegistry:
         return template
 
     @classmethod
-    def load_from_yaml(cls, yaml_path: str | Path) -> '_MetadataRegistry':
+    def from_yaml(cls, yaml_path: str | Path) -> '_MetadataRegistry':
         """Load metadata field definitions from a YAML file.
 
         Does **not** register computed fields — call

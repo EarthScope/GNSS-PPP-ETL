@@ -18,18 +18,7 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 import yaml
-from pydantic import BaseModel, Field
-
-
-# ===================================================================
-# Temporal category
-# ===================================================================
-
-
-class TemporalCategory(str, Enum):
-    DAILY = "daily"
-    HOURLY = "hourly"
-    STATIC = "static"
+from pydantic import BaseModel, Field, model_validator
 
 
 # ===================================================================
@@ -41,7 +30,6 @@ class LocalCollection(BaseModel):
     """A group of product specs sharing a directory and temporal category."""
 
     directory: str
-    temporal: TemporalCategory
     description: str = ""
     specs: List[str] = Field(default_factory=list)
 
@@ -67,9 +55,10 @@ class LocalCollection(BaseModel):
         TypeError
             If *meta_registry* is ``None`` for a non-static collection.
         """
-        if self.temporal == TemporalCategory.STATIC:
+        if self.metadata is None:
+            # No need to resolve 
             return self.directory
-
+        
         if date is None:
             raise ValueError(
                 f"Collection with temporal={self.temporal.value!r} "
@@ -102,6 +91,7 @@ class LocalResourceSpec(BaseModel):
     """Root model for ``local_v2.yml``."""
 
     collections: Dict[str, LocalCollection] = Field(default_factory=dict)
+    _spec_to_collection_map: Dict[str, str] = Field(default_factory=dict, repr=False)
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "LocalResourceSpec":
@@ -134,10 +124,34 @@ class LocalResourceSpec(BaseModel):
         *,
         meta_registry=None,
     ) -> str:
-        return self.collection_for_spec(spec_name).resolve_directory(
+
+        # Check that the spec exists and get its collection
+        try:
+            collection_name: str = self._spec_to_collection_map[spec_name]
+        except KeyError:
+            raise KeyError(
+                f"Spec {spec_name!r} not found in any collection. "
+                f"Known specs: {self.all_specs}"
+            )
+    
+        return self.get_collection(collection_name).resolve_directory(
             date, meta_registry=meta_registry
         )
 
     @property
     def all_specs(self) -> List[str]:
         return [s for coll in self.collections.values() for s in coll.specs]
+
+    # Validation to ensure that each spec is in exactly one collection
+    @model_validator(mode="after")
+    def _validate_spec_uniqueness(self) -> None:
+        spec_to_collection: Dict[str, str] = {}
+        for coll_name, coll in self.collections.items():
+            for s in coll.specs:
+                if s in spec_to_collection:
+                    raise ValueError(
+                        f"Spec {s!r} is in multiple collections: "
+                        f"{spec_to_collection[s]!r} and {coll_name!r}"
+                    )
+                spec_to_collection[s] = coll_name
+        self._spec_to_collection_map = spec_to_collection

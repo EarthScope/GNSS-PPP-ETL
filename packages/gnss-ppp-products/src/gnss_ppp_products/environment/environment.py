@@ -130,7 +130,7 @@ class Environment:
         meta_path = _resolve_spec_path(
             specs.get("meta", "meta_spec.yaml"), _META_DIR
         )
-        meta = _MetadataRegistry.load_from_yaml(meta_path)
+        meta = _MetadataRegistry.from_yaml(meta_path)
         register_computed_fields(meta)
 
         # ---- products ----
@@ -201,7 +201,7 @@ class Environment:
         defaults: Optional[Dict[str, str]] = None,
     ) -> "Environment":
         """Build an Environment using the standard built-in spec files."""
-        meta = _MetadataRegistry.load_from_yaml(_cfg.META_SPEC_YAML)
+        meta = _MetadataRegistry.from_yaml(_cfg.META_SPEC_YAML)
         register_computed_fields(meta)
 
         products = _ProductSpecRegistry.load_from_yaml(

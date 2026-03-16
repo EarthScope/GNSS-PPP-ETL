@@ -26,11 +26,6 @@
 #   {YYYY}  – 4-digit year
 #   {DDD}   – 3-digit day-of-year (zero-padded)
 
-# -- Temporal categories -----------------------------------------------------
-#   daily   – one file per calendar day
-#   hourly  – multiple files per day (e.g. 6-hourly VMF grids)
-#   static  – updated very infrequently; no date dimension
-
 # -- Storage collections -----------------------------------------------------
 
 collections:
@@ -39,7 +34,7 @@ collections:
   # Precise products — core PPP inputs
   # ---------------------------------------------------------------------------
   products:
-    directory: "{YYYY}/{DDD}/products"
+    directory: "{YYYY}/{DDD}/product"
     temporal: daily
     description: "Precise orbit, clock, ERP, bias, and attitude products"
     specs:
@@ -48,25 +43,27 @@ collections:
       - ERP
       - BIA
       - ATTOBX
+      - VMF
+      - IONEX
 
   # ---------------------------------------------------------------------------
   # Common / shared products
   # ---------------------------------------------------------------------------
-  common:
-    directory: "{YYYY}/{DDD}/common"
-    temporal: daily
+  rinex:
+    directory: "{YYYY}/{DDD}"
+    metadata:
+      - YYYY
+      - DDD
     description: "Broadcast navigation, ionosphere maps, and troposphere grids"
     specs:
       - RNX3_BRDC
-      - IONEX
-      - VMF
+      - RNX2
 
   # ---------------------------------------------------------------------------
   # Static tables and calibrations
   # ---------------------------------------------------------------------------
   table:
     directory: "table"
-    temporal: static
     description: "Reference tables, antenna calibrations, and orography grids"
     specs:
       - ATTATX
@@ -78,8 +75,10 @@ collections:
   # LEO satellite instrument data
   # ---------------------------------------------------------------------------
   leo:
-    directory: "{YYYY}/{DDD}/leo"
-    temporal: daily
+    directory: "{YYYY}/{DDD}/product"
+    metadata:
+      - YYYY
+      - DDD
     description: "LEO satellite Level-1B instrument data (GRACE, GRACE-FO)"
     specs:
       - LEO_L1B

@@ -32,7 +32,7 @@ from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 # 1. Metadata registry  (must be first — others depend on it)
 # ===================================================================
 
-MetaDataRegistry = _MetadataRegistry.load_from_yaml(META_SPEC_YAML)
+MetaDataRegistry = _MetadataRegistry.from_yaml(META_SPEC_YAML)
 register_computed_fields(MetaDataRegistry)
 
 
