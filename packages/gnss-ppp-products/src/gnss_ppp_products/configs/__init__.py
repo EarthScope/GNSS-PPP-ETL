@@ -12,14 +12,14 @@ from pathlib import Path
 # YAML file locations (reference the originals in assets/)
 # ------------------------------------------------------------------
 
-_ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+_ASSETS_DIR = Path(__file__).resolve().parent
 
-META_SPEC_YAML = _ASSETS_DIR / "meta_spec" / "meta_spec.yaml"
-PRODUCT_SPEC_YAML = _ASSETS_DIR / "product_spec" / "product_spec.yaml"
-LOCAL_SPEC_YAML = _ASSETS_DIR / "local_resource_spec" / "local_v2.yml"
-QUERY_SPEC_YAML = _ASSETS_DIR / "query_spec" / "query_v2.yaml"
-REMOTE_SPEC_DIR = _ASSETS_DIR / "remote_resource_spec"
-DEPENDENCY_SPEC_DIR = _ASSETS_DIR / "dependency_spec"
+META_SPEC_YAML = _ASSETS_DIR / "meta" / "meta_spec.yaml"
+PRODUCT_SPEC_YAML = _ASSETS_DIR / "products" / "product_spec.yaml"
+LOCAL_SPEC_YAML = _ASSETS_DIR / "local" / "local_v2.yml"
+QUERY_SPEC_YAML = _ASSETS_DIR / "query" / "query_v2.yaml"
+REMOTE_SPEC_DIR = _ASSETS_DIR / "centers"
+DEPENDENCY_SPEC_DIR = _ASSETS_DIR / "tasks"
 
 # ------------------------------------------------------------------
 # Lazy singleton access — import from defaults when needed

@@ -103,6 +103,7 @@ metadata_defaults:
   INSTRUMENT: "[A-Z]{3}1B"       # instrument code + level (GNV1B, ACC1B, …)
   SPACECRAFT: "[CD]"              # spacecraft identifier (C or D)
   RELNUM: "\\d+\\..*"            # release number + file extension
+
 formats:
 
   RINEX:
