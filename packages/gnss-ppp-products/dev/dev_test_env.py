@@ -16,8 +16,8 @@ import logging
 import sys
 from pathlib import Path
 
-from gnss_ppp_products.assets.environment import Environment
-from gnss_ppp_products.assets.environment.environment import (
+from gnss_ppp_products.environment import Environment
+from gnss_ppp_products.environment.environment import (
     EnvironmentValidationError,
 )
 
@@ -173,13 +173,19 @@ check(
 # ──────────────────────────────────────────────────────────────────
 # 6. Backward compatibility — global singletons still work
 # ──────────────────────────────────────────────────────────────────
-section("6. Backward compatibility — global singletons")
+section("6. Config singletons")
 
-from gnss_ppp_products.assets.query_spec.engine import ProductQuery
-
-q_global = ProductQuery(date=DATE)
-print(f"  Global catalog entries: {len(q_global._results)}")
-check("global query works", len(q_global._results) > 0)
+from gnss_ppp_products.configs.defaults import (
+    MetaDataRegistry,
+    ProductSpecRegistry,
+    RemoteResourceRegistry,
+    LocalResourceRegistry,
+    QuerySpecRegistry,
+)
+print(f"  MetaDataRegistry fields: {len(MetaDataRegistry.fields)}")
+print(f"  ProductSpecRegistry products: {len(ProductSpecRegistry.products)}")
+print(f"  RemoteResourceRegistry centers: {len(RemoteResourceRegistry.centers)}")
+check("config singletons loaded", len(MetaDataRegistry.fields) > 0)
 
 
 # ──────────────────────────────────────────────────────────────────

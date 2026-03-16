@@ -6,26 +6,25 @@ references at construction time, and provides convenience methods
 for querying and resolving dependencies.
 
 The environment can be built from a YAML manifest file or constructed
-programmatically.  All existing code continues to work via the global
-singletons; the Environment is an opt-in upgrade path.
+programmatically.
 
 Manifest YAML schema::
 
     name: pride_ppp_kinematic
-    base_dir: ~/gnss_products        # expanded at load time
+    base_dir: ~/gnss_products
 
     specs:
-      meta: meta_spec.yaml           # relative to assets/<subpackage>/
+      meta: meta_spec.yaml
       products: product_spec.yaml
       query: query_v2.yaml
       local: local_v2.yml
-      centers:                        # list of center YAML files
+      centers:
         - igs_v2.yml
         - wuhan_v2.yml
         - code_v2.yml
-      dependencies: pride_ppp_kin.yml # optional
+      dependencies: pride_ppp_kin.yml
 
-    defaults:                         # optional axis defaults
+    defaults:
       solution: FIN
       campaign: MGX
 """
@@ -35,32 +34,34 @@ from __future__ import annotations
 import datetime
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import yaml
 
 from gnss_ppp_products.specifications.metadata import _MetadataRegistry
 from gnss_ppp_products.specifications.products import _ProductSpecRegistry
 from gnss_ppp_products.specifications.remote import _RemoteResourceRegistry
+from gnss_ppp_products.specifications.remote.models import RemoteResourceSpec
 from gnss_ppp_products.specifications.local import _LocalResourceRegistry
 from gnss_ppp_products.specifications.query.models import QuerySpec
 from gnss_ppp_products.specifications.dependencies.models import DependencySpec
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
+import gnss_ppp_products.configs as _cfg
+
 logger = logging.getLogger(__name__)
 
 
 # ===================================================================
-# Well-known asset directories (default YAML locations)
+# Well-known directories (from configs)
 # ===================================================================
 
-_ASSETS = Path(__file__).resolve().parent.parent  # .../assets/
-_META_DIR = _ASSETS / "meta_spec"
-_PRODUCT_DIR = _ASSETS / "product_spec"
-_REMOTE_DIR = _ASSETS / "remote_resource_spec"
-_LOCAL_DIR = _ASSETS / "local_resource_spec"
-_QUERY_DIR = _ASSETS / "query_spec"
-_DEP_DIR = _ASSETS / "dependency_spec"
+_META_DIR = _cfg.META_SPEC_YAML.parent
+_PRODUCT_DIR = _cfg.PRODUCT_SPEC_YAML.parent
+_REMOTE_DIR = _cfg.REMOTE_SPEC_DIR
+_LOCAL_DIR = _cfg.LOCAL_SPEC_YAML.parent
+_QUERY_DIR = _cfg.QUERY_SPEC_YAML.parent
+_DEP_DIR = _cfg.DEPENDENCY_SPEC_DIR
 
 
 # ===================================================================
@@ -85,29 +86,7 @@ class EnvironmentValidationError(Exception):
 
 
 class Environment:
-    """Unified container holding all GNSS product spec registries.
-
-    Parameters
-    ----------
-    name : str
-        Human-readable environment name.
-    base_dir : Path or str
-        Root of local product storage.
-    meta : _MetadataRegistry
-        Metadata field definitions.
-    products : _ProductSpecRegistry
-        Product specifications (filename templates, constraints).
-    remote : _RemoteResourceRegistry
-        Remote data center definitions.
-    local : _LocalResourceRegistry
-        Local storage layout.
-    query : QuerySpec
-        Query axis definitions and product profiles.
-    dependencies : DependencySpec or None
-        Optional task dependency declaration.
-    defaults : dict
-        Optional default axis values (e.g. ``{"solution": "FIN"}``).
-    """
+    """Unified container holding all GNSS product spec registries."""
 
     def __init__(
         self,
@@ -132,7 +111,6 @@ class Environment:
         self.dependencies = dependencies
         self.defaults = dict(defaults) if defaults else {}
 
-        # Wire base_dir into local registry
         self.local.base_dir = self.base_dir
 
     # ------------------------------------------------------------------
@@ -141,11 +119,7 @@ class Environment:
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "Environment":
-        """Load an Environment from a manifest YAML file.
-
-        Relative paths in the ``specs`` section are resolved against
-        the default asset directories.
-        """
+        """Load an Environment from a manifest YAML file."""
         path = Path(path)
         with open(path) as fh:
             raw = yaml.safe_load(fh)
@@ -163,7 +137,9 @@ class Environment:
         prod_path = _resolve_spec_path(
             specs.get("products", "product_spec.yaml"), _PRODUCT_DIR
         )
-        products = _ProductSpecRegistry.load_from_yaml(prod_path)
+        products = _ProductSpecRegistry.load_from_yaml(
+            yaml_path=prod_path, meta_registry=meta,
+        )
 
         # ---- remote centers ----
         center_files = specs.get("centers", [])
@@ -171,14 +147,10 @@ class Environment:
         if center_files:
             for cf in center_files:
                 p = _resolve_spec_path(cf, _REMOTE_DIR)
-                from gnss_ppp_products.specifications.remote.models import (
-                    RemoteResourceSpec,
-                )
                 center = RemoteResourceSpec.from_yaml(p)
                 remote._register(center)
         else:
-            # Default: load all *_v2.yml from the standard directory
-            remote = _RemoteResourceRegistry.load_from_directory()
+            remote = _RemoteResourceRegistry.load_from_directory(_REMOTE_DIR)
 
         # ---- local ----
         local_path = _resolve_spec_path(
@@ -199,13 +171,10 @@ class Environment:
             dep_path = _resolve_spec_path(dep_file, _DEP_DIR)
             dep = DependencySpec.from_yaml(dep_path)
 
-        # ---- base_dir ----
         base_dir = Path(raw.get("base_dir", "~/gnss_products")).expanduser()
-
-        # ---- defaults ----
         defaults = raw.get("defaults", {})
 
-        env = cls(
+        return cls(
             name=raw.get("name", path.stem),
             base_dir=base_dir,
             meta=meta,
@@ -216,8 +185,6 @@ class Environment:
             dependencies=dep,
             defaults=defaults,
         )
-
-        return env
 
     # ------------------------------------------------------------------
     # Programmatic builder (all defaults)
@@ -233,29 +200,18 @@ class Environment:
         dependency_file: Optional[str] = None,
         defaults: Optional[Dict[str, str]] = None,
     ) -> "Environment":
-        """Build an Environment using the standard built-in spec files.
-
-        This is the simplest constructor — it loads everything from the
-        default asset directories, optionally restricting which centers
-        are included.
-        """
-        meta = _MetadataRegistry.load_from_yaml(_META_DIR / "meta_spec.yaml")
+        """Build an Environment using the standard built-in spec files."""
+        meta = _MetadataRegistry.load_from_yaml(_cfg.META_SPEC_YAML)
         register_computed_fields(meta)
 
         products = _ProductSpecRegistry.load_from_yaml(
-            yaml_path=_PRODUCT_DIR / "product_spec.yaml",
-            meta_registry=meta,
+            yaml_path=_cfg.PRODUCT_SPEC_YAML, meta_registry=meta,
         )
-        local = _LocalResourceRegistry.load_from_yaml(
-            _LOCAL_DIR / "local_v2.yml"
-        )
-        query = QuerySpec.from_yaml(_QUERY_DIR / "query_v2.yaml")
+        local = _LocalResourceRegistry.load_from_yaml(_cfg.LOCAL_SPEC_YAML)
+        query = QuerySpec.from_yaml(_cfg.QUERY_SPEC_YAML)
 
         if center_files:
             remote = _RemoteResourceRegistry()
-            from gnss_ppp_products.specifications.remote.models import (
-                RemoteResourceSpec,
-            )
             for cf in center_files:
                 p = _resolve_spec_path(cf, _REMOTE_DIR)
                 center = RemoteResourceSpec.from_yaml(p)
@@ -287,18 +243,7 @@ class Environment:
     def validate(self) -> List[str]:
         """Cross-validate all spec references.
 
-        Returns a list of error strings.  An empty list means the
-        environment is consistent.
-
-        Checks performed:
-
-        1. Every product name in remote center specs exists in product_spec.
-        2. Every product name in local specs exists in product_spec.
-        3. Every product name in query profiles exists in product_spec.
-        4. Every local_collection referenced in query profiles exists.
-        5. Every center referenced in dependency preferences exists.
-        6. Every dependency spec name exists in product_spec.
-        7. Every dependency spec name has a query profile.
+        Returns a list of error strings.  Empty = consistent.
         """
         errors: List[str] = []
         product_names = set(self.products.products.keys())
@@ -307,7 +252,6 @@ class Environment:
         query_specs = set(self.query_spec.products.keys())
         local_specs = set(self.local.all_specs)
 
-        # 1. Remote product specs → product_spec
         for cid, center in self.remote.centers.items():
             for rp in center.products:
                 if rp.spec_name not in product_names:
@@ -316,7 +260,6 @@ class Environment:
                         f"unknown spec '{rp.spec_name}'"
                     )
 
-        # 2. Local specs → product_spec
         for s in local_specs:
             if s not in product_names:
                 errors.append(
@@ -324,14 +267,12 @@ class Environment:
                     f"(known: {sorted(product_names)})"
                 )
 
-        # 3. Query profile names → product_spec
         for s in query_specs:
             if s not in product_names:
                 errors.append(
                     f"query profile '{s}' not found in product_spec"
                 )
 
-        # 4. Query local_collection → local_resource_spec
         for s, profile in self.query_spec.products.items():
             coll = profile.local_collection
             if coll and coll not in local_collections:
@@ -341,7 +282,6 @@ class Environment:
                     f"(known: {sorted(local_collections)})"
                 )
 
-        # 5-7. Dependency spec validation
         if self.dependencies:
             for pref in self.dependencies.preferences:
                 if pref.center not in center_ids:
@@ -365,7 +305,6 @@ class Environment:
         return errors
 
     def validate_or_raise(self) -> None:
-        """Run :meth:`validate` and raise if any errors are found."""
         errors = self.validate()
         if errors:
             raise EnvironmentValidationError(errors)
@@ -397,18 +336,10 @@ class Environment:
         *,
         download: bool = False,
     ) -> "DependencyResolution":
-        """Resolve dependencies using this environment's registries.
-
-        Requires :attr:`dependencies` to have been set (either via
-        the manifest or programmatically).
-
-        Returns a :class:`DependencyResolution` with the outcome for
-        every declared dependency.
-        """
+        """Resolve dependencies using this environment's registries."""
         if self.dependencies is None:
             raise RuntimeError(
-                "No dependency spec configured in this environment. "
-                "Set env.dependencies or include 'dependencies' in the manifest."
+                "No dependency spec configured in this environment."
             )
         from gnss_ppp_products.specifications.dependencies.resolver import (
             DependencyResolver,
@@ -441,7 +372,6 @@ class Environment:
         )
 
     def summary(self) -> str:
-        """Return a multi-line summary of the environment."""
         lines = [
             f"Environment: {self.name}",
             f"  base_dir: {self.base_dir}",
@@ -467,19 +397,10 @@ class Environment:
 
 
 def _resolve_spec_path(filename: str, default_dir: Path) -> Path:
-    """Resolve a spec filename to an absolute path.
-
-    If *filename* is already absolute, return it.  Otherwise, look
-    in *default_dir*.
-    """
     p = Path(filename).expanduser()
     if p.is_absolute():
         return p
     candidate = default_dir / p
     if candidate.exists():
         return candidate
-    return p  # let the caller handle FileNotFoundError
-
-
-# _replay_computed_fields is no longer needed — replaced by
-# gnss_ppp_products.utilities.metadata_funcs.register_computed_fields
+    return p
