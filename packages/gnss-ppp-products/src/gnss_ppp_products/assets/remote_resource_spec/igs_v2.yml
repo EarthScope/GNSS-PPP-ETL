@@ -92,13 +92,18 @@ products:
     spec: ATTOBX
     server_id: ign_ftp
     available: true
-    description: IGS satellite attitude (ORBEX)
+    description: Satellite attitude (ORBEX) — multi-AC products hosted on IGS
     metadata:
       AAA:
-        - IGS
+        - WUM
+        - COD
+        - GRG
+        - JPL
       TTT:
         - FIN
+        - RAP
       PPP:
+        - MGX
         - OPS
     directory: pub/igs/products/{GPSWEEK}/
 

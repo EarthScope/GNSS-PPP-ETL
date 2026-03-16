@@ -109,9 +109,13 @@ class _LocalResourceRegistry:
         self,
         spec_name: str,
         date: datetime.date | datetime.datetime | None = None,
+        *,
+        meta_registry=None,
     ) -> str:
         """Resolve the relative directory for *spec_name* on *date*."""
-        return self._spec.resolve_directory(spec_name, date)
+        return self._spec.resolve_directory(
+            spec_name, date, meta_registry=meta_registry
+        )
 
     def resolve_path(
         self,

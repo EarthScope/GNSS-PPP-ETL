@@ -57,13 +57,22 @@ class LocalCollection(BaseModel):
     specs: List[str] = Field(default_factory=list)
 
     def resolve_directory(
-        self, date: datetime.date | datetime.datetime | None = None
+        self,
+        date: datetime.date | datetime.datetime | None = None,
+        *,
+        meta_registry: "_MetadataRegistry | None" = None,
     ) -> str:
         """Resolve directory template placeholders using *date*.
 
         Static collections ignore *date* and return the template as-is.
         Daily/hourly collections require a date and substitute computed
         metadata fields (``{YYYY}``, ``{DDD}``, etc.).
+
+        Parameters
+        ----------
+        meta_registry
+            Optional metadata registry instance.  Falls back to the
+            global :data:`MetaDataRegistry` singleton when ``None``.
 
         Raises
         ------
@@ -85,7 +94,8 @@ class LocalCollection(BaseModel):
                 tzinfo=datetime.timezone.utc,
             )
 
-        return MetaDataRegistry.resolve(
+        reg = meta_registry if meta_registry is not None else MetaDataRegistry
+        return reg.resolve(
             self.directory, date, computed_only=True
         )
 
@@ -145,9 +155,13 @@ class LocalResourceSpec(BaseModel):
         self,
         spec_name: str,
         date: datetime.date | datetime.datetime | None = None,
+        *,
+        meta_registry: "_MetadataRegistry | None" = None,
     ) -> str:
         """Resolve the local directory for *spec_name* on *date*."""
-        return self.collection_for_spec(spec_name).resolve_directory(date)
+        return self.collection_for_spec(spec_name).resolve_directory(
+            date, meta_registry=meta_registry
+        )
 
     @property
     def all_specs(self) -> List[str]:

@@ -94,10 +94,13 @@ products:
     description: Satellite attitude quaternions (ORBEX)
     metadata:
       AAA:
+        - WUM
         - WMC
       TTT:
         - FIN
+        - RAP
       PPP:
+        - MGX
         - DEM
     directory: pub/whu/phasebias/{YYYY}/orbit/
 

@@ -116,18 +116,30 @@ class RemoteProduct(BaseModel):
     # Directory resolution
     # ------------------------------------------------------------------
 
-    def resolve_directory(self, date: datetime.date | datetime.datetime) -> str:
+    def resolve_directory(
+        self,
+        date: datetime.date | datetime.datetime,
+        *,
+        meta_registry=None,
+    ) -> str:
         """Substitute date-derived placeholders in the directory template.
 
         Only fields with a registered ``compute`` function are resolved;
         non-computable placeholders are left untouched.
+
+        Parameters
+        ----------
+        meta_registry
+            Optional metadata registry instance.  Falls back to the
+            global :data:`MetaDataRegistry` singleton when ``None``.
         """
         if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
             date = datetime.datetime(
                 date.year, date.month, date.day,
                 tzinfo=datetime.timezone.utc,
             )
-        return MetaDataRegistry.resolve(
+        reg = meta_registry if meta_registry is not None else MetaDataRegistry
+        return reg.resolve(
             self.directory, date, computed_only=True
         )
     
@@ -153,6 +165,9 @@ class RemoteProduct(BaseModel):
     def to_regexes(
         self,
         date: datetime.date | datetime.datetime | None = None,
+        *,
+        meta_registry=None,
+        product_registry=None,
     ) -> list[str]:
         """Build filename regexes incorporating center-specific metadata.
 
@@ -171,6 +186,15 @@ class RemoteProduct(BaseModel):
         are generated for each listed format index.  Otherwise, only
         format index 0 is used.
 
+        Parameters
+        ----------
+        meta_registry
+            Optional metadata registry instance.  Falls back to the
+            global :data:`MetaDataRegistry` singleton when ``None``.
+        product_registry
+            Optional product spec registry instance.  Falls back to the
+            global :data:`ProductSpecRegistry` singleton when ``None``.
+
         Returns one regex per (format-index × metadata-combination × filename-template).
         """
         if date is not None and isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
@@ -178,20 +202,24 @@ class RemoteProduct(BaseModel):
                 date.year, date.month, date.day,
                 tzinfo=datetime.timezone.utc,
             )
+
+        _meta = meta_registry if meta_registry is not None else MetaDataRegistry
+        _prod = product_registry if product_registry is not None else ProductSpecRegistry
+
         spec_name = self.spec_name
         regexes: list[str] = []
 
         for ref_index in self.format_indices:
-            templates = ProductSpecRegistry.resolve_filename_templates(
+            templates = _prod.resolve_filename_templates(
                 spec_name, ref_index
             )
-            spec_constraints = ProductSpecRegistry.resolve_metadata_constraints(
+            spec_constraints = _prod.resolve_metadata_constraints(
                 spec_name, ref_index
             )
 
-            product = ProductSpecRegistry.products[spec_name]
+            product = _prod.products[spec_name]
             ref = product.formats[ref_index]
-            fmt = ProductSpecRegistry.formats[ref.format]
+            fmt = _prod.formats[ref.format]
             ver = fmt.versions[ref.version]
             format_overrides = ver.get_metadata_overrides()
 
@@ -229,11 +257,11 @@ class RemoteProduct(BaseModel):
                     if hit is None:
                         hit = _ci_get(format_overrides, field)
                     if hit is None and date is not None:
-                        meta_field = MetaDataRegistry.get(field)
+                        meta_field = _meta.get(field)
                         if meta_field and meta_field.compute:
                             hit = re.escape(meta_field.compute(date))
                     if hit is None:
-                        hit = _ci_get(MetaDataRegistry.defaults(), field)
+                        hit = _ci_get(_meta.defaults(), field)
                     parts.append(_strip_wb(hit) if hit is not None else ".+")
                     last_end = m.end()
 

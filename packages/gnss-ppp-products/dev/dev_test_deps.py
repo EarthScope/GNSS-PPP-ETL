@@ -36,7 +36,7 @@ SPEC_PATH = Path(__file__).resolve().parent.parent / (
     "src/gnss_ppp_products/assets/dependency_spec/pride_ppp_kin.yml"
 )
 BASE_DIR = Path.home() / "gnss_products"
-DATE = datetime.date(2025, 1, 4)
+DATE = datetime.date(2025, 1, 1)
 
 
 def section(title: str) -> None:

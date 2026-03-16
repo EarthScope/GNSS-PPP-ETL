@@ -79,15 +79,22 @@ class DependencyResolver:
     base_dir : Path or str
         Root of the local product tree.  Local directory for each
         product is resolved relative to this path.
+    environment : Environment or None
+        Optional :class:`Environment` instance.  When provided the
+        resolver uses the environment's registries instead of the
+        global singletons.
     """
 
     def __init__(
         self,
         dep_spec: DependencySpec,
         base_dir: Path | str,
+        *,
+        environment=None,
     ) -> None:
         self.dep_spec = dep_spec
         self.base_dir = Path(base_dir)
+        self._env = environment
 
     # ------------------------------------------------------------------
     # Public API
@@ -108,7 +115,10 @@ class DependencyResolver:
         Returns a :class:`DependencyResolution` with the outcome for
         every dependency.
         """
-        q = ProductQuery(date=date)
+        if self._env is not None:
+            q = self._env.query(date)
+        else:
+            q = ProductQuery(date=date)
         results: List[ResolvedDependency] = []
 
         for dep in self.dep_spec.dependencies:

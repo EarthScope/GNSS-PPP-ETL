@@ -142,6 +142,12 @@ def select_best_antex(
 
 def _build_catalog(
     date: datetime.date,
+    *,
+    query_registry=None,
+    remote_registry=None,
+    local_registry=None,
+    meta_registry=None,
+    product_registry=None,
 ) -> List[QueryResult]:
     """
     Enumerate every concrete product variant from the registries,
@@ -149,10 +155,17 @@ def _build_catalog(
 
     Expands all remote product metadata combinations into individual
     QueryResults annotated with local storage info.
+
+    When registry parameters are ``None`` the global singletons are
+    used, preserving full backward compatibility.
     """
+    _qreg = query_registry if query_registry is not None else QuerySpecRegistry
+    _rreg = remote_registry if remote_registry is not None else RemoteResourceRegistry
+    _lreg = local_registry if local_registry is not None else LocalResourceRegistry
+
     results: List[QueryResult] = []
 
-    for center_id, center in RemoteResourceRegistry.centers.items():
+    for center_id, center in _rreg.centers.items():
         for rp in center.products:
             if not rp.available:
                 continue
@@ -160,16 +173,20 @@ def _build_catalog(
             spec_name = rp.spec_name
 
             # Check the query spec knows about this product
-            if spec_name not in QuerySpecRegistry.products:
+            if spec_name not in _qreg.products:
                 continue
 
-            profile = QuerySpecRegistry.profile(spec_name)
-            server = RemoteResourceRegistry.get_server_for_product(rp.id)
-            directory = rp.resolve_directory(date)
+            profile = _qreg.profile(spec_name)
+            server = _rreg.get_server_for_product(rp.id)
+            directory = rp.resolve_directory(date, meta_registry=meta_registry)
 
             # Build regexes (one per metadata combination)
             try:
-                regexes = rp.to_regexes(date)
+                regexes = rp.to_regexes(
+                    date,
+                    meta_registry=meta_registry,
+                    product_registry=product_registry,
+                )
             except Exception:
                 regexes = []
 
@@ -178,8 +195,10 @@ def _build_catalog(
 
             # Local storage mapping
             try:
-                local_dir = LocalResourceRegistry.resolve_directory(spec_name, date)
-                local_coll = LocalResourceRegistry.collection_name_for_spec(spec_name)
+                local_dir = _lreg.resolve_directory(
+                    spec_name, date, meta_registry=meta_registry
+                )
+                local_coll = _lreg.collection_name_for_spec(spec_name)
             except (KeyError, ValueError):
                 local_dir = ""
                 local_coll = ""
@@ -243,12 +262,30 @@ class ProductQuery:
         *,
         _results: Optional[List[QueryResult]] = None,
         _axes: Optional[Dict[str, str]] = None,
+        query_registry=None,
+        remote_registry=None,
+        local_registry=None,
+        meta_registry=None,
+        product_registry=None,
     ):
         self.date = date
         self.axes: Dict[str, str] = dict(_axes) if _axes else {}
+        # Store registries so narrow() can propagate them
+        self._query_registry = query_registry
+        self._remote_registry = remote_registry
+        self._local_registry = local_registry
+        self._meta_registry = meta_registry
+        self._product_registry = product_registry
         self._results: List[QueryResult] = (
             _results if _results is not None
-            else _build_catalog(date)
+            else _build_catalog(
+                date,
+                query_registry=query_registry,
+                remote_registry=remote_registry,
+                local_registry=local_registry,
+                meta_registry=meta_registry,
+                product_registry=product_registry,
+            )
         )
 
     # ------------------------------------------------------------------
@@ -297,6 +334,11 @@ class ProductQuery:
             self.date,
             _results=filtered,
             _axes=new_axes,
+            query_registry=self._query_registry,
+            remote_registry=self._remote_registry,
+            local_registry=self._local_registry,
+            meta_registry=self._meta_registry,
+            product_registry=self._product_registry,
         )
 
     @property
@@ -316,7 +358,8 @@ class ProductQuery:
         """
         if not self._results:
             return None
-        pref = prefer or QuerySpecRegistry.solution_preference
+        _qreg = self._query_registry if self._query_registry is not None else QuerySpecRegistry
+        pref = prefer or _qreg.solution_preference
         def _key(r: QueryResult) -> int:
             try:
                 return pref.index(r.solution)
