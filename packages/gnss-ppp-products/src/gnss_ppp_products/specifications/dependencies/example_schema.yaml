@@ -1,0 +1,84 @@
+# Example Dependency Specification Schema
+# =========================================
+#
+# Loaded by: DependencySpec.from_yaml(path)
+#            DependencyResolver(dep_spec, base_dir, environment=env)
+#
+# Declares the GNSS products required by a processing task and the
+# preference cascade controlling which center/solution to try first.
+#
+# The resolver walks preferences top→bottom for each dependency.
+# Each slot narrows the catalog by center and (optionally) solution
+# and campaign.  Axes a product doesn't have are silently skipped.
+
+name: pride_ppp_kinematic
+
+description: >
+  Product dependencies for kinematic PPP-AR processing.
+  Prefers Wuhan final products, falls back to IGS, then COD.
+
+# ─── Preference cascade ──────────────────────────────────────────
+# Tried top→bottom for every dependency.  First hit wins.
+
+preferences:
+  - center: WUM
+    solution: FIN
+    campaign: MGX
+
+  - center: IGS
+    solution: FIN
+    campaign: OPS
+
+  - center: COD
+    solution: FIN
+    campaign: OPS
+
+  - center: WUM
+    solution: RAP
+    campaign: MGX
+
+  - center: IGS
+    solution: RAP
+    campaign: OPS
+
+# ─── Dependencies ────────────────────────────────────────────────
+# Each entry references a product spec name.
+#   required: true  — task fails without this product
+#   constraints     — extra axis values pinned before the cascade
+
+dependencies:
+  - spec: ORBIT
+    required: true
+    description: Precise satellite orbits
+    constraints:
+      sampling: "15M"
+
+  - spec: CLOCK
+    required: true
+    description: Precise satellite clocks
+    constraints:
+      sampling: "30S"
+
+  - spec: ERP
+    required: true
+    description: Earth rotation parameters
+
+  - spec: BIA
+    required: true
+    description: Phase and code biases
+
+  - spec: ATTOBX
+    required: true
+    description: Satellite attitude (ORBEX)
+
+  - spec: RNX3_BRDC
+    required: true
+    description: Broadcast navigation
+
+  - spec: LEAP_SEC
+    required: false
+    description: Leap second table
+
+  - spec: SAT_PARAMS
+    required: false
+    description: Satellite metadata (mass, geometry)
