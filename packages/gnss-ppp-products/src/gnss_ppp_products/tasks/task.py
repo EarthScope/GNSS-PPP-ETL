@@ -37,6 +37,7 @@ import datetime
 import logging
 from pathlib import Path
 from typing import List, Optional, Union
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..assets.center.config import GNSSCenterConfig
 from ..local.config import LocalStorageConfig
@@ -182,16 +183,29 @@ class Task:
             The same (mutated) result with ``downloaded_path`` populated
             on successfully downloaded products.
         """
-        for rp in result.missing:
-            query = rp.query
-            if query.server is None:
-                logger.warning("Skipping query with no server: %s", query.filename)
-                continue
+        def _resolve_remote(self,product: ResolvedProduct) -> ResolvedProduct | None:
+                """Download a single product from its remote server."""
+                query = product.query
+                if query.server is None:
+                    logger.warning("Skipping query with no server: %s", query.filename)
+                    return None
 
-            dest_dir = self._local_query.resolve_directory(query)
-            downloaded = self._download_query(query, dest_dir)
-            if downloaded is not None:
-                rp.downloaded_path = downloaded
+                dest_dir = self._local_query.resolve_directory(query)
+                downloaded = self._download_query(query, dest_dir)
+                if downloaded is not None:
+                    logger.info("Downloaded %s → %s", query.filename, downloaded)
+                    product.downloaded_path = downloaded
+                else:
+                    logger.warning("Failed to download %s from server %s", query.filename, query.server.name)
+                return product
+        
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            executor_results = {executor.submit(_resolve_remote, self, product): product for product in result.missing}
+            for future, product in zip(as_completed(executor_results),result.missing):
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.error("Error downloading product %s: %s", product.query.filename, e)
 
         logger.info(result.summary())
         return result
