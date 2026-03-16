@@ -58,10 +58,10 @@ class _ProductSpecRegistry:
         return self._spec.products
 
     def get_format(self, name: str) -> Format:
-        return self._spec.get_format(name)
+        return self._spec.formats[name]
 
     def get_product(self, name: str) -> Product:
-        return self._spec.get_product(name)
+        return self._spec.products[name]
 
     # ------------------------------------------------------------------
     # Template / constraint resolution

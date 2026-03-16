@@ -27,6 +27,7 @@
 #   {DDD}   – 3-digit day-of-year (zero-padded)
 
 # -- Storage collections -----------------------------------------------------
+name: default_local
 
 collections:
 

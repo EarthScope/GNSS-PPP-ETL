@@ -15,7 +15,7 @@ from __future__ import annotations
 import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -88,8 +88,8 @@ class LocalCollection(BaseModel):
 
 
 class LocalResourceSpec(BaseModel):
-    """Root model for ``local_v2.yml``."""
-
+    name:str 
+    _base_dir: Optional[Path] = Field(default=None, repr=False)
     collections: Dict[str, LocalCollection] = Field(default_factory=dict)
     _spec_to_collection_map: Dict[str, str] = Field(default_factory=dict, repr=False)
 
@@ -155,3 +155,11 @@ class LocalResourceSpec(BaseModel):
                     )
                 spec_to_collection[s] = coll_name
         self._spec_to_collection_map = spec_to_collection
+
+    @property
+    def base_dir(self) -> Optional[Path]:
+        return self._base_dir
+    
+    @base_dir.setter
+    def base_dir(self, value: str | Path) -> None:
+        self._base_dir = Path(value)

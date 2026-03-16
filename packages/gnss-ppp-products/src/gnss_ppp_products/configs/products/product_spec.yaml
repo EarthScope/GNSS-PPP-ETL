@@ -1,108 +1,63 @@
-campaigns:
-  - DEM # Demonstration campgain for testing and development
-  - MGX # Multi-GNSS Experiment campaign
-  - OPS # Operational campaign for real-time products
-  - R01 # Reprocessing campaign 1
-  - Rnn # Reprocessing campaign n (placeholder for future campaigns)
-  - TGA # TIGA campaign for tide gauge stations
-  - TST # Test campaign for new products or formats
+# campaigns:
+#   - DEM # Demonstration campgain for testing and development
+#   - MGX # Multi-GNSS Experiment campaign
+#   - OPS # Operational campaign for real-time products
+#   - R01 # Reprocessing campaign 1
+#   - Rnn # Reprocessing campaign n (placeholder for future campaigns)
+#   - TGA # TIGA campaign for tide gauge stations
+#   - TST # Test campaign for new products or formats
 
-solutions:
-  - FIN # Final products
-  - RAP # Rapid products with moderate quality and latency
-  - ULT # Ultra-rapid products with lower quality but minimal latency
-  - NRT # Near-real-time products with best effort quality and minimal latency
-  - PRD # Predicted products 
-  - RTS # Real-time streaming products
-  - SNX # SINEX Combination products
+# solutions:
+#   - FIN # Final products
+#   - RAP # Rapid products with moderate quality and latency
+#   - ULT # Ultra-rapid products with lower quality but minimal latency
+#   - NRT # Near-real-time products with best effort quality and minimal latency
+#   - PRD # Predicted products 
+#   - RTS # Real-time streaming products
+#   - SNX # SINEX Combination products
 
-content_types:
+# content_types:
 
-  - ATT # Attitude information
-  - CLK # Receiver and/or satellite clock parameters
-  - CLS # Summary of clock combination
-  - CMP # Comparison summary files
-  - CRD # Station Coordinates/velocities in SINEX
-  - DSC # Epochs of station position/velocity discontinuities
-  - ERP # Earth rotation parameters
-  - ORB # Satellite orbits
-  - PSD # Post-seismic deformation models in SINEX
-  - RES # Residuals from daily SINEX combination
-  - SOL # Variance/covariance information or normal equations in SINEX
-  - SUM # Summary of orbit or SINEX combination
-  - TRO # Troposphere ZPD product
-  # The following content types are distinguished for bias products:
-  - DCB # Differential code biases
-  - DPB # Differential phase biases
-  - DSB # Differential signal biases (code and phase)
-  - OCB # Observable-specific code biases
-  - OPB # Observable-specific phase biases
-  - OSB # Observable-specific signal biases (code and phase)
-  # The following content types are distinguished for ionosphere products:
-  - GIM # Global Ionosphere (TEC) Maps (GIMs)
-  - ROT # Rate of TEC Index Maps (ROTI Maps)
+#   - ATT # Attitude information
+#   - CLK # Receiver and/or satellite clock parameters
+#   - CLS # Summary of clock combination
+#   - CMP # Comparison summary files
+#   - CRD # Station Coordinates/velocities in SINEX
+#   - DSC # Epochs of station position/velocity discontinuities
+#   - ERP # Earth rotation parameters
+#   - ORB # Satellite orbits
+#   - PSD # Post-seismic deformation models in SINEX
+#   - RES # Residuals from daily SINEX combination
+#   - SOL # Variance/covariance information or normal equations in SINEX
+#   - SUM # Summary of orbit or SINEX combination
+#   - TRO # Troposphere ZPD product
+#   # The following content types are distinguished for bias products:
+#   - DCB # Differential code biases
+#   - DPB # Differential phase biases
+#   - DSB # Differential signal biases (code and phase)
+#   - OCB # Observable-specific code biases
+#   - OPB # Observable-specific phase biases
+#   - OSB # Observable-specific signal biases (code and phase)
+#   # The following content types are distinguished for ionosphere products:
+#   - GIM # Global Ionosphere (TEC) Maps (GIMs)
+#   - ROT # Rate of TEC Index Maps (ROTI Maps)
 
-format_types:
-  - BIA # bias SINEX, Schaer (2018)
-  - CLK # clock RINEX, Ray and Gurtner (2012)
-  - ERP # IGS ERP format, Kouba and Mirault (1998)
-  - INX # IONEX ionospheric TEC grid product format, Schaer et al. (1998)
-  - JSON # JavaScript Object Notation, lightweight data-interchange format
+# format_types:
+#   - BIA # bias SINEX, Schaer (2018)
+#   - CLK # clock RINEX, Ray and Gurtner (2012)
+#   - ERP # IGS ERP format, Kouba and Mirault (1998)
+#   - INX # IONEX ionospheric TEC grid product format, Schaer et al. (1998)
+#   - JSON # JavaScript Object Notation, lightweight data-interchange format
 
-  - OBX # ORBEX satellite orbit/attitude format, Loyer (2019)
-  - SNX # Solution INdependent EXchange (SINEX) format, Rothacher and Thaller (2006)
-  - SP3 # Standard Product 3 (SP3) orbit format, Hilla (2016)
-  - SUM # Summary of the indicated product, combination summary, etc
-  - TRO # SINEX_TRO product format, Pacione and Dousa (2019)
-  - YAML # YAML Ain’t Markup Language, human-friendly data serialization
-# Default regex patterns for metadata fields.  Products can override
-# individual fields; any field NOT overridden resolves to the pattern
-# listed here when building a filename regex.
-metadata_defaults:
-  # Station / receiver identifiers
-  SSSS: "[A-Za-z0-9]{4}"         # 4-char station code
-  MONUMENT: "[0-9]"              # 1-char monument / marker number
-  R: "[0-9]"                     # receiver number
-  CCC: "[A-Za-z0-9]{3}"          # 3-char data-center / agency code
-  SSSMRCCC_: "[A-Z0-9]{9}_"      # optional station identifier block
-
-  # Time fields
-  YYYY: "\\d{4}"                 # 4-digit year
-  YY: "\\d{2}"                   # 2-digit year
-  MONTH: "\\d{2}"                # 2-digit month
-  DAY: "\\d{2}"                  # 2-digit day
-  DDD: "\\d{3}"                  # day of year (001–366)
-  HH: "\\d{2}"                   # hour
-  MM: "\\d{2}"                   # minute
-  VMFHH: "H\\d{2}"              # VMF sub-daily hour tag (H00, H06, …)
-
-  # Period / sampling
-  DDU: "\\d{2}[DHMS]"            # file period   (01D, 01H, 15M)
-  FRU: "\\d{2}[DHMS]"            # sampling rate  (30S, 01S)
-  LEN: "\\d{2}[DHMS]"            # product length
-  SMP: "\\d{2}[DHMS]"            # temporal sampling resolution
-
-  # Product identifiers
-  AAA: "[A-Z0-9]{3}"             # analysis-center code (WUM, COD, …)
-  V: "[0-9]"                     # version / solution identifier
-  PPP: "[A-Z0-9]{3}"             # campaign / project code
-  TTT: "[A-Z]{3}"                # solution type (FIN, RAP, ULT, …)
-  CNT: "[A-Z]{3}"                # content type  (ORB, CLK, ERP, …)
-  FMT: "[A-Z0-9]{3}"             # format code   (SP3, CLK, BIA, …)
-
-  # RINEX type / system codes
-  S: "[A-Z]"                     # data source (R=receiver, S=stream)
-  D: "[A-Z]"                     # satellite system identifier
-  T: "[a-zA-Z]"                  # file type code
-
-  # VMF-specific
-  PRODUCT: "[A-Za-z0-9]+"        # VMF product id  (VMF1, VMF3)
-  RESOLUTION: "[0-9x.]+"         # grid resolution (2.5x2, 5x5)
-
-  # LEO (GRACE / GRACE-FO) specific
-  INSTRUMENT: "[A-Z]{3}1B"       # instrument code + level (GNV1B, ACC1B, …)
-  SPACECRAFT: "[CD]"              # spacecraft identifier (C or D)
-  RELNUM: "\\d+\\..*"            # release number + file extension
+#   - OBX # ORBEX satellite orbit/attitude format, Loyer (2019)
+#   - SNX # Solution INdependent EXchange (SINEX) format, Rothacher and Thaller (2006)
+#   - SP3 # Standard Product 3 (SP3) orbit format, Hilla (2016)
+#   - SUM # Summary of the indicated product, combination summary, etc
+#   - TRO # SINEX_TRO product format, Pacione and Dousa (2019)
+#   - YAML # YAML Ain’t Markup Language, human-friendly data serialization
+# # Default regex patterns for metadata fields.  Products can override
+# # individual fields; any field NOT overridden resolves to the pattern
+# # listed here when building a filename regex.
 
 formats:
 

@@ -1,11 +1,8 @@
 """Local resource specification — models and registry."""
 
-from .models import TemporalCategory, LocalCollection, LocalResourceSpec
-from .registry import _LocalResourceRegistry
+from .models import LocalCollection, LocalResourceSpec
 
 __all__ = [
-    "TemporalCategory",
     "LocalCollection",
     "LocalResourceSpec",
-    "_LocalResourceRegistry",
 ]

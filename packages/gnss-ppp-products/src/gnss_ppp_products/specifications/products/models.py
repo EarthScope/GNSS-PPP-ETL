@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # ===================================================================
@@ -93,14 +93,51 @@ class Product(BaseModel):
 class ProductSpec(BaseModel):
     """Root model for the full ``product_spec.yaml`` schema."""
 
-    campaigns: List[str] = Field(default_factory=list)
-    solutions: List[str] = Field(default_factory=list)
-    content_types: List[str] = Field(default_factory=list)
-    format_types: List[str] = Field(default_factory=list)
-    metadata_defaults: Dict[str, str] = Field(default_factory=dict)
     formats: Dict[str, Format] = Field(default_factory=dict)
     products: Dict[str, Product] = Field(default_factory=dict)
 
+
+    '''
+    Validation:
+    1. Ensure that all format references in products point to existing formats and versions.
+    2. Check for duplicate format names or product names.
+    3. Validate that filename templates contain placeholders that match metadata fields.
+    4. Ensure that metadata constraints are well-formed (e.g. regex patterns are valid).
+    
+    
+    
+    '''
+    @model_validator(mode="after")
+    def _validate_formats(self) -> None:
+        # Check that all format references in products are valid
+        for product_name, product in self.products.items():
+            for ref in product.formats:
+                fmt = self.formats.get(ref.format)
+                if fmt is None:
+                    raise ValueError(
+                        f"Product {product_name!r} references unknown format {ref.format!r}"
+                    )
+                ver = fmt.versions.get(ref.version)
+                if ver is None:
+                    raise ValueError(
+                        f"Product {product_name!r} references unknown version {ref.version!r} of format {ref.format!r}"
+                    )
+
+    @model_validator(mode="after")
+    def _validate_uniqueness(self) -> None:
+        # Check for duplicate format names
+        format_names = set()
+        for fmt_name in self.formats:
+            if fmt_name in format_names:
+                raise ValueError(f"Duplicate format name: {fmt_name!r}")
+            format_names.add(fmt_name)
+
+        # Check for duplicate product names
+        product_names = set()
+        for prod_name in self.products:
+            if prod_name in product_names:
+                raise ValueError(f"Duplicate product name: {prod_name!r}")
+            product_names.add(prod_name)
     # ------------------------------------------------------------------
     # Loaders
     # ------------------------------------------------------------------
@@ -115,12 +152,6 @@ class ProductSpec(BaseModel):
     # ------------------------------------------------------------------
     # Convenience look-ups
     # ------------------------------------------------------------------
-
-    def get_format(self, name: str) -> Format:
-        return self.formats[name]
-
-    def get_product(self, name: str) -> Product:
-        return self.products[name]
 
     def resolve_filename_templates(
         self,
