@@ -59,6 +59,8 @@
 # # individual fields; any field NOT overridden resolves to the pattern
 # # listed here when building a filename regex.
 
+name: default
+
 formats:
 
   RINEX:

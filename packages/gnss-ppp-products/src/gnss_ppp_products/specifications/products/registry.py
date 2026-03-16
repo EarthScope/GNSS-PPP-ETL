@@ -29,39 +29,6 @@ class _ProductSpecRegistry:
         self._spec = spec
         self._meta_registry = meta_registry
 
-    # ------------------------------------------------------------------
-    # Forwarded look-ups
-    # ------------------------------------------------------------------
-
-    @property
-    def campaigns(self) -> List[str]:
-        return self._spec.campaigns
-
-    @property
-    def solutions(self) -> List[str]:
-        return self._spec.solutions
-
-    @property
-    def content_types(self) -> List[str]:
-        return self._spec.content_types
-
-    @property
-    def format_types(self) -> List[str]:
-        return self._spec.format_types
-
-    @property
-    def formats(self) -> Dict[str, Format]:
-        return self._spec.formats
-
-    @property
-    def products(self) -> Dict[str, Product]:
-        return self._spec.products
-
-    def get_format(self, name: str) -> Format:
-        return self._spec.formats[name]
-
-    def get_product(self, name: str) -> Product:
-        return self._spec.products[name]
 
     # ------------------------------------------------------------------
     # Template / constraint resolution
@@ -153,7 +120,7 @@ class _ProductSpecRegistry:
     # ------------------------------------------------------------------
 
     @classmethod
-    def load_from_yaml(
+    def from_yaml(
         cls,
         yaml_path: Union[str, Path],
         *,

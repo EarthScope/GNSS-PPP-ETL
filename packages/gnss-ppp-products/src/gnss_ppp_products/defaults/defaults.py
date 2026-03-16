@@ -11,13 +11,7 @@ which is why it lives in ``configs`` rather than ``specifications``.
 
 from __future__ import annotations
 
-from . import (
-    META_SPEC_YAML,
-    PRODUCT_SPEC_YAML,
-    LOCAL_SPEC_YAML,
-    QUERY_SPEC_YAML,
-    REMOTE_SPEC_DIR,
-)
+from pathlib import Path
 
 from gnss_ppp_products.specifications.metadata import _MetadataRegistry
 from gnss_ppp_products.specifications.products import _ProductSpecRegistry
@@ -27,6 +21,19 @@ from gnss_ppp_products.specifications.query.models import QuerySpec
 
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
+
+# ------------------------------------------------------------------
+# YAML file locations (reference the originals in assets/)
+# ------------------------------------------------------------------
+
+_ASSETS_DIR = Path(__file__).resolve().parent.parent / "configs"
+
+META_SPEC_YAML = _ASSETS_DIR / "meta" / "meta_spec.yaml"
+PRODUCT_SPEC_YAML = _ASSETS_DIR / "products" / "product_spec.yaml"
+LOCAL_SPEC_YAML = _ASSETS_DIR / "local" / "local_config.yaml"
+QUERY_SPEC_YAML = _ASSETS_DIR / "query" / "query_config.yaml"
+REMOTE_SPEC_DIR = _ASSETS_DIR / "centers"
+DEPENDENCY_SPEC_DIR = _ASSETS_DIR / "tasks"
 
 # ===================================================================
 # 1. Metadata registry  (must be first — others depend on it)
@@ -40,7 +47,7 @@ register_computed_fields(MetaDataRegistry)
 # 2. Product spec registry
 # ===================================================================
 
-ProductSpecRegistry = _ProductSpecRegistry.load_from_yaml(
+ProductSpecRegistry = _ProductSpecRegistry.from_yaml(
     yaml_path=PRODUCT_SPEC_YAML,
     meta_registry=MetaDataRegistry,
 )
@@ -50,14 +57,18 @@ ProductSpecRegistry = _ProductSpecRegistry.load_from_yaml(
 # 3. Remote resource registry
 # ===================================================================
 
-RemoteResourceRegistry = _RemoteResourceRegistry.load_from_directory(REMOTE_SPEC_DIR)
+RemoteResourceRegistry = _RemoteResourceRegistry()
+for config_yaml in REMOTE_SPEC_DIR.iterdir():
+    RemoteResourceRegistry.load_from_yaml(config_yaml)
 
 
 # ===================================================================
 # 4. Local resource registry
 # ===================================================================
 
-LocalResourceRegistry = _LocalResourceRegistry.load_from_yaml(LOCAL_SPEC_YAML)
+LocalResourceRegistry = _LocalResourceRegistry()
+for config_yaml in LOCAL_SPEC_YAML.iterdir():
+    LocalResourceRegistry.load_from_yaml(config_yaml)
 
 
 # ===================================================================

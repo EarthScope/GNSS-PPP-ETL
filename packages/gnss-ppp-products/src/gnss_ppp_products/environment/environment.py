@@ -137,7 +137,7 @@ class Environment:
         prod_path = _resolve_spec_path(
             specs.get("products", "product_spec.yaml"), _PRODUCT_DIR
         )
-        products = _ProductSpecRegistry.load_from_yaml(
+        products = _ProductSpecRegistry.from_yaml(
             yaml_path=prod_path, meta_registry=meta,
         )
 
@@ -204,7 +204,7 @@ class Environment:
         meta = _MetadataRegistry.from_yaml(_cfg.META_SPEC_YAML)
         register_computed_fields(meta)
 
-        products = _ProductSpecRegistry.load_from_yaml(
+        products = _ProductSpecRegistry.from_yaml(
             yaml_path=_cfg.PRODUCT_SPEC_YAML, meta_registry=meta,
         )
         local = _LocalResourceRegistry.load_from_yaml(_cfg.LOCAL_SPEC_YAML)

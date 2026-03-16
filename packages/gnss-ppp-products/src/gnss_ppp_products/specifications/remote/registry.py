@@ -24,16 +24,11 @@ class _RemoteResourceRegistry:
     # Loader
     # ------------------------------------------------------------------
 
-    @classmethod
-    def load_from_directory(
-        cls, directory: str | Path
-    ) -> "_RemoteResourceRegistry":
-        """Discover and load all ``*_v2.yml`` files in *directory*."""
-        reg = cls()
-        for yml in sorted(Path(directory).glob("*_v2.yml")):
-            spec = RemoteResourceSpec.from_yaml(yml)
-            reg._register(spec)
-        return reg
+  
+    def load_from_yaml(self, yaml_path: str | Path) -> None:
+        """Load a single YAML spec file."""
+        spec = RemoteResourceSpec.from_yaml(yaml_path)
+        self._register(spec)
 
     def _register(self, spec: RemoteResourceSpec) -> None:
         self._centers[spec.id] = spec
