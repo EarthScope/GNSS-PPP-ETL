@@ -30,9 +30,9 @@ class LocalResourceFactory(BaseModel):
     """
 
     collections: Dict[str, LocalCollection] = Field(default_factory=dict)
-    base_dir: Optional[Path] = PrivateAttr(default=None)
-    product_catalog: Optional[ProductCatalog] = PrivateAttr(default=None)
-    metadata_catalog: Optional[MetadataCatalog] = PrivateAttr(default=None)
+    _base_dir: Optional[Path] = PrivateAttr(default=None)
+    _product_catalog: Optional[ProductCatalog] = PrivateAttr(default=None)
+    _metadata_catalog: Optional[MetadataCatalog] = PrivateAttr(default=None)
     _spec_to_collection_map: Dict[str, str] = PrivateAttr(default_factory=dict)
     @classmethod
     def resolve(
@@ -69,7 +69,7 @@ class LocalResourceFactory(BaseModel):
             collections=local_resource_spec.collections,
         )
         instance._spec_to_collection_map = spec_directory_map  
-        instance.product_catalog = product_catalog
+        instance._product_catalog = product_catalog
         return instance
   
         
@@ -80,7 +80,7 @@ class LocalResourceFactory(BaseModel):
         date: datetime.date | datetime.datetime,
     ) -> Path:
         
-        assert self.metadata_catalog is not None, "Metadata catalog must be set to resolve directories with date placeholders"
+        assert self._metadata_catalog is not None, "Metadata catalog must be set to resolve directories with date placeholders"
         if isinstance(date, datetime.date) and not isinstance(
             date, datetime.datetime
         ):
@@ -94,7 +94,7 @@ class LocalResourceFactory(BaseModel):
         # If the directory template is found, resolve any metadata placeholders and return the path
 
         if directory_template is not None:
-            return Path(self.metadata_catalog.resolve(directory_template, date, computed_only=True))
+            return Path(self._metadata_catalog.resolve(directory_template, date, computed_only=True))
 
         raise KeyError(
             f"Spec {spec_name!r} not found in any local resource spec. "

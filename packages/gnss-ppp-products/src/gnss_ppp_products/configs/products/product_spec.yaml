@@ -223,7 +223,7 @@ formats:
           default:
             - "{AAA}{V}{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*"
           station:
-            - "{AAA}{V}{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{SSSMRCCC}_{CNT}.{FMT}.*"
+            - "{AAA}{V}{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{SSSMRCCC_}_{CNT}.{FMT}.*"
     compression:
       - ".gz"
       - ".zip"

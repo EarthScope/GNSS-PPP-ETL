@@ -1,0 +1,1 @@
+from .local_factory import LocalResourceSpec, LocalResourceFactory

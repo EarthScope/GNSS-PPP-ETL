@@ -114,7 +114,7 @@ class Environment:
         self.dependencies = dependencies
         self.defaults = dict(defaults) if defaults else {}
 
-        self.local.base_dir = self.base_dir
+        self.local._base_dir = self.base_dir
 
     # ------------------------------------------------------------------
     # Manifest loader

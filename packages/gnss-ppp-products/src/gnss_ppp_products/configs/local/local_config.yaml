@@ -49,6 +49,16 @@ collections:
       - BIA
       - ATTOBX
 
+  rinex:
+    directory: "{YYYY}/{DDD}/rinex"
+    temporal: daily
+    description: "RINEX observation files for PPP processing"
+    specs:
+      - RNX3_BRDC
+      - RINEX_NAV
+      - RINEX_MET
+      - RINEX_OBS
+ 
   # ---------------------------------------------------------------------------
   # Common / shared products
   # ---------------------------------------------------------------------------
@@ -57,7 +67,6 @@ collections:
     temporal: daily
     description: "Broadcast navigation, ionosphere maps, and troposphere grids"
     specs:
-      - RNX3_BRDC
       - IONEX
       - VMF
 

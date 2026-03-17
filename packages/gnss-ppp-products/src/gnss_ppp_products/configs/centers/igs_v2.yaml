@@ -120,9 +120,8 @@ products:
     directory: pub/igs/data/{YYYY}/{DDD}/
 
   - id: igs_atx
-    spec: 
-      ATTATX:
-        - format: 0
+    spec: ATTATX
+    format: 0
 
     server_id: igs_http
     available: true
@@ -133,9 +132,8 @@ products:
     directory: pub/station/general/
   
   - id: igs_atx_archive
-    spec: 
-      ATTATX:
-        - format: 1
+    spec: ATTATX
+    format: 1
 
     server_id: igs_http
     available: true

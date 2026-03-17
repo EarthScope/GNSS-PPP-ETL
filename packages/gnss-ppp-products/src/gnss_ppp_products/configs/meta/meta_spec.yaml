@@ -63,7 +63,7 @@ SMP:
 
 # Product identifiers
 AAA:
-  - pattern: "[A-Z0-9]{3}"             # analysis-center code (WUM, COD, …)
+  - pattern: "[a-zA-Z0-9]{3}"             # analysis-center code (WUM, COD, …)
 V:
   - pattern: "[0-9]"                     # version / solution identifier
 PPP:

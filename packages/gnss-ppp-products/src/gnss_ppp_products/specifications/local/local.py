@@ -25,10 +25,14 @@ class LocalResourceSpec(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str) -> "LocalResourceSpec":
-        """Load from a YAML file, extracting the ``local:`` section."""
+        """Load from a YAML file.
+
+        Accepts either a top-level ``local:`` wrapper or a flat file
+        whose top-level key is ``collections:``.
+        """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
-        return cls.model_validate(raw.get("local", {}))
+        return cls.model_validate(raw.get("local", raw))
 
     # @model_validator(mode="after")
     # def _validate_spec_uniqueness(self) -> "LocalResourceSpec":
