@@ -147,6 +147,7 @@ query = ProductQuery(
     meta_catalog=MetaDataRegistry,
     product_catalog=ProductSpecReg,
 )
+query = query.narrow(spec="ORBIT").narrow(center="JPL")  # narrow to a single spec for testing
 
 log.info("Query produced %d results across specs: %s", query.count, query.specs())
 log.info("Centers: %s", query.centers())
@@ -178,7 +179,7 @@ for r in query.results:
 
     else:
         dest_dir = Path(r.local_directory)
-        
+
     # -- list remote directory ---------------------------------------
     log.info("[%s] listing %s %s/%s …", label, r.remote_protocol, r.remote_server, r.remote_directory)
     listing = _list_remote(r)

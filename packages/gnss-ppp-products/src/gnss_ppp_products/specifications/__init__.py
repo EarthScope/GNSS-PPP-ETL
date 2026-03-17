@@ -20,12 +20,12 @@ Modules
 """
 
 from gnss_ppp_products.specifications.metadata import MetadataField
-from gnss_ppp_products.specifications.formats import (
+from gnss_ppp_products.specifications.format.spec import (
     FormatFieldDef,
     FormatVersionSpec,
     FormatSpec,
 )
-from gnss_ppp_products.specifications.products import (
+from gnss_ppp_products.specifications.products.products import (
     ProductFormatBinding,
     ProductSpec,
 )

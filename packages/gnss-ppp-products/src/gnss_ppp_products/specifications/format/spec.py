@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
-
+from typing import Dict, List, Optional, Union
+from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import yaml
 
 
 class FormatFieldDef(BaseModel):
@@ -60,3 +61,14 @@ class FormatSpec(BaseModel):
         if ver and ver.compression:
             return ver.compression
         return self.compression
+
+class FormatSpecCollection(BaseModel):
+    """Collection of format specifications from the ``formats:`` YAML key."""
+    formats: Dict[str, FormatSpec] = Field(default_factory=dict)
+
+    @classmethod
+    def from_yaml(cls, path: Union[str, Path]) -> "FormatSpecCollection":
+        """Load from a YAML file, extracting the ``formats:`` section."""
+        with open(path) as fh:
+            raw = yaml.safe_load(fh)
+        return cls.model_validate({"formats": raw.get("formats", {})})

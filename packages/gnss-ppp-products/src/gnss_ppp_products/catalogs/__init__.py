@@ -7,8 +7,8 @@ code (environment, configs) interacts with.
 """
 
 from .metadata_catalog import MetadataCatalog, extract_template_fields
-from .format_catalog import FormatCatalog
-from .product_catalog import (
+from ..specifications.format.format_catalog import FormatCatalog
+from ..specifications.products.product_catalog import (
     ProductSpecCatalog,
     ProductVariant,
     ProductCatalog,
