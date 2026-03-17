@@ -1,0 +1,85 @@
+# Local Storage Specification
+# ===========================
+#
+# Defines how downloaded GNSS products are organized on disk.
+# Product spec names from product_spec.yaml map directly to storage locations.
+#
+# Layout
+# ------
+#   <base>/
+#   ├── table/                        ← static files (no date dimension)
+#   │   ├── leap.sec
+#   │   ├── sat_parameters
+#   │   ├── igs20.atx
+#   │   └── orography_ell_5x5
+#   └── {YYYY}/{DDD}/
+#       ├── products/                 ← precise products (orbit, clock, bias, …)
+#       │   ├── WUM0MGXRAP_20250150000_01D_05M_ORB.SP3.gz
+#       │   ├── WUM0MGXRAP_20250150000_01D_30S_CLK.CLK.gz
+#       │   └── …
+#       └── common/                   ← shared/infrastructure (nav, iono, vmf)
+#           ├── BRDC00IGS_R_20250150000_01D_MN.rnx.gz
+#           ├── COD0OPSFIN_20250150000_01D_01H_GIM.INX.gz
+#           └── …
+#
+# Template placeholders are resolved by MetaDataRegistry:
+#   {YYYY}  – 4-digit year
+#   {DDD}   – 3-digit day-of-year (zero-padded)
+
+# -- Temporal categories -----------------------------------------------------
+#   daily   – one file per calendar day
+#   hourly  – multiple files per day (e.g. 6-hourly VMF grids)
+#   static  – updated very infrequently; no date dimension
+
+# -- Storage collections -----------------------------------------------------
+
+collections:
+
+  # ---------------------------------------------------------------------------
+  # Precise products — core PPP inputs
+  # ---------------------------------------------------------------------------
+  products:
+    directory: "{YYYY}/{DDD}/products"
+    temporal: daily
+    description: "Precise orbit, clock, ERP, bias, and attitude products"
+    specs:
+      - ORBIT
+      - CLOCK
+      - ERP
+      - BIA
+      - ATTOBX
+
+  # ---------------------------------------------------------------------------
+  # Common / shared products
+  # ---------------------------------------------------------------------------
+  common:
+    directory: "{YYYY}/{DDD}/common"
+    temporal: daily
+    description: "Broadcast navigation, ionosphere maps, and troposphere grids"
+    specs:
+      - RNX3_BRDC
+      - IONEX
+      - VMF
+
+  # ---------------------------------------------------------------------------
+  # Static tables and calibrations
+  # ---------------------------------------------------------------------------
+  table:
+    directory: "table"
+    temporal: static
+    description: "Reference tables, antenna calibrations, and orography grids"
+    specs:
+      - ATTATX
+      - LEAP_SEC
+      - SAT_PARAMS
+      - OROGRAPHY
+
+  # ---------------------------------------------------------------------------
+  # LEO satellite instrument data
+  # ---------------------------------------------------------------------------
+  leo:
+    directory: "{YYYY}/{DDD}/leo"
+    temporal: daily
+    description: "LEO satellite Level-1B instrument data (GRACE, GRACE-FO)"
+    specs:
+      - LEO_L1B

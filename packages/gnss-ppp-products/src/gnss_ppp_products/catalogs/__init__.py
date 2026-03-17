@@ -6,17 +6,17 @@ provides the live registries, factories, and engines that downstream
 code (environment, configs) interacts with.
 """
 
-from .metadata_catalog import MetadataCatalog, extract_template_fields
+from ..specifications.metadata.metadata_catalog import MetadataCatalog, extract_template_fields
 from ..specifications.format.format_catalog import FormatCatalog
 from ..specifications.products.product_catalog import (
     ProductSpecCatalog,
     ProductVariant,
     ProductCatalog,
 )
-from .local_factory import LocalResourceFactory
-from .remote_factory import RemoteResourceFactory
-from .query_engine import ProductQuery, QueryResult, QuerySpec, select_best_antex
-from .dependency_resolver import DependencyResolver
+from ..specifications.local.local_factory import LocalResourceFactory
+from ..specifications.remote.remote_factory import RemoteResourceFactory
+from ..specifications.queries.query_engine import ProductQuery, QueryResult, QuerySpec, select_best_antex
+from ..specifications.dependencies.dependency_resolver import DependencyResolver
 from .validation import validate_catalogs
 
 __all__ = [

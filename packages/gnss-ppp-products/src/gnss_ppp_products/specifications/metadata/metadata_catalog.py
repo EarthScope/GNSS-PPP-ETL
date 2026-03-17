@@ -14,7 +14,7 @@ from typing import Callable, Dict, List, Optional
 
 import yaml
 
-from gnss_ppp_products.specifications.metadata import MetadataField
+from gnss_ppp_products.specifications.metadata.metadata import MetadataField
 
 
 def extract_template_fields(template: str) -> list[str]:
@@ -104,7 +104,7 @@ class MetadataCatalog:
             field = self._fields.get(key)
             if field is None:
                 continue
-            if field.compute is not None:
+            if field.compute is not None :
                 values[key] = field.compute(date)
             elif not computed_only and field.pattern is not None:
                 values[key] = field.pattern

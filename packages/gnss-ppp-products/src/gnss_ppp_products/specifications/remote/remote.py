@@ -25,12 +25,12 @@ class RemoteProductSpec(BaseModel):
     """A product hosted by a data center."""
 
     id: str
-    spec: Union[str, Dict]
+    spec: str
     server_id: str
     available: bool = True
     description: str = ""
     metadata: Dict[str, List[str]] = Field(default_factory=dict)
-    directory: str = ""
+    directory: str 
 
     @property
     def spec_name(self) -> str:

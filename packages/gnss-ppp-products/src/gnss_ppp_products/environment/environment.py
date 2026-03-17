@@ -47,7 +47,7 @@ from gnss_ppp_products.catalogs import (
     DependencyResolver,
     ProductQuery,
 )
-from gnss_ppp_products.specifications.dependencies import DependencySpec
+from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
 import gnss_ppp_products.configs as _cfg

@@ -19,7 +19,7 @@ Modules
                          ``ResolvedDependency``, ``DependencyResolution``
 """
 
-from gnss_ppp_products.specifications.metadata import MetadataField
+from gnss_ppp_products.specifications.metadata.metadata import MetadataField
 from gnss_ppp_products.specifications.format.spec import (
     FormatFieldDef,
     FormatVersionSpec,
@@ -29,21 +29,21 @@ from gnss_ppp_products.specifications.products.products import (
     ProductFormatBinding,
     ProductSpec,
 )
-from gnss_ppp_products.specifications.remote import (
+from gnss_ppp_products.specifications.remote.remote import (
     ServerSpec,
     RemoteProductSpec,
     RemoteResourceSpec,
 )
-from gnss_ppp_products.specifications.local import (
+from gnss_ppp_products.specifications.local.local import (
     LocalCollection,
     LocalResourceSpec,
 )
-from gnss_ppp_products.specifications.query import (
+from gnss_ppp_products.specifications.queries.query import (
     AxisDef,
     ExtraAxisDef,
     ProductQueryProfile,
 )
-from gnss_ppp_products.specifications.dependencies import (
+from gnss_ppp_products.specifications.dependencies.dependencies import (
     SearchPreference,
     Dependency,
     DependencySpec,

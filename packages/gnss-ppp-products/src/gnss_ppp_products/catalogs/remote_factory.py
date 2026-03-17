@@ -10,7 +10,7 @@ from typing import Dict, List, Optional
 
 import yaml
 
-from gnss_ppp_products.specifications.remote import (
+from gnss_ppp_products.specifications.remote.remote import (
     RemoteProductSpec,
     RemoteResourceSpec,
     ServerSpec,
