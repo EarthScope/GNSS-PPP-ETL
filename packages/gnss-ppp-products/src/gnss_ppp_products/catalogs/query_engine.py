@@ -1,10 +1,8 @@
 """
-Query engine — unified product query with progressive regex filtering.
+Query engine — unified product query with resolved file templates.
 
-Fixes from original:
-- ``_build_catalog`` uses real catalog methods (no dead method calls)
-- Regex built via ``ProductSpecRegistry.to_regex()`` instead of commented-out ``to_regexes()``
-- ``local_factory.collection_name_for_spec()`` replaces non-existent method
+Uses ``meta_catalog.resolve()`` to substitute date fields into file
+templates from the product catalog.
 """
 
 from __future__ import annotations
@@ -42,7 +40,7 @@ class QueryResult:
     solution: str = ""
     sampling: str = ""
 
-    regex: str = ""
+    file_template: str = ""
     remote_server: str = ""
     remote_protocol: str = ""
     remote_directory: str = ""
@@ -156,10 +154,11 @@ def _build_catalog(
     remote_factory,
     local_factory,
     meta_catalog,
-    product_registry,
+    product_catalog,
 ) -> List[QueryResult]:
     """Enumerate every concrete product variant from the registries."""
     results: List[QueryResult] = []
+    dt = _ensure_datetime(date)
 
     for center_id, center in remote_factory.centers.items():
         for rp in center.products:
@@ -173,15 +172,16 @@ def _build_catalog(
 
             server = remote_factory.get_server_for_product(rp.id)
             directory = meta_catalog.resolve(
-                rp.directory, _ensure_datetime(date), computed_only=True
+                rp.directory, dt, computed_only=True
             )
 
-            # Build regexes via the product registry
-            regexes: List[str] = []
+            # Resolve file templates via the product catalog
+            templates: List[str] = []
             for ref_index in rp.format_indices:
                 try:
-                    regexes.extend(
-                        product_registry.to_regex(spec_name, ref_index)
+                    variant = product_catalog.get_variant(spec_name, ref_index)
+                    templates.append(
+                        meta_catalog.resolve(variant.file_template, dt)
                     )
                 except (KeyError, IndexError):
                     pass
@@ -199,13 +199,15 @@ def _build_catalog(
             combos = rp.metadata_combinations()
 
             for i, combo in enumerate(combos):
-                regex = regexes[i] if i < len(regexes) else (
-                    regexes[0] if regexes else ""
+                tmpl = templates[i] if i < len(templates) else (
+                    templates[0] if templates else ""
                 )
 
                 dir_resolved = directory
+                # Substitute combo metadata into both directory and template
                 for key, value in combo.items():
                     dir_resolved = dir_resolved.replace(f"{{{key}}}", value)
+                    tmpl = tmpl.replace(f"{{{key}}}", value)
 
                 extras = {
                     k: v for k, v in combo.items()
@@ -219,7 +221,7 @@ def _build_catalog(
                     campaign=combo.get("PPP", ""),
                     solution=combo.get("TTT", ""),
                     sampling=combo.get("SMP", ""),
-                    regex=regex,
+                    file_template=tmpl,
                     remote_server=server.hostname,
                     remote_protocol=server.protocol,
                     remote_directory=dir_resolved,
@@ -232,10 +234,12 @@ def _build_catalog(
 
 
 def _ensure_datetime(
-    date: datetime.date | datetime.datetime,
+    date,
 ) -> datetime.datetime:
     if isinstance(date, datetime.datetime):
         return date
+    if isinstance(date, str):
+        date = datetime.date.fromisoformat(date)
     return datetime.datetime(
         date.year, date.month, date.day, tzinfo=datetime.timezone.utc
     )
@@ -259,7 +263,7 @@ class ProductQuery:
         remote_factory,
         local_factory,
         meta_catalog,
-        product_registry,
+        product_catalog,
     ):
         self.date = date
         self.axes: Dict[str, str] = dict(_axes) if _axes else {}
@@ -267,7 +271,7 @@ class ProductQuery:
         self._remote_factory = remote_factory
         self._local_factory = local_factory
         self._meta_catalog = meta_catalog
-        self._product_registry = product_registry
+        self._product_catalog = product_catalog
         self._results: List[QueryResult] = (
             _results if _results is not None
             else _build_catalog(
@@ -276,7 +280,7 @@ class ProductQuery:
                 remote_factory=remote_factory,
                 local_factory=local_factory,
                 meta_catalog=meta_catalog,
-                product_registry=product_registry,
+                product_catalog=product_catalog,
             )
         )
 
@@ -310,7 +314,7 @@ class ProductQuery:
             remote_factory=self._remote_factory,
             local_factory=self._local_factory,
             meta_catalog=self._meta_catalog,
-            product_registry=self._product_registry,
+            product_catalog=self._product_catalog,
         )
 
     @property
@@ -395,13 +399,12 @@ class ProductQuery:
             d = base_dir / r.local_directory
             if not d.exists():
                 continue
-            if not r.regex:
+            if not r.file_template:
                 files = sorted(d.iterdir())
             else:
-                pat = re.compile(r.regex, re.IGNORECASE)
                 files = sorted(
                     p for p in d.iterdir()
-                    if p.is_file() and pat.search(p.name)
+                    if p.is_file() and r.file_template in p.name
                 )
             if files:
                 found.append({"result": r, "files": files})
@@ -416,14 +419,14 @@ class ProductQuery:
     def table(self) -> str:
         lines = [
             f"{'spec':<12s} {'center':<6s} {'campaign':<9s} "
-            f"{'solution':<9s} {'sampling':<9s} {'regex':<50s}"
+            f"{'solution':<9s} {'sampling':<9s} {'file_template':<50s}"
         ]
         lines.append("-" * len(lines[0]))
         for r in self._results:
-            regex_short = r.regex[:50] if r.regex else "(none)"
+            tmpl_short = r.file_template[:50] if r.file_template else "(none)"
             lines.append(
                 f"{r.spec:<12s} {r.center:<6s} {r.campaign:<9s} "
-                f"{r.solution:<9s} {r.sampling:<9s} {regex_short}"
+                f"{r.solution:<9s} {r.sampling:<9s} {tmpl_short}"
             )
         return "\n".join(lines)
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class FormatFieldDef(BaseModel):
@@ -23,8 +23,20 @@ class FormatVersionSpec(BaseModel):
     description: Optional[str] = None
     notes: Optional[str] = None
     metadata: Dict[str, Optional[FormatFieldDef]] = Field(default_factory=dict)
-    file_templates: Dict[str, List[str]] = Field(default_factory=dict)
+    file_templates: Dict[str, str] = Field(default_factory=dict)
     compression: List[str] = Field(default_factory=list)
+
+    @field_validator("file_templates", mode="before")
+    @classmethod
+    def _unwrap_lists(cls, v: Dict) -> Dict[str, str]:
+        """Accept both ``str`` and ``[str]`` from YAML."""
+        out: Dict[str, str] = {}
+        for key, val in v.items():
+            if isinstance(val, list):
+                out[key] = val[0] if val else ""
+            else:
+                out[key] = val
+        return out
 
     def get_field_defaults(self) -> Dict[str, str]:
         """Return ``{name: default_pattern}`` for fields with a default."""

@@ -21,7 +21,7 @@ from . import (
 
 from gnss_ppp_products.catalogs import (
     MetadataCatalog,
-    ProductSpecRegistry,
+    ProductCatalog,
     LocalResourceFactory,
     RemoteResourceFactory,
     QuerySpec,
@@ -42,10 +42,7 @@ register_computed_fields(MetaDataRegistry)
 # 2. Product spec registry
 # ===================================================================
 
-ProductSpecReg = ProductSpecRegistry.from_yaml(
-    yaml_path=PRODUCT_SPEC_YAML,
-    meta_catalog=MetaDataRegistry,
-)
+ProductSpecReg = ProductCatalog.from_yaml(PRODUCT_SPEC_YAML)
 
 
 # ===================================================================
@@ -80,7 +77,7 @@ QuerySpecReg = QuerySpec.from_yaml(QUERY_SPEC_YAML)
 
 _validation_warnings = validate_catalogs(
     meta_catalog=MetaDataRegistry,
-    product_registry=ProductSpecReg,
+    product_catalog=ProductSpecReg,
     remote_factory=RemoteResourceReg,
     local_factory=LocalResourceReg,
     query_spec=QuerySpecReg,

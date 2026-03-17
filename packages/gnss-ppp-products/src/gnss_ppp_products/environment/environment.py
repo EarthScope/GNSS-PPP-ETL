@@ -40,7 +40,7 @@ import yaml
 
 from gnss_ppp_products.catalogs import (
     MetadataCatalog,
-    ProductSpecRegistry,
+    ProductCatalog,
     RemoteResourceFactory,
     LocalResourceFactory,
     QuerySpec,
@@ -97,7 +97,7 @@ class Environment:
         name: str,
         base_dir: Union[str, Path],
         meta: MetadataCatalog,
-        products: ProductSpecRegistry,
+        products: ProductCatalog,
         remote: RemoteResourceFactory,
         local: LocalResourceFactory,
         query: QuerySpec,
@@ -140,9 +140,7 @@ class Environment:
         prod_path = _resolve_spec_path(
             specs.get("products", "product_spec.yaml"), _PRODUCT_DIR
         )
-        products = ProductSpecRegistry.from_yaml(
-            yaml_path=prod_path, meta_catalog=meta,
-        )
+        products = ProductCatalog.from_yaml(prod_path)
 
         # ---- remote centers ----
         center_files = specs.get("centers", [])
@@ -207,9 +205,7 @@ class Environment:
         meta = MetadataCatalog.from_yaml(_cfg.META_SPEC_YAML)
         register_computed_fields(meta)
 
-        products = ProductSpecRegistry.from_yaml(
-            yaml_path=_cfg.PRODUCT_SPEC_YAML, meta_catalog=meta,
-        )
+        products = ProductCatalog.from_yaml(_cfg.PRODUCT_SPEC_YAML)
 
         local = LocalResourceFactory()
         local.load_from_yaml(_cfg.LOCAL_SPEC_YAML)
@@ -318,15 +314,17 @@ class Environment:
     # Query API
     # ------------------------------------------------------------------
 
-    def query(self, date: datetime.date) -> "ProductQuery":
+    def query(self, date) -> "ProductQuery":
         """Build a :class:`ProductQuery` scoped to this environment."""
+        if isinstance(date, str):
+            date = datetime.date.fromisoformat(date)
         return ProductQuery(
             date,
             query_spec=self.query_spec,
             remote_factory=self.remote,
             local_factory=self.local,
             meta_catalog=self.meta,
-            product_registry=self.products,
+            product_catalog=self.products,
         )
 
     # ------------------------------------------------------------------

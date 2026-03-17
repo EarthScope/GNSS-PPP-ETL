@@ -9,10 +9,9 @@ code (environment, configs) interacts with.
 from .metadata_catalog import MetadataCatalog, extract_template_fields
 from .format_catalog import FormatCatalog
 from .product_catalog import (
-    ProductCatalog,
+    ProductSpecCatalog,
     ProductVariant,
-    ProductResolver,
-    ProductSpecRegistry,
+    ProductCatalog,
 )
 from .local_factory import LocalResourceFactory
 from .remote_factory import RemoteResourceFactory
@@ -27,10 +26,9 @@ __all__ = [
     # formats
     "FormatCatalog",
     # products
-    "ProductCatalog",
+    "ProductSpecCatalog",
     "ProductVariant",
-    "ProductResolver",
-    "ProductSpecRegistry",
+    "ProductCatalog",
     # local
     "LocalResourceFactory",
     # remote

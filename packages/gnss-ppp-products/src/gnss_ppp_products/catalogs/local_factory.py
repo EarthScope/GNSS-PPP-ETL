@@ -99,7 +99,7 @@ class LocalResourceFactory:
         date: Optional[datetime.date | datetime.datetime] = None,
         *,
         meta_catalog=None,
-    ) -> str:
+    ) -> Path:
         """Resolve the directory for *spec_name* by substituting date placeholders."""
         for local_spec in self._specs.values():
             try:
@@ -108,7 +108,7 @@ class LocalResourceFactory:
                 continue
 
             if "{" not in coll.directory:
-                return coll.directory
+                return Path(coll.directory)
 
             if date is None:
                 raise ValueError(
@@ -126,7 +126,7 @@ class LocalResourceFactory:
             if meta_catalog is None:
                 raise TypeError("meta_catalog is required to resolve date placeholders")
 
-            return meta_catalog.resolve(coll.directory, date, computed_only=True)
+            return Path(meta_catalog.resolve(coll.directory, date, computed_only=True))
 
         raise KeyError(
             f"Spec {spec_name!r} not found in any local resource spec. "

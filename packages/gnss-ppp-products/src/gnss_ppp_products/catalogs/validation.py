@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def validate_catalogs(
     *,
     meta_catalog,
-    product_registry,
+    product_catalog,
     remote_factory,
     local_factory,
     query_spec,
@@ -29,29 +29,29 @@ def validate_catalogs(
     """
     warnings: List[str] = []
 
-    # 1. Check that every product in query_spec exists in product_registry
+    # 1. Check that every product in query_spec exists in product_catalog
     for spec_name in query_spec.spec_names:
-        if spec_name not in product_registry.products:
+        if spec_name not in product_catalog.products:
             warnings.append(
                 f"Query spec references product {spec_name!r} "
-                f"not found in product registry"
+                f"not found in product catalog"
             )
 
-    # 2. Check that remote product refs exist in product_registry
+    # 2. Check that remote product refs exist in product_catalog
     for prod in remote_factory.all_products:
         spec_name = prod.spec_name
-        if spec_name not in product_registry.products:
+        if spec_name not in product_catalog.products:
             warnings.append(
                 f"Remote product {prod.id!r} references spec {spec_name!r} "
-                f"not found in product registry"
+                f"not found in product catalog"
             )
 
-    # 3. Check that local spec refs exist in product_registry
+    # 3. Check that local spec refs exist in product_catalog
     for spec_name in local_factory.all_specs:
-        if spec_name not in product_registry.products:
+        if spec_name not in product_catalog.products:
             warnings.append(
                 f"Local spec references product {spec_name!r} "
-                f"not found in product registry"
+                f"not found in product catalog"
             )
 
     # 4. Log results
