@@ -33,9 +33,10 @@ class QueryResult:
     """A single resolved product variant from a query."""
 
     spec: str
-    center: str
+    remote: str
     product_id: str
 
+    center: str = ""
     campaign: str = ""
     solution: str = ""
     sampling: str = ""
@@ -186,7 +187,7 @@ def _build_catalog(
                 try:
                     variant = product_catalog.get_variant(spec_name, ref_index)
                     templates.append(
-                        meta_catalog.resolve(variant.file_template, dt)
+                        meta_catalog.resolve(variant.file_template, dt, computed_only=True)
                     )
                 except (KeyError, IndexError):
                     pass
@@ -214,15 +215,19 @@ def _build_catalog(
                     dir_resolved = dir_resolved.replace(f"{{{key}}}", value)
                     tmpl = tmpl.replace(f"{{{key}}}", value)
 
+                # Resolve any remaining placeholders as regex patterns
+                tmpl = meta_catalog.resolve(tmpl, dt)
+
                 extras = {
                     k: v for k, v in combo.items()
-                    if k not in ("PPP", "TTT", "SMP")
+                    if k not in ("AAA", "PPP", "TTT", "SMP")
                 }
 
                 results.append(QueryResult(
                     spec=spec_name,
-                    center=center_id,
+                    remote=center_id,
                     product_id=rp.id,
+                    center=combo.get("AAA", ""),
                     campaign=combo.get("PPP", ""),
                     solution=combo.get("TTT", ""),
                     sampling=combo.get("SMP", ""),
@@ -242,6 +247,8 @@ def _ensure_datetime(
     date,
 ) -> datetime.datetime:
     if isinstance(date, datetime.datetime):
+        if date.tzinfo is None:
+            return date.replace(tzinfo=datetime.timezone.utc)
         return date
     if isinstance(date, str):
         date = datetime.date.fromisoformat(date)
@@ -291,6 +298,19 @@ class ProductQuery:
 
     # -- core API ----------------------------------------------------
 
+    def _derive(self, results: List[QueryResult], axes: Optional[Dict[str, str]] = None) -> "ProductQuery":
+        """Return a new query sharing config but with different results/axes."""
+        return ProductQuery(
+            self.date,
+            _results=results,
+            _axes=axes if axes is not None else dict(self.axes),
+            query_spec=self._query_spec,
+            remote_factory=self._remote_factory,
+            local_factory=self._local_factory,
+            meta_catalog=self._meta_catalog,
+            product_catalog=self._product_catalog,
+        )
+
     def narrow(self, **axis_values: str) -> "ProductQuery":
         """Return a new query with additional axis filters applied."""
         for axis_name, axis_value in axis_values.items():
@@ -311,16 +331,19 @@ class ProductQuery:
                 continue
             filtered = _apply_axis_filter(filtered, axis_name, axis_value)
 
-        return ProductQuery(
-            self.date,
-            _results=filtered,
-            _axes=new_axes,
-            query_spec=self._query_spec,
-            remote_factory=self._remote_factory,
-            local_factory=self._local_factory,
-            meta_catalog=self._meta_catalog,
-            product_catalog=self._product_catalog,
-        )
+        return self._derive(filtered, new_axes)
+
+    def remote_in(self, *remote_ids: str) -> "ProductQuery":
+        """Return a new query limited to specific remote data centers.
+
+        Parameters
+        ----------
+        *remote_ids
+            Data-center IDs to include (e.g. ``"IGS"``, ``"CDDIS"``).
+        """
+        allowed = {r.upper() for r in remote_ids}
+        filtered = [r for r in self._results if r.remote.upper() in allowed]
+        return self._derive(filtered)
 
     @property
     def results(self) -> List[QueryResult]:
@@ -348,8 +371,11 @@ class ProductQuery:
     def specs(self) -> List[str]:
         return sorted({r.spec for r in self._results})
 
+    def remotes(self) -> List[str]:
+        return sorted({r.remote for r in self._results})
+
     def centers(self) -> List[str]:
-        return sorted({r.center for r in self._results})
+        return sorted({r.center for r in self._results if r.center})
 
     def campaigns(self) -> List[str]:
         return sorted({r.campaign for r in self._results if r.campaign})
@@ -366,6 +392,7 @@ class ProductQuery:
     def axes_summary(self) -> Dict[str, List[str]]:
         return {
             "spec": self.specs(),
+            "remote": self.remotes(),
             "center": self.centers(),
             "campaign": self.campaigns(),
             "solution": self.solutions(),
@@ -423,14 +450,14 @@ class ProductQuery:
 
     def table(self) -> str:
         lines = [
-            f"{'spec':<12s} {'center':<6s} {'campaign':<9s} "
+            f"{'spec':<12s} {'remote':<8s} {'center':<6s} {'campaign':<9s} "
             f"{'solution':<9s} {'sampling':<9s} {'file_template':<50s}"
         ]
         lines.append("-" * len(lines[0]))
         for r in self._results:
             tmpl_short = r.file_template[:50] if r.file_template else "(none)"
             lines.append(
-                f"{r.spec:<12s} {r.center:<6s} {r.campaign:<9s} "
+                f"{r.spec:<12s} {r.remote:<8s} {r.center:<6s} {r.campaign:<9s} "
                 f"{r.solution:<9s} {r.sampling:<9s} {tmpl_short}"
             )
         return "\n".join(lines)
@@ -453,6 +480,8 @@ def _apply_axis_filter(
             return [r for r in results if r.spec.upper() == v]
         case "center":
             return [r for r in results if r.center.upper() == v]
+        case "remote":
+            return [r for r in results if r.remote.upper() == v]
         case "campaign":
             return [r for r in results if r.campaign.upper() == v]
         case "solution":

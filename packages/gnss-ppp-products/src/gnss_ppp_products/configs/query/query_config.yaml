@@ -57,7 +57,7 @@ axes:
   center:
     description: Data center / provider
     type: enum
-    maps_to: []                           # resolved via RemoteResourceRegistry
+    maps_to: [AAA]                           # resolved via RemoteResourceRegistry
     values_from: RemoteResourceRegistry   # dynamic; currently IGS, WUM
     notes: >
       Selects which remote resource entries to consider.  For local

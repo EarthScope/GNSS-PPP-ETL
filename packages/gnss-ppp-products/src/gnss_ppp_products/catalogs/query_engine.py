@@ -242,6 +242,8 @@ def _ensure_datetime(
     date,
 ) -> datetime.datetime:
     if isinstance(date, datetime.datetime):
+        if date.tzinfo is None:
+            return date.replace(tzinfo=datetime.timezone.utc)
         return date
     if isinstance(date, str):
         date = datetime.date.fromisoformat(date)

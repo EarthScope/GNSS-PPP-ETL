@@ -4,6 +4,8 @@ from typing import Dict, List, Optional
 import logging
 import re
 
+from wcwidth import center
+
 logger = logging.getLogger(__name__)
 
 from gnss_ppp_products.specifications.metadata import MetadataCatalog,MetadataSpec
@@ -12,6 +14,7 @@ from gnss_ppp_products.specifications.remote import RemoteResourceFactory,Remote
 from gnss_ppp_products.specifications.format import FormatCatalog,FormatSpecCollection
 from gnss_ppp_products.specifications.local import LocalResourceSpec, LocalResourceFactory
 from gnss_ppp_products.specifications.queries import ProductQueryProfile, AxisDef, ExtraAxisDef,QuerySpec, ProductQuery,QueryResult
+from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 from gnss_ppp_products.server.ftp import (
     ftp_list_directory,
     ftp_download_file,
@@ -27,6 +30,7 @@ config_dir = Path(__file__).parent.parent / "src" / "gnss_ppp_products" / "confi
 
 meta_config_path = config_dir / "meta"/"meta_spec.yaml"
 metadata_spec: MetadataCatalog = MetadataCatalog.from_yaml(meta_config_path)
+register_computed_fields(metadata_spec)
 
 format_spec_path = config_dir / "products" / "product_spec.yaml"
 format_spec: FormatSpecCollection = FormatSpecCollection.from_yaml(format_spec_path)
@@ -121,6 +125,8 @@ def _download(
 
 
 DATE= datetime.datetime(2024, 1, 1)
+LOCAL_DIR = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
+local_resource_factory._base_dir = LOCAL_DIR
 
 query = ProductQuery(
     DATE,
@@ -130,12 +136,11 @@ query = ProductQuery(
     meta_catalog=metadata_spec,
     product_catalog=product_catalog,
 )
-query = query.narrow(spec="ORBIT").narrow(
-    center="IGS"
-)  # narrow to a single spec for testing
+query = query.narrow(spec="ORBIT")  # from IGS & CDDIS remotes, narrow to COD analysis center
 
 print("Query produced %d results across specs: %s" % (query.count, query.specs()))
-print("Centers: %s" % query.centers())
+print("Remotes: %s" % query.remotes())
+print("Centers (AAA): %s" % query.centers())
 print("Solutions: %s" % query.solutions())
 print("Campaigns: %s" % query.campaigns())
 
@@ -151,7 +156,7 @@ print()
 stats = {"listed": 0, "matched": 0, "downloaded": 0, "skipped": 0, "failed": 0}
 
 for r in query.results:
-    label = f"{r.spec}/{r.center}/{r.campaign}/{r.solution}/{r.sampling}"
+    label = f"{r.spec}/{r.remote}/{r.center}/{r.campaign}/{r.solution}/{r.sampling}"
 
     # -- resolve local destination -----------------------------------
     if not r.local_directory:
@@ -165,31 +170,27 @@ for r in query.results:
     else:
         dest_dir = Path(r.local_directory)
 
-    # -- list remote directory ---------------------------------------
-    print(
-        "[%s] listing %s %s/%s …",
-        label,
-        r.remote_protocol,
-        r.remote_server,
-        r.remote_directory,
-    )
     listing = _list_remote(r)
     stats["listed"] += len(listing)
 
     if not listing:
-        print("  (empty listing)")
+      
         continue
 
     # -- match against resolved file_template -----------------------
     if not r.file_template:
-        print("  (no file_template — skipping)")
+       
         continue
 
     matches = [f for f in listing if _match_template(r.file_template, f)]
     stats["matched"] += len(matches)
 
     if not matches:
-        print("  0 matches for template: %s" % r.file_template[:80])
+        #print("  0 matches for template: %s" % r.file_template[:80])
         continue
 
-    print("  %d match(es): %s" % (len(matches), matches[:5]))
+    else:
+        print(
+            f" Product Spec: {r.spec} | Remote: {r.remote} | Center (AAA): {r.center} | Remote Dir: {r.remote_directory} | Server: {r.remote_server} | Local Dir: {r.local_directory} | File Template: {r.file_template}"
+        )
+        print("  %d match(es): %s" % (len(matches), matches[:2]))
