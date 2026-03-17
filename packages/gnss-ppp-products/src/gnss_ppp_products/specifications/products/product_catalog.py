@@ -92,4 +92,6 @@ class ProductCatalog(BaseModel):
                 variants.append(variant)
             resolved_products[product_name] = ProductCollection(variants=variants)
         return cls(products=resolved_products)
- 
+
+    def get_variant(self, product_name: str, index: int) -> ProductVariant:
+        return self.products[product_name].variants[index]

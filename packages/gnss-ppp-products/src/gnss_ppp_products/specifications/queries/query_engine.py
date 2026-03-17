@@ -160,7 +160,7 @@ def _build_catalog(
     results: List[QueryResult] = []
     dt = _ensure_datetime(date)
 
-    for center_id, center in remote_factory.centers.items():
+    for center_id, center in remote_factory._centers.items():
         for rp in center.products:
             if not rp.available:
                 continue
@@ -177,7 +177,12 @@ def _build_catalog(
 
             # Resolve file templates via the product catalog
             templates: List[str] = []
-            for ref_index in rp.format_indices:
+            indices = rp.format_indices
+            if indices is None:
+                # Use all format variants for this product
+                collection = product_catalog.products.get(spec_name)
+                indices = list(range(len(collection.variants))) if collection else []
+            for ref_index in indices:
                 try:
                     variant = product_catalog.get_variant(spec_name, ref_index)
                     templates.append(

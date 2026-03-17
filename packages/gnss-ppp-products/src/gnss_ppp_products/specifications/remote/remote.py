@@ -26,24 +26,23 @@ class RemoteProductSpec(BaseModel):
 
     id: str
     spec: str
+    format: Optional[int] = None
     server_id: str
     available: bool = True
     description: str = ""
     metadata: Dict[str, List[str]] = Field(default_factory=dict)
-    directory: str 
+    directory: str
 
     @property
     def spec_name(self) -> str:
-        if isinstance(self.spec, str):
-            return self.spec
-        return next(iter(self.spec))
+        return self.spec
 
     @property
-    def format_indices(self) -> list[int]:
-        if isinstance(self.spec, str):
-            return [0]
-        entries = next(iter(self.spec.values()))
-        return [e["format"] for e in entries if isinstance(e, dict) and "format" in e]
+    def format_indices(self) -> Optional[list[int]]:
+        """Return explicit format index list, or None to use all formats."""
+        if self.format is not None:
+            return [self.format]
+        return None
 
     def metadata_combinations(self) -> list[dict[str, str]]:
         """Expand center metadata lists into every combination."""

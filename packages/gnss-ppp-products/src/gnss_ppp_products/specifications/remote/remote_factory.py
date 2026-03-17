@@ -70,5 +70,9 @@ class RemoteResourceFactory:
             assert prod.id not in self._products_by_id, f"Duplicate product ID {prod.id!r} found in center {resolved_spec.id!r}"
             self._products_by_id[prod.id] = prod
 
+    def get_server_for_product(self, product_id: str) -> ServerSpec:
+        prod = self._products_by_id[product_id]
+        return self._servers_by_id[prod.server_id]
+
 
 
