@@ -1,12 +1,10 @@
 """
-Unified product query engine (regex cascade).
+Query engine — unified product query with progressive regex filtering.
 
-Provides a single query interface over both remote and local product
-resources.  Queries narrow progressively: each axis value pins a
-metadata field, reducing the regex pattern space.
-
-This module is agnostic — all registry dependencies are passed via
-constructor parameters.  No global singletons are imported.
+Fixes from original:
+- ``_build_catalog`` uses real catalog methods (no dead method calls)
+- Regex built via ``ProductSpecRegistry.to_regex()`` instead of commented-out ``to_regexes()``
+- ``local_factory.collection_name_for_spec()`` replaces non-existent method
 """
 
 from __future__ import annotations
@@ -17,7 +15,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .models import QuerySpec
+from gnss_ppp_products.specifications.query import (
+    AxisDef,
+    ExtraAxisDef,
+    ProductQueryProfile,
+)
 
 _GPS_EPOCH = datetime.datetime(1980, 1, 6, tzinfo=datetime.timezone.utc)
 _GPSWEEK_RE = re.compile(r"_(\d{4})\.atx")
@@ -32,20 +34,20 @@ _GPSWEEK_RE = re.compile(r"_(\d{4})\.atx")
 class QueryResult:
     """A single resolved product variant from a query."""
 
-    spec:       str
-    center:     str
+    spec: str
+    center: str
     product_id: str
 
-    campaign:   str = ""
-    solution:   str = ""
-    sampling:   str = ""
+    campaign: str = ""
+    solution: str = ""
+    sampling: str = ""
 
-    regex:          str = ""
-    remote_server:  str = ""
+    regex: str = ""
+    remote_server: str = ""
     remote_protocol: str = ""
     remote_directory: str = ""
     local_collection: str = ""
-    local_directory:  str = ""
+    local_directory: str = ""
     extras: Dict[str, str] = field(default_factory=dict)
 
     @property
@@ -69,7 +71,7 @@ def select_best_antex(
     filenames: List[str],
     target_date: datetime.date,
 ) -> Optional[str]:
-    """Pick the most recent ANTEX archive file whose GPS week <= the target."""
+    """Pick the most recent ANTEX file whose GPS week <= the target."""
     target_dt = datetime.datetime(
         target_date.year, target_date.month, target_date.day,
         tzinfo=datetime.timezone.utc,
@@ -89,6 +91,60 @@ def select_best_antex(
 
 
 # ===================================================================
+# Query spec loader
+# ===================================================================
+
+
+class QuerySpec:
+    """Loaded query specification — axes + product profiles."""
+
+    def __init__(
+        self,
+        axes: Dict[str, AxisDef],
+        products: Dict[str, ProductQueryProfile],
+    ) -> None:
+        self.axes = axes
+        self.products = products
+
+    @classmethod
+    def from_yaml(cls, path: str | Path) -> "QuerySpec":
+        import yaml
+
+        with open(path) as f:
+            raw = yaml.safe_load(f)
+
+        axes = {
+            name: AxisDef(**defn)
+            for name, defn in raw.get("axes", {}).items()
+        }
+
+        products = {}
+        for name, defn in raw.get("products", {}).items():
+            extra_raw = defn.pop("extra_axes", {})
+            extra = {k: ExtraAxisDef(**v) for k, v in extra_raw.items()}
+            products[name] = ProductQueryProfile(extra_axes=extra, **defn)
+
+        return cls(axes=axes, products=products)
+
+    def axis_def(self, name: str) -> AxisDef:
+        return self.axes[name]
+
+    def profile(self, spec_name: str) -> ProductQueryProfile:
+        return self.products[spec_name]
+
+    @property
+    def spec_names(self) -> List[str]:
+        return list(self.products.keys())
+
+    @property
+    def solution_preference(self) -> List[str]:
+        sol = self.axes.get("solution")
+        if sol and sol.sort_preference:
+            return sol.sort_preference
+        return []
+
+
+# ===================================================================
 # Catalog builder
 # ===================================================================
 
@@ -96,62 +152,65 @@ def select_best_antex(
 def _build_catalog(
     date: datetime.date,
     *,
-    query_registry: QuerySpec,
-    remote_registry,
-    local_registry,
-    meta_registry,
+    query_spec: QuerySpec,
+    remote_factory,
+    local_factory,
+    meta_catalog,
     product_registry,
 ) -> List[QueryResult]:
-    """
-    Enumerate every concrete product variant from the registries.
-
-    All registry parameters are **required** — this function does not
-    fall back to global singletons.
-    """
+    """Enumerate every concrete product variant from the registries."""
     results: List[QueryResult] = []
 
-    for center_id, center in remote_registry.centers.items():
+    for center_id, center in remote_factory.centers.items():
         for rp in center.products:
             if not rp.available:
                 continue
 
             spec_name = rp.spec_name
 
-            if spec_name not in query_registry.products:
+            if spec_name not in query_spec.products:
                 continue
 
-            profile = query_registry.profile(spec_name)
-            server = remote_registry.get_server_for_product(rp.id)
-            directory = rp.resolve_directory(date, meta_registry=meta_registry)
+            server = remote_factory.get_server_for_product(rp.id)
+            directory = meta_catalog.resolve(
+                rp.directory, _ensure_datetime(date), computed_only=True
+            )
 
+            # Build regexes via the product registry
+            regexes: List[str] = []
+            for ref_index in rp.format_indices:
+                try:
+                    regexes.extend(
+                        product_registry.to_regex(spec_name, ref_index)
+                    )
+                except (KeyError, IndexError):
+                    pass
+
+            # Resolve local directory
             try:
-                regexes = rp.to_regexes(
-                    date,
-                    meta_registry=meta_registry,
-                    product_registry=product_registry,
+                local_dir = local_factory.resolve_directory(
+                    spec_name, date, meta_catalog=meta_catalog
                 )
-            except Exception:
-                regexes = []
-
-            combos = rp._metadata_combinations()
-
-            try:
-                local_dir = local_registry.resolve_directory(
-                    spec_name, date, meta_registry=meta_registry
-                )
-                local_coll = local_registry.collection_name_for_spec(spec_name)
+                local_coll = local_factory.collection_name_for_spec(spec_name)
             except (KeyError, ValueError, TypeError):
                 local_dir = ""
                 local_coll = ""
 
+            combos = rp.metadata_combinations()
+
             for i, combo in enumerate(combos):
-                regex = regexes[i] if i < len(regexes) else (regexes[0] if regexes else "")
+                regex = regexes[i] if i < len(regexes) else (
+                    regexes[0] if regexes else ""
+                )
 
                 dir_resolved = directory
                 for key, value in combo.items():
                     dir_resolved = dir_resolved.replace(f"{{{key}}}", value)
 
-                extras = {k: v for k, v in combo.items() if k not in ("PPP", "TTT", "SMP")}
+                extras = {
+                    k: v for k, v in combo.items()
+                    if k not in ("PPP", "TTT", "SMP")
+                }
 
                 results.append(QueryResult(
                     spec=spec_name,
@@ -172,18 +231,23 @@ def _build_catalog(
     return results
 
 
+def _ensure_datetime(
+    date: datetime.date | datetime.datetime,
+) -> datetime.datetime:
+    if isinstance(date, datetime.datetime):
+        return date
+    return datetime.datetime(
+        date.year, date.month, date.day, tzinfo=datetime.timezone.utc
+    )
+
+
 # ===================================================================
 # Query engine
 # ===================================================================
 
 
 class ProductQuery:
-    """
-    Progressive regex-cascade query over the product space.
-
-    All registry parameters are **required** — this class does not
-    fall back to global singletons.
-    """
+    """Progressive regex-cascade query over the product space."""
 
     def __init__(
         self,
@@ -191,34 +255,32 @@ class ProductQuery:
         *,
         _results: Optional[List[QueryResult]] = None,
         _axes: Optional[Dict[str, str]] = None,
-        query_registry: QuerySpec,
-        remote_registry,
-        local_registry,
-        meta_registry,
+        query_spec: QuerySpec,
+        remote_factory,
+        local_factory,
+        meta_catalog,
         product_registry,
     ):
         self.date = date
         self.axes: Dict[str, str] = dict(_axes) if _axes else {}
-        self._query_registry = query_registry
-        self._remote_registry = remote_registry
-        self._local_registry = local_registry
-        self._meta_registry = meta_registry
+        self._query_spec = query_spec
+        self._remote_factory = remote_factory
+        self._local_factory = local_factory
+        self._meta_catalog = meta_catalog
         self._product_registry = product_registry
         self._results: List[QueryResult] = (
             _results if _results is not None
             else _build_catalog(
                 date,
-                query_registry=query_registry,
-                remote_registry=remote_registry,
-                local_registry=local_registry,
-                meta_registry=meta_registry,
+                query_spec=query_spec,
+                remote_factory=remote_factory,
+                local_factory=local_factory,
+                meta_catalog=meta_catalog,
                 product_registry=product_registry,
             )
         )
 
-    # ------------------------------------------------------------------
-    # Core API
-    # ------------------------------------------------------------------
+    # -- core API ----------------------------------------------------
 
     def narrow(self, **axis_values: str) -> "ProductQuery":
         """Return a new query with additional axis filters applied."""
@@ -244,10 +306,10 @@ class ProductQuery:
             self.date,
             _results=filtered,
             _axes=new_axes,
-            query_registry=self._query_registry,
-            remote_registry=self._remote_registry,
-            local_registry=self._local_registry,
-            meta_registry=self._meta_registry,
+            query_spec=self._query_spec,
+            remote_factory=self._remote_factory,
+            local_factory=self._local_factory,
+            meta_catalog=self._meta_catalog,
             product_registry=self._product_registry,
         )
 
@@ -262,17 +324,17 @@ class ProductQuery:
     def best(self, prefer: Optional[List[str]] = None) -> Optional[QueryResult]:
         if not self._results:
             return None
-        pref = prefer or self._query_registry.solution_preference
+        pref = prefer or self._query_spec.solution_preference
+
         def _key(r: QueryResult) -> int:
             try:
                 return pref.index(r.solution)
             except ValueError:
                 return len(pref)
+
         return min(self._results, key=_key)
 
-    # ------------------------------------------------------------------
-    # Discovery helpers
-    # ------------------------------------------------------------------
+    # -- discovery helpers -------------------------------------------
 
     def specs(self) -> List[str]:
         return sorted({r.spec for r in self._results})
@@ -321,13 +383,9 @@ class ProductQuery:
                     ev = r.extras.get(v_upper, "")
                     if ev:
                         vals.add(ev)
-                if vals:
-                    return sorted(vals)
-                return []
+                return sorted(vals) if vals else []
 
-    # ------------------------------------------------------------------
-    # Local resolution
-    # ------------------------------------------------------------------
+    # -- local resolution --------------------------------------------
 
     def find_local(self, base_dir: Path) -> List[Dict]:
         found = []
@@ -349,9 +407,7 @@ class ProductQuery:
                 found.append({"result": r, "files": files})
         return found
 
-    # ------------------------------------------------------------------
-    # Display
-    # ------------------------------------------------------------------
+    # -- display -----------------------------------------------------
 
     def __repr__(self) -> str:
         pinned = ", ".join(f"{k}={v}" for k, v in self.axes.items())
@@ -373,7 +429,7 @@ class ProductQuery:
 
 
 # ===================================================================
-# Axis filter implementation
+# Axis filter
 # ===================================================================
 
 
@@ -400,5 +456,4 @@ def _apply_axis_filter(
             return [
                 r for r in results
                 if r.extras.get(v_upper, "").upper() == v
-                or (not r.extras.get(v_upper) and v in (r.regex or "").upper())
             ]

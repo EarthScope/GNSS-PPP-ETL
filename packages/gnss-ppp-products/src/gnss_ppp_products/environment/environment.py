@@ -38,13 +38,16 @@ from typing import Dict, List, Optional, Union
 
 import yaml
 
-from gnss_ppp_products.specifications.metadata import _MetadataRegistry
-from gnss_ppp_products.specifications.products import _ProductSpecRegistry
-from gnss_ppp_products.specifications.remote import _RemoteResourceRegistry
-from gnss_ppp_products.specifications.remote.models import RemoteResourceSpec
-from gnss_ppp_products.specifications.local import _LocalResourceRegistry
-from gnss_ppp_products.specifications.query.models import QuerySpec
-from gnss_ppp_products.specifications.dependencies.models import DependencySpec
+from gnss_ppp_products.catalogs import (
+    MetadataCatalog,
+    ProductSpecRegistry,
+    RemoteResourceFactory,
+    LocalResourceFactory,
+    QuerySpec,
+    DependencyResolver,
+    ProductQuery,
+)
+from gnss_ppp_products.specifications.dependencies import DependencySpec
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
 import gnss_ppp_products.configs as _cfg
@@ -93,10 +96,10 @@ class Environment:
         *,
         name: str,
         base_dir: Union[str, Path],
-        meta: _MetadataRegistry,
-        products: _ProductSpecRegistry,
-        remote: _RemoteResourceRegistry,
-        local: _LocalResourceRegistry,
+        meta: MetadataCatalog,
+        products: ProductSpecRegistry,
+        remote: RemoteResourceFactory,
+        local: LocalResourceFactory,
         query: QuerySpec,
         dependencies: Optional[DependencySpec] = None,
         defaults: Optional[Dict[str, str]] = None,
@@ -130,33 +133,33 @@ class Environment:
         meta_path = _resolve_spec_path(
             specs.get("meta", "meta_spec.yaml"), _META_DIR
         )
-        meta = _MetadataRegistry.from_yaml(meta_path)
+        meta = MetadataCatalog.from_yaml(meta_path)
         register_computed_fields(meta)
 
         # ---- products ----
         prod_path = _resolve_spec_path(
             specs.get("products", "product_spec.yaml"), _PRODUCT_DIR
         )
-        products = _ProductSpecRegistry.from_yaml(
-            yaml_path=prod_path, meta_registry=meta,
+        products = ProductSpecRegistry.from_yaml(
+            yaml_path=prod_path, meta_catalog=meta,
         )
 
         # ---- remote centers ----
         center_files = specs.get("centers", [])
-        remote = _RemoteResourceRegistry()
+        remote = RemoteResourceFactory()
         if center_files:
             for cf in center_files:
                 p = _resolve_spec_path(cf, _REMOTE_DIR)
-                center = RemoteResourceSpec.from_yaml(p)
-                remote._register(center)
+                remote.load_from_yaml(p)
         else:
-            remote = _RemoteResourceRegistry.load_from_directory(_REMOTE_DIR)
+            remote = RemoteResourceFactory.load_from_directory(_REMOTE_DIR)
 
         # ---- local ----
         local_path = _resolve_spec_path(
             specs.get("local", "local_v2.yml"), _LOCAL_DIR
         )
-        local = _LocalResourceRegistry.load_from_yaml(local_path)
+        local = LocalResourceFactory()
+        local.load_from_yaml(local_path)
 
         # ---- query ----
         query_path = _resolve_spec_path(
@@ -201,23 +204,25 @@ class Environment:
         defaults: Optional[Dict[str, str]] = None,
     ) -> "Environment":
         """Build an Environment using the standard built-in spec files."""
-        meta = _MetadataRegistry.from_yaml(_cfg.META_SPEC_YAML)
+        meta = MetadataCatalog.from_yaml(_cfg.META_SPEC_YAML)
         register_computed_fields(meta)
 
-        products = _ProductSpecRegistry.from_yaml(
-            yaml_path=_cfg.PRODUCT_SPEC_YAML, meta_registry=meta,
+        products = ProductSpecRegistry.from_yaml(
+            yaml_path=_cfg.PRODUCT_SPEC_YAML, meta_catalog=meta,
         )
-        local = _LocalResourceRegistry.load_from_yaml(_cfg.LOCAL_SPEC_YAML)
+
+        local = LocalResourceFactory()
+        local.load_from_yaml(_cfg.LOCAL_SPEC_YAML)
+
         query = QuerySpec.from_yaml(_cfg.QUERY_SPEC_YAML)
 
         if center_files:
-            remote = _RemoteResourceRegistry()
+            remote = RemoteResourceFactory()
             for cf in center_files:
                 p = _resolve_spec_path(cf, _REMOTE_DIR)
-                center = RemoteResourceSpec.from_yaml(p)
-                remote._register(center)
+                remote.load_from_yaml(p)
         else:
-            remote = _RemoteResourceRegistry.load_from_directory(_REMOTE_DIR)
+            remote = RemoteResourceFactory.load_from_directory(_REMOTE_DIR)
 
         dep = None
         if dependency_file:
@@ -315,14 +320,12 @@ class Environment:
 
     def query(self, date: datetime.date) -> "ProductQuery":
         """Build a :class:`ProductQuery` scoped to this environment."""
-        from gnss_ppp_products.specifications.query.engine import ProductQuery
-
         return ProductQuery(
             date,
-            query_registry=self.query_spec,
-            remote_registry=self.remote,
-            local_registry=self.local,
-            meta_registry=self.meta,
+            query_spec=self.query_spec,
+            remote_factory=self.remote,
+            local_factory=self.local,
+            meta_catalog=self.meta,
             product_registry=self.products,
         )
 
@@ -341,9 +344,6 @@ class Environment:
             raise RuntimeError(
                 "No dependency spec configured in this environment."
             )
-        from gnss_ppp_products.specifications.dependencies.resolver import (
-            DependencyResolver,
-        )
 
         resolver = DependencyResolver(
             self.dependencies,

@@ -9,15 +9,15 @@ All global singleton registries live here.
 from pathlib import Path
 
 # ------------------------------------------------------------------
-# YAML file locations (reference the originals in assets/)
+# YAML file locations
 # ------------------------------------------------------------------
 
 _ASSETS_DIR = Path(__file__).resolve().parent
 
 META_SPEC_YAML = _ASSETS_DIR / "meta" / "meta_spec.yaml"
 PRODUCT_SPEC_YAML = _ASSETS_DIR / "products" / "product_spec.yaml"
-LOCAL_SPEC_YAML = _ASSETS_DIR / "local" / "local_v2.yml"
-QUERY_SPEC_YAML = _ASSETS_DIR / "query" / "query_v2.yaml"
+LOCAL_SPEC_YAML = _ASSETS_DIR / "local" / "local_config.yaml"
+QUERY_SPEC_YAML = _ASSETS_DIR / "query" / "query_config.yaml"
 REMOTE_SPEC_DIR = _ASSETS_DIR / "centers"
 DEPENDENCY_SPEC_DIR = _ASSETS_DIR / "tasks"
 

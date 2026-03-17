@@ -1,9 +1,5 @@
 """
 Dependency resolver — local check + remote download.
-
-This module is agnostic — it uses registry instances provided via
-the constructor (or via an Environment instance).  No global
-singletons are imported.
 """
 
 from __future__ import annotations
@@ -15,14 +11,12 @@ from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse
 
-from gnss_ppp_products.specifications.query.engine import ProductQuery, QueryResult
-
-from .models import (
+from gnss_ppp_products.catalogs.query_engine import ProductQuery, QueryResult
+from gnss_ppp_products.specifications.dependencies import (
     Dependency,
     DependencyResolution,
     DependencySpec,
     ResolvedDependency,
-    SearchPreference,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,16 +25,8 @@ logger = logging.getLogger(__name__)
 class DependencyResolver:
     """Resolve a :class:`DependencySpec` against local and remote resources.
 
-    Parameters
-    ----------
-    dep_spec : DependencySpec
-        The specification declaring required products and preferences.
-    base_dir : Path or str
-        Root of the local product tree.
-    environment
-        Optional :class:`Environment` instance.  When provided the
-        resolver uses the environment's registries instead of
-        constructing its own ProductQuery.
+    Requires an ``environment`` instance that provides a ``.query(date)``
+    method returning a :class:`ProductQuery`.
     """
 
     def __init__(
@@ -60,14 +46,11 @@ class DependencyResolver:
         *,
         download: bool = False,
     ) -> DependencyResolution:
-        if self._env is not None:
-            q = self._env.query(date)
-        else:
+        if self._env is None:
             raise TypeError(
-                "DependencyResolver requires an environment — "
-                "specifications.dependencies.resolver does not use "
-                "global singletons.  Pass environment= to the constructor."
+                "DependencyResolver requires an environment instance."
             )
+        q = self._env.query(date)
         results: List[ResolvedDependency] = []
 
         for dep in self.dep_spec.dependencies:
@@ -100,9 +83,6 @@ class DependencyResolver:
                 spec=dep.spec, required=dep.required, status="missing",
             )
 
-        has_solutions = bool(q_spec.solutions())
-        has_campaigns = bool(q_spec.campaigns())
-
         if not self.dep_spec.preferences:
             return self._try_results(
                 dep, q_spec.results,
@@ -118,13 +98,13 @@ class DependencyResolver:
             except ValueError:
                 continue
 
-            if pref.solution and has_solutions:
+            if pref.solution and q_pref.solutions():
                 try:
                     q_pref = q_pref.narrow(solution=pref.solution)
                 except ValueError:
                     continue
 
-            if pref.campaign and has_campaigns:
+            if pref.campaign and q_pref.campaigns():
                 try:
                     q_pref = q_pref.narrow(campaign=pref.campaign)
                 except ValueError:

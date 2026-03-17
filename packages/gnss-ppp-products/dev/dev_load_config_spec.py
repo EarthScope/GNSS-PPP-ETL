@@ -11,7 +11,7 @@ import json
 import re
 from typing import List
 
-from gnss_ppp_products.assets.remote_resource_spec import RemoteResourceRegistry
+from gnss_ppp_products.specfications.defaults import RemoteResourceRegistry
 from gnss_ppp_products.server.ftp import ftp_list_directory, ftp_find_best_match_in_listing
 from gnss_ppp_products.server.http import http_list_directory, extract_filenames_from_html
 

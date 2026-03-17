@@ -11,33 +11,27 @@ which is why it lives in ``configs`` rather than ``specifications``.
 
 from __future__ import annotations
 
-from pathlib import Path
+from . import (
+    META_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
+    LOCAL_SPEC_YAML,
+    QUERY_SPEC_YAML,
+    REMOTE_SPEC_DIR,
+)
 
 from gnss_ppp_products.catalogs import (
     MetadataCatalog,
     ProductSpecRegistry,
-    RemoteResourceFactory,
     LocalResourceFactory,
+    RemoteResourceFactory,
     QuerySpec,
+    validate_catalogs,
 )
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
 
-# ------------------------------------------------------------------
-# YAML file locations (reference the originals in assets/)
-# ------------------------------------------------------------------
-
-_ASSETS_DIR = Path(__file__).resolve().parent.parent / "configs"
-
-META_SPEC_YAML = _ASSETS_DIR / "meta" / "meta_spec.yaml"
-PRODUCT_SPEC_YAML = _ASSETS_DIR / "products" / "product_spec.yaml"
-LOCAL_SPEC_YAML = _ASSETS_DIR / "local" / "local_config.yaml"
-QUERY_SPEC_YAML = _ASSETS_DIR / "query" / "query_config.yaml"
-REMOTE_SPEC_DIR = _ASSETS_DIR / "centers"
-DEPENDENCY_SPEC_DIR = _ASSETS_DIR / "tasks"
-
 # ===================================================================
-# 1. Metadata registry  (must be first — others depend on it)
+# 1. Metadata catalog  (must be first — others depend on it)
 # ===================================================================
 
 MetaDataRegistry = MetadataCatalog.from_yaml(META_SPEC_YAML)
@@ -55,7 +49,7 @@ ProductSpecReg = ProductSpecRegistry.from_yaml(
 
 
 # ===================================================================
-# 3. Remote resource registry
+# 3. Remote resource factory
 # ===================================================================
 
 RemoteResourceReg = RemoteResourceFactory()
@@ -66,7 +60,7 @@ for _yml_file in sorted(REMOTE_SPEC_DIR.glob("*.yml")):
 
 
 # ===================================================================
-# 4. Local resource registry
+# 4. Local resource factory
 # ===================================================================
 
 LocalResourceReg = LocalResourceFactory()
@@ -74,7 +68,20 @@ LocalResourceReg.load_from_yaml(LOCAL_SPEC_YAML)
 
 
 # ===================================================================
-# 5. Query spec registry
+# 5. Query spec
 # ===================================================================
 
 QuerySpecReg = QuerySpec.from_yaml(QUERY_SPEC_YAML)
+
+
+# ===================================================================
+# 6. Cross-validation
+# ===================================================================
+
+_validation_warnings = validate_catalogs(
+    meta_catalog=MetaDataRegistry,
+    product_registry=ProductSpecReg,
+    remote_factory=RemoteResourceReg,
+    local_factory=LocalResourceReg,
+    query_spec=QuerySpecReg,
+)

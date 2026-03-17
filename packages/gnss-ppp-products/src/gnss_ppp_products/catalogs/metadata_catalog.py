@@ -1,36 +1,34 @@
 """
-Metadata registry — pure spec code.
+Metadata catalog — registry of metadata fields with template resolution.
 
-Defines :class:`MetadataField` and :class:`_MetadataRegistry` with no
-hardcoded YAML paths and no global singleton created at import time.
-Callers create instances via ``_MetadataRegistry.load_from_yaml(path)``.
+Wraps :class:`MetadataField` spec models into a live registry that can
+resolve ``{YYYY}``-style placeholders in path and filename templates.
 """
+
+from __future__ import annotations
 
 import re
 import datetime
-from pydantic import BaseModel
-import yaml
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from .models import MetadataField
+import yaml
+
+from gnss_ppp_products.specifications.metadata import MetadataField
+
 
 def extract_template_fields(template: str) -> list[str]:
-    """Extract all metadata field names from a template string.
+    """Extract metadata field names from a template string.
 
-    E.g. ``"orography_ell_{RESOLUTION}"`` → ``["RESOLUTION"]``
+    ``"orography_ell_{RESOLUTION}"`` → ``["RESOLUTION"]``
     """
     return re.findall(r"{(\w+)}", template)
 
 
-class _MetadataRegistry:
-    """Central registry of all metadata keys.
+class MetadataCatalog:
+    """Registry of metadata keys with pattern and compute support.
 
-    Register fields either declaratively (from YAML) or via the
-    ``@computed`` decorator.
-
-    This class is intentionally agnostic — it knows nothing about
-    where YAML files live.  Callers provide the path explicitly.
+    Replaces ``_MetadataRegistry``.
     """
 
     def __init__(self) -> None:
@@ -63,14 +61,7 @@ class _MetadataRegistry:
         *,
         description: Optional[str] = None,
     ):
-        """Decorator that registers a computed metadata field.
-
-        Usage::
-
-            @registry.computed("YYYY", r"\\d{4}")
-            def _yyyy(dt: datetime.date) -> str:
-                return f"{dt.year:04d}"
-        """
+        """Decorator that registers a computed metadata field."""
 
         def decorator(fn: Callable[[datetime.datetime], str]):
             self.register(name, pattern, compute=fn, description=description)
@@ -92,8 +83,12 @@ class _MetadataRegistry:
     # -- bulk operations ---------------------------------------------
 
     def defaults(self) -> Dict[str, str]:
-        """Return ``{name: pattern}`` for every registered field."""
-        return {f.name: f.pattern for f in self._fields.values() if f.pattern is not None}
+        """Return ``{name: pattern}`` for every field with a pattern."""
+        return {
+            f.name: f.pattern
+            for f in self._fields.values()
+            if f.pattern is not None
+        }
 
     def resolve(
         self,
@@ -118,15 +113,16 @@ class _MetadataRegistry:
             template = template.replace("{" + key + "}", value)
         return template
 
+    # -- loader ------------------------------------------------------
+
     @classmethod
-    def from_yaml(cls, yaml_path: str | Path) -> '_MetadataRegistry':
+    def from_yaml(cls, yaml_path: str | Path) -> "MetadataCatalog":
         """Load metadata field definitions from a YAML file.
 
         Does **not** register computed fields — call
-        :func:`~gnss_ppp_products.utilities.metadata_funcs.register_computed_fields`
-        separately after loading.
+        :func:`register_computed_fields` separately after loading.
         """
-        metadata_registry = cls()
+        catalog = cls()
 
         with open(yaml_path, "r") as f:
             data = yaml.safe_load(f)
@@ -141,5 +137,5 @@ class _MetadataRegistry:
                     description = entry["description"]
 
             if pattern is not None:
-                metadata_registry.register(name, pattern, description=description)
-        return metadata_registry
+                catalog.register(name, pattern, description=description)
+        return catalog

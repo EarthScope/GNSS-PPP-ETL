@@ -1,70 +1,49 @@
 """
-Specifications — pure, agnostic spec models and registry classes.
+Specifications — Layer 1: pure Pydantic models for GNSS product specs.
 
-This package contains the Pydantic models and registry classes for all
-GNSS product specifications.  No singletons are created here; no YAML
-paths are hardcoded.  Registry classes accept data via their loaders and
-callers provide explicit paths.
+This package contains the data-shape definitions loaded from YAML.
+No loading logic, no singletons, no cross-validation.
 
-For the pre-built default singletons, import from
-:mod:`gnss_ppp_products.configs.defaults` (or use the convenience
-re-exports in the package ``__init__``).
+For the live registries and resolution logic, see
+:mod:`gnss_ppp_products.catalogs`.
 
-Sub-packages
-~~~~~~~~~~~~
-
-- :mod:`.metadata`     — ``_MetadataRegistry``, ``MetadataField``
-- :mod:`.products`     — ``_ProductSpecRegistry``, ``ProductSpec``
-- :mod:`.remote`       — ``_RemoteResourceRegistry``, ``RemoteResourceSpec``
-- :mod:`.local`        — ``_LocalResourceRegistry``, ``LocalResourceSpec``
-- :mod:`.query`        — ``ProductQuery``, ``QueryResult``, ``QuerySpec``
-- :mod:`.dependencies` — ``DependencyResolver``, ``DependencySpec``
+Modules
+~~~~~~~
+- :mod:`.metadata`     — ``MetadataField``
+- :mod:`.formats`      — ``FormatFieldDef``, ``FormatSpec``, ``FormatVersionSpec``
+- :mod:`.products`     — ``ProductFormatBinding``, ``ProductSpec``
+- :mod:`.local`        — ``LocalCollection``, ``LocalResourceSpec``
+- :mod:`.remote`       — ``ServerSpec``, ``RemoteProductSpec``, ``RemoteResourceSpec``
+- :mod:`.query`        — ``AxisDef``, ``ExtraAxisDef``, ``ProductQueryProfile``
+- :mod:`.dependencies` — ``SearchPreference``, ``Dependency``, ``DependencySpec``,
+                         ``ResolvedDependency``, ``DependencyResolution``
 """
 
-# ---- Registry classes (no singletons) ----
-from gnss_ppp_products.specifications.metadata.registry import (
-    _MetadataRegistry,
-    MetadataField,
-    extract_template_fields,
+from gnss_ppp_products.specifications.metadata import MetadataField
+from gnss_ppp_products.specifications.formats import (
+    FormatFieldDef,
+    FormatVersionSpec,
+    FormatSpec,
 )
-from gnss_ppp_products.specifications.products.models import (
+from gnss_ppp_products.specifications.products import (
+    ProductFormatBinding,
     ProductSpec,
-    Product,
-    Format,
-    FormatVersion,
-    ProductFormatRef,
 )
-from gnss_ppp_products.specifications.products.registry import (
-    _ProductSpecRegistry,
-)
-from gnss_ppp_products.specifications.remote.models import (
-    Server,
-    RemoteProduct,
+from gnss_ppp_products.specifications.remote import (
+    ServerSpec,
+    RemoteProductSpec,
     RemoteResourceSpec,
 )
-from gnss_ppp_products.specifications.remote.registry import (
-    _RemoteResourceRegistry,
-)
-from gnss_ppp_products.specifications.local.models import (
-    TemporalCategory,
+from gnss_ppp_products.specifications.local import (
     LocalCollection,
     LocalResourceSpec,
 )
-from gnss_ppp_products.specifications.local.registry import (
-    _LocalResourceRegistry,
-)
-from gnss_ppp_products.specifications.query.models import (
+from gnss_ppp_products.specifications.query import (
     AxisDef,
     ExtraAxisDef,
     ProductQueryProfile,
-    QuerySpec,
 )
-from gnss_ppp_products.specifications.query.engine import (
-    ProductQuery,
-    QueryResult,
-    select_best_antex,
-)
-from gnss_ppp_products.specifications.dependencies.models import (
+from gnss_ppp_products.specifications.dependencies import (
     SearchPreference,
     Dependency,
     DependencySpec,
@@ -72,41 +51,21 @@ from gnss_ppp_products.specifications.dependencies.models import (
     ResolvedDependency,
 )
 
-# DependencyResolver is NOT re-exported here to avoid triggering
-# a server/__init__.py import chain at module load.  Import it
-# directly: from gnss_ppp_products.specifications.dependencies.resolver import DependencyResolver
-
 __all__ = [
-    # metadata
-    "_MetadataRegistry",
     "MetadataField",
-    "extract_template_fields",
-    # products
-    "_ProductSpecRegistry",
+    "FormatFieldDef",
+    "FormatVersionSpec",
+    "FormatSpec",
+    "ProductFormatBinding",
     "ProductSpec",
-    "Product",
-    "Format",
-    "FormatVersion",
-    "ProductFormatRef",
-    # remote
-    "_RemoteResourceRegistry",
-    "Server",
-    "RemoteProduct",
+    "ServerSpec",
+    "RemoteProductSpec",
     "RemoteResourceSpec",
-    # local
-    "_LocalResourceRegistry",
-    "TemporalCategory",
     "LocalCollection",
     "LocalResourceSpec",
-    # query
     "AxisDef",
     "ExtraAxisDef",
     "ProductQueryProfile",
-    "QuerySpec",
-    "ProductQuery",
-    "QueryResult",
-    "select_best_antex",
-    # dependencies
     "SearchPreference",
     "Dependency",
     "DependencySpec",

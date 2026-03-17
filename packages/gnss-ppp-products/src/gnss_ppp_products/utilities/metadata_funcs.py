@@ -1,22 +1,15 @@
-"""
-Computed metadata field registrations for a ``_MetadataRegistry``.
+"""Computed metadata field registrations for a ``MetadataCatalog``.
 
-This module defines the domain-specific date→metadata transformations
-(DDD, GPSWEEK, YYYY, REFFRAME, …) and a single entry-point
-:func:`register_computed_fields` that wires them all onto a given
-registry instance.
-
-Unlike the original ``assets/meta_spec/funcs.py`` this module does
-**not** import a global singleton.  Instead the registry is passed
-as an argument, keeping Specifications agnostic.
+Defines date-to-metadata transformations (DDD, GPSWEEK, YYYY, REFFRAME, etc.)
+and :func:`register_computed_fields` which wires them onto a catalog.
 
 Usage::
 
-    from gnss_ppp_products.specifications.metadata import _MetadataRegistry
+    from gnss_ppp_products.catalogs import MetadataCatalog
     from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
-    reg = _MetadataRegistry.load_from_yaml("meta_spec.yaml")
-    register_computed_fields(reg)        # DDD, GPSWEEK, etc. now live
+    cat = MetadataCatalog.from_yaml("meta_spec.yaml")
+    register_computed_fields(cat)
 """
 
 from __future__ import annotations
@@ -134,8 +127,8 @@ def register_computed_fields(registry) -> None:
 
     Parameters
     ----------
-    registry : _MetadataRegistry
-        The metadata registry instance to extend.
+    registry : MetadataCatalog
+        The metadata catalog instance to extend.
     """
     for name, func, pattern in _COMPUTED_FIELDS:
         registry.computed(name=name, pattern=pattern)(func)

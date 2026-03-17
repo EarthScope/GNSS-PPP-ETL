@@ -1,12 +1,4 @@
-"""
-Pydantic models for dependency specifications.
-
-A :class:`DependencySpec` declares all the GNSS products a processing
-task requires (e.g. ORBIT, CLOCK, ERP …) plus a preference cascade
-that controls which data center and solution quality to try first.
-
-This module is agnostic — no global singletons, no hardcoded paths.
-"""
+"""Pure Pydantic models and result types for dependency specifications."""
 
 from __future__ import annotations
 
@@ -18,22 +10,12 @@ import yaml
 from pydantic import BaseModel, Field
 
 
-# ===================================================================
-# Preference cascade
-# ===================================================================
-
-
 class SearchPreference(BaseModel):
     """One slot in the preference cascade."""
 
     center: str
     solution: str = ""
     campaign: str = ""
-
-
-# ===================================================================
-# Dependency declaration
-# ===================================================================
 
 
 class Dependency(BaseModel):
@@ -43,11 +25,6 @@ class Dependency(BaseModel):
     required: bool = True
     description: str = ""
     constraints: Dict[str, str] = Field(default_factory=dict)
-
-
-# ===================================================================
-# Root model
-# ===================================================================
 
 
 class DependencySpec(BaseModel):
@@ -63,11 +40,6 @@ class DependencySpec(BaseModel):
         with open(path) as fh:
             raw = yaml.safe_load(fh)
         return cls.model_validate(raw)
-
-
-# ===================================================================
-# Resolution result types
-# ===================================================================
 
 
 @dataclass
