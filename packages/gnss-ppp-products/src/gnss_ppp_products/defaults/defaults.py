@@ -15,7 +15,7 @@ from pathlib import Path
 
 from gnss_ppp_products.catalogs import (
     MetadataCatalog,
-    ProductCatalog,
+    ProductSpecRegistry,
     RemoteResourceFactory,
     LocalResourceFactory,
     QuerySpec,
@@ -48,7 +48,10 @@ register_computed_fields(MetaDataRegistry)
 # 2. Product spec registry
 # ===================================================================
 
-ProductSpecReg = ProductCatalog.from_yaml(PRODUCT_SPEC_YAML)
+ProductSpecReg = ProductSpecRegistry.from_yaml(
+    yaml_path=PRODUCT_SPEC_YAML,
+    meta_catalog=MetaDataRegistry,
+)
 
 
 # ===================================================================
