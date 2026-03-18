@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import datetime
 import re
+from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from gnss_ppp_products.specifications.queries.query import (
     AxisDef,
@@ -24,6 +25,38 @@ _GPSWEEK_RE = re.compile(r"_(\d{4})\.atx")
 
 
 # ===================================================================
+# Resource location
+# ===================================================================
+
+
+@dataclass(frozen=True)
+class ResourceLocation:
+    """Protocol-agnostic pointer to a directory of product files."""
+
+    scheme: str          # "file", "ftp", "ftps", "http", "https", "s3"
+    host: str = ""       # "" for file://, hostname for remote, bucket for s3
+    path: str = ""       # directory path (remote path or local absolute path)
+    label: str = ""      # human-readable origin: "IGS", "CDDIS", "local"
+
+    @property
+    def uri(self) -> str:
+        if self.scheme == "file":
+            return f"file://{self.path}"
+        if self.host:
+            sep = "" if self.path.startswith("/") else "/"
+            return f"{self.scheme}://{self.host}{sep}{self.path}"
+        return self.path
+
+    @property
+    def is_local(self) -> bool:
+        return self.scheme == "file"
+
+    @property
+    def is_remote(self) -> bool:
+        return not self.is_local
+
+
+# ===================================================================
 # Query result
 # ===================================================================
 
@@ -33,8 +66,8 @@ class QueryResult:
     """A single resolved product variant from a query."""
 
     spec: str
-    remote: str
     product_id: str
+    location: ResourceLocation
 
     center: str = ""
     campaign: str = ""
@@ -42,18 +75,7 @@ class QueryResult:
     sampling: str = ""
 
     file_template: str = ""
-    remote_server: str = ""
-    remote_protocol: str = ""
-    remote_directory: str = ""
-    local_collection: str = ""
-    local_directory: str = ""
     extras: Dict[str, str] = field(default_factory=dict)
-
-    @property
-    def remote_url(self) -> str:
-        if self.remote_server and self.remote_directory:
-            return f"{self.remote_server}/{self.remote_directory}"
-        return ""
 
 
 # ===================================================================
@@ -161,6 +183,11 @@ def _build_catalog(
     results: List[QueryResult] = []
     dt = _ensure_datetime(date)
 
+    # Keep track of (spec, center, campaign, solution, sampling, tmpl)
+    # tuples we've already emitted so we can add local results without
+    # duplicating ones that also appear as remote.
+    seen_identities: set[Tuple[str, ...]] = set()
+
     for center_id, center in remote_factory._centers.items():
         for rp in center.products:
             if not rp.available:
@@ -180,7 +207,6 @@ def _build_catalog(
             templates: List[str] = []
             indices = rp.format_indices
             if indices is None:
-                # Use all format variants for this product
                 collection = product_catalog.products.get(spec_name)
                 indices = list(range(len(collection.variants))) if collection else []
             for ref_index in indices:
@@ -192,53 +218,83 @@ def _build_catalog(
                 except (KeyError, IndexError):
                     pass
 
-            # Resolve local directory
-            try:
-                local_dir = local_factory.resolve_directory(
-                    spec_name, date, meta_catalog=meta_catalog
-                )
-                local_coll = local_factory.collection_name_for_spec(spec_name)
-            except (KeyError, ValueError, TypeError):
-                local_dir = ""
-                local_coll = ""
-
             combos = rp.metadata_combinations()
 
-            for i, combo in enumerate(combos):
-                tmpl = templates[i] if i < len(templates) else (
-                    templates[0] if templates else ""
-                )
+            # Cross-product: every template × every combo
+            for tmpl_base in (templates or [""]):
+                for combo in combos:
+                    tmpl = tmpl_base
 
-                dir_resolved = directory
-                # Substitute combo metadata into both directory and template
-                for key, value in combo.items():
-                    dir_resolved = dir_resolved.replace(f"{{{key}}}", value)
-                    tmpl = tmpl.replace(f"{{{key}}}", value)
+                    dir_resolved = directory
+                    for key, value in combo.items():
+                        dir_resolved = dir_resolved.replace(f"{{{key}}}", value)
+                        tmpl = tmpl.replace(f"{{{key}}}", value)
 
-                # Resolve any remaining placeholders as regex patterns
-                tmpl = meta_catalog.resolve(tmpl, dt)
+                    # Resolve any remaining placeholders as regex patterns
+                    tmpl = meta_catalog.resolve(tmpl, dt)
 
-                extras = {
-                    k: v for k, v in combo.items()
-                    if k not in ("AAA", "PPP", "TTT", "SMP")
-                }
+                    extras = {
+                        k: v for k, v in combo.items()
+                        if k not in ("AAA", "PPP", "TTT", "SMP")
+                    }
 
-                results.append(QueryResult(
-                    spec=spec_name,
-                    remote=center_id,
-                    product_id=rp.id,
-                    center=combo.get("AAA", ""),
-                    campaign=combo.get("PPP", ""),
-                    solution=combo.get("TTT", ""),
-                    sampling=combo.get("SMP", ""),
-                    file_template=tmpl,
-                    remote_server=server.hostname,
-                    remote_protocol=server.protocol,
-                    remote_directory=dir_resolved,
-                    local_collection=local_coll,
-                    local_directory=local_dir,
-                    extras=extras,
-                ))
+                    identity = (
+                        spec_name,
+                        combo.get("AAA", ""),
+                        combo.get("PPP", ""),
+                        combo.get("TTT", ""),
+                        combo.get("SMP", ""),
+                        tmpl,
+                    )
+                    seen_identities.add(identity)
+
+                    location = ResourceLocation(
+                        scheme=server.protocol.lower(),
+                        host=server.hostname,
+                        path=dir_resolved,
+                        label=center_id,
+                    )
+
+                    results.append(QueryResult(
+                        spec=spec_name,
+                        product_id=rp.id,
+                        location=location,
+                        center=combo.get("AAA", ""),
+                        campaign=combo.get("PPP", ""),
+                        solution=combo.get("TTT", ""),
+                        sampling=combo.get("SMP", ""),
+                        file_template=tmpl,
+                        extras=extras,
+                    ))
+
+    # ---- Local results ------------------------------------------------
+    # For every product identity that appeared in the remote catalog, emit
+    # a corresponding local result so callers can discover on-disk files.
+    for identity in seen_identities:
+        spec_name, aaa, ppp, ttt, smp, tmpl = identity
+        try:
+            local_dir = local_factory.resolve_directory(spec_name, date)
+        except (KeyError, ValueError, TypeError):
+            continue
+        if not local_dir:
+            continue
+
+        location = ResourceLocation(
+            scheme="file",
+            host="",
+            path=str(local_dir),
+            label="local",
+        )
+        results.append(QueryResult(
+            spec=spec_name,
+            product_id=f"local_{spec_name}",
+            location=location,
+            center=aaa,
+            campaign=ppp,
+            solution=ttt,
+            sampling=smp,
+            file_template=tmpl,
+        ))
 
     return results
 
@@ -333,17 +389,26 @@ class ProductQuery:
 
         return self._derive(filtered, new_axes)
 
-    def remote_in(self, *remote_ids: str) -> "ProductQuery":
-        """Return a new query limited to specific remote data centers.
+    def location_in(self, *labels: str) -> "ProductQuery":
+        """Return a new query limited to locations matching *labels*.
 
         Parameters
         ----------
-        *remote_ids
-            Data-center IDs to include (e.g. ``"IGS"``, ``"CDDIS"``).
+        *labels
+            Location labels to include (e.g. ``"IGS"``, ``"CDDIS"``,
+            ``"local"``).
         """
-        allowed = {r.upper() for r in remote_ids}
-        filtered = [r for r in self._results if r.remote.upper() in allowed]
+        allowed = {lb.upper() for lb in labels}
+        filtered = [r for r in self._results if r.location.label.upper() in allowed]
         return self._derive(filtered)
+
+    def remote_only(self) -> "ProductQuery":
+        """Return a new query with only remote (non-local) results."""
+        return self._derive([r for r in self._results if r.location.is_remote])
+
+    def local_only(self) -> "ProductQuery":
+        """Return a new query with only local (on-disk) results."""
+        return self._derive([r for r in self._results if r.location.is_local])
 
     @property
     def results(self) -> List[QueryResult]:
@@ -353,7 +418,13 @@ class ProductQuery:
     def count(self) -> int:
         return len(self._results)
 
-    def best(self, prefer: Optional[List[str]] = None) -> Optional[QueryResult]:
+    def __iter__(self):
+        return iter(self._results)
+
+    def __len__(self) -> int:
+        return len(self._results)
+
+    def best(self, prefer: Optional[List[str]] = None, results: Optional[List[QueryResult]] = None) -> Optional[QueryResult]:
         if not self._results:
             return None
         pref = prefer or self._query_spec.solution_preference
@@ -371,8 +442,9 @@ class ProductQuery:
     def specs(self) -> List[str]:
         return sorted({r.spec for r in self._results})
 
-    def remotes(self) -> List[str]:
-        return sorted({r.remote for r in self._results})
+    def locations(self) -> List[str]:
+        """Return sorted unique location labels."""
+        return sorted({r.location.label for r in self._results})
 
     def centers(self) -> List[str]:
         return sorted({r.center for r in self._results if r.center})
@@ -389,10 +461,32 @@ class ProductQuery:
     def instruments(self) -> List[str]:
         return sorted({r.extras.get("INSTRUMENT", "") for r in self._results} - {""})
 
+    def group_by(
+        self, *keys: str,
+    ) -> Dict[Tuple[str, ...], List[QueryResult]]:
+        """Group results by one or more field names.
+
+        Parameters
+        ----------
+        *keys
+            Field names on :class:`QueryResult` to group by, e.g.
+            ``"remote"``, ``"remote_directory"``, ``"spec"``.
+
+        Returns a dict mapping tuples of field values to result lists.
+        """
+        groups: Dict[Tuple[str, ...], List[QueryResult]] = defaultdict(list)
+        for r in self._results:
+            key = tuple(
+                getattr(r, k, r.extras.get(k.upper(), ""))
+                for k in keys
+            )
+            groups[key].append(r)
+        return dict(groups)
+
     def axes_summary(self) -> Dict[str, List[str]]:
         return {
             "spec": self.specs(),
-            "remote": self.remotes(),
+            "location": self.locations(),
             "center": self.centers(),
             "campaign": self.campaigns(),
             "solution": self.solutions(),
@@ -404,6 +498,8 @@ class ProductQuery:
         match axis_name:
             case "spec":
                 return self.specs()
+            case "location":
+                return self.locations()
             case "center":
                 return self.centers()
             case "campaign":
@@ -423,12 +519,23 @@ class ProductQuery:
 
     # -- local resolution --------------------------------------------
 
-    def find_local(self, base_dir: Path) -> List[Dict]:
+    def find_local(self, base_dir: Optional[Path] = None) -> List[Dict]:
+        """Find matching files on disk for local results.
+
+        Parameters
+        ----------
+        base_dir
+            Optional prefix.  When given, ``base_dir / location.path``
+            is searched.  When *None*, ``location.path`` is used as-is
+            (it should already be absolute for ``scheme="file"`` results).
+        """
         found = []
         for r in self._results:
-            if not r.local_directory:
+            if not r.location.is_local:
                 continue
-            d = base_dir / r.local_directory
+            d = Path(r.location.path)
+            if base_dir is not None:
+                d = base_dir / d
             if not d.exists():
                 continue
             if not r.file_template:
@@ -436,7 +543,7 @@ class ProductQuery:
             else:
                 files = sorted(
                     p for p in d.iterdir()
-                    if p.is_file() and r.file_template in p.name
+                    if p.is_file() and _match_template(r.file_template, p.name)
                 )
             if files:
                 found.append({"result": r, "files": files})
@@ -450,15 +557,17 @@ class ProductQuery:
 
     def table(self) -> str:
         lines = [
-            f"{'spec':<12s} {'remote':<8s} {'center':<6s} {'campaign':<9s} "
-            f"{'solution':<9s} {'sampling':<9s} {'file_template':<50s}"
+            f"{'spec':<12s} {'location':<10s} {'scheme':<6s} {'center':<6s} "
+            f"{'campaign':<9s} {'solution':<9s} {'sampling':<9s} "
+            f"{'file_template':<50s}"
         ]
         lines.append("-" * len(lines[0]))
         for r in self._results:
             tmpl_short = r.file_template[:50] if r.file_template else "(none)"
             lines.append(
-                f"{r.spec:<12s} {r.remote:<8s} {r.center:<6s} {r.campaign:<9s} "
-                f"{r.solution:<9s} {r.sampling:<9s} {tmpl_short}"
+                f"{r.spec:<12s} {r.location.label:<10s} {r.location.scheme:<6s} "
+                f"{r.center:<6s} {r.campaign:<9s} {r.solution:<9s} "
+                f"{r.sampling:<9s} {tmpl_short}"
             )
         return "\n".join(lines)
 
@@ -466,6 +575,14 @@ class ProductQuery:
 # ===================================================================
 # Axis filter
 # ===================================================================
+
+
+def _match_template(file_template: str, filename: str) -> bool:
+    """Check if *filename* matches the resolved *file_template* (regex)."""
+    try:
+        return bool(re.search(file_template, filename, re.IGNORECASE))
+    except re.error:
+        return file_template in filename
 
 
 def _apply_axis_filter(
@@ -478,10 +595,10 @@ def _apply_axis_filter(
     match axis_name:
         case "spec":
             return [r for r in results if r.spec.upper() == v]
+        case "location":
+            return [r for r in results if r.location.label.upper() == v]
         case "center":
             return [r for r in results if r.center.upper() == v]
-        case "remote":
-            return [r for r in results if r.remote.upper() == v]
         case "campaign":
             return [r for r in results if r.campaign.upper() == v]
         case "solution":

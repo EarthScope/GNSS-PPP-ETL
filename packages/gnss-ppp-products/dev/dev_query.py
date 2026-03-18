@@ -77,22 +77,29 @@ def _match_template(file_template: str, filename: str) -> bool:
 
 def _list_remote(result: QueryResult) -> list[str]:
     """List files in the remote directory of *result*."""
-    proto = result.remote_protocol.upper()
-    server = result.remote_server
-    directory = result.remote_directory
+    loc = result.location
+    proto = loc.scheme.upper()
 
     if proto in ("FTP", "FTPS"):
         use_tls = proto == "FTPS"
-        return ftp_list_directory(server, directory, use_tls=use_tls)
+        return ftp_list_directory(loc.host, loc.path, use_tls=use_tls)
 
     if proto in ("HTTP", "HTTPS"):
-        html = http_list_directory(server, directory)
+        html = http_list_directory(loc.host, loc.path)
         if html is None:
             return []
         return extract_filenames_from_html(html)
 
-    print("Unsupported protocol %s for %s", proto, result.product_id)
+    print(f"Unsupported protocol {proto} for {result.product_id}")
     return []
+
+
+def _list_local(result: QueryResult) -> list[str]:
+    """List files in the local directory of *result*."""
+    d = Path(result.location.path)
+    if not d.exists():
+        return []
+    return [p.name for p in sorted(d.iterdir()) if p.is_file()]
 
 
 def _download(
@@ -101,26 +108,25 @@ def _download(
     dest_dir: Path,
 ) -> bool:
     """Download *filename* from the remote described by *result*."""
-    proto = result.remote_protocol.upper()
-    server = result.remote_server
-    directory = result.remote_directory
+    loc = result.location
+    proto = loc.scheme.upper()
     dest_path = dest_dir / filename
 
     if dest_path.exists() and dest_path.stat().st_size > 0:
-        log.info("  SKIP (exists) %s", dest_path)
+        print(f"  SKIP (exists) {dest_path}")
         return True
 
     if proto in ("FTP", "FTPS"):
         use_tls = proto == "FTPS"
         return ftp_download_file(
-            server, directory, filename, dest_path, use_tls=use_tls
+            loc.host, loc.path, filename, dest_path, use_tls=use_tls
         )
 
     if proto in ("HTTP", "HTTPS"):
-        got = http_get_file(server, directory, filename, dest_dir=dest_dir)
+        got = http_get_file(loc.host, loc.path, filename, dest_dir=dest_dir)
         return got is not None
 
-    print("Unsupported protocol %s", proto)
+    print(f"Unsupported protocol {proto}")
     return False
 
 
@@ -136,10 +142,10 @@ query = ProductQuery(
     meta_catalog=metadata_spec,
     product_catalog=product_catalog,
 )
-query = query.narrow(spec="ORBIT")  # from IGS & CDDIS remotes, narrow to COD analysis center
+#query = query.narrow(spec="ORBIT").local_only()  # remote ORBIT results only
 
 print("Query produced %d results across specs: %s" % (query.count, query.specs()))
-print("Remotes: %s" % query.remotes())
+print("Locations: %s" % query.locations())
 print("Centers (AAA): %s" % query.centers())
 print("Solutions: %s" % query.solutions())
 print("Campaigns: %s" % query.campaigns())
@@ -156,41 +162,46 @@ print()
 stats = {"listed": 0, "matched": 0, "downloaded": 0, "skipped": 0, "failed": 0}
 
 for r in query.results:
-    label = f"{r.spec}/{r.remote}/{r.center}/{r.campaign}/{r.solution}/{r.sampling}"
+    label = f"{r.spec}/{r.location.label}/{r.center}/{r.campaign}/{r.solution}/{r.sampling}"
 
-    # -- resolve local destination -----------------------------------
-    if not r.local_directory:
-
-        dest_dir = local_resource_factory.resolve_directory(
-            spec_name=r.spec,
-            date=DATE,
-        )
-        dest_dir.mkdir(parents=True, exist_ok=True)
-
+    # -- list files at location --------------------------------------
+    if r.location.is_local:
+        listing = _list_local(r)
+        dest_dir = Path(r.location.path)
     else:
-        dest_dir = Path(r.local_directory)
+        listing = _list_remote(r)
+        dest_dir = LOCAL_DIR
 
-    listing = _list_remote(r)
     stats["listed"] += len(listing)
 
     if not listing:
-      
+
         continue
 
     # -- match against resolved file_template -----------------------
     if not r.file_template:
-       
+
         continue
 
     matches = [f for f in listing if _match_template(r.file_template, f)]
     stats["matched"] += len(matches)
 
     if not matches:
-        #print("  0 matches for template: %s" % r.file_template[:80])
+        # print("  0 matches for template: %s" % r.file_template[:80])
         continue
 
     else:
         print(
-            f" Product Spec: {r.spec} | Remote: {r.remote} | Center (AAA): {r.center} | Remote Dir: {r.remote_directory} | Server: {r.remote_server} | Local Dir: {r.local_directory} | File Template: {r.file_template}"
+            f" Product Spec: {r.spec} | Location: {r.location.label} ({r.location.scheme}) | Center (AAA): {r.center} | Dir: {r.location.path} | Host: {r.location.host} | File Template: {r.file_template}"
         )
         print("  %d match(es): %s" % (len(matches), matches[:2]))
+    
+        for fname in matches[:1]:
+  
+            ok = _download(r, fname, dest_dir)
+            if ok:
+                print(f"  OK  {fname} → {dest_dir}")
+                stats["downloaded"] += 1
+            else:
+                print(f"  FAIL  {fname}")
+                stats["failed"] += 1

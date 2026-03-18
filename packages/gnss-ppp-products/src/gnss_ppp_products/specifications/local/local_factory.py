@@ -94,7 +94,7 @@ class LocalResourceFactory(BaseModel):
         # If the directory template is found, resolve any metadata placeholders and return the path
 
         if directory_template is not None:
-            return Path(self._metadata_catalog.resolve(directory_template, date, computed_only=True))
+            return self._base_dir /Path(self._metadata_catalog.resolve(directory_template, date, computed_only=True))
 
         raise KeyError(
             f"Spec {spec_name!r} not found in any local resource spec. "
