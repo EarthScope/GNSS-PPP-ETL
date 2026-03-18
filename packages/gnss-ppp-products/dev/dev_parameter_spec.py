@@ -185,21 +185,20 @@ class ProductSpec(BaseModel):
     parameters: Optional[List[Parameter]] = Field(default_factory=list)
 
     def resolve(self, format_catalog: FormatCatalog) -> Product:
-        # Get the parent class-instance from the format catalog, update the parameters with the parameters from the product spec, and return the resolved product
+        # Get the parent product from the format catalog
         format_spec: Product = format_catalog.formats[self.format].versions[self.version].variants[self.variant]
-        resolved_parameters = []
-        for param in self.parameters:
-            # Check if the parameter exists in the parameter catalog. If it does, get it and update the value. If it doesnt simply add the parameter to the resolved parameters.
 
-            default = next((p for p in format_spec.parameters if p.name == param.name), None)
-            if default is not None:
-                resolved_param = default.model_copy(update=param.model_dump(exclude_none=True))
+        # Start with ALL format parameters, then overlay product spec overrides
+        resolved_parameters = {p.name: p.model_copy() for p in format_spec.parameters}
+        for param in self.parameters:
+            if param.name in resolved_parameters:
+                resolved_parameters[param.name] = resolved_parameters[param.name].model_copy(
+                    update=param.model_dump(exclude_none=True)
+                )
             else:
-                resolved_param = param
-            resolved_parameters.append(resolved_param)
-        
-        # Resolve the format spec to a product
-        product = format_spec.model_copy(update=self.model_dump(exclude_none=True)).model_copy(update={"parameters": resolved_parameters})
+                resolved_parameters[param.name] = param
+
+        product = format_spec.model_copy(update={"name": self.name, "parameters": list(resolved_parameters.values())})
         return product
 
 class ProductSpecVariantCatalog(BaseModel):
@@ -1314,7 +1313,7 @@ def _merge_parameters(
     for override in overrides:
         if override.name in result:
             result[override.name] = result[override.name].model_copy(
-                update={"value": override.value, "pattern": override.pattern}
+                update=override.model_dump(exclude_none=True)
             )
         else:
             result[override.name] = override.model_copy()
