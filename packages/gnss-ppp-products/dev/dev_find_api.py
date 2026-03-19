@@ -209,6 +209,7 @@ class QueryFactory:
         """
 
         local_resources = _listify(local_resources)
+        remote_resources = _listify(remote_resources)
         out: List[ResourceQuery] = []
         #################
         # 1. Get product templates matching the query product spec (name + optional version/variant)
@@ -273,17 +274,17 @@ class QueryFactory:
         print("\nTEST 2: product templates after narrowing parameter ranges by query constraints:")
         for template in product_templates_1:
             print(template.filename.pattern)
-        #################
-        # 4. For each product template, if the value of a parameter is still None (meaning it wasn't constrained by the query), 
-        # replace it with its regex pattern. This will give us a file pattern that can be used to match files on the server.
-        #################
-        product_templates_2: List[Product] = []
-        for template in product_templates_1:
-            updated = template.model_copy()
-            for param in updated.parameters:
-                if param.value is None:
-                    param.value = param.pattern
-            product_templates_2.append(updated)
+        # #################
+        # # 4. For each product template, if the value of a parameter is still None (meaning it wasn't constrained by the query), 
+        # # replace it with its regex pattern. This will give us a file pattern that can be used to match files on the server.
+        # #################
+        # product_templates_2: List[Product] = []
+        # for template in product_templates_1:
+        #     updated = template.model_copy()
+        #     for param in updated.parameters:
+        #         if param.value is None:
+        #             param.value = param.pattern
+        #     product_templates_2.append(updated)
 
         '''
         5. For each product template, build a ResourceQuery for each local and remote resource that matches the query constraints. 
@@ -309,12 +310,13 @@ class QueryFactory:
             5.2.3
                 Build a ResourceQuery for each remote resource with the resolved directory and the ProductPath object.
         '''
-        for template in product_templates_2:
-            resolution: Tuple[Server,ProductPath] = self._local.resolve_product(template, date)
+        for template in product_templates_1:
+            to_update = template.model_copy(deep=True)
+            resolution: Tuple[Server,ProductPath] = self._local.resolve_product(to_update, date)
             server, directory = resolution
             directory.pattern = self._metadata.resolve(directory.pattern, date, computed_only=True)
             rq = ResourceQuery(
-                product=template,
+                product=to_update,
                 server=server,
                 directory=directory
             )
@@ -324,21 +326,22 @@ class QueryFactory:
             print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
         
         # 5.2
-        for template in product_templates_2:
+        for template in product_templates_1:
+            to_update = template.model_copy(deep=True)
             for center_id in self._remote.centers:
-                if local_resources and center_id.upper() in local_resources:
+                if remote_resources and center_id.upper() in remote_resources:
                     continue
 
-                resolution: Tuple[Server,ProductPath] = self._remote.resolve_product(template, center_id)
-                server, directory = resolution
+                to_update = template.model_copy(deep=True)
+                resolution: Optional[ResourceQuery] = self._remote.resolve_product(to_update, center_id)
+                if resolution is None:
+                    print(f"Warning: Product {to_update.name!r} did not match any pinned queries for resource {center_id!r}. Skipping.")
+                    continue
+        
                 # TODO: resolve in the .resolve_product() method (missing GPSWEEK)
-                directory.pattern = self._metadata.resolve(directory.pattern, date, computed_only=True)
-                rq = ResourceQuery(
-                    product=template,
-                    server=server,
-                    directory=directory
-                )
-                out.append(rq)
+                resolution.directory = self._metadata.resolve(resolution.directory.pattern, date, computed_only=True)
+              
+                out.append(resolution)
 
         print("\nTEST 4: final ResourceQuery objects including remote resources:")
         for rq in out:
@@ -359,178 +362,12 @@ class QueryFactory:
             if rq.product.filename is not None:
                 rq.product.filename.derive(rq.product.parameters)
 
+        
         print("\nTEST 5: final ResourceQuery objects with all placeholders resolved to regex patterns:")
         for rq in out:
             print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
         return out
 
-    # ── Remote ───────────────────────────────────────────────────
-
-    def _remote_entries(self, dt, spec, constraints, location):
-        loc_set = {x.upper() for x in _listify(location)} if location else None
-        entries = []
-
-        for cid, resource_spec in self._remote._specs.items():
-            if loc_set and cid.upper() not in loc_set:
-                continue
-
-            for rp in resource_spec.products:
-                if not rp.available:
-                    continue
-                if spec and rp.product_name.upper() != spec.upper():
-                    continue
-
-                # Group multi-valued parameters into ranges: {"AAA": ["WUM","WMC"], ...}
-                declared = _param_ranges(rp.parameters)
-
-                # Narrow this entry's declared metadata by user constraints
-                narrowed = _intersect(declared, constraints)
-                if narrowed is None:
-                    continue  # constraint conflict — skip entirely
-
-                # Merge: narrowed resource metadata + extra user constraints
-                # (keys the resource doesn't declare → applied to file pattern only)
-                merged = dict(narrowed)
-                for k, v in constraints.items():
-                    if k not in merged:
-                        merged[k] = v
-
-                server = next(
-                    s for s in resource_spec.servers if s.id == rp.server_id
-                )
-                base_dir = self._meta.resolve(
-                    rp.directory.pattern, dt, computed_only=True
-                )
-
-                # Directory placeholders must be exact paths — expand multi-valued
-                for resolved_dir, pinned in _expand_dir(base_dir, merged):
-                    effective = {
-                        k: ([pinned[k]] if k in pinned else v)
-                        for k, v in merged.items()
-                    }
-                    for pat in self._file_patterns(rp, dt, effective):
-                        entries.append(SearchableResource(
-                            product_name=rp.product_name, source=cid,
-                            host=server.hostname, protocol=server.protocol or "",
-                            directory=resolved_dir, file_pattern=pat,
-                            metadata=effective, is_local=False,
-                        ))
-        return entries
-
-    # ── Local ────────────────────────────────────────────────────
-
-    def _local_entries(self, dt, spec, constraints):
-        entries = []
-        item_to_dir: dict[str, str] = getattr(self._local, '_item_to_dir', {})
-
-        for product_name in item_to_dir:
-            if spec and product_name.upper() != spec.upper():
-                continue
-
-            version_cat = self._products.products.get(product_name)
-            if not version_cat:
-                continue
-
-            try:
-                local_dir = str(self._local.resolve_directory(product_name, dt))
-            except (KeyError, ValueError, TypeError, AssertionError):
-                continue
-
-            for pat in self._product_file_patterns(product_name, dt, constraints):
-                entries.append(SearchableResource(
-                    product_name=product_name, source="local",
-                    host="", protocol="file",
-                    directory=local_dir, file_pattern=pat,
-                    metadata=constraints, is_local=True,
-                ))
-        return entries
-
-    # ── Template resolution ──────────────────────────────────────
-
-    def _file_patterns(self, rp: ResourceProductSpec, dt, meta) -> list[str]:
-        """Build file regex patterns for a single remote product entry.
-
-        Navigates ProductCatalog version→variant→Product, filtering by
-        ``rp.product_version`` when specified.
-        """
-        return self._product_file_patterns(
-            rp.product_name, dt, meta, versions=rp.product_version,
-        )
-
-    def _product_file_patterns(
-        self,
-        product_name: str,
-        dt,
-        meta: dict[str, list[str]],
-        versions: str | list[str] | None = None,
-    ) -> list[str]:
-        """Build file regex patterns from the ProductCatalog hierarchy."""
-        version_cat = self._products.products.get(product_name)
-        if not version_cat:
-            return []
-
-        ver_keys: list[str]
-        if versions is None:
-            ver_keys = list(version_cat.versions.keys())
-        elif isinstance(versions, str):
-            ver_keys = [versions]
-        else:
-            ver_keys = list(versions)
-
-        patterns: list[str] = []
-        for vk in ver_keys:
-            variant_cat = version_cat.versions.get(vk)
-            if not variant_cat:
-                continue
-            for product in variant_cat.variants.values():
-                if product.filename and product.filename.pattern:
-                    patterns.append(
-                        self._resolve_tmpl(product.filename.pattern, dt, meta)
-                    )
-        return patterns
-
-    def _resolve_tmpl(self, template: str, dt, meta: dict[str, list[str]]) -> str:
-        """Three-pass template resolution → regex string.
-
-        1. Computed date fields  (YYYY → "2024", DDD → "001") via MetadataCatalog
-        2. Metadata ranges       (single → literal, multi → alternation)
-        3. Remaining unresolved  (→ default regex from ParameterCatalog)
-        """
-        # Pass 1: computed date fields
-        r = self._meta.resolve(template, dt, computed_only=True)
-
-        # Pass 2: narrowed metadata
-        for k, vals in meta.items():
-            ph = f"{{{k}}}"
-            if ph not in r:
-                continue
-            if len(vals) == 1:
-                r = r.replace(ph, re.escape(vals[0]))
-            else:
-                r = r.replace(ph, "(?:" + "|".join(re.escape(v) for v in sorted(vals)) + ")")
-
-        # Pass 3: remaining {FIELD} → fallback regex from ParameterCatalog
-        for match in re.findall(r'\{(\w+)\}', r):
-            param = self._params.get(match)
-            if param and param.pattern:
-                r = r.replace(f"{{{match}}}", param.pattern)
-
-        return r
-
-
-# ─── Helpers ─────────────────────────────────────────────────────
-
-def _param_ranges(parameters: list[Parameter]) -> dict[str, list[str]]:
-    """Group multi-valued Parameter lists into {name: [values]}.
-
-    Only includes parameters that have a concrete ``value`` set.
-    Parameters with ``value=None`` are template defaults, not metadata.
-    """
-    ranges: dict[str, list[str]] = {}
-    for p in parameters:
-        if p.value is not None:
-            ranges.setdefault(p.name, []).append(p.value)
-    return ranges
 
 
 def _listify(v) -> list[str]:
@@ -539,67 +376,9 @@ def _listify(v) -> list[str]:
     return [v] if isinstance(v, str) else list(v)
 
 
-def _ensure_dt(d) -> datetime.datetime:
-    if isinstance(d, datetime.datetime):
-        return d.replace(tzinfo=datetime.timezone.utc) if d.tzinfo is None else d
-    if isinstance(d, str):
-        d = datetime.date.fromisoformat(d)
-    return datetime.datetime(d.year, d.month, d.day, tzinfo=datetime.timezone.utc)
 
 
-def _intersect(
-    available: dict[str, list[str]],
-    constraints: dict[str, list[str]],
-) -> dict[str, list[str]] | None:
-    """Narrow resource metadata by user constraints.
 
-    Returns narrowed dict, or ``None`` if any constrained key has an
-    empty intersection (meaning this resource cannot satisfy the query).
-    Keys in *constraints* but not in *available* are ignored here — they
-    don't filter out the resource, they only apply to file-pattern matching.
-    """
-    result = {k: list(v) for k, v in available.items()}
-    for key, allowed in constraints.items():
-        if key not in result:
-            continue
-        upper = {v.upper() for v in allowed}
-        narrowed = [v for v in result[key] if v.upper() in upper]
-        if not narrowed:
-            return None
-        result[key] = narrowed
-    return result
-
-
-def _expand_dir(
-    template: str,
-    meta: dict[str, list[str]],
-) -> list[tuple[str, dict[str, str]]]:
-    """Expand multi-valued metadata placeholders in a directory path.
-
-    Directories must be exact paths (you can't regex-list a directory),
-    so any multi-valued metadata that appears as a ``{KEY}`` placeholder
-    in the template is expanded into separate (path, pinned_values) pairs.
-    Single-valued keys are substituted in-place.
-    """
-    # First substitute all single-valued keys
-    resolved = template
-    for k, vals in meta.items():
-        if f"{{{k}}}" in resolved and len(vals) == 1:
-            resolved = resolved.replace(f"{{{k}}}", vals[0])
-
-    # Find multi-valued keys still present as placeholders
-    multi = [k for k, v in meta.items() if f"{{{k}}}" in resolved and len(v) > 1]
-    if not multi:
-        return [(resolved, {})]
-
-    results = []
-    for combo in itertools.product(*(meta[k] for k in multi)):
-        d = resolved
-        pinned = dict(zip(multi, combo))
-        for k, v in pinned.items():
-            d = d.replace(f"{{{k}}}", v)
-        results.append((d, pinned))
-    return results
 
 
 if __name__ == "__main__":
@@ -634,11 +413,8 @@ if __name__ == "__main__":
     test = QF.get(
         date=date,
         product={"name": "ORBIT", "version": ["1"]},
-        parameters={"AAA": ["WUM", "COD"], "TTT": ["FIN", "RAP"]},
+        parameters={"AAA": ["WUM", "COD","IGS"], "TTT": ["FIN", "RAP"]},
         remote_resources=["WUM", "COD"],
     )
 
-    print("\n[RESULTS]")
-    for r in test:
-        r.filename.derive(r.parameters)
-        print(r.filename.pattern)
+  

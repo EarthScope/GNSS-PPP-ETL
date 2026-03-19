@@ -2,6 +2,7 @@ import datetime
 from collections import defaultdict
 from itertools import product as iterproduct
 import re
+from token import OP
 import yaml
 
 from pydantic import BaseModel, Field   
@@ -1639,7 +1640,27 @@ class RemoteResourceFactory:
     def all_queries(self) -> List[ResourceQuery]:
         return [q for cat in self._catalogs.values() for q in cat.queries]
 
-    def resolve_product(self,product:Product,resource_id:str) -> Tuple[Server,ProductPath]:
+    @staticmethod
+    def match_pinned_query(found: Product, incoming: Product) -> Optional[Product]:
+        """Check if a found query matches an incoming product based on pinned parameters."""
+        found_params = {p.name: p.value for p in found.parameters if p.value is not None}
+        incoming_params = {p.name: p.value for p in incoming.parameters if p.value is not None}
+        matching_keys = set(found_params.keys()) & set(incoming_params.keys())
+        for key in matching_keys:
+            
+            found_val = found_params[key]
+            incoming_val = incoming_params[key]
+            if found_val != incoming_val:
+                print(f"Parameter {key} does not match: found={found_val}, incoming={incoming_val}")
+                return None
+            
+        for p in incoming.parameters:
+            if p.value is None and p.name in found_params:
+                p.value = found_params.get(p.name)
+        print(f"DEBUG MATCH")
+        return incoming
+    
+    def resolve_product(self,product:Product,resource_id:str) -> Optional[ResourceQuery]:
         """Resolve a ResourceQuery's product and server for remote access."""
         cat = self._catalogs.get(resource_id)
         if cat is None:
@@ -1647,8 +1668,15 @@ class RemoteResourceFactory:
         query = next((q for q in cat.queries if q.product.name == product.name), None)
         if query is None:
             raise KeyError(f"Product {product.name!r} not found in resource {resource_id!r}. Known products: {set(q.product.name for q in cat.queries)}")
+        
+        # We need to match incoming product values with query product values.
+        matched_product: Optional[Product] = self.match_pinned_query(query.product, product)
+        if matched_product is None:
+            return None
+        
+        query.product.filename.derive(product.parameters) if query.product.filename else None
         query.directory.derive(product.parameters)
-        return query.server, query.directory
+        return query
 
 # ═══════════════════════════════════════════════════════════════════
 # LocalResourceFactory — collections-based (from local_config.yaml)
