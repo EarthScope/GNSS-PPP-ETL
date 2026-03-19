@@ -69,56 +69,13 @@ from dev_specs import (
 
 from itertools import product
 
-def expand_dict_combinations(d: dict[str, list[str]]) -> list[dict[str, str]]:
-    keys = list(d.keys())
-    values_product = product(*(d[k] for k in keys))
-    return [dict(zip(keys, combo)) for combo in values_product]
-# ─── Axis aliases ────────────────────────────────────────────────
-
-_AXIS_TO_PARAM = {
-    "center": "AAA",
-    "solution": "TTT",
-    "campaign": "PPP",
-    "sampling": "SMP",
-}
-
-
-# ─── Result type ─────────────────────────────────────────────────
-
-@dataclass(frozen=True)
-class SearchableResource:
-    """One searchable location with a file-matching regex.
-
-    NOT a cartesian expansion of parameters — multi-valued metadata
-    fields become ``(?:A|B|C)`` alternations in ``file_pattern``.
-    """
-
-    product_name: str        # e.g. "ORBIT", "CLOCK"
-    source: str              # center_id or "local"
-    host: str
-    protocol: str
-    directory: str           # fully resolved path
-    file_pattern: str        # regex for filename matching
-    metadata: Dict[str, List[str]] = field(default_factory=dict)
-    is_local: bool = False
-
-    def match(self, filenames: list[str]) -> list[str]:
-        """Filter a directory listing against ``file_pattern``."""
-        try:
-            rx = re.compile(self.file_pattern, re.IGNORECASE)
-            return [f for f in filenames if rx.search(f)]
-        except re.error:
-            return [f for f in filenames if self.file_pattern in f]
-
-    @property
-    def uri(self) -> str:
-        if self.is_local:
-            return f"file://{self.directory}"
-        sep = "" if self.directory.startswith("/") else "/"
-        return f"{self.protocol}://{self.host}{sep}{self.directory}"
-
 
 # ─── QueryFactory ────────────────────────────────────────────────
+def _listify(v) -> list[str]:
+    if v is None:
+        return []
+    return [v] if isinstance(v, str) else list(v)
+
 
 class QueryFactory:
     """Lazy query factory — narrows parameter ranges, resolves on demand.
@@ -362,23 +319,11 @@ class QueryFactory:
             if rq.product.filename is not None:
                 rq.product.filename.derive(rq.product.parameters)
 
-        
+
         print("\nTEST 5: final ResourceQuery objects with all placeholders resolved to regex patterns:")
         for rq in out:
             print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
         return out
-
-
-
-def _listify(v) -> list[str]:
-    if v is None:
-        return []
-    return [v] if isinstance(v, str) else list(v)
-
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -416,5 +361,3 @@ if __name__ == "__main__":
         parameters={"AAA": ["WUM", "COD","IGS"], "TTT": ["FIN", "RAP"]},
         remote_resources=["WUM", "COD"],
     )
-
-  
