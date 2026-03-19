@@ -1639,6 +1639,16 @@ class RemoteResourceFactory:
     def all_queries(self) -> List[ResourceQuery]:
         return [q for cat in self._catalogs.values() for q in cat.queries]
 
+    def resolve_product(self,product:Product,resource_id:str) -> Tuple[Server,ProductPath]:
+        """Resolve a ResourceQuery's product and server for remote access."""
+        cat = self._catalogs.get(resource_id)
+        if cat is None:
+            raise KeyError(f"Resource {resource_id!r} not found in remote catalogs. Known resources: {list(self._catalogs.keys())}")
+        query = next((q for q in cat.queries if q.product.name == product.name), None)
+        if query is None:
+            raise KeyError(f"Product {product.name!r} not found in resource {resource_id!r}. Known products: {set(q.product.name for q in cat.queries)}")
+        query.directory.derive(product.parameters)
+        return query.server, query.directory
 
 # ═══════════════════════════════════════════════════════════════════
 # LocalResourceFactory — collections-based (from local_config.yaml)
@@ -1671,7 +1681,7 @@ class LocalResourceFactory:
         self._base_dir = base_dir
 
         # Build a single local "server"
-        local_server = Server(
+        self.local_server = Server(
             id="local_disk",
             hostname=str(base_dir) if base_dir else "local",
             protocol="file",
@@ -1685,8 +1695,7 @@ class LocalResourceFactory:
 
         for coll_name, coll in local_spec.collections.items():
             for item in coll.items:
-                spec_name = item["name"]
-                self._item_to_dir[spec_name] = coll.directory
+                self._item_to_dir[item] = coll.directory
         
         # Check that all specs in the product catalog have a local directory template
         for prod_name in product_catalog.products.keys():
@@ -1711,7 +1720,22 @@ class LocalResourceFactory:
         resolved = self._parameter_catalog.resolve(directory_template, dt, computed_only=True)
 
         return self._base_dir / Path(resolved)
-   
+    
+    def resolve_product(self,product:Product,date:datetime.datetime) -> Tuple[Server,ProductPath]:
+        """Resolve a ResourceQuery's product and server for local access."""
+        dt = _ensure_datetime(date)
+        directory_template = self._item_to_dir.get(product.name)
+        if directory_template is None:
+            raise KeyError(
+                f"Spec {product.name!r} not found in any local collection. "
+                f"Known specs: {list(self._item_to_dir.keys())}"
+            )
+        directory_template_pp: ProductPath = ProductPath(pattern=directory_template)
+        directory_template_pp.derive(product.parameters)
+
+        
+
+        return self.local_server, directory_template_pp
 
     def find_local_files(
         self, query: ResourceQuery, date: Optional[datetime.date] = None,

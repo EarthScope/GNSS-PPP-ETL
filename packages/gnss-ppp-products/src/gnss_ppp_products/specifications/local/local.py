@@ -14,7 +14,7 @@ class LocalCollection(BaseModel):
 
     directory: str
     description: str = ""
-    items: List[dict] = Field(default_factory=list)
+    items: List = Field(default_factory=list)
 
 
 class LocalResourceSpec(BaseModel):

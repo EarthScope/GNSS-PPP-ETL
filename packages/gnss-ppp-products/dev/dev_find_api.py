@@ -26,14 +26,16 @@ from math import prod
 from pathlib import Path
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
+from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.metadata.metadata_catalog import MetadataCatalog
 from pytest import param
 from tomlkit import date
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from dev_parameter_spec_claude import (
+    LOCAL_CONFIG_PATH,
     FormatCatalog,
     FormatSpecCatalog,
     ParameterCatalog,
@@ -205,6 +207,8 @@ class QueryFactory:
         ...     local_resources=local_resource,
         ... )
         """
+
+        local_resources = _listify(local_resources)
         out: List[ResourceQuery] = []
         #################
         # 1. Get product templates matching the query product spec (name + optional version/variant)
@@ -292,8 +296,54 @@ class QueryFactory:
                 the LocalResourceFactory.
             5.1.2 
                 For each included local resource, resolve the directory path using the LocalResourceFactory's resolve_directory method. 
-                ex. self._local.resolve_directory(template.parameters,resource_name=None) = (Server, directory)
+                ex. self._local.resolve_directory(Product,resource_name=None) = (Server, directory)
+            5.1.3
+                Build a ResourceQuery for each local resource with the resolved directory and the ProductPath object.
+        
+        5.2 For remote resources:
+            5.2.1
+                If remote_resources is specified, only include remote resources with center IDs in remote_resources, otherwise include all remote resources in the RemoteResourceFactory.
+            5.2.2
+                For each included remote resource, resolve the directory path using the RemoteResourceFactory's resolve_directory method. 
+                ex. self._remote.resolve_directory(Product,resource_name=None) = (Server, directory)
+            5.2.3
+                Build a ResourceQuery for each remote resource with the resolved directory and the ProductPath object.
         '''
+        for template in product_templates_2:
+            resolution: Tuple[Server,ProductPath] = self._local.resolve_product(template, date)
+            server, directory = resolution
+            directory.pattern = self._metadata.resolve(directory.pattern, date, computed_only=True)
+            rq = ResourceQuery(
+                product=template,
+                server=server,
+                directory=directory
+            )
+            out.append(rq)
+        print("\nTEST 3: final ResourceQuery objects with resolved directories and file patterns:")
+        for rq in out:
+            print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
+        
+        # 5.2
+        for template in product_templates_2:
+            for center_id in self._remote.centers:
+                if local_resources and center_id.upper() in local_resources:
+                    continue
+
+                resolution: Tuple[Server,ProductPath] = self._remote.resolve_product(template, center_id)
+                server, directory = resolution
+                # TODO: resolve in the .resolve_product() method (missing GPSWEEK)
+                directory.pattern = self._metadata.resolve(directory.pattern, date, computed_only=True)
+                rq = ResourceQuery(
+                    product=template,
+                    server=server,
+                    directory=directory
+                )
+                out.append(rq)
+
+        print("\nTEST 4: final ResourceQuery objects including remote resources:")
+        for rq in out:
+            print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
+
         return product_templates_2
 
     # ── Remote ───────────────────────────────────────────────────
@@ -536,7 +586,7 @@ def _expand_dir(
 
 if __name__ == "__main__":
     from pathlib import Path
-    date = datetime.datetime(2024, 1, 1)
+    date = datetime.datetime(2024, 1, 1).astimezone(datetime.timezone.utc)
     base_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
     PARAMETER_CATALOG = ParameterCatalog(parameters=[Parameter(**p) for p in parameter_spec_dict])
     FORMAT_CATALOG = FormatCatalog(
@@ -552,10 +602,12 @@ if __name__ == "__main__":
     REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**igs_resource_spec_dict))
     REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**code_resource_spec_dict))
     METADATA_CATALOG = _build_metadata_catalog()
+    LOCAL_SPEC = LocalResourceSpec.from_yaml(str(LOCAL_CONFIG_PATH))
+    local = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, METADATA_CATALOG,base_dir=base_dir)
 
     QF = QueryFactory(
         remote_factory=REMOTE_RESOURCE_FACTORY,
-        local_factory=None,
+        local_factory=local,
         product_catalog=PRODUCT_CATALOG,
         metadata_catalog=METADATA_CATALOG,
         parameter_catalog=PARAMETER_CATALOG,

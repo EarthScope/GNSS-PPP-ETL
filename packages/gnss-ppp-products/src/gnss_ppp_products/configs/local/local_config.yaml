@@ -42,7 +42,7 @@ collections:
     directory: "{YYYY}/{DDD}/products"
     temporal: daily
     description: "Precise orbit, clock, ERP, bias, and attitude products"
-    specs:
+    items:
       - ORBIT
       - CLOCK
       - ERP
@@ -53,7 +53,7 @@ collections:
     directory: "{YYYY}/{DDD}/rinex"
     temporal: daily
     description: "RINEX observation files for PPP processing"
-    specs:
+    items:
       - RNX3_BRDC
       - RINEX_NAV
       - RINEX_MET
@@ -66,7 +66,7 @@ collections:
     directory: "{YYYY}/{DDD}/common"
     temporal: daily
     description: "Broadcast navigation, ionosphere maps, and troposphere grids"
-    specs:
+    items:
       - IONEX
       - VMF
 
@@ -77,7 +77,7 @@ collections:
     directory: "table"
     temporal: static
     description: "Reference tables, antenna calibrations, and orography grids"
-    specs:
+    items:
       - ATTATX
       - LEAP_SEC
       - SAT_PARAMS
@@ -90,5 +90,5 @@ collections:
     directory: "{YYYY}/{DDD}/leo"
     temporal: daily
     description: "LEO satellite Level-1B instrument data (GRACE, GRACE-FO)"
-    specs:
+    items:
       - LEO_L1B
