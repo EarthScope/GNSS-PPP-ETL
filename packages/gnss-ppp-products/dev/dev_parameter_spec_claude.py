@@ -135,7 +135,7 @@ class FormatSpec(BaseModel):
             name = param["name"]
             default = parameter_catalog.get(name, None)
             if default is not None:
-                resolved_param = default.model_copy(update=param)
+                resolved_param = default.model_copy(update=param, deep=True)
             else:
                 resolved_param = Parameter(**param)
             resolved_parameters[name] = resolved_param
@@ -202,16 +202,16 @@ class ProductSpec(BaseModel):
         format_spec: Product = format_catalog.formats[self.format].versions[self.version].variants[self.variant]
 
         # Start with ALL format parameters, then overlay product spec overrides
-        resolved_parameters = {p.name: p.model_copy() for p in format_spec.parameters}
+        resolved_parameters = {p.name: p.model_copy(deep=True) for p in format_spec.parameters}
         for param in self.parameters:
             if param.name in resolved_parameters:
                 resolved_parameters[param.name] = resolved_parameters[param.name].model_copy(
-                    update=param.model_dump(exclude_none=True)
+                    update=param.model_dump(exclude_none=True),deep=True
                 )
             else:
                 resolved_parameters[param.name] = param
 
-        product = format_spec.model_copy(update={"name": self.name, "parameters": list(resolved_parameters.values())})
+        product = format_spec.model_copy(update={"name": self.name, "parameters": list(resolved_parameters.values())},deep=True)
         return product
 
 class ProductSpecVariantCatalog(BaseModel):
@@ -233,6 +233,8 @@ class ProductCatalog(BaseModel):
 
         for product_name, product_spec_cat in product_spec_catalog.products.items():
             versions = {}
+            if product_name == "ORBIT":
+                print(product_spec_cat)
             for version_name, version_spec in product_spec_cat.versions.items():
                 variants = {}
                 for variant_name, product_spec in version_spec.variants.items():
@@ -241,6 +243,8 @@ class ProductCatalog(BaseModel):
                         product.filename.derive(product.parameters)
                     variants[variant_name] = product
                 versions[version_name] = VariantCatalog(name=version_spec.name, variants=variants)
+            if product_name in products:
+                print(f"Duplicate product name {product_name} found. Overwriting previous entry.")
             products[product_name] = VersionCatalog(name=product_spec_cat.name, versions=versions)
             
         super().__init__(products=products)
@@ -1225,7 +1229,7 @@ class ResourceQuery(BaseModel):
 
         # Deep-copy filename/directory before mutating to avoid cross-query contamination
         if self.product.filename:
-            self.product = self.product.model_copy(update={
+            self.product = self.product.model_copy(deep=True, update={
                 "filename": ProductPath(pattern=self.product.filename.pattern.format_map(format_dict))
             })
         self.directory = ProductPath(pattern=self.directory.pattern.format_map(format_dict))
@@ -1281,7 +1285,7 @@ class ResourceCatalog(BaseModel):
                             base_product.parameters, combo
                         )
                         pinned_product = base_product.model_copy(
-                            update={"parameters": merged_params,"name":rp_spec.product_name }
+                            update={"parameters": merged_params,"name":rp_spec.product_name }, deep=True
                         )
                         queries.append(
                             ResourceQuery(
@@ -1317,14 +1321,14 @@ def _merge_parameters(
     overrides: List[Parameter],
 ) -> List[Parameter]:
     """Return base params with overrides applied (by name)."""
-    result = {p.name: p.model_copy() for p in base_params}
+    result = {p.name: p.model_copy(deep=True) for p in base_params}
     for override in overrides:
         if override.name in result:
             result[override.name] = result[override.name].model_copy(
-                update=override.model_dump(exclude_none=True)
+                update=override.model_dump(exclude_none=True), deep=True
             )
         else:
-            result[override.name] = override.model_copy()
+            result[override.name] = override.model_copy(deep=True)
     return list(result.values())
 
 
@@ -1907,7 +1911,7 @@ class ProductQuery:
                     pattern=mc.resolve(q.product.filename.pattern, dt, computed_only=True)
                 )
             new_product = q.product.model_copy(
-                update={"filename": new_filename} if new_filename else {}
+                update={"filename": new_filename} if new_filename else {},deep=True
             )
             new_q = ResourceQuery(
                 product=new_product,
@@ -2140,8 +2144,8 @@ igs_resource_spec_dict = {
             "available": True,
             "description": "IGS combined final orbits",
             "parameters": [
-                {"name": "AAA", "value": "IGS"},
-                {"name": "TTT", "value": "FIN"},
+                {"name": "AAA", "value": ["IGS","WUM"]},
+                {"name": "TTT", "value": ["FIN","RAP"]},
                 {"name": "PPP", "value": "OPS"},
                 {"name": "SMP", "value": "15M"},
             ],

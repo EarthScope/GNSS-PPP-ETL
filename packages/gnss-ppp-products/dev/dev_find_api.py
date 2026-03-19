@@ -541,7 +541,7 @@ if __name__ == "__main__":
     test = QF.get(
         date=date,
         product={"name": "ORBIT", "version": ["1"]},
-        parameters={"AAA": ["WUM", "COD","IGS"], "TTT": ["FIN", "RAP"]},
+        parameters={"AAA": ["WUM", "COD","IGS"], "TTT": ["FIN", "RAP"],"SMP": "05M"},
         remote_resources=["WUM", "COD"],
     )
 

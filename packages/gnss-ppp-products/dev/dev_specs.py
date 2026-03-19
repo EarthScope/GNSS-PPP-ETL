@@ -980,10 +980,10 @@ igs_resource_spec_dict = {
             "available": True,
             "description": "IGS combined final orbits",
             "parameters": [
-                {"name": "AAA", "value": "IGS"},
+                {"name": "AAA", "value": "WUM"},
                 {"name": "TTT", "value": "FIN"},
                 {"name": "PPP", "value": "OPS"},
-                {"name": "SMP", "value": "15M"},
+                {"name": "SMP", "value": "05M"},
             ],
             "directory": {"pattern": "pub/gnss/products/{GPSWEEK}/"},
         },
