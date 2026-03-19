@@ -1,6 +1,6 @@
 import logging
 import re
-from ftplib import FTP_TLS
+from ftplib import FTP, FTP_TLS
 from functools import lru_cache
 from pathlib import Path
 from typing import Generator, List
@@ -35,7 +35,7 @@ def _open_fs(
     """Return an ``FTPFileSystem`` (or ``FTPSFileSystem``) for *ftpserver*."""
     host = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
     cls = FTPSFileSystem if use_tls else FTPFileSystem
-    return cls(host=host, port=21, username="anonymous", password="", timeout=timeout)
+    return cls(host=host, port=21, timeout=timeout)
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,6 @@ def ftp_can_connect(
         logger.error(f"Failed to connect to FTP server {ftpserver} | {e}")
         return False
 
-
 @lru_cache(maxsize=128)
 def ftp_list_directory(
     ftpserver: str,
@@ -63,23 +62,67 @@ def ftp_list_directory(
     use_tls: bool = False,
 ) -> list[str]:
     """
-    Connect to *ftpserver*, list *directory*, and return basenames.
+    Connect to *ftpserver*, change to *directory*, and return the file listing.
+
+    If *use_tls* is ``False``, tries plain FTP first and automatically
+    retries with TLS on failure.  If *use_tls* is ``True``, only tries TLS.
 
     Returns an empty list on any connection or command error so the caller
     can decide how to handle the failure.
-
-    Args:
-        use_tls: If True, use FTPS (FTP over TLS) for servers requiring
-                 encryption (e.g., NASA CDDIS).
     """
-    try:
-        fs = _open_fs(ftpserver, timeout=timeout, use_tls=use_tls)
-        entries = fs.ls("/" + directory, detail=False)
-        # fs.ls returns full paths — strip to basenames
-        return [e.rsplit("/", 1)[-1] for e in entries]
-    except Exception as e:  # noqa: BLE001
-        logger.error(f"Failed to list directory {directory} on {ftpserver} | {e}")
-        return []
+    clean = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
+
+    for ftp_cls in [FTP, FTP_TLS]:
+        try:
+            with ftp_cls(clean, timeout=timeout) as ftp:
+                ftp.set_pasv(True)
+                ftp.login()
+                if ftp_cls is FTP_TLS:
+                    ftp.prot_p()  # switch data channel to TLS
+                 
+                ftp.cwd("/" + directory.strip("/"))
+                entries = ftp.nlst()
+                
+                return entries
+        except Exception as e:  # noqa: BLE001
+            label = "FTPS" if ftp_cls is FTP_TLS else "FTP"
+            logger.warning(f"{label} listing failed for {directory} on {ftpserver} | {e}")
+            continue
+
+    logger.error(f"All FTP attempts failed for {directory} on {ftpserver}")
+    return []
+
+
+# @lru_cache(maxsize=128)
+# def ftp_list_directory(
+#     ftpserver: str,
+#     directory: str,
+#     timeout: int = 60,
+#     use_tls: bool = False,
+# ) -> list[str]:
+#     """
+#     Connect to *ftpserver*, list *directory*, and return basenames.
+
+#     Returns an empty list on any connection or command error so the caller
+#     can decide how to handle the failure.
+
+#     Args:
+#         use_tls: If True, use FTPS (FTP over TLS) for servers requiring
+#                  encryption (e.g., NASA CDDIS).
+#     """
+#     try:
+#         # fs = _open_fs(ftpserver, timeout=timeout, use_tls=use_tls)
+#         # entries = fs.ls("/" + directory, detail=False)
+#         # # fs.ls returns full paths — strip to basenames
+#         # return [e.rsplit("/", 1)[-1] for e in entries]
+#         host = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
+#         ftp = FTP(host, timeout=timeout)
+#         ftp.login()
+#         ftp.cwd("/" + directory.strip("/"))
+#         return ftp.nlst()
+#     except Exception as e:  # noqa: BLE001
+#         logger.error(f"Failed to list directory {directory} on {ftpserver} | {e}")
+#         return []
 
 
 def ftp_download_file(
@@ -97,22 +140,29 @@ def ftp_download_file(
     (file exists and is non-empty), *False* on any failure (partial download
     is deleted before returning).
 
-    Args:
-        use_tls: If True, use FTPS (FTP over TLS) for servers requiring
-                 encryption (e.g., NASA CDDIS).
+    If *use_tls* is ``False``, tries plain FTP first and automatically
+    retries with TLS on failure.
     """
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        fs = _open_fs(ftpserver, timeout=timeout, use_tls=use_tls)
-        remote = "/" + directory.strip("/") + "/" + filename
-        fs.get(remote, str(dest_path))
-        if dest_path.exists() and dest_path.stat().st_size > 0:
-            return True
-        dest_path.unlink(missing_ok=True)
-        return False
-    except Exception:  # noqa: BLE001
-        dest_path.unlink(missing_ok=True)
-        return False
+    tls_options = [use_tls] if use_tls else [False, True]
+
+    for tls in tls_options:
+        try:
+            fs = _open_fs(ftpserver, timeout=timeout, use_tls=tls)
+            remote = "/" + directory.strip("/") + "/" + filename
+            fs.get(remote, str(dest_path))
+            if dest_path.exists() and dest_path.stat().st_size > 0:
+                if tls and not use_tls:
+                    logger.info(f"Plain FTP download failed for {ftpserver}, succeeded with TLS")
+                return True
+            dest_path.unlink(missing_ok=True)
+        except Exception as e:  # noqa: BLE001
+            label = "FTPS" if tls else "FTP"
+            logger.warning(f"{label} download failed for {filename} on {ftpserver} | {e}")
+            dest_path.unlink(missing_ok=True)
+            continue
+
+    return False
 
 
 def ftp_find_best_match_in_listing(

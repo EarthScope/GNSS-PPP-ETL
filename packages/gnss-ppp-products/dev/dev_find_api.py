@@ -27,11 +27,11 @@ from pathlib import Path
 import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
-
+from gnss_ppp_products.server.ftp import ftp_list_directory
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.metadata.metadata_catalog import MetadataCatalog
-from pytest import param
-from tomlkit import date
+from gnss_ppp_products.server.http import http_list_directory, extract_filenames_from_html
+
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from dev_parameter_spec_claude import (
@@ -75,6 +75,17 @@ def _listify(v) -> list[str]:
     if v is None:
         return []
     return [v] if isinstance(v, str) else list(v)
+
+
+def expand_dict_combinations(d: dict[str, list[str]]) -> list[dict[str, str]]:
+    """Cartesian product of dict values.
+
+    >>> expand_dict_combinations({"A": ["1","2"], "B": ["x","y"]})
+    [{"A":"1","B":"x"}, {"A":"1","B":"y"}, {"A":"2","B":"x"}, {"A":"2","B":"y"}]
+    """
+    keys = list(d.keys())
+    vals = [d[k] for k in keys]
+    return [dict(zip(keys, combo)) for combo in itertools.product(*vals)]
 
 
 class QueryFactory:
@@ -326,6 +337,178 @@ class QueryFactory:
         return out
 
 
+# ─── ResourceFetcher ─────────────────────────────────────────────
+
+@dataclass
+class FetchResult:
+    """Outcome of searching one ResourceQuery against its server."""
+
+    query: ResourceQuery
+    matched_filenames: List[str] = field(default_factory=list)
+    directory_listing: List[str] = field(default_factory=list)
+    error: Optional[str] = None
+
+    @property
+    def found(self) -> bool:
+        return len(self.matched_filenames) > 0
+
+
+class ResourceFetcher:
+    """Search for files described by ResourceQuery objects.
+
+    For each query, lists the remote (FTP/HTTP) or local directory, matches
+    ``product.filename.pattern`` against the listing, and populates
+    ``directory.value`` and ``filename.value`` on the query.
+
+    Usage::
+
+        queries = qf.get(date=..., product=..., parameters=...)
+        fetcher = ResourceFetcher()
+        results = fetcher.search(queries)
+
+        for r in results:
+            if r.found:
+                print(r.query.server.hostname, r.matched_filenames)
+    """
+
+    def __init__(
+        self,
+        *,
+        ftp_timeout: int = 60,
+        download_timeout: int = 180,
+    ) -> None:
+        self._ftp_timeout = ftp_timeout
+        self._download_timeout = download_timeout
+        self._listing_cache: Dict[str, List[str]] = {}  # key: "protocol://host/directory"
+
+    def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
+        """Search every query's server/directory for matching files.
+
+        For each query:
+        1. Determine the directory path from ``query.directory``
+        2. List the directory via the appropriate protocol
+        3. Match ``query.product.filename.pattern`` against the listing
+        4. Populate ``query.directory.value`` and ``query.product.filename.value``
+           for the first match
+
+        Returns a list of ``FetchResult`` — one per input query, in order.
+        """
+        return [self._search_one(q) for q in queries]
+
+    def _search_one(self, query: ResourceQuery) -> FetchResult:
+        """Search a single query's directory for matching files."""
+        directory = self._get_directory(query)
+        file_pattern = self._get_file_pattern(query)
+
+        if not directory or not file_pattern:
+            return FetchResult(
+                query=query,
+                error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
+            )
+
+        protocol = (query.server.protocol or "").upper()
+        hostname = query.server.hostname
+
+        cache_key = f"{protocol}://{hostname}/{directory}"
+
+        if cache_key in self._listing_cache:
+            listing = self._listing_cache[cache_key]
+        else:
+            try:
+                if protocol in ("FTP", "FTPS"):
+                    listing = self._list_ftp(hostname, directory, use_tls=(protocol == "FTPS"))
+                elif protocol in ("HTTP", "HTTPS"):
+                    listing = self._list_http(hostname, directory)
+                elif protocol in ("FILE", "LOCAL", ""):
+                    listing = self._list_local(directory)
+                else:
+                    return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
+                if not listing:
+                    raise Exception("Listing returned empty")
+            except Exception as e:
+                return FetchResult(query=query, error=f"Listing failed: {e}")
+            # Cache non-local listings (local dirs may change between calls)
+            if protocol not in ("FILE", "LOCAL", ""):
+                self._listing_cache[cache_key] = listing
+
+        matches = self._match_files(listing, file_pattern)
+
+        # Resolve .value fields on the query for matched results
+        if matches:
+            self._resolve_values(query, directory, matches[0])
+
+        return FetchResult(
+            query=query,
+            matched_filenames=matches,
+            directory_listing=listing,
+        )
+
+    # ── Protocol handlers ────────────────────────────────────────
+
+    def _list_ftp(self, hostname: str, directory: str, *, use_tls: bool = False) -> List[str]:
+    
+        return ftp_list_directory(hostname, directory, timeout=self._ftp_timeout, use_tls=use_tls)
+
+    def _list_http(self, hostname: str, directory: str) -> List[str]:
+
+        html = http_list_directory(hostname, directory)
+        if html is None:
+            return []
+        return extract_filenames_from_html(html)
+
+    def _list_local(self, directory: str) -> List[str]:
+        d = Path(directory)
+        if not d.exists():
+            return []
+        return [p.name for p in sorted(d.iterdir()) if p.is_file()]
+
+    # ── Pattern matching ─────────────────────────────────────────
+
+    @staticmethod
+    def _match_files(listing: List[str], file_pattern: str) -> List[str]:
+        """Match filenames in a directory listing against a regex pattern."""
+        try:
+            rx = re.compile(file_pattern, re.IGNORECASE)
+            return [f for f in listing if rx.search(f)]
+        except re.error:
+            # Fallback to substring match if pattern is invalid regex
+            return [f for f in listing if file_pattern in f]
+
+    # ── Value resolution ─────────────────────────────────────────
+
+    @staticmethod
+    def _resolve_values(query: ResourceQuery, directory: str, matched_filename: str) -> None:
+        """Populate .value on the query's directory and filename ProductPaths."""
+        if isinstance(query.directory, ProductPath):
+            query.directory.value = directory
+        if query.product.filename is not None and isinstance(query.product.filename, ProductPath):
+            query.product.filename.value = matched_filename
+
+    # ── Helpers ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _get_directory(query: ResourceQuery) -> Optional[str]:
+        """Extract the resolved directory string from a query."""
+        d = query.directory
+        if isinstance(d, ProductPath):
+            return d.value or d.pattern
+        if isinstance(d, str):
+            return d
+        return None
+
+    @staticmethod
+    def _get_file_pattern(query: ResourceQuery) -> Optional[str]:
+        """Extract the file regex pattern from a query."""
+        if query.product.filename is None:
+            return None
+        fn = query.product.filename
+        if isinstance(fn, ProductPath):
+            return fn.pattern
+        if isinstance(fn, str):
+            return fn
+        return None
+
+
 if __name__ == "__main__":
     from pathlib import Path
     date = datetime.datetime(2024, 1, 1).astimezone(datetime.timezone.utc)
@@ -361,3 +544,21 @@ if __name__ == "__main__":
         parameters={"AAA": ["WUM", "COD","IGS"], "TTT": ["FIN", "RAP"]},
         remote_resources=["WUM", "COD"],
     )
+
+    # ── ResourceFetcher demo ─────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("ResourceFetcher — searching for files…")
+    print("=" * 60)
+    fetcher = ResourceFetcher()
+    fetch_results = fetcher.search(test)
+    for fr in fetch_results:
+        status = "FOUND" if fr.found else ("ERROR" if fr.error else "NO MATCH")
+        dir_str = ResourceFetcher._get_directory(fr.query) or "?"
+        print(f"\n[{status}] {fr.query.server.hostname} | {dir_str}")
+        print(f"  Pattern:  {ResourceFetcher._get_file_pattern(fr.query)}")
+        if fr.found:
+            print(f"  Matches:  {fr.matched_filenames[:5]}")
+            print(f"  dir.value = {fr.query.directory.value if isinstance(fr.query.directory, ProductPath) else fr.query.directory}")
+            print(f"  fn.value  = {fr.query.product.filename.value if fr.query.product.filename else None}")
+        elif fr.error:
+            print(f"  Error:    {fr.error}")
