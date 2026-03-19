@@ -344,7 +344,25 @@ class QueryFactory:
         for rq in out:
             print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
 
-        return product_templates_2
+        '''
+        6. Replace any unresolved placeholders in the file patterns with their parameter default regex patterns.
+        
+        6.1 For each ResourceQuery, iterate over their parameters and replace missing values with the regex pattern.
+        6.2 Resolve any remaining file pattern placeholders with .derive()
+        
+        '''
+
+        for rq in out:
+            for param in rq.product.parameters:
+                if param.value is None:
+                    param.value = param.pattern
+            if rq.product.filename is not None:
+                rq.product.filename.derive(rq.product.parameters)
+
+        print("\nTEST 5: final ResourceQuery objects with all placeholders resolved to regex patterns:")
+        for rq in out:
+            print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
+        return out
 
     # ── Remote ───────────────────────────────────────────────────
 
