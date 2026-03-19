@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import datetime
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
@@ -90,6 +90,18 @@ class MetadataCatalog:
             if f.pattern is not None
         }
 
+    def resolve_params(self,
+                     params: List[Any],
+                     date: datetime.datetime,) ->Any:
+        for param in params:
+
+            
+            if param.name in self._fields:
+                field = self._fields[param.name]
+                if field.compute is not None:
+                    param.value = field.compute(date)
+        return params
+    
     def resolve(
         self,
         template: str,

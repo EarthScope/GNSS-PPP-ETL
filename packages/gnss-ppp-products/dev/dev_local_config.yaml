@@ -1,0 +1,58 @@
+collections:
+
+
+  # ---------------------------------------------------------------------------
+  # Precise products — core PPP inputs
+  # ---------------------------------------------------------------------------
+  products:
+    directory: "{YYYY}/{DDD}/products"
+    description: "Precise orbit, clock, ERP, bias, and attitude products"
+    items:
+      - name: ORBIT
+      - name: CLOCK
+      - name: ERP
+      - name: BIA
+      - name: ATTOBX
+
+  rinex:
+    directory: "{YYYY}/{DDD}/rinex"
+    description: "RINEX observation files for PPP processing"
+    items:
+      - name: RNX3_BRDC
+      - name: RINEX_NAV
+      - name: RINEX_MET
+      - name: RINEX_OBS
+ 
+  # ---------------------------------------------------------------------------
+  # Common / shared products
+  # ---------------------------------------------------------------------------
+  common:
+    directory: "{YYYY}/{DDD}/common"
+    temporal: daily
+    description: "Broadcast navigation, ionosphere maps, and troposphere grids"
+    items:
+      - name: IONEX
+      - name: VMF
+
+  # ---------------------------------------------------------------------------
+  # Static tables and calibrations
+  # ---------------------------------------------------------------------------
+  table:
+    directory: "table"
+    temporal: static
+    description: "Reference tables, antenna calibrations, and orography grids"
+
+    items:
+      - name: ATTATX
+      - name: LEAP_SEC
+      - name: SAT_PARAMS
+      - name: OROGRAPHY
+
+  # ---------------------------------------------------------------------------
+  # LEO satellite instrument data
+  # ---------------------------------------------------------------------------
+  leo:
+    directory: "{YYYY}/{DDD}/leo"
+    temporal: daily
+    items:
+      - name: LEO_L1B

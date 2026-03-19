@@ -14,7 +14,7 @@ class LocalCollection(BaseModel):
 
     directory: str
     description: str = ""
-    specs: List[str] = Field(default_factory=list)
+    items: List[dict] = Field(default_factory=list)
 
 
 class LocalResourceSpec(BaseModel):
@@ -22,6 +22,7 @@ class LocalResourceSpec(BaseModel):
 
     name: str = "default"
     collections: Dict[str, LocalCollection] = Field(default_factory=dict)
+    source_file: Optional[Path] = None
 
     @classmethod
     def from_yaml(cls, path: str) -> "LocalResourceSpec":
@@ -32,7 +33,11 @@ class LocalResourceSpec(BaseModel):
         """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
-        return cls.model_validate(raw.get("local", raw))
+        
+        class_instance = cls.model_validate(raw.get("local", raw))
+        class_instance.source_file = Path(path)
+        return class_instance
+   
 
     # @model_validator(mode="after")
     # def _validate_spec_uniqueness(self) -> "LocalResourceSpec":
