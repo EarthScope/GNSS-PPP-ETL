@@ -17,6 +17,8 @@ Modules
 - :mod:`.query`        — ``AxisDef``, ``ExtraAxisDef``, ``ProductQueryProfile``
 - :mod:`.dependencies` — ``SearchPreference``, ``Dependency``, ``DependencySpec``,
                          ``ResolvedDependency``, ``DependencyResolution``
+- :mod:`.lockfile`     — ``LockProduct``, ``LockProductAlternative``,
+                         ``ProductLockfile``
 """
 
 from gnss_ppp_products.specifications.format.spec import (
@@ -49,6 +51,14 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
     DependencyResolution,
     ResolvedDependency,
 )
+from gnss_ppp_products.specifications.dependencies.dependency_resolver import (
+    DependencyResolver,
+)
+from gnss_ppp_products.specifications.dependencies.lockfile import (
+    LockProduct,
+    LockProductAlternative,
+    ProductLockfile,
+)
 
 __all__ = [
     "FormatFieldDef",
@@ -69,4 +79,8 @@ __all__ = [
     "DependencySpec",
     "DependencyResolution",
     "ResolvedDependency",
+    "DependencyResolver",
+    "LockProduct",
+    "LockProductAlternative",
+    "ProductLockfile",
 ]

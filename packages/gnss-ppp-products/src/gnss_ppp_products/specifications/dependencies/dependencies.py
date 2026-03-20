@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -13,9 +14,9 @@ from pydantic import BaseModel, Field
 class SearchPreference(BaseModel):
     """One slot in the preference cascade."""
 
-    center: str
-    solution: str = ""
-    campaign: str = ""
+    parameter: str
+    sorting: List[str] = Field(default_factory=list, description="List of product parameters to sort by for this preference.")
+    description: str = ""
 
 
 class Dependency(BaseModel):
@@ -53,6 +54,16 @@ class ResolvedDependency:
     local_path: Optional[Path] = None
     preference_rank: int = -1
     preference_label: str = ""
+    # Lockfile fields — populated during resolution for later export
+    remote_url: str = ""
+    regex: str = ""
+    hash: str = ""
+    size: Optional[int] = None
+    format: str = ""
+    version: str = ""
+    variant: str = ""
+    description: str = ""
+    local_directory: str = ""
 
 
 @dataclass
@@ -84,6 +95,37 @@ class DependencyResolution:
             for r in self.resolved
             if r.local_path is not None
         }
+
+    def to_lockfile(self, date: str = "") -> "ProductLockfile":
+        """Convert fulfilled resolutions into a :class:`ProductLockfile`."""
+        from gnss_ppp_products.specifications.dependencies.lockfile import (
+            LockProduct,
+            ProductLockfile,
+        )
+
+        products = []
+        for r in self.fulfilled:
+            if not r.remote_url:
+                continue
+            products.append(LockProduct(
+                name=r.spec,
+                format=r.format,
+                version=r.version,
+                variant=r.variant,
+                description=r.description,
+                required=r.required,
+                url=r.remote_url,
+                regex=r.regex,
+                hash=r.hash,
+                size=r.size,
+                local_directory=r.local_directory,
+            ))
+
+        return ProductLockfile(
+            requires_date=date,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            products=products,
+        )
 
     def summary(self) -> str:
         total = len(self.resolved)

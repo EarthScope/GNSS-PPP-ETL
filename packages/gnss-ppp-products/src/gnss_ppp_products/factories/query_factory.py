@@ -182,7 +182,10 @@ class QueryFactory:
                     continue
 
                 to_update = template.model_copy(deep=True)
-                resolved_queries: List[ResourceQuery] = self._remote.resolve_product(to_update, center_id)
+                try:
+                    resolved_queries: List[ResourceQuery] = self._remote.resolve_product(to_update, center_id)
+                except KeyError:
+                    continue
                 if not resolved_queries:
                     continue
 

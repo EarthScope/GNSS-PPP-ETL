@@ -9,94 +9,86 @@ website: https://cddis.nasa.gov/
 servers:
   - id: cddis_ftps
     name: CDDIS FTPS
-    hostname: ftp://gdc.cddis.eosdis.nasa.gov
+    hostname: "ftp://gdc.cddis.eosdis.nasa.gov"
     protocol: ftps
     auth_required: false
-    notes: >
+    description: >
       Requires FTPS (explicit TLS). Anonymous login with email address.
       May require NASA Earthdata login for some products.
 
 products:
+  # ── Orbits ──────────────────────────────────────────────────────
   - id: cddis_orbit
-    spec: ORBIT
+    product_name: ORBIT
     server_id: cddis_ftps
     available: true
     description: Precise orbits (mirrors from all ACs)
-    metadata:
-      AAA:
-        - IGS
-        - GBM
-        - WUM
-        - COD
-      TTT:
-        - FIN
-        - RAP
-      PPP:
-        - OPS
-        - MGX
-      SMP:
-        - "05M"
-        - "15M"
-    directory: gnss/products/{GPSWEEK}/
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: GBM}
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: COD}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: "05M"}
+      - {name: SMP, value: "15M"}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
 
+  # ── Clocks ──────────────────────────────────────────────────────
   - id: cddis_clock
-    spec: CLOCK
+    product_name: CLOCK
     server_id: cddis_ftps
     available: true
     description: Precise clocks (mirrors from all ACs)
-    metadata:
-      AAA:
-        - IGS
-        - GBM
-        - WUM
-      TTT:
-        - FIN
-        - RAP
-      PPP:
-        - OPS
-        - MGX
-      SMP:
-        - "30S"
-        - "05M"
-    directory: gnss/products/{GPSWEEK}/
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: GBM}
+      - {name: AAA, value: WUM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: "30S"}
+      - {name: SMP, value: "05M"}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
 
+  # ── Ionosphere (GIM) ───────────────────────────────────────────
   - id: cddis_gim
-    spec: IONEX
+    product_name: IONEX
     server_id: cddis_ftps
     available: true
     description: Global Ionosphere Maps
-    metadata:
-      AAA:
-        - COD
-        - IGS
-        - JPL
-        - ESA
-      TTT:
-        - FIN
-        - RAP
-      PPP:
-        - OPS
-      SMP:
-        - "01H"
-        - "02H"
-    directory: gnss/products/ionex/{YYYY}/{DDD}/
+    parameters:
+      - {name: AAA, value: COD}
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: JPL}
+      - {name: AAA, value: ESA}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: "01H"}
+      - {name: SMP, value: "02H"}
+    directory: {pattern: "gnss/products/ionex/{YYYY}/{DDD}/"}
 
+  # ── Broadcast navigation ───────────────────────────────────────
   - id: cddis_nav
-    spec: RNX3_BRDC
+    product_name: RNX3_BRDC
     server_id: cddis_ftps
     available: true
     description: RINEX 3 broadcast navigation (multi-GNSS)
-    metadata:
-      CCC:
-        - IGS
-      D:
-        - E
-        - M
-    directory: gnss/data/daily/{YYYY}/{DDD}/{YY}p/
+    parameters:
+      - {name: CCC, value: IGS}
+      - {name: D, value: E}
+      - {name: D, value: M}
+    directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}p/"}
 
+  # ── Reference tables ───────────────────────────────────────────
   - id: cddis_leap_seconds
-    spec: LEAP_SEC
+    product_name: LEAP_SEC
     server_id: cddis_ftps
     available: true
     description: IERS leap seconds file
-    directory: pub/products/iers
+    parameters: []
+    directory: {pattern: "pub/products/iers/"}

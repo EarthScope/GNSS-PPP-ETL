@@ -72,7 +72,7 @@ def cod_config() -> dict:
 
 @pytest.fixture(scope="session")
 def cddis_config() -> dict:
-    return _load_center_yaml("cddis_config_v2.yaml")
+    return _load_center_yaml("cddis_config.yaml")
 
 
 @pytest.fixture(scope="session")
@@ -106,9 +106,9 @@ def cddis_env(cddis_config) -> ProductEnvironment:
 
 
 @pytest.fixture(scope="session")
-def multi_env(wuhan_config, cod_config, cddis_config) -> ProductEnvironment:
-    """Environment with all three centers registered."""
-    return _build_env(wuhan_config, cod_config, cddis_config)
+def multi_env(wuhan_config, cod_config, cddis_config, igs_config, gfz_config, vmf_config) -> ProductEnvironment:
+    """Environment with all centers registered."""
+    return _build_env(wuhan_config, cod_config, cddis_config, igs_config, gfz_config, vmf_config)
 
 
 @pytest.fixture(scope="session")

@@ -1,13 +1,16 @@
 """Server, ResourceSpec, ResourceQuery, ResourceCatalog — remote resource models."""
 
 from itertools import product as iterproduct
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
+from gnss_ppp_products.specifications.remote.remote import RemoteResourceSpec
 from pydantic import BaseModel, Field
 
 from gnss_ppp_products.specifications.parameters.parameter import Parameter
 from gnss_ppp_products.specifications.products.product import Product, ProductPath
 from gnss_ppp_products.utilities.helpers import _PassthroughDict
+import yaml
 
 
 class Server(BaseModel):
@@ -39,6 +42,12 @@ class ResourceSpec(BaseModel):
     website: Optional[str] = None
     servers: List[Server] = []
     products: List[ResourceProductSpec] = []
+
+    @classmethod
+    def from_yaml(cls, path: Union[str, Path]) -> "ResourceSpec":
+        with open(path) as fh:
+            raw = yaml.safe_load(fh)
+        return cls.model_validate(raw)
 
 
 class ResourceQuery(BaseModel):

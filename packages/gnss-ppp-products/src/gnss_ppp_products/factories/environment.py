@@ -33,6 +33,7 @@ from typing import Dict, List, Optional, Union
 from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
 from gnss_ppp_products.specifications.format.format_spec import FormatCatalog, FormatSpecCatalog
 from gnss_ppp_products.specifications.products.catalog import ProductCatalog, ProductSpecCatalog
+from gnss_ppp_products.specifications.remote.remote import RemoteResourceSpec
 from gnss_ppp_products.specifications.remote.resource import ResourceSpec
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.local.factory import LocalResourceFactory
@@ -117,7 +118,7 @@ class ProductEnvironment:
         meta_spec_yaml: Union[str, Path],
         product_spec_yaml: Union[str, Path],
         local_config: Optional[Union[str, Path]] = None,
-        remote_specs: Optional[List[dict]] = None,
+        remote_specs: Optional[List[Union[str, Path, dict]]] = None,
     ) -> "ProductEnvironment":
         """Build a ProductEnvironment directly from YAML config files.
 
@@ -138,8 +139,11 @@ class ProductEnvironment:
         env._format_catalog = fc
         env._product_catalog = prod_cat
         env._remote_factory = RemoteResourceFactory(prod_cat)
-        for spec_dict in (remote_specs or []):
-            env._remote_factory.register(ResourceSpec(**spec_dict))
+        for spec in (remote_specs or []):
+            if isinstance(spec, dict):
+                env._remote_factory.register(ResourceSpec(**spec))
+            else:
+                env._remote_factory.register(ResourceSpec.from_yaml(str(spec)))
         env._local_factory = None
         if local_config is not None:
             local_spec = LocalResourceSpec.from_yaml(str(local_config))
