@@ -3,8 +3,10 @@
 import datetime
 import re
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
+import yaml
 from pydantic import BaseModel, Field
 
 
@@ -137,3 +139,24 @@ class ParameterCatalog:
         for key, value in values.items():
             template = template.replace("{" + key + "}", value)
         return template
+
+    # -- YAML loader ------------------------------------------------
+
+    @classmethod
+    def from_yaml(cls, yaml_path: Union[str, Path]) -> "ParameterCatalog":
+        """Load parameter definitions from a meta-spec YAML file.
+
+        Does **not** register computed fields — call
+        :func:`~gnss_ppp_products.utilities.metadata_funcs.register_computed_fields`
+        separately after loading.
+        """
+        with open(yaml_path, "r") as f:
+            data = yaml.safe_load(f)
+        params: List[Parameter] = []
+        for name, entries in data.items():
+            kw: Dict[str, Any] = {"name": name}
+            for entry in entries:
+                if isinstance(entry, dict):
+                    kw.update(entry)
+            params.append(Parameter(**kw))
+        return cls(parameters=params)

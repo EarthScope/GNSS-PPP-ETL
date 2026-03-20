@@ -61,6 +61,43 @@ class ProductSpecVersionCatalog(BaseModel):
 class ProductSpecCatalog(BaseModel):
     products: dict[str, ProductSpecVersionCatalog]
 
+    @classmethod
+    def from_yaml(cls, path) -> "ProductSpecCatalog":
+        """Load product specs from a YAML file, extracting the ``products:`` section.
+
+        Transforms the YAML structure into nested Pydantic models by injecting
+        ``name`` from dict keys and converting ``formats`` lists into version/variant dicts.
+        """
+        import yaml
+        from pathlib import Path
+        with open(path, "r") as f:
+            data = yaml.safe_load(f)
+        result = {}
+        for prod_name, prod_data in data.get("products", {}).items():
+            versions: dict = {}
+            for fmt_entry in prod_data.get("formats", []):
+                version = str(fmt_entry.get("version", "1"))
+                variant = fmt_entry.get("variant", "default")
+                format_name = fmt_entry["format"]
+                parameters = []
+                for c_name, c_value in (fmt_entry.get("constraints") or {}).items():
+                    parameters.append({"name": c_name, "value": c_value})
+                variant_dict: dict = {
+                    "name": prod_name,
+                    "format": format_name,
+                    "version": version,
+                    "variant": variant,
+                    "parameters": parameters,
+                }
+                templates = fmt_entry.get("file_templates")
+                if templates:
+                    variant_dict["filename"] = templates[0]
+                if version not in versions:
+                    versions[version] = {"name": version, "variants": {}}
+                versions[version]["variants"][variant] = variant_dict
+            result[prod_name] = {"name": prod_name, "versions": versions}
+        return cls(products=result)
+
 
 class ProductCatalog(BaseModel):
     """Resolved product catalog — maps product names to VersionCatalog[VariantCatalog[Product]]."""

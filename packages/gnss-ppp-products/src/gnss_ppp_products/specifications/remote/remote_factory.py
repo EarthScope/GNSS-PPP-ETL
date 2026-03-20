@@ -16,7 +16,7 @@ from gnss_ppp_products.specifications.remote.remote import (
     RemoteResourceSpec,
     ServerSpec,
 )
-from gnss_ppp_products.specifications.metadata.metadata_catalog import MetadataCatalog
+from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.product_catalog import ProductCatalog
 
 class RemoteResourceCatalog(RemoteResourceSpec):
@@ -25,7 +25,7 @@ class RemoteResourceCatalog(RemoteResourceSpec):
     def resolve(cls, 
                 remote_resource_catalog: RemoteResourceSpec,
                 product_catalog: ProductCatalog,
-                metadata_catalog: MetadataCatalog) -> "RemoteResourceCatalog":
+                metadata_catalog: ParameterCatalog) -> "RemoteResourceCatalog":
         '''
         Check that the metadata constraints match the metadata catalog, the product specs are valid, and resolve the directory templates.
         
@@ -50,7 +50,7 @@ class RemoteResourceFactory:
     Replaces ``_RemoteResourceRegistry``.
     """
 
-    def __init__(self, product_catalog: ProductCatalog, metadata_catalog: MetadataCatalog) -> None:
+    def __init__(self, product_catalog: ProductCatalog, metadata_catalog: ParameterCatalog) -> None:
         self._centers: Dict[str, RemoteResourceCatalog] = {}
         self._products_by_id: Dict[str,  RemoteProductSpec] = {}
         self._servers_by_id: Dict[str,ServerSpec] = {}

@@ -19,7 +19,6 @@ Modules
                          ``ResolvedDependency``, ``DependencyResolution``
 """
 
-from gnss_ppp_products.specifications.metadata.metadata import MetadataField
 from gnss_ppp_products.specifications.format.spec import (
     FormatFieldDef,
     FormatVersionSpec,
@@ -52,7 +51,6 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
 )
 
 __all__ = [
-    "MetadataField",
     "FormatFieldDef",
     "FormatVersionSpec",
     "FormatSpec",

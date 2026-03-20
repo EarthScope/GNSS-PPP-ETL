@@ -6,7 +6,7 @@ provides the live registries, factories, and engines that downstream
 code (environment, configs) interacts with.
 """
 
-from ..specifications.metadata.metadata_catalog import MetadataCatalog, extract_template_fields
+from ..specifications.parameters.parameter import ParameterCatalog as MetadataCatalog, _extract_template_fields as extract_template_fields
 from ..specifications.format.format_catalog import FormatCatalog
 from ..specifications.products.product_catalog import (
     ProductCollection,

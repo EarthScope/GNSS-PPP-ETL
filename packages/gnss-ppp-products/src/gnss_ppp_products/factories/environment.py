@@ -109,6 +109,45 @@ class ProductEnvironment:
 
     # ── Registration ──────────────────────────────────────────────
 
+    @classmethod
+    def from_yaml(
+        cls,
+        *,
+        base_dir: Union[str, Path],
+        meta_spec_yaml: Union[str, Path],
+        product_spec_yaml: Union[str, Path],
+        local_config: Optional[Union[str, Path]] = None,
+        remote_specs: Optional[List[dict]] = None,
+    ) -> "ProductEnvironment":
+        """Build a ProductEnvironment directly from YAML config files.
+
+        Uses the specification layer's ``from_yaml`` class methods
+        to load catalogs, then wires them together.
+        """
+        base_dir = Path(base_dir)
+        pc = ParameterCatalog.from_yaml(meta_spec_yaml)
+        register_computed_fields(pc)
+        fsc = FormatSpecCatalog.from_yaml(product_spec_yaml)
+        fc = FormatCatalog(format_spec_catalog=fsc, parameter_catalog=pc)
+        psc = ProductSpecCatalog.from_yaml(product_spec_yaml)
+        prod_cat = ProductCatalog(product_spec_catalog=psc, format_catalog=fc)
+
+        env = object.__new__(cls)
+        env._base_dir = base_dir
+        env._parameter_catalog = pc
+        env._format_catalog = fc
+        env._product_catalog = prod_cat
+        env._remote_factory = RemoteResourceFactory(prod_cat)
+        for spec_dict in (remote_specs or []):
+            env._remote_factory.register(ResourceSpec(**spec_dict))
+        env._local_factory = None
+        if local_config is not None:
+            local_spec = LocalResourceSpec.from_yaml(str(local_config))
+            env._local_factory = LocalResourceFactory(
+                local_spec, prod_cat, pc, base_dir=base_dir,
+            )
+        return env
+
     def register_remote(self, spec_dict: dict) -> None:
         """Register an additional remote center from a raw spec dict."""
         self._remote_factory.register(ResourceSpec(**spec_dict))

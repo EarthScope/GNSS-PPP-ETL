@@ -19,7 +19,7 @@ import yaml
 
 from gnss_ppp_products.specifications.local.local import LocalCollection, LocalResourceSpec
 from gnss_ppp_products.specifications.products.product_catalog import ProductCatalog
-from gnss_ppp_products.specifications.metadata.metadata_catalog import MetadataCatalog
+from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class LocalResourceFactory(BaseModel):
     collections: Dict[str, LocalCollection] = Field(default_factory=dict)
     _base_dir: Optional[Path] = PrivateAttr(default=None)
     _product_catalog: Optional[ProductCatalog] = PrivateAttr(default=None)
-    _metadata_catalog: Optional[MetadataCatalog] = PrivateAttr(default=None)
+    _metadata_catalog: Optional[ParameterCatalog] = PrivateAttr(default=None)
     _spec_to_collection_map: Dict[str, str] = PrivateAttr(default_factory=dict)
     @classmethod
     def resolve(

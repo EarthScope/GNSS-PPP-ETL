@@ -1,5 +1,6 @@
 """Format specifications and FormatCatalog — resolves FormatSpec → Product."""
 
+import re
 from pathlib import Path
 from typing import List, Optional
 
@@ -57,9 +58,43 @@ class FormatSpecCatalog(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: Path) -> "FormatSpecCatalog":
+        """Load from a YAML file, transforming the nested format structure.
+
+        Reads the ``formats:`` section and for each format/version/variant
+        injects ``name`` from the dict keys and converts ``file_templates``
+        entries into ``FormatSpec`` variant dicts.
+        """
         with open(path, "r") as f:
             data = yaml.safe_load(f)
-        return cls(**data.get("formats", {}))
+        result = {}
+        for fmt_name, fmt_data in data.get("formats", {}).items():
+            versions = {}
+            for ver_name, ver_data in (fmt_data.get("versions") or {}).items():
+                metadata = ver_data.get("metadata") or {}
+                parameters = []
+                for param_name, param_data in metadata.items():
+                    p: dict = {"name": param_name}
+                    if param_data and isinstance(param_data, dict):
+                        if "default" in param_data and "pattern" not in param_data:
+                            param_data = {**param_data, "pattern": param_data.pop("default")}
+                        p.update(param_data)
+                    parameters.append(p)
+                file_templates = ver_data.get("file_templates") or {}
+                variants = {}
+                for variant_name, templates in file_templates.items():
+                    filename = templates[0] if templates else ""
+                    variant_param_names = set(re.findall(r"\{(\w+)\}", filename))
+                    variant_params = [p for p in parameters if p["name"] in variant_param_names]
+                    variants[variant_name] = {
+                        "name": fmt_name,
+                        "version": str(ver_name),
+                        "variant": variant_name,
+                        "parameters": variant_params,
+                        "filename": filename,
+                    }
+                versions[str(ver_name)] = {"name": str(ver_name), "variants": variants}
+            result[fmt_name] = {"name": fmt_name, "versions": versions}
+        return cls(formats=result)
 
 
 class FormatCatalog(BaseModel):

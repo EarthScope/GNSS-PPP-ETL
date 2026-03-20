@@ -4,7 +4,6 @@ Format catalog — loads and indexes format specifications from YAML.
 
 from __future__ import annotations
 
-from curses import meta
 from pathlib import Path
 import re
 from typing import Dict, List, Union
@@ -18,7 +17,7 @@ from gnss_ppp_products.specifications.format.spec import (
     FormatVersionSpec,
     FormatSpecCollection,
 )
-from gnss_ppp_products.specifications.metadata import MetadataCatalog
+from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 
 
 class FormatCatalog(BaseModel):
@@ -49,7 +48,7 @@ class FormatCatalog(BaseModel):
             )
 
     @classmethod
-    def resolve(cls,format_spec: FormatSpecCollection,metadata_catalog:MetadataCatalog) -> FormatCatalog:
+    def resolve(cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog) -> FormatCatalog:
         '''
         
         Resolve a FormatSpec by checking if metadata fields have either a pattern value provided or an entry in the metadata catalog. 
@@ -73,8 +72,8 @@ class FormatCatalog(BaseModel):
                     default = field_def.default if field_def is not None else None
                     field_default = pattern or default
                     if field_default is None:
-                        assert field_name in metadata_catalog._fields, f"Field {field_name!r} not found in metadata catalog for format {format_spec_name!r} version {version_name!r}"
-                        field_default = metadata_catalog._fields[field_name].pattern
+                        assert field_name in metadata_catalog.parameters, f"Field {field_name!r} not found in parameter catalog for format {format_spec_name!r} version {version_name!r}"
+                        field_default = metadata_catalog.parameters[field_name].pattern
 
                     resolved_metadata[field_name] = FormatFieldDef(
                         pattern=field_default,
