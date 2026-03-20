@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from gnss_ppp_products.server.ftp import ftp_list_directory, ftp_download_file
+from gnss_ppp_products.server.ftp import ftp_can_connect, ftp_list_directory, ftp_download_file
 from gnss_ppp_products.server.http import http_list_directory, extract_filenames_from_html, http_get_file
 from gnss_ppp_products.specifications.products.product import ProductPath
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
@@ -64,6 +64,7 @@ class ResourceFetcher:
         self._ftp_timeout = ftp_timeout
         self._download_timeout = download_timeout
         self._listing_cache: Dict[str, List[str]] = {}
+        self._connectivity_cache: Dict[str, bool] = {}
 
     def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
         """Search every query's server/directory for matching files."""
@@ -119,6 +120,15 @@ class ResourceFetcher:
     # -- Protocol handlers -----------------------------------------
 
     def _list_ftp(self, hostname: str, directory: str, *, use_tls: bool = False) -> List[str]:
+        conn_key = f"{'ftps' if use_tls else 'ftp'}://{hostname}"
+        if conn_key in self._connectivity_cache:
+            if not self._connectivity_cache[conn_key]:
+                raise ConnectionError(f"Server unreachable (cached): {hostname}")
+        else:
+            reachable = ftp_can_connect(hostname, timeout=self._ftp_timeout, use_tls=use_tls)
+            self._connectivity_cache[conn_key] = reachable
+            if not reachable:
+                raise ConnectionError(f"Server unreachable: {hostname}")
         return ftp_list_directory(hostname, directory, timeout=self._ftp_timeout, use_tls=use_tls)
 
     def _list_http(self, hostname: str, directory: str) -> List[str]:

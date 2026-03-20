@@ -1,41 +1,66 @@
 import logging
 import re
+from contextlib import contextmanager
 from ftplib import FTP, FTP_TLS
-from functools import lru_cache
 from pathlib import Path
 from typing import Generator, List
-
-from fsspec.implementations.ftp import FTPFileSystem
 
 logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# FTPS (FTP over TLS) — needed for servers like NASA CDDIS
+# Internal connection helper
 # ---------------------------------------------------------------------------
 
 
-class FTPSFileSystem(FTPFileSystem):
-    """fsspec FTP filesystem that uses TLS (``FTP_TLS``)."""
+@contextmanager
+def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
+    """Yield an authenticated FTP connection with automatic TLS fallback.
 
-    protocol = "ftps"
+    Strips ``ftp://`` / ``ftps://`` prefixes from *ftpserver*.
+    If *use_tls* is True only TLS is attempted; otherwise plain FTP is
+    tried first with a TLS retry on failure.
 
-    def _connect(self):
-        if self.ftp is not None:
-            return
-        self.ftp = FTP_TLS(timeout=self.timeout)
-        self.ftp.connect(self.host, self.port)
-        self.ftp.login(self.username, self.password)
-        self.ftp.prot_p()  # switch to secure data connection
+    Raises :class:`ConnectionError` if every attempt fails.
+    """
+    clean = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
+    ftp_classes = [FTP_TLS] if use_tls else [FTP, FTP_TLS]
 
+    last_exc: Exception | None = None
+    ftp = None
 
-def _open_fs(
-    ftpserver: str, timeout: int = 60, use_tls: bool = False
-) -> FTPFileSystem:
-    """Return an ``FTPFileSystem`` (or ``FTPSFileSystem``) for *ftpserver*."""
-    host = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
-    cls = FTPSFileSystem if use_tls else FTPFileSystem
-    return cls(host=host, port=21, timeout=timeout)
+    for ftp_cls in ftp_classes:
+        try:
+            ftp = ftp_cls(clean, timeout=timeout)
+            ftp.set_pasv(True)
+            ftp.login()
+            if ftp_cls is FTP_TLS:
+                ftp.prot_p()
+            break  # connected successfully
+        except Exception as e:  # noqa: BLE001
+            label = "FTPS" if ftp_cls is FTP_TLS else "FTP"
+            logger.warning(f"{label} connection failed for {ftpserver} | {e}")
+            last_exc = e
+            if ftp is not None:
+                try:
+                    ftp.quit()
+                except Exception:
+                    pass
+            ftp = None
+            continue
+
+    if ftp is None:
+        raise ConnectionError(
+            f"All FTP connection attempts failed for {ftpserver}"
+        ) from last_exc
+
+    try:
+        yield ftp
+    finally:
+        try:
+            ftp.quit()
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -46,15 +71,15 @@ def _open_fs(
 def ftp_can_connect(
     ftpserver: str, timeout: int = 10, use_tls: bool = False
 ) -> bool:
+    """Return True if an FTP login succeeds on *ftpserver*."""
     try:
-        fs = _open_fs(ftpserver, timeout=timeout, use_tls=use_tls)
-        fs.ls("/")
-        return True
-    except Exception as e:  # noqa: BLE001
-        logger.error(f"Failed to connect to FTP server {ftpserver} | {e}")
+        with _ftp_connect(ftpserver, timeout=timeout, use_tls=use_tls):
+            logger.info(f"Successfully connected to {ftpserver}")
+            return True
+    except ConnectionError:
         return False
 
-@lru_cache(maxsize=128)
+
 def ftp_list_directory(
     ftpserver: str,
     directory: str,
@@ -64,65 +89,21 @@ def ftp_list_directory(
     """
     Connect to *ftpserver*, change to *directory*, and return the file listing.
 
-    If *use_tls* is ``False``, tries plain FTP first and automatically
-    retries with TLS on failure.  If *use_tls* is ``True``, only tries TLS.
+    If *use_tls* is ``True``, only tries TLS.  Otherwise tries plain FTP
+    first and retries with TLS on failure.
 
     Returns an empty list on any connection or command error so the caller
     can decide how to handle the failure.
     """
-    clean = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
-
-    for ftp_cls in [FTP, FTP_TLS]:
-        try:
-            with ftp_cls(clean, timeout=timeout) as ftp:
-                ftp.set_pasv(True)
-                ftp.login()
-                if ftp_cls is FTP_TLS:
-                    ftp.prot_p()  # switch data channel to TLS
-                 
-                ftp.cwd("/" + directory.strip("/"))
-                entries = ftp.nlst()
-                
-                return entries
-        except Exception as e:  # noqa: BLE001
-            label = "FTPS" if ftp_cls is FTP_TLS else "FTP"
-            logger.warning(f"{label} listing failed for {directory} on {ftpserver} | {e}")
-            continue
-
-    logger.error(f"All FTP attempts failed for {directory} on {ftpserver}")
-    return []
-
-
-# @lru_cache(maxsize=128)
-# def ftp_list_directory(
-#     ftpserver: str,
-#     directory: str,
-#     timeout: int = 60,
-#     use_tls: bool = False,
-# ) -> list[str]:
-#     """
-#     Connect to *ftpserver*, list *directory*, and return basenames.
-
-#     Returns an empty list on any connection or command error so the caller
-#     can decide how to handle the failure.
-
-#     Args:
-#         use_tls: If True, use FTPS (FTP over TLS) for servers requiring
-#                  encryption (e.g., NASA CDDIS).
-#     """
-#     try:
-#         # fs = _open_fs(ftpserver, timeout=timeout, use_tls=use_tls)
-#         # entries = fs.ls("/" + directory, detail=False)
-#         # # fs.ls returns full paths — strip to basenames
-#         # return [e.rsplit("/", 1)[-1] for e in entries]
-#         host = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
-#         ftp = FTP(host, timeout=timeout)
-#         ftp.login()
-#         ftp.cwd("/" + directory.strip("/"))
-#         return ftp.nlst()
-#     except Exception as e:  # noqa: BLE001
-#         logger.error(f"Failed to list directory {directory} on {ftpserver} | {e}")
-#         return []
+    try:
+        with _ftp_connect(ftpserver, timeout=timeout, use_tls=use_tls) as ftp:
+            ftp.cwd("/" + directory.strip("/"))
+            return ftp.nlst()
+    except ConnectionError:
+        return []
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"FTP listing failed for {directory} on {ftpserver}: {e}")
+        return []
 
 
 def ftp_download_file(
@@ -144,31 +125,22 @@ def ftp_download_file(
     retries with TLS on failure.
     """
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    clean = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
-    ftp_classes = [FTP_TLS] if use_tls else [FTP, FTP_TLS]
-
-    for ftp_cls in ftp_classes:
-        try:
-            with ftp_cls(clean, timeout=timeout) as ftp:
-                ftp.set_pasv(True)
-                ftp.login()
-                if ftp_cls is FTP_TLS:
-                    ftp.prot_p()
-                ftp.cwd("/" + directory.strip("/"))
-                with open(dest_path, "wb") as f:
-                    ftp.retrbinary(f"RETR {filename}", f.write)
-                if dest_path.exists() and dest_path.stat().st_size > 0:
-                    if ftp_cls is FTP_TLS and not use_tls:
-                        logger.info(f"Plain FTP failed for {ftpserver}, succeeded with TLS")
-                    return True
+    try:
+        with _ftp_connect(ftpserver, timeout=timeout, use_tls=use_tls) as ftp:
+            ftp.cwd("/" + directory.strip("/"))
+            with open(dest_path, "wb") as f:
+                ftp.retrbinary(f"RETR {filename}", f.write)
+            if dest_path.exists() and dest_path.stat().st_size > 0:
+                return True
             dest_path.unlink(missing_ok=True)
-        except Exception as e:  # noqa: BLE001
-            label = "FTPS" if ftp_cls is FTP_TLS else "FTP"
-            logger.warning(f"{label} download failed for {filename} on {ftpserver} | {e}")
-            dest_path.unlink(missing_ok=True)
-            continue
-
-    return False
+            return False
+    except ConnectionError:
+        dest_path.unlink(missing_ok=True)
+        return False
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"FTP download failed for {filename} on {ftpserver}: {e}")
+        dest_path.unlink(missing_ok=True)
+        return False
 
 
 def ftp_find_best_match_in_listing(
