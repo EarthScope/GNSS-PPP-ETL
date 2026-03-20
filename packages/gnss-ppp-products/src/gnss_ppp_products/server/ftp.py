@@ -144,20 +144,26 @@ def ftp_download_file(
     retries with TLS on failure.
     """
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    tls_options = [use_tls] if use_tls else [False, True]
+    clean = ftpserver.replace("ftp://", "").replace("ftps://", "").rstrip("/")
+    ftp_classes = [FTP_TLS] if use_tls else [FTP, FTP_TLS]
 
-    for tls in tls_options:
+    for ftp_cls in ftp_classes:
         try:
-            fs = _open_fs(ftpserver, timeout=timeout, use_tls=tls)
-            remote = "/" + directory.strip("/") + "/" + filename
-            fs.get(remote, str(dest_path))
-            if dest_path.exists() and dest_path.stat().st_size > 0:
-                if tls and not use_tls:
-                    logger.info(f"Plain FTP download failed for {ftpserver}, succeeded with TLS")
-                return True
+            with ftp_cls(clean, timeout=timeout) as ftp:
+                ftp.set_pasv(True)
+                ftp.login()
+                if ftp_cls is FTP_TLS:
+                    ftp.prot_p()
+                ftp.cwd("/" + directory.strip("/"))
+                with open(dest_path, "wb") as f:
+                    ftp.retrbinary(f"RETR {filename}", f.write)
+                if dest_path.exists() and dest_path.stat().st_size > 0:
+                    if ftp_cls is FTP_TLS and not use_tls:
+                        logger.info(f"Plain FTP failed for {ftpserver}, succeeded with TLS")
+                    return True
             dest_path.unlink(missing_ok=True)
         except Exception as e:  # noqa: BLE001
-            label = "FTPS" if tls else "FTP"
+            label = "FTPS" if ftp_cls is FTP_TLS else "FTP"
             logger.warning(f"{label} download failed for {filename} on {ftpserver} | {e}")
             dest_path.unlink(missing_ok=True)
             continue
