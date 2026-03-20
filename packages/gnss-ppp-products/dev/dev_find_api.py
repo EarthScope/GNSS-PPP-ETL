@@ -19,18 +19,23 @@ Design:
     necessary (directories must be exact paths for listing)
 '''
 
+import asyncio
 import datetime
 import enum
 import itertools
+import logging
+from concurrent.futures import ThreadPoolExecutor
 from math import prod
 from pathlib import Path
 import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
-from gnss_ppp_products.server.ftp import ftp_list_directory
+from gnss_ppp_products.server.ftp import ftp_list_directory, ftp_download_file
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.metadata.metadata_catalog import MetadataCatalog
-from gnss_ppp_products.server.http import http_list_directory, extract_filenames_from_html
+from gnss_ppp_products.server.http import http_list_directory, extract_filenames_from_html, http_get_file
+
+logger = logging.getLogger(__name__)
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
@@ -347,10 +352,15 @@ class FetchResult:
     matched_filenames: List[str] = field(default_factory=list)
     directory_listing: List[str] = field(default_factory=list)
     error: Optional[str] = None
+    download_dest: Optional[Path] = None
 
     @property
     def found(self) -> bool:
         return len(self.matched_filenames) > 0
+
+    @property
+    def downloaded(self) -> bool:
+        return self.download_dest is not None and self.download_dest.exists()
 
 
 class ResourceFetcher:
@@ -420,7 +430,7 @@ class ResourceFetcher:
                 elif protocol in ("HTTP", "HTTPS"):
                     listing = self._list_http(hostname, directory)
                 elif protocol in ("FILE", "LOCAL", ""):
-                    listing = self._list_local(directory)
+                    listing = self._list_local(hostname,directory)
                 else:
                     return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
                 if not listing:
@@ -456,8 +466,8 @@ class ResourceFetcher:
             return []
         return extract_filenames_from_html(html)
 
-    def _list_local(self, directory: str) -> List[str]:
-        d = Path(directory)
+    def _list_local(self, hostname: str, directory: str) -> List[str]:
+        d = Path(hostname) / directory
         if not d.exists():
             return []
         return [p.name for p in sorted(d.iterdir()) if p.is_file()]
@@ -507,6 +517,95 @@ class ResourceFetcher:
         if isinstance(fn, str):
             return fn
         return None
+
+    # ── Async download ───────────────────────────────────────────
+
+    async def download(
+        self,
+        results: List[FetchResult],
+        local_factory: LocalResourceFactory,
+        date: datetime.datetime,
+        *,
+        max_workers: int = 4,
+    ) -> List[FetchResult]:
+        """Download found remote files to the complementary local directory.
+
+        For each ``FetchResult`` with ``found=True`` and a non-local protocol,
+        resolves the local directory via *local_factory*, creates it, and
+        downloads every matched file into it.
+
+        Downloads run concurrently in a thread pool (FTP/HTTP are blocking IO).
+
+        Returns the same *results* list with ``download_dest`` populated on
+        successfully downloaded items.
+        """
+        loop = asyncio.get_running_loop()
+        remote_found = [
+            fr for fr in results
+            if fr.found and (fr.query.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+        ]
+        if not remote_found:
+            return results
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            tasks = [
+                loop.run_in_executor(pool, self._download_one, fr, local_factory, date)
+                for fr in remote_found
+            ]
+            await asyncio.gather(*tasks)
+
+        return results
+
+    def _download_one(
+        self,
+        result: FetchResult,
+        local_factory: LocalResourceFactory,
+        date: datetime.datetime,
+    ) -> None:
+        """Synchronously download all matched files for one FetchResult."""
+        query = result.query
+        protocol = (query.server.protocol or "").upper()
+        hostname = query.server.hostname
+        directory = self._get_directory(query) or ""
+
+        # Resolve the complementary local directory
+        dest_dir = local_factory.resolve_directory(query.product.name, date)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        for filename in result.matched_filenames:
+            dest_path = dest_dir / filename
+            if dest_path.exists():
+                logger.info(f"Already exists, skipping: {dest_path}")
+                continue
+
+            ok = False
+            try:
+                if protocol in ("FTP", "FTPS"):
+                    ok = ftp_download_file(
+                        hostname,
+                        directory,
+                        filename,
+                        dest_path,
+                        timeout=self._download_timeout,
+                        use_tls=(protocol == "FTPS"),
+                    )
+                elif protocol in ("HTTP", "HTTPS"):
+                    result_path = http_get_file(
+                        hostname,
+                        directory,
+                        filename,
+                        dest_dir=dest_dir,
+                        timeout=self._download_timeout,
+                    )
+                    ok = result_path is not None
+            except Exception as e:
+                logger.error(f"Download failed for {filename}: {e}")
+
+            if ok:
+                result.download_dest = dest_dir
+                logger.info(f"Downloaded {filename} → {dest_path}")
+            else:
+                logger.warning(f"Failed to download {filename} from {hostname}")
 
 
 if __name__ == "__main__":
@@ -563,3 +662,15 @@ if __name__ == "__main__":
             print(f"  Error:    {fr.error}")
     
     found = [fr for fr in fetch_results if fr.found]
+
+    # ── Download found products ──────────────────────────────────
+    if found:
+        print(f"\nDownloading {sum(len(fr.matched_filenames) for fr in found)} file(s) from {len(found)} source(s)…")
+        asyncio.run(fetcher.download(fetch_results, local, date))
+        for fr in found:
+            if fr.downloaded:
+                print(f"  ✓ {fr.query.server.hostname} → {fr.download_dest}")
+            else:
+                print(f"  ✗ {fr.query.server.hostname} — download failed")
+    else:
+        print("\nNo remote files found to download.")
