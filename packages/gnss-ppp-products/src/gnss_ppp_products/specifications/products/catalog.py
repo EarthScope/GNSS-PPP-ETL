@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from gnss_ppp_products.specifications.parameters.parameter import Parameter
 from gnss_ppp_products.specifications.products.product import (
     Product,
+    ProductPath,
     VariantCatalog,
     VersionCatalog,
 )
@@ -20,6 +21,7 @@ class ProductSpec(BaseModel):
     version: str
     variant: str
     parameters: Optional[List[Parameter]] = Field(default_factory=list)
+    filename: Optional[str] = Field(default=None, description="Product-level filename override (takes precedence over format filename).")
 
     def resolve(self, format_catalog: FormatCatalog) -> Product:
         """Resolve against a FormatCatalog to produce a fully-merged Product."""
@@ -35,8 +37,13 @@ class ProductSpec(BaseModel):
             else:
                 resolved_parameters[param.name] = param
 
+        update = {"name": self.name, "parameters": list(resolved_parameters.values())}
+        # Product-level filename overrides the format filename
+        if self.filename:
+            update["filename"] = ProductPath(pattern=self.filename)
+
         return format_spec.model_copy(
-            update={"name": self.name, "parameters": list(resolved_parameters.values())},
+            update=update,
             deep=True,
         )
 

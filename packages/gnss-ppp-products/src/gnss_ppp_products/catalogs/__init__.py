@@ -9,7 +9,7 @@ code (environment, configs) interacts with.
 from ..specifications.metadata.metadata_catalog import MetadataCatalog, extract_template_fields
 from ..specifications.format.format_catalog import FormatCatalog
 from ..specifications.products.product_catalog import (
-    ProductSpecCatalog,
+    ProductCollection,
     ProductVariant,
     ProductCatalog,
 )
@@ -26,7 +26,7 @@ __all__ = [
     # formats
     "FormatCatalog",
     # products
-    "ProductSpecCatalog",
+    "ProductCollection",
     "ProductVariant",
     "ProductCatalog",
     # local

@@ -77,12 +77,14 @@ products:
     product_name: ATTOBX
     server_id: wuhan_ftp
     available: true
-    description: Satellite attitude (IGS mirror, weekly directory)
+    description: Satellite attitude (IGS mirror, weekly directory — COD/WUM)
     parameters:
       - {name: AAA, value: WUM}
+      - {name: AAA, value: COD}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: MGX}
+      - {name: PPP, value: OPS}
     directory: {pattern: "pub/gps/products/{GPSWEEK}/"}
 
   # ── Clocks ──────────────────────────────────────────────────────
@@ -169,10 +171,10 @@ products:
     available: true
     description: RINEX 3 broadcast navigation (multi-GNSS)
     parameters:
-      - {name: CCC, value: IGN}
+      - {name: CCC, value: IGS}
       - {name: D, value: E}
       - {name: D, value: M}
-    directory: {pattern: "pub/gps/data/daily/{YYYY}/{DDD}/{YY}p"}
+    directory: {pattern: "pub/gps/data/daily/{YYYY}/{DDD}/{YY}p/"}
 
   # ── Reference tables ───────────────────────────────────────────
   - id: wuhan_leap_seconds

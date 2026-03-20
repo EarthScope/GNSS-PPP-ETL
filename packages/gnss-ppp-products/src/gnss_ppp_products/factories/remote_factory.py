@@ -63,37 +63,41 @@ class RemoteResourceFactory:
             found_val = found_params[key]
             incoming_val = incoming_params[key]
             if found_val != incoming_val:
-                print(f"Parameter {key} does not match: found={found_val}, incoming={incoming_val}")
                 return None
 
         for p in incoming.parameters:
             if p.value is None and p.name in found_params:
                 p.value = found_params.get(p.name)
-        print(f"DEBUG MATCH")
         return incoming
 
-    def resolve_product(self, product: Product, resource_id: str) -> Optional[ResourceQuery]:
-        """Resolve a product into a ResourceQuery for a specific remote resource."""
+    def resolve_product(self, product: Product, resource_id: str) -> List[ResourceQuery]:
+        """Resolve a product into all matching ResourceQuerys for a specific remote resource."""
         cat = self._catalogs.get(resource_id)
         if cat is None:
             raise KeyError(
                 f"Resource {resource_id!r} not found in remote catalogs. "
                 f"Known resources: {list(self._catalogs.keys())}"
             )
-        query = next((q for q in cat.queries if q.product.name == product.name), None)
-        if query is None:
+        candidates = [q for q in cat.queries if q.product.name == product.name]
+        if not candidates:
             raise KeyError(
                 f"Product {product.name!r} not found in resource {resource_id!r}. "
                 f"Known products: {set(q.product.name for q in cat.queries)}"
             )
 
-        # Deep copy so we never mutate the catalog's original query
-        query = query.model_copy(deep=True)
+        results: List[ResourceQuery] = []
+        for query in candidates:
+            # Deep copy so we never mutate the catalog's original query
+            query = query.model_copy(deep=True)
+            incoming = product.model_copy(deep=True)
 
-        matched_product: Optional[Product] = self.match_pinned_query(query.product, product)
-        if matched_product is None:
-            return None
+            matched_product: Optional[Product] = self.match_pinned_query(query.product, incoming)
+            if matched_product is None:
+                continue
 
-        query.product.filename.derive(product.parameters) if query.product.filename else None
-        query.directory.derive(product.parameters)
-        return query
+            if query.product.filename:
+                query.product.filename.derive(incoming.parameters)
+            query.directory.derive(incoming.parameters)
+            results.append(query)
+
+        return results

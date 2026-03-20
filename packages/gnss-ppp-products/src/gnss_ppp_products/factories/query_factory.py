@@ -140,10 +140,6 @@ class QueryFactory:
                     raise ValueError(f"Variant {variant!r} not found for product {product_name_query!r} version {version!r}")
                 product_templates.append(variant_cat.variants[variant])
 
-        print("TEST 1: product templates matching query spec:")
-        for template in product_templates:
-            print(template.filename.pattern)
-
         # 2. Resolve date fields via ParameterCatalog
         for template in product_templates:
             update_date_params = self._params.resolve_params(template.parameters, date)
@@ -156,9 +152,7 @@ class QueryFactory:
         parameter_combinations = expand_dict_combinations(parameters)
 
         for template in product_templates:
-            print(f"Template: {template.filename.pattern}")
             for combo in parameter_combinations:
-                print(f"Combo: {combo}")
                 updated = template.model_copy(deep=True)
                 for k, v in combo.items():
                     param_index = next((i for i, p in enumerate(updated.parameters) if p.name == k), None)
@@ -166,12 +160,7 @@ class QueryFactory:
                         updated.parameters[param_index].value = v
                 if updated.filename is not None:
                     updated.filename.derive(updated.parameters)
-                    print(updated.filename.pattern)
                 product_templates_1.append(updated)
-
-        print("\nTEST 2: product templates after narrowing parameter ranges by query constraints:")
-        for template in product_templates_1:
-            print(template.filename.pattern)
 
         # 5.1 Local resources
         for template in product_templates_1:
@@ -186,29 +175,21 @@ class QueryFactory:
             )
             out.append(rq)
 
-        print("\nTEST 3: final ResourceQuery objects with resolved directories and file patterns:")
-        for rq in out:
-            print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
-
         # 5.2 Remote resources
         for template in product_templates_1:
-            to_update = template.model_copy(deep=True)
             for center_id in self._remote.centers:
                 if remote_resources and center_id.upper() in remote_resources:
                     continue
 
                 to_update = template.model_copy(deep=True)
-                resolution_rq: Optional[ResourceQuery] = self._remote.resolve_product(to_update, center_id)
-                if resolution_rq is None:
-                    print(f"Warning: Product {to_update.name!r} did not match any pinned queries for resource {center_id!r}. Skipping.")
+                resolved_queries: List[ResourceQuery] = self._remote.resolve_product(to_update, center_id)
+                if not resolved_queries:
                     continue
 
-                resolution_rq.directory = self._params.resolve(resolution_rq.directory.pattern, date, computed_only=True)
-                out.append(resolution_rq)
-
-        print("\nTEST 4: final ResourceQuery objects including remote resources:")
-        for rq in out:
-            print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
+                for resolution_rq in resolved_queries:
+                    resolved_dir = self._params.resolve(resolution_rq.directory.pattern, date, computed_only=True)
+                    resolution_rq.directory = ProductPath(pattern=resolved_dir)
+                    out.append(resolution_rq)
 
         # 6. Replace unresolved placeholders with regex patterns
         for rq in out:
@@ -218,7 +199,4 @@ class QueryFactory:
             if rq.product.filename is not None:
                 rq.product.filename.derive(rq.product.parameters)
 
-        print("\nTEST 5: final ResourceQuery objects with all placeholders resolved to regex patterns:")
-        for rq in out:
-            print(f"Server: {rq.server.hostname}, Directory: {rq.directory}, File Pattern: {rq.product.filename.pattern}")
         return out

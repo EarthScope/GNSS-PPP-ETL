@@ -6,15 +6,33 @@
       {
         "product": "ORBIT",
         "status": "FOUND",
-        "queries": 1,
-        "found": 1,
-        "files": 1,
+        "queries": 4,
+        "found": 3,
+        "files": 5,
         "matches": [
           {
             "server": "ftp://igs.gnsswhu.cn",
             "directory": "pub/whu/phasebias/2025/orbit/",
             "pattern": "WUM[0-9][A-Z0-9]{3}[A-Z]{3}_20250010000_01D_\\d{2}[DHMS]_ORB.SP3.*",
             "files": [
+              "WUM0MGXRAP_20250010000_01D_05M_ORB.SP3.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/orbit/",
+            "pattern": "WMC[0-9][A-Z0-9]{3}[A-Z]{3}_20250010000_01D_\\d{2}[DHMS]_ORB.SP3.*",
+            "files": [
+              "WMC0DEMFIN_20250010000_01D_05M_ORB.SP3.gz",
+              "WMC0DEMRAP_20250010000_01D_05M_ORB.SP3.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "WUM[0-9][A-Z0-9]{3}[A-Z]{3}_20250010000_01D_\\d{2}[DHMS]_ORB.SP3.*",
+            "files": [
+              "WUM0MGXFIN_20250010000_01D_05M_ORB.SP3.gz",
               "WUM0MGXRAP_20250010000_01D_05M_ORB.SP3.gz"
             ]
           }
@@ -24,9 +42,9 @@
       {
         "product": "CLOCK",
         "status": "FOUND",
-        "queries": 1,
-        "found": 1,
-        "files": 1,
+        "queries": 17,
+        "found": 4,
+        "files": 4,
         "matches": [
           {
             "server": "ftp://igs.gnsswhu.cn",
@@ -35,6 +53,30 @@
             "files": [
               "WUM0MGXFIN_20250010000_01D_30S_CLK.CLK.gz"
             ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/clock/",
+            "pattern": "WUM[0-9]MGXRAP_20250010000_01D_30S_CLK.CLK.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_30S_CLK.CLK.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/clock/",
+            "pattern": "WMC[0-9]DEMFIN_20250010000_01D_30S_CLK.CLK.*",
+            "files": [
+              "WMC0DEMFIN_20250010000_01D_30S_CLK.CLK.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/clock/",
+            "pattern": "WMC[0-9]DEMRAP_20250010000_01D_30S_CLK.CLK.*",
+            "files": [
+              "WMC0DEMRAP_20250010000_01D_30S_CLK.CLK.gz"
+            ]
           }
         ],
         "errors": []
@@ -42,9 +84,9 @@
       {
         "product": "ERP",
         "status": "FOUND",
-        "queries": 1,
-        "found": 1,
-        "files": 1,
+        "queries": 4,
+        "found": 3,
+        "files": 3,
         "matches": [
           {
             "server": "ftp://igs.gnsswhu.cn",
@@ -53,6 +95,22 @@
             "files": [
               "WUM0MGXFIN_20250010000_01D_01D_ERP.ERP.gz"
             ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "WUM[0-9]MGXRAP_20250010000_01D_01D_ERP.ERP.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_01D_ERP.ERP.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/orbit/",
+            "pattern": "WUM[0-9]MGXRAP_20250010000_01D_01D_ERP.ERP.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_01D_ERP.ERP.gz"
+            ]
           }
         ],
         "errors": []
@@ -60,9 +118,9 @@
       {
         "product": "BIA",
         "status": "FOUND",
-        "queries": 1,
-        "found": 1,
-        "files": 1,
+        "queries": 10,
+        "found": 5,
+        "files": 5,
         "matches": [
           {
             "server": "ftp://igs.gnsswhu.cn",
@@ -71,25 +129,114 @@
             "files": [
               "WUM0MGXFIN_20250010000_01D_01D_OSB.BIA.gz"
             ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "WUM[0-9]MGXRAP_20250010000_01D_\\d{2}[DHMS]_OSB.BIA.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_01D_OSB.BIA.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/bias/",
+            "pattern": "WUM[0-9]MGXRAP_20250010000_01D_\\d{2}[DHMS]_OSB.BIA.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_01D_OSB.BIA.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/bias/",
+            "pattern": "WMC[0-9]DEMFIN_20250010000_01D_\\d{2}[DHMS]_OSB.BIA.*",
+            "files": [
+              "WMC0DEMFIN_20250010000_01D_01D_OSB.BIA.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/bias/",
+            "pattern": "WMC[0-9]DEMRAP_20250010000_01D_\\d{2}[DHMS]_OSB.BIA.*",
+            "files": [
+              "WMC0DEMRAP_20250010000_01D_01D_OSB.BIA.gz"
+            ]
           }
         ],
         "errors": []
       },
       {
         "product": "ATTOBX",
-        "status": "NOT_FOUND",
-        "queries": 1,
-        "found": 0,
-        "files": 0,
-        "matches": [],
+        "status": "FOUND",
+        "queries": 16,
+        "found": 7,
+        "files": 7,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "WUM[0-9]MGXRAP_20250010000_01D_30S_ATT.OBX.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_30S_ATT.OBX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "COD[0-9]MGXFIN_20250010000_01D_30S_ATT.OBX.*",
+            "files": [
+              "COD0MGXFIN_20250010000_01D_30S_ATT.OBX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "COD[0-9]OPSFIN_20250010000_01D_30S_ATT.OBX.*",
+            "files": [
+              "COD0OPSFIN_20250010000_01D_30S_ATT.OBX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "COD[0-9]OPSRAP_20250010000_01D_30S_ATT.OBX.*",
+            "files": [
+              "COD0OPSRAP_20250010000_01D_30S_ATT.OBX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/orbit/",
+            "pattern": "WUM[0-9]MGXRAP_20250010000_01D_30S_ATT.OBX.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_30S_ATT.OBX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/orbit/",
+            "pattern": "WMC[0-9]DEMFIN_20250010000_01D_30S_ATT.OBX.*",
+            "files": [
+              "WMC0DEMFIN_20250010000_01D_30S_ATT.OBX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/orbit/",
+            "pattern": "WMC[0-9]DEMRAP_20250010000_01D_30S_ATT.OBX.*",
+            "files": [
+              "WMC0DEMRAP_20250010000_01D_30S_ATT.OBX.gz"
+            ]
+          }
+        ],
         "errors": []
       },
       {
         "product": "IONEX",
         "status": "FOUND",
-        "queries": 1,
-        "found": 1,
-        "files": 1,
+        "queries": 12,
+        "found": 6,
+        "files": 6,
         "matches": [
           {
             "server": "ftp://igs.gnsswhu.cn",
@@ -98,36 +245,103 @@
             "files": [
               "COD0OPSFIN_20250010000_01D_01H_GIM.INX.gz"
             ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/ionex/2025/001/",
+            "pattern": "COD[0-9]OPSRAP_20250010000_01D_01H_GIM.INX.*",
+            "files": [
+              "COD0OPSRAP_20250010000_01D_01H_GIM.INX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/ionex/2025/001/",
+            "pattern": "IGS[0-9]OPSFIN_20250010000_01D_02H_GIM.INX.*",
+            "files": [
+              "IGS0OPSFIN_20250010000_01D_02H_GIM.INX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/ionex/2025/001/",
+            "pattern": "IGS[0-9]OPSRAP_20250010000_01D_02H_GIM.INX.*",
+            "files": [
+              "IGS0OPSRAP_20250010000_01D_02H_GIM.INX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/ionex/2025/001/",
+            "pattern": "JPL[0-9]OPSFIN_20250010000_01D_02H_GIM.INX.*",
+            "files": [
+              "JPL0OPSFIN_20250010000_01D_02H_GIM.INX.gz"
+            ]
+          },
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/ionex/2025/001/",
+            "pattern": "JPL[0-9]OPSRAP_20250010000_01D_02H_GIM.INX.*",
+            "files": [
+              "JPL0OPSRAP_20250010000_01D_02H_GIM.INX.gz"
+            ]
           }
         ],
         "errors": []
       },
       {
         "product": "RNX3_BRDC",
-        "status": "NOT_FOUND",
-        "queries": 1,
-        "found": 0,
-        "files": 0,
-        "matches": [],
+        "status": "FOUND",
+        "queries": 2,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/data/daily/2025/001/25p/",
+            "pattern": "BRDC[0-9][0-9]{1}IGS_R_20250010000_01D_MN.rnx",
+            "files": [
+              "BRDC00IGS_R_20250010000_01D_MN.rnx.gz"
+            ]
+          }
+        ],
         "errors": []
       },
       {
         "product": "LEAP_SEC",
-        "status": "ERROR",
-        "reason": "'NoneType' object has no attribute 'pattern'",
-        "queries": 0,
-        "found": 0,
-        "files": 0,
-        "matches": []
+        "status": "FOUND",
+        "queries": 1,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/table",
+            "pattern": "leap.sec",
+            "files": [
+              "leap.sec"
+            ]
+          }
+        ],
+        "errors": []
       },
       {
         "product": "SAT_PARAMS",
-        "status": "ERROR",
-        "reason": "'NoneType' object has no attribute 'pattern'",
-        "queries": 0,
-        "found": 0,
-        "files": 0,
-        "matches": []
+        "status": "FOUND",
+        "queries": 1,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/table",
+            "pattern": "sat_parameters",
+            "files": [
+              "sat_parameters"
+            ]
+          }
+        ],
+        "errors": []
       }
     ]
   }
