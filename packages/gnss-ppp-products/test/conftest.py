@@ -76,6 +76,21 @@ def cddis_config() -> dict:
 
 
 @pytest.fixture(scope="session")
+def igs_config() -> dict:
+    return _load_center_yaml("igs_config.yaml")
+
+
+@pytest.fixture(scope="session")
+def vmf_config() -> dict:
+    return _load_center_yaml("vmf_config.yaml")
+
+
+@pytest.fixture(scope="session")
+def gfz_config() -> dict:
+    return _load_center_yaml("gfz_config.yaml")
+
+
+@pytest.fixture(scope="session")
 def wuhan_env(wuhan_config) -> ProductEnvironment:
     return _build_env(wuhan_config)
 
@@ -94,6 +109,21 @@ def cddis_env(cddis_config) -> ProductEnvironment:
 def multi_env(wuhan_config, cod_config, cddis_config) -> ProductEnvironment:
     """Environment with all three centers registered."""
     return _build_env(wuhan_config, cod_config, cddis_config)
+
+
+@pytest.fixture(scope="session")
+def igs_env(igs_config) -> ProductEnvironment:
+    return _build_env(igs_config)
+
+
+@pytest.fixture(scope="session")
+def vmf_env(vmf_config) -> ProductEnvironment:
+    return _build_env(vmf_config)
+
+
+@pytest.fixture(scope="session")
+def gfz_env(gfz_config) -> ProductEnvironment:
+    return _build_env(gfz_config)
 
 
 @pytest.fixture(scope="session")
@@ -123,6 +153,36 @@ def cddis_qf(cddis_env) -> QueryFactory:
         local_factory=cddis_env.local_factory,
         product_catalog=cddis_env.product_catalog,
         parameter_catalog=cddis_env.parameter_catalog,
+    )
+
+
+@pytest.fixture(scope="session")
+def igs_qf(igs_env) -> QueryFactory:
+    return QueryFactory(
+        remote_factory=igs_env.remote_factory,
+        local_factory=igs_env.local_factory,
+        product_catalog=igs_env.product_catalog,
+        parameter_catalog=igs_env.parameter_catalog,
+    )
+
+
+@pytest.fixture(scope="session")
+def vmf_qf(vmf_env) -> QueryFactory:
+    return QueryFactory(
+        remote_factory=vmf_env.remote_factory,
+        local_factory=vmf_env.local_factory,
+        product_catalog=vmf_env.product_catalog,
+        parameter_catalog=vmf_env.parameter_catalog,
+    )
+
+
+@pytest.fixture(scope="session")
+def gfz_qf(gfz_env) -> QueryFactory:
+    return QueryFactory(
+        remote_factory=gfz_env.remote_factory,
+        local_factory=gfz_env.local_factory,
+        product_catalog=gfz_env.product_catalog,
+        parameter_catalog=gfz_env.parameter_catalog,
     )
 
 

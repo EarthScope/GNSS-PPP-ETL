@@ -1,379 +1,243 @@
 """
-Integration test suite: highest-quality GNSS products from FTP sources.
+Tests: Orbit/Clock products via QueryFactory.
 
-Metadata
---------
-Date under test : 2025-01-01  (DOY 001, GPS week 2347)
-FTP sources     : WuhanFTPProductSource, CLSIGSFTPProductSource
-Quality fallback: FINAL → RAPID → REAL_TIME_STREAMING
-Products probed : SP3  CLK  OBX  ERP  BIAS
-
-Usage
------
-Run all integration tests::
-
-    uv run pytest test/test_remote_resources.py -v
-
-Skip in offline environments::
-
-    uv run pytest -m "not integration"
+Products: ORBIT, CLOCK, ERP, BIA, ATTOBX
+Centers : Wuhan (FTP), CODE (FTP), CDDIS (FTPS)
 """
 from __future__ import annotations
 
-from collections import defaultdict
 import datetime
-import logging
-from dataclasses import dataclass, field
-from typing import Optional, Type
 
 import pytest
 
-from gnss_ppp_products.resources import OrbitClockFTPProductSource, WuhanFTPProductSource, CLSIGSFTPProductSource,KASIFTPProductSource,CDDISFTPProductSource,OrbitClockProductTypes
-from gnss_ppp_products.resources.remote.base import FTPFileResult, FTPProductSource, ProductQuality
+from gnss_ppp_products.factories import ResourceFetcher, FetchResult
 
-log = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.integration
 
-# ---------------------------------------------------------------------------
-# Test parameters
-# ---------------------------------------------------------------------------
 
-DATE = datetime.date(2025, 1, 1)
-DOY: int = DATE.timetuple().tm_yday                            # 1
-GPS_WEEK: int = (DATE - datetime.date(1980, 1, 6)).days // 7  # 2347
-
-PRODUCTS:list = list(OrbitClockProductTypes)  # [OrbitClockProductTypes.SP3, OrbitClockProductTypes.ORBIT, ...]
-
-QUALITY_ORDER: list[ProductQuality] = [
-    ProductQuality.FINAL,
-    ProductQuality.RAPID,
-    ProductQuality.REAL_TIME_STREAMING,
-]
-
-# FTP sources to test
-FTP_SOURCES: list[tuple[str, OrbitClockFTPProductSource]] = [
-    ("Wuhan", WuhanFTPProductSource),
-    ("CLSIGS", CLSIGSFTPProductSource),
-    ("KASI", KASIFTPProductSource),
-    ("CDDIS", CDDISFTPProductSource),
-]
+def _get_remote_queries(qf, date, product_name, parameters=None):
+    queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
+    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
 
 
-# ---------------------------------------------------------------------------
-# Result container
-# ---------------------------------------------------------------------------
+def _search_remote(qf, fetcher, date, product_name, parameters=None):
+    queries = _get_remote_queries(qf, date, product_name, parameters)
+    return fetcher.search(queries)
 
 
-@dataclass
-class ProbeResult:
-    """Outcome of querying a single GNSS product type across all quality levels."""
-
-    product: str
-    file_result: Optional[FTPFileResult] = None
-    quality: Optional[ProductQuality] = None
-    errors: dict[str, str] = field(default_factory=dict)  # quality.value → exc message
-
-    @property
-    def found(self) -> bool:
-        return self.file_result is not None
-
-    @property
-    def quality_label(self) -> str:
-        return self.quality.value if self.quality else "—"
-
-    @property
-    def filename(self) -> str:
-        return self.file_result.filename if self.file_result else "not found"
-
-    @property
-    def url(self) -> str:
-        return self.file_result.url if self.file_result else "—"
-
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="module")
-def product_results_by_source() -> dict[str, dict[str, dict[str, ProbeResult]]]:
-    """
-    Query all FTP servers for every product type, trying FINAL → RAPID → RTS.
-
-    Results are cached at module scope so each FTP server is contacted only
-    once per test session regardless of how many test functions consume this
-    fixture.
-
-    Returns:
-        dict mapping source_name → product → quality → ProbeResult
-    """
-    all_results: dict[str, dict[str, dict[str, ProbeResult]]] = {}
-
-    for source_name, source in FTP_SOURCES:
-     
-        results: dict[str, dict[str, ProbeResult]] = defaultdict(dict)
-
-        log.info("Probing %s FTP — %s (DOY %03d, GPS week %d)", source_name, DATE, DOY, GPS_WEEK)
-
-        for product in PRODUCTS:
-            found_any = False
-
-            for quality in QUALITY_ORDER:
-                probe = ProbeResult(product=product)
-                try:
-                    file_result = source.query(
-                        product=product, date=DATE, quality=quality
-                    )
-                except Exception as exc:
-                    probe.errors[quality.value] = str(exc)
-                    log.warning(
-                        "  [%s] %s — ERROR: %s", product.name, quality.value, exc
-                    )
-                    file_result = None
-
-                if file_result is not None:
-                    probe.file_result = file_result
-                    probe.quality = quality
-                    found_any = True
-                    log.info(
-                        "  [%s] Found at %-3s — %s",
-                        product.name,
-                        quality.value,
-                        file_result.filename,
-                    )
-                    results[product.value][quality] = probe
-
-            if not found_any:
-                tried = " → ".join(q.value for q in QUALITY_ORDER)
-                log.warning("  [%s] Not found at any quality (%s)", product.name, tried)
-
-        _print_summary(source_name, source.ftpserver, results)
-        all_results[source_name] = results
-
-    return all_results
-
-
-# ---------------------------------------------------------------------------
-# Summary table
-# ---------------------------------------------------------------------------
-
-_COL_PROD = 8
-_COL_QUAL = 7
-_COL_FILE = 52
-
-
-def _print_summary(source_name: str, ftpserver: str, results: dict[str, dict[str, ProbeResult]]) -> None:
-    """Print a formatted ASCII table of query results to stdout."""
-    separator = "=" * 80
-    print(
-        f"\n{separator}\n"
-        f"  {source_name} FTP — Highest Quality Products\n"
-        f"  Date: {DATE}  |  DOY: {DOY:03d}  |  GPS Week: {GPS_WEEK}\n"
-        f"  Server: {ftpserver}\n"
-        f"{separator}"
+def _assert_found(results, product_name, min_matches=1):
+    found = [r for r in results if r.found]
+    assert len(found) >= min_matches, (
+        f"{product_name}: expected >= {min_matches} found, got {len(found)}. "
+        f"Errors: {[r.error for r in results if r.error]}"
     )
-    print(
-        f"  {'Product':<{_COL_PROD}}"
-        f"  {'Quality':<{_COL_QUAL}}"
-        f"  {'Filename':<{_COL_FILE}}"
-        f"  FTP URL"
-    )
-    print(
-        f"  {'-'*_COL_PROD}"
-        f"  {'-'*_COL_QUAL}"
-        f"  {'-'*_COL_FILE}"
-        f"  {'-'*60}"
-    )
-    for product, quality_dict in results.items():
-        for quality, probe in quality_dict.items():
-            print(
-                f"  {probe.product.name:<{_COL_PROD}}"
-                f"  {probe.quality_label:<{_COL_QUAL}}"
-                f"  {probe.filename:<{_COL_FILE}}"
-                f"  {probe.url}"
-            )
-            for q_val, msg in probe.errors.items():
-                print(f"    {'':>{_COL_PROD}}  {q_val}: {msg}")
-
-    print(f"{separator}\n")
+    return found
 
 
 # ---------------------------------------------------------------------------
-# Integration tests
+# Unit: Wuhan Orbit/Clock query expansion
 # ---------------------------------------------------------------------------
 
+class TestWuhanOrbitExpansion:
 
-@pytest.mark.parametrize("source_name,source_instance", FTP_SOURCES, ids=[s[0] for s in FTP_SOURCES])
-class TestFTPHighestQuality:
-    """
-    Integration tests against FTP servers.
+    def test_orbit_queries_returned(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        assert len(queries) > 0
 
-    Each test validates a single product type in isolation so failures are
-    immediately identifiable by test name. Tests are parametrized to run
-    against all configured FTP sources.
+    def test_orbit_server_protocol_is_ftp(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        for q in queries:
+            assert q.server.protocol.lower() == "ftp"
 
-    Requires live network access.  Skip offline::
+    def test_orbit_directory_contains_date_info(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        for q in queries:
+            d = q.directory.value or q.directory.pattern
+            assert "2025" in d or "2349" in d  # year or GPS week
 
-        pytest -m "not integration"
-    """
+    def test_orbit_filename_pattern_has_sp3(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        patterns = [q.product.filename.pattern for q in queries]
+        assert any("SP3" in p for p in patterns), f"No SP3 in {patterns}"
 
-    @pytest.fixture(autouse=True)
-    def _setup(self, source_name: str, source_instance, product_results_by_source: dict):
-        """Setup source and results for each test."""
-        self.source_name = source_name
-        self.source = source_instance
-        self.product_results = product_results_by_source.get(source_name, {})
+    def test_clock_queries_returned(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "CLOCK", {"AAA": "WUM"})
+        assert len(queries) > 0
 
-    def test_sp3_found_at_high_quality(self) -> None:
-        """SP3 (precise orbit) must be present at FINAL or RAPID quality."""
-        probe_sp3 = self.product_results.get("sp3", {})
-        days_past = (datetime.date.today() - DATE).days
-        found_quality = False
-        for quality, probe in probe_sp3.items():
-            assert probe.found, (
-                f"[{self.source_name}] SP3 not found for {DATE} (DOY {DOY:03d}, GPS week {GPS_WEEK}). "
-                f"Errors: {probe.errors or 'none — FTP listing returned no match'}."
-            )
-            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
-                found_quality = True
-                log.info(
-                    "[%s] SP3 found at %s quality for date %s (DOY %03d, GPS week %d).",
-                    self.source_name,
-                    probe.quality_label,
-                    DATE,
-                    DOY,
-                    GPS_WEEK,
-                )
-        assert found_quality, (
-            f"[{self.source_name}] SP3 found only at lower quality levels; expected FINAL or RAPID "
-            f"for a date {days_past} days in the past."
-        )
+    def test_clock_filename_pattern_has_clk(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "CLOCK", {"AAA": "WUM"})
+        patterns = [q.product.filename.pattern for q in queries]
+        assert any("CLK" in p for p in patterns), f"No CLK in {patterns}"
 
-    def test_clk_found_at_high_quality(self) -> None:
-        """CLK (precise clock) must be present at FINAL or RAPID quality."""
-        probe_clock_results = self.product_results.get("clk", {})
-        days_past = (datetime.date.today() - DATE).days
-        found_quality = False
-        for quality, probe in probe_clock_results.items():
-            assert probe.found, (
-                f"[{self.source_name}] CLK not found for {DATE} (DOY {DOY:03d}, GPS week {GPS_WEEK}). {quality.value} "
-                f"Errors: {probe.errors or 'none — FTP listing returned no match'}."
-            )
-            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
-                found_quality = True
-                log.info(
-                    "[%s] CLK found at %s quality for date %s (DOY %03d, GPS week %d).",
-                    self.source_name,
-                    probe.quality_label,
-                    DATE,
-                    DOY,
-                    GPS_WEEK,
-                )
-        assert found_quality, (
-            f"[{self.source_name}] CLK found only at lower quality levels; expected FINAL or RAPID "
-            f"for a date {days_past} days in the past."
-        )
+    def test_erp_queries_returned(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "ERP")
+        assert len(queries) > 0
 
-    def test_obx_found_at_high_quality(self) -> None:
-        """OBX (satellite attitude quaternions) must be present at FINAL or RAPID quality."""
-        probe_obx_results = self.product_results.get("obx", {})
-        days_past = (datetime.date.today() - DATE).days
-        found_quality = False
-        for quality, probe in probe_obx_results.items():
-            assert probe.found, (
-                f"[{self.source_name}] OBX not found for {DATE} (DOY {DOY:03d}). {quality.value} "
-                f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
-                "Verify the OBX directory path and regex in Group1FileRegex."
-            )
-            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
-                found_quality = True
-                log.info(
-                    "[%s] OBX found at %s quality for date %s (DOY %03d).",
-                    self.source_name,
-                    probe.quality_label,
-                    DATE,
-                    DOY,
-                )
-        assert found_quality, (
-            f"[{self.source_name}] OBX found only at lower quality levels; expected FINAL or RAPID "
-            f"for a date {days_past} days in the past."
-        )
+    def test_bias_queries_returned(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "BIA", {"AAA": "WUM"})
+        assert len(queries) > 0
 
-    def test_erp_found_at_high_quality(self) -> None:
-        """ERP (earth rotation parameters) must be present at FINAL or RAPID quality."""
-        probe_erp = self.product_results.get("erp", {})
-        days_past = (datetime.date.today() - DATE).days
-        found_quality = False
+    def test_attobx_queries_returned(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "ATTOBX", {"AAA": "WUM"})
+        assert len(queries) > 0
 
-        for quality, probe in probe_erp.items():
-            assert probe.found, (
-                f"[{self.source_name}] ERP not found for {DATE} (DOY {DOY:03d}). {quality.value} "
-                f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
-                "Verify the ERP directory path and regex in Group1FileRegex."
-            )
-            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
-                found_quality = True
-                log.info(
-                    "[%s] ERP found at %s quality for date %s (DOY %03d).",
-                    self.source_name,
-                    probe.quality_label,
-                    DATE,
-                    DOY,
-                )
-        assert found_quality, (
-            f"[{self.source_name}] ERP found only at lower quality levels; expected FINAL or RAPID "
-            f"for a date {days_past} days in the past."
-        )
+    def test_filename_contains_wum(self, wuhan_qf, test_date) -> None:
+        queries = _get_remote_queries(wuhan_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        patterns = [q.product.filename.pattern for q in queries]
+        assert any("WUM" in p for p in patterns)
 
-    def test_bias_found(self) -> None:
-        """BIAS (satellite phase biases) must be present at any quality."""
-        probe_bias = self.product_results.get("bias", {})
-        days_past = (datetime.date.today() - DATE).days
-        found_quality = False
 
-        for quality, probe in probe_bias.items():
-            assert probe.found, (
-                f"[{self.source_name}] BIAS not found for {DATE} (DOY {DOY:03d}). {quality.value} "
-                f"Errors: {probe.errors or 'none — FTP listing returned no match'}. "
-                "Verify the BIAS directory path and regex in Group1FileRegex."
-            )
-            if probe.quality in (ProductQuality.FINAL, ProductQuality.RAPID):
-                found_quality = True
-                log.info(
-                    "[%s] BIAS found at %s quality for date %s (DOY %03d).",
-                    self.source_name,
-                    probe.quality_label,
-                    DATE,
-                    DOY,
-                )
-        assert found_quality, (
-            f"[{self.source_name}] BIAS found only at lower quality levels; expected FINAL or RAPID "
-            f"for a date {days_past} days in the past."
-        )
+# ---------------------------------------------------------------------------
+# Unit: CODE Orbit/Clock query expansion
+# ---------------------------------------------------------------------------
 
-    def test_found_products_have_valid_filenames(self) -> None:
-        """Every product that resolved must have a non-empty, extension-bearing filename."""
-        for product, probe_qualities in self.product_results.items():
-            for quality, probe in probe_qualities.items():
-                if not probe.found:
-                    continue
-                assert probe.filename, (
-                    f"[{self.source_name}] {product.name} result has an empty filename."
-                )
-                assert "." in probe.filename, (
-                    f"[{self.source_name}] {product.name} filename '{probe.filename}' has no file extension."
-                )
+class TestCODOrbitExpansion:
 
-    def test_found_products_have_valid_ftp_urls(self) -> None:
-        """Every product that resolved must produce a well-formed FTP URL."""
-        for product, probe_qualities in self.product_results.items():
-            for quality, probe in probe_qualities.items():
-                if not probe.found:
-                    continue
-                assert probe.url.startswith("ftp://"), (
-                    f"[{self.source_name}] {product.name} URL '{probe.url}' does not start with 'ftp://'."
-                )
-                assert probe.filename in probe.url, (
-                    f"[{self.source_name}] {product.name} URL '{probe.url}' does not contain its filename."
-                )
+    def test_orbit_queries_returned(self, cod_qf, test_date) -> None:
+        queries = _get_remote_queries(cod_qf, test_date, "ORBIT")
+        assert len(queries) > 0
+
+    def test_orbit_server_protocol_is_ftp(self, cod_qf, test_date) -> None:
+        queries = _get_remote_queries(cod_qf, test_date, "ORBIT")
+        for q in queries:
+            assert q.server.protocol.lower() == "ftp"
+
+    def test_orbit_directory_contains_code(self, cod_qf, test_date) -> None:
+        queries = _get_remote_queries(cod_qf, test_date, "ORBIT")
+        for q in queries:
+            d = q.directory.value or q.directory.pattern
+            assert "CODE" in d
+
+    def test_orbit_filename_contains_cod(self, cod_qf, test_date) -> None:
+        queries = _get_remote_queries(cod_qf, test_date, "ORBIT")
+        patterns = [q.product.filename.pattern for q in queries]
+        assert any("COD" in p for p in patterns)
+
+    def test_clock_queries_returned(self, cod_qf, test_date) -> None:
+        queries = _get_remote_queries(cod_qf, test_date, "CLOCK")
+        assert len(queries) > 0
+
+    def test_erp_queries_returned(self, cod_qf, test_date) -> None:
+        queries = _get_remote_queries(cod_qf, test_date, "ERP")
+        assert len(queries) > 0
+
+    def test_bias_queries_returned(self, cod_qf, test_date) -> None:
+        queries = _get_remote_queries(cod_qf, test_date, "BIA")
+        assert len(queries) > 0
+
+
+# ---------------------------------------------------------------------------
+# Unit: CDDIS Orbit/Clock query expansion
+# ---------------------------------------------------------------------------
+
+class TestCDDISOrbitExpansion:
+
+    def test_orbit_queries_returned(self, cddis_qf, test_date) -> None:
+        queries = _get_remote_queries(cddis_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        assert len(queries) > 0
+
+    def test_orbit_protocol_is_ftps(self, cddis_qf, test_date) -> None:
+        queries = _get_remote_queries(cddis_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        for q in queries:
+            assert q.server.protocol.lower() == "ftps"
+
+    def test_orbit_directory_contains_gpsweek(self, cddis_qf, test_date) -> None:
+        gpsweek = str((test_date.date() - datetime.date(1980, 1, 6)).days // 7)
+        queries = _get_remote_queries(cddis_qf, test_date, "ORBIT", {"AAA": "WUM"})
+        for q in queries:
+            d = q.directory.value or q.directory.pattern
+            assert gpsweek in d
+
+    def test_clock_queries_returned(self, cddis_qf, test_date) -> None:
+        queries = _get_remote_queries(cddis_qf, test_date, "CLOCK", {"AAA": "IGS"})
+        assert len(queries) > 0
+
+
+# ---------------------------------------------------------------------------
+# Integration: Wuhan FTP orbit probe
+# ---------------------------------------------------------------------------
+
+class TestWuhanOrbitProbe:
+
+    def test_orbit_found(self, wuhan_qf, fetcher, test_date) -> None:
+        results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
+        _assert_found(results, "ORBIT")
+
+    def test_orbit_filenames_contain_sp3(self, wuhan_qf, fetcher, test_date) -> None:
+        results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
+        found = _assert_found(results, "ORBIT")
+        for r in found:
+            assert any("SP3" in f.upper() for f in r.matched_filenames)
+
+    def test_orbit_filenames_match_date(self, wuhan_qf, fetcher, test_date) -> None:
+        results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
+        found = _assert_found(results, "ORBIT")
+        for r in found:
+            for fn in r.matched_filenames:
+                assert "WUM" in fn or "wum" in fn.lower()
+
+    def test_clock_found(self, wuhan_qf, fetcher, test_date) -> None:
+        results = _search_remote(wuhan_qf, fetcher, test_date, "CLOCK", {"AAA": "WUM"})
+        _assert_found(results, "CLOCK")
+
+    def test_erp_found(self, wuhan_qf, fetcher, test_date) -> None:
+        results = _search_remote(wuhan_qf, fetcher, test_date, "ERP")
+        _assert_found(results, "ERP")
+
+    def test_bias_found(self, wuhan_qf, fetcher, test_date) -> None:
+        results = _search_remote(wuhan_qf, fetcher, test_date, "BIA", {"AAA": "WUM"})
+        _assert_found(results, "BIA")
+
+    def test_attobx_found(self, wuhan_qf, fetcher, test_date) -> None:
+        results = _search_remote(wuhan_qf, fetcher, test_date, "ATTOBX", {"AAA": "WUM"})
+        _assert_found(results, "ATTOBX")
+
+
+# ---------------------------------------------------------------------------
+# Integration: CODE FTP orbit probe
+# ---------------------------------------------------------------------------
+
+class TestCODOrbitProbe:
+
+    def test_orbit_found(self, cod_qf, fetcher, test_date) -> None:
+        results = _search_remote(cod_qf, fetcher, test_date, "ORBIT")
+        _assert_found(results, "ORBIT")
+
+    def test_clock_found(self, cod_qf, fetcher, test_date) -> None:
+        results = _search_remote(cod_qf, fetcher, test_date, "CLOCK")
+        _assert_found(results, "CLOCK")
+
+    def test_erp_found(self, cod_qf, fetcher, test_date) -> None:
+        results = _search_remote(cod_qf, fetcher, test_date, "ERP")
+        _assert_found(results, "ERP")
+
+    def test_bias_found(self, cod_qf, fetcher, test_date) -> None:
+        results = _search_remote(cod_qf, fetcher, test_date, "BIA")
+        _assert_found(results, "BIA")
+
+    def test_orbit_filenames_contain_cod(self, cod_qf, fetcher, test_date) -> None:
+        results = _search_remote(cod_qf, fetcher, test_date, "ORBIT")
+        found = _assert_found(results, "ORBIT")
+        for r in found:
+            assert any("COD" in f for f in r.matched_filenames)
+
+
+# ---------------------------------------------------------------------------
+# Integration: CDDIS FTPS orbit probe
+# ---------------------------------------------------------------------------
+
+class TestCDDISOrbitProbe:
+
+    def test_orbit_found(self, cddis_qf, fetcher, test_date) -> None:
+        results = _search_remote(cddis_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
+        _assert_found(results, "ORBIT")
+
+    def test_clock_found(self, cddis_qf, fetcher, test_date) -> None:
+        results = _search_remote(cddis_qf, fetcher, test_date, "CLOCK", {"AAA": "IGS"})
+        _assert_found(results, "CLOCK")
+
+    def test_ftps_protocol_used(self, cddis_qf, fetcher, test_date) -> None:
+        results = _search_remote(cddis_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
+        for r in results:
+            assert r.query.server.protocol.lower() == "ftps"
