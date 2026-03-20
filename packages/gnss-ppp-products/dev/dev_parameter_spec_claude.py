@@ -1673,6 +1673,9 @@ class RemoteResourceFactory:
         if query is None:
             raise KeyError(f"Product {product.name!r} not found in resource {resource_id!r}. Known products: {set(q.product.name for q in cat.queries)}")
         
+        # Deep copy so we never mutate the catalog's original query
+        query = query.model_copy(deep=True)
+        
         # We need to match incoming product values with query product values.
         matched_product: Optional[Product] = self.match_pinned_query(query.product, product)
         if matched_product is None:

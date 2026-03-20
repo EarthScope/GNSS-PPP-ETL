@@ -511,7 +511,7 @@ class ResourceFetcher:
 
 if __name__ == "__main__":
     from pathlib import Path
-    date = datetime.datetime(2024, 1, 1).astimezone(datetime.timezone.utc)
+    date = datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc)
     base_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
     PARAMETER_CATALOG = ParameterCatalog(parameters=[Parameter(**p) for p in parameter_spec_dict])
     FORMAT_CATALOG = FormatCatalog(
@@ -541,8 +541,7 @@ if __name__ == "__main__":
     test = QF.get(
         date=date,
         product={"name": "ORBIT", "version": ["1"]},
-        parameters={"AAA": ["WUM", "COD","IGS"], "TTT": ["FIN", "RAP"],"SMP": "05M"},
-        remote_resources=["WUM", "COD"],
+        parameters={"AAA": ["WUM","WMC"]},
     )
 
     # ── ResourceFetcher demo ─────────────────────────────────────
@@ -562,3 +561,5 @@ if __name__ == "__main__":
             print(f"  fn.value  = {fr.query.product.filename.value if fr.query.product.filename else None}")
         elif fr.error:
             print(f"  Error:    {fr.error}")
+    
+    found = [fr for fr in fetch_results if fr.found]
