@@ -10,24 +10,8 @@ import datetime
 import logging
 from pathlib import Path
 
-from gnss_ppp_products.specifications.local.local import LocalResourceSpec
-from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
-
-from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
-from gnss_ppp_products.specifications.products.product import Product, ProductPath, VariantCatalog, VersionCatalog
-from gnss_ppp_products.specifications.products.catalog import ProductCatalog, ProductSpecCatalog
-from gnss_ppp_products.specifications.format.format_spec import FormatCatalog, FormatSpecCatalog
-from gnss_ppp_products.specifications.remote.resource import (
-    ResourceProductSpec,
-    ResourceSpec,
-    ResourceQuery,
-    Server,
-)
-from gnss_ppp_products.specifications.local.factory import LocalResourceFactory as LocalResourceFactory
-from gnss_ppp_products.factories.remote_factory import RemoteResourceFactory
-from gnss_ppp_products.factories.query_factory import QueryFactory, QueryProfile
-from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchResult
-from gnss_ppp_products.utilities.helpers import _listify, expand_dict_combinations
+from gnss_ppp_products.specifications.products.product import ProductPath
+from gnss_ppp_products.factories import ProductEnvironment, QueryFactory, ResourceFetcher, FetchResult
 
 import sys
 sys.path.append(str(Path(__file__).parent))
@@ -43,36 +27,26 @@ from dev_specs import (
 
 logger = logging.getLogger(__name__)
 
-
 LOCAL_CONFIG_PATH = Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "configs" / "local" / "local_config.yaml"
 
 
 if __name__ == "__main__":
-    from pathlib import Path
     date = datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc)
-    base_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
-    PARAMETER_CATALOG = ParameterCatalog(parameters=[Parameter(**p) for p in parameter_spec_dict])
-    register_computed_fields(PARAMETER_CATALOG)
-    FORMAT_CATALOG = FormatCatalog(
-        format_spec_catalog=FormatSpecCatalog(formats=format_spec_dict),
-        parameter_catalog=PARAMETER_CATALOG,
+
+    env = ProductEnvironment(
+        base_dir="/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP",
+        parameter_specs=parameter_spec_dict,
+        format_specs=format_spec_dict,
+        product_specs=product_spec_dict,
+        local_config=LOCAL_CONFIG_PATH,
+        remote_specs=[wuhan_resource_spec_dict, igs_resource_spec_dict, code_resource_spec_dict],
     )
-    PRODUCT_CATALOG = ProductCatalog(
-        product_spec_catalog=ProductSpecCatalog(products=product_spec_dict),
-        format_catalog=FORMAT_CATALOG,
-    )
-    REMOTE_RESOURCE_FACTORY = RemoteResourceFactory(PRODUCT_CATALOG)
-    REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**wuhan_resource_spec_dict))
-    REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**igs_resource_spec_dict))
-    REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**code_resource_spec_dict))
-    LOCAL_SPEC = LocalResourceSpec.from_yaml(str(LOCAL_CONFIG_PATH))
-    local = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, PARAMETER_CATALOG, base_dir=base_dir)
 
     QF = QueryFactory(
-        remote_factory=REMOTE_RESOURCE_FACTORY,
-        local_factory=local,
-        product_catalog=PRODUCT_CATALOG,
-        parameter_catalog=PARAMETER_CATALOG,
+        remote_factory=env.remote_factory,
+        local_factory=env.local_factory,
+        product_catalog=env.product_catalog,
+        parameter_catalog=env.parameter_catalog,
     )
 
     test = QF.get(
@@ -104,7 +78,7 @@ if __name__ == "__main__":
     # ── Download found products ──────────────────────────────────
     if found:
         print(f"\nDownloading {sum(len(fr.matched_filenames) for fr in found)} file(s) from {len(found)} source(s)…")
-        asyncio.run(fetcher.download(fetch_results, local, date))
+        asyncio.run(fetcher.download(fetch_results, env.local_factory, date))
         for fr in found:
             if fr.downloaded:
                 print(f"  ✓ {fr.query.server.hostname} → {fr.download_dest}")
