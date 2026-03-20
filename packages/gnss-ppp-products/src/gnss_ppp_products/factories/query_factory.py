@@ -89,7 +89,7 @@ class QueryFactory:
         self,
         date: datetime.datetime,
         product: Dict[str, str | list[str]],
-        parameters: Dict[str, str | list[str]],
+        parameters: Optional[Dict[str, str | list[str]]] = None,
         local_resources: Optional[List[str]] = None,
         remote_resources: Optional[List[str]] = None,
     ) -> list[ResourceQuery]:
@@ -101,8 +101,10 @@ class QueryFactory:
             Target date for computed metadata fields (e.g. YYYY, DDD).
         product : dict
             Product query with ``name``, optionally ``version``, ``variant``.
-        parameters : dict[str, str | list[str]]
-            User constraints on metadata fields.
+        parameters : dict[str, str | list[str]] | None
+            User constraints on metadata fields.  If *None* or empty,
+            no narrowing is applied — all parameter values remain as
+            wildcards (resolved to regex patterns in the final step).
         local_resources : list[str]
             If specified, only include local resources with these collection IDs.
         remote_resources : list[str]
@@ -112,6 +114,7 @@ class QueryFactory:
         -------
         list[ResourceQuery]
         """
+        parameters = parameters or {}
         local_resources = _listify(local_resources)
         remote_resources = _listify(remote_resources)
         out: List[ResourceQuery] = []

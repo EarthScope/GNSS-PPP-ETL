@@ -1,0 +1,77 @@
+id: VMF
+name: TU Wien (Vienna)
+website: https://vmf.geo.tuwien.ac.at/
+
+servers:
+  - id: vmf_https
+    name: VMF HTTPS
+    hostname: "https://vmf.geo.tuwien.ac.at"
+    protocol: https
+    auth_required: false
+    description: Primary HTTP server for VMF products
+
+products:
+  # ── VMF1 ────────────────────────────────────────────────────────
+  - id: vmf_vmf1
+    product_name: VMF
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 1 (2.5x2 grid)
+    parameters:
+      - {name: PRODUCT, value: VMF1}
+      - {name: RESOLUTION, value: "2.5x2"}
+      - {name: VMFHH, value: H00}
+      - {name: VMFHH, value: H06}
+      - {name: VMFHH, value: H12}
+      - {name: VMFHH, value: H18}
+    directory: {pattern: "trop_products/GRID/2.5x2/VMF1/VMF1_OP/{YYYY}/"}
+
+  # ── VMF3 1x1 ───────────────────────────────────────────────────
+  - id: vmf_vmf3_1x1
+    product_name: VMF
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 3 (1x1 grid, recommended)
+    parameters:
+      - {name: PRODUCT, value: VMF3}
+      - {name: RESOLUTION, value: "1x1"}
+      - {name: VMFHH, value: H00}
+      - {name: VMFHH, value: H06}
+      - {name: VMFHH, value: H12}
+      - {name: VMFHH, value: H18}
+    directory: {pattern: "trop_products/GRID/1x1/VMF3/VMF3_OP/{YYYY}/"}
+
+  # ── VMF3 5x5 ───────────────────────────────────────────────────
+  - id: vmf_vmf3_5x5
+    product_name: VMF
+    server_id: vmf_https
+    available: true
+    description: Vienna Mapping Functions version 3 (5x5 grid)
+    parameters:
+      - {name: PRODUCT, value: VMF3}
+      - {name: RESOLUTION, value: "5x5"}
+      - {name: VMFHH, value: H00}
+      - {name: VMFHH, value: H06}
+      - {name: VMFHH, value: H12}
+      - {name: VMFHH, value: H18}
+    directory: {pattern: "trop_products/GRID/5x5/VMF3/VMF3_OP/{YYYY}/"}
+
+  # ── Orography 1x1 ──────────────────────────────────────────────
+  - id: vmf_orography_1x1
+    product_name: OROGRAPHY
+    server_id: vmf_https
+    available: true
+    description: Ellipsoidal terrain height grid (1x1) for VMF interpolation
+    parameters:
+      - {name: RESOLUTION, value: "1x1"}
+    directory: {pattern: "station_coord_files"}
+
+  # ── Orography 5x5 ──────────────────────────────────────────────
+  - id: vmf_orography_5x5
+    product_name: OROGRAPHY
+    server_id: vmf_https
+    available: true
+    description: Ellipsoidal terrain height grid (5x5) for VMF interpolation
+    parameters:
+      - {name: RESOLUTION, value: "5x5"}
+    directory: {pattern: "station_coord_files"}

@@ -49,31 +49,51 @@ if __name__ == "__main__":
         parameter_catalog=env.parameter_catalog,
     )
 
-    test = QF.get(
+    # ── Narrowed query (parameters specified) ────────────────────
+    print("\n" + "=" * 60)
+    print("NARROWED query: parameters={'AAA': ['WUM','WMC']}")
+    print("=" * 60)
+    test_narrowed = QF.get(
         date=date,
         product={"name": "ORBIT", "version": ["1"]},
-        parameters={"AAA": ["WUM","WMC"]},
+        parameters={"AAA": ["WUM", "WMC"]},
     )
 
-    # ── ResourceFetcher demo ─────────────────────────────────────
-    print("\n" + "=" * 60)
-    print("ResourceFetcher — searching for files…")
-    print("=" * 60)
     fetcher = ResourceFetcher()
-    fetch_results = fetcher.search(test)
-    for fr in fetch_results:
-        status = "FOUND" if fr.found else ("ERROR" if fr.error else "NO MATCH")
+    results_narrowed = fetcher.search(test_narrowed)
+    found_narrowed = [fr for fr in results_narrowed if fr.found]
+    print(f"\nNarrowed: {len(test_narrowed)} queries → {len(found_narrowed)} found, "
+          f"{sum(len(fr.matched_filenames) for fr in found_narrowed)} files")
+    for fr in found_narrowed:
         dir_str = ResourceFetcher._get_directory(fr.query) or "?"
-        print(f"\n[{status}] {fr.query.server.hostname} | {dir_str}")
-        print(f"  Pattern:  {ResourceFetcher._get_file_pattern(fr.query)}")
-        if fr.found:
-            print(f"  Matches:  {fr.matched_filenames[:5]}")
-            print(f"  dir.value = {fr.query.directory.value if isinstance(fr.query.directory, ProductPath) else fr.query.directory}")
-            print(f"  fn.value  = {fr.query.product.filename.value if fr.query.product.filename else None}")
-        elif fr.error:
-            print(f"  Error:    {fr.error}")
-    
-    found = [fr for fr in fetch_results if fr.found]
+        print(f"  [{fr.query.server.hostname}] {dir_str} → {fr.matched_filenames[:5]}")
+
+    # ── Wide query (no parameters) ───────────────────────────────
+    print("\n" + "=" * 60)
+    print("WIDE query: parameters omitted")
+    print("=" * 60)
+    test_wide = QF.get(
+        date=date,
+        product={"name": "ORBIT", "version": ["1"]},
+    )
+
+    results_wide = fetcher.search(test_wide)
+    found_wide = [fr for fr in results_wide if fr.found]
+    print(f"\nWide: {len(test_wide)} queries → {len(found_wide)} found, "
+          f"{sum(len(fr.matched_filenames) for fr in found_wide)} files")
+    for fr in found_wide:
+        dir_str = ResourceFetcher._get_directory(fr.query) or "?"
+        print(f"  [{fr.query.server.hostname}] {dir_str} → {fr.matched_filenames[:5]}")
+
+    # ── Comparison ───────────────────────────────────────────────
+    print("\n" + "=" * 60)
+    n_files = sum(len(fr.matched_filenames) for fr in found_narrowed)
+    w_files = sum(len(fr.matched_filenames) for fr in found_wide)
+    print(f"Narrowed: {n_files} files  |  Wide: {w_files} files  |  Δ = +{w_files - n_files}")
+    print("=" * 60)
+
+    fetch_results = results_wide
+    found = found_wide
 
     # ── Download found products ──────────────────────────────────
     if found:

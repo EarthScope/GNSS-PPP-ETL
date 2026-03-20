@@ -1,0 +1,134 @@
+[
+  {
+    "id": "WUM",
+    "name": "Wuhan University GNSS Research Center",
+    "products": [
+      {
+        "product": "ORBIT",
+        "status": "FOUND",
+        "queries": 1,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/whu/phasebias/2025/orbit/",
+            "pattern": "WUM[0-9][A-Z0-9]{3}[A-Z]{3}_20250010000_01D_\\d{2}[DHMS]_ORB.SP3.*",
+            "files": [
+              "WUM0MGXRAP_20250010000_01D_05M_ORB.SP3.gz"
+            ]
+          }
+        ],
+        "errors": []
+      },
+      {
+        "product": "CLOCK",
+        "status": "FOUND",
+        "queries": 1,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "WUM[0-9]MGXFIN_20250010000_01D_30S_CLK.CLK.*",
+            "files": [
+              "WUM0MGXFIN_20250010000_01D_30S_CLK.CLK.gz"
+            ]
+          }
+        ],
+        "errors": []
+      },
+      {
+        "product": "ERP",
+        "status": "FOUND",
+        "queries": 1,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "WUM[0-9]MGXFIN_20250010000_01D_01D_ERP.ERP.*",
+            "files": [
+              "WUM0MGXFIN_20250010000_01D_01D_ERP.ERP.gz"
+            ]
+          }
+        ],
+        "errors": []
+      },
+      {
+        "product": "BIA",
+        "status": "FOUND",
+        "queries": 1,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/2347/",
+            "pattern": "WUM[0-9]MGXFIN_20250010000_01D_\\d{2}[DHMS]_OSB.BIA.*",
+            "files": [
+              "WUM0MGXFIN_20250010000_01D_01D_OSB.BIA.gz"
+            ]
+          }
+        ],
+        "errors": []
+      },
+      {
+        "product": "ATTOBX",
+        "status": "NOT_FOUND",
+        "queries": 1,
+        "found": 0,
+        "files": 0,
+        "matches": [],
+        "errors": []
+      },
+      {
+        "product": "IONEX",
+        "status": "FOUND",
+        "queries": 1,
+        "found": 1,
+        "files": 1,
+        "matches": [
+          {
+            "server": "ftp://igs.gnsswhu.cn",
+            "directory": "pub/gps/products/ionex/2025/001/",
+            "pattern": "COD[0-9]OPSFIN_20250010000_01D_01H_GIM.INX.*",
+            "files": [
+              "COD0OPSFIN_20250010000_01D_01H_GIM.INX.gz"
+            ]
+          }
+        ],
+        "errors": []
+      },
+      {
+        "product": "RNX3_BRDC",
+        "status": "NOT_FOUND",
+        "queries": 1,
+        "found": 0,
+        "files": 0,
+        "matches": [],
+        "errors": []
+      },
+      {
+        "product": "LEAP_SEC",
+        "status": "ERROR",
+        "reason": "'NoneType' object has no attribute 'pattern'",
+        "queries": 0,
+        "found": 0,
+        "files": 0,
+        "matches": []
+      },
+      {
+        "product": "SAT_PARAMS",
+        "status": "ERROR",
+        "reason": "'NoneType' object has no attribute 'pattern'",
+        "queries": 0,
+        "found": 0,
+        "files": 0,
+        "matches": []
+      }
+    ]
+  }
+]
