@@ -2,17 +2,16 @@
 Lazy narrowing query factory for GNSS product discovery.
 
 Uses class definitions from dev_parameter_spec_claude.py:
-  - ParameterCatalog / Parameter  (static parameter definitions + fallback regex)
+  - ParameterCatalog / Parameter  (parameter definitions, fallback regex, and computed date-field resolution)
   - ProductCatalog / Product      (nested version→variant→Product hierarchy)
   - RemoteResourceFactory         (registration interface; raw ResourceSpec stored via ._specs)
   - LocalResourceFactory          (collections-based local storage)
-  - MetadataCatalog               (computed date-field resolution only)
 
 Design:
   - NO pre-materialization of parameter combinations
   - Parameter ranges are narrowed (intersected), not cartesian-expanded
   - Templates resolved only at get() time via three-pass substitution:
-        1. Date-computed fields  (YYYY, DDD, GPSWEEK …)  — via MetadataCatalog
+        1. Date-computed fields  (YYYY, DDD, GPSWEEK …)  — via ParameterCatalog
         2. Narrowed metadata     (single → literal, multi → regex alternation)
         3. Default regex patterns (from ParameterCatalog)
   - Multi-valued metadata in directory templates expanded only when
@@ -32,8 +31,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 from gnss_ppp_products.server.ftp import ftp_list_directory, ftp_download_file
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
-from gnss_ppp_products.specifications.metadata.metadata_catalog import MetadataCatalog
 from gnss_ppp_products.server.http import http_list_directory, extract_filenames_from_html, http_get_file
+from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,6 @@ from dev_parameter_spec_claude import (
     ResourceQuery,
     VariantCatalog,
     VersionCatalog,
-    _build_metadata_catalog,
 )
 
 from dev_specs import (
@@ -99,15 +97,14 @@ class QueryFactory:
     Accepts the type system from ``dev_parameter_spec_claude.py``:
     ``RemoteResourceFactory`` for registration ergonomics,
     ``ProductCatalog`` (nested version→variant→Product hierarchy),
-    ``ParameterCatalog`` for fallback regex patterns,
-    and ``MetadataCatalog`` for computed date-field resolution.
+    and ``ParameterCatalog`` for fallback regex patterns and computed
+    date-field resolution.
 
     Usage::
 
         qf = QueryFactory(
             remote_factory=remote,
             local_factory=local,
-            meta_catalog=METADATA_CATALOG,
             product_catalog=PRODUCT_CATALOG,
             parameter_catalog=PARAMETER_CATALOG,
         )
@@ -128,13 +125,11 @@ class QueryFactory:
         remote_factory: RemoteResourceFactory,
         local_factory: LocalResourceFactory,
         product_catalog: ProductCatalog,
-        metadata_catalog: MetadataCatalog,
         parameter_catalog: ParameterCatalog,
     ):
         self._remote = remote_factory
         self._local = local_factory
         self._products = product_catalog
-        self._metadata = metadata_catalog
         self._params = parameter_catalog
 
     def get(
@@ -216,7 +211,7 @@ class QueryFactory:
         #################
 
         for template in product_templates:
-            update_date_params = self._metadata.resolve_params(template.parameters, date)
+            update_date_params = self._params.resolve_params(template.parameters, date)
             template.parameters = update_date_params
 
         #################
@@ -287,7 +282,7 @@ class QueryFactory:
             to_update = template.model_copy(deep=True)
             resolution: Tuple[Server,ProductPath] = self._local.resolve_product(to_update, date)
             server, directory = resolution
-            directory.pattern = self._metadata.resolve(directory.pattern, date, computed_only=True)
+            directory.pattern = self._params.resolve(directory.pattern, date, computed_only=True)
             rq = ResourceQuery(
                 product=to_update,
                 server=server,
@@ -312,7 +307,7 @@ class QueryFactory:
                     continue
         
                 # TODO: resolve in the .resolve_product() method (missing GPSWEEK)
-                resolution.directory = self._metadata.resolve(resolution.directory.pattern, date, computed_only=True)
+                resolution.directory = self._params.resolve(resolution.directory.pattern, date, computed_only=True)
               
                 out.append(resolution)
 
@@ -613,6 +608,7 @@ if __name__ == "__main__":
     date = datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc)
     base_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
     PARAMETER_CATALOG = ParameterCatalog(parameters=[Parameter(**p) for p in parameter_spec_dict])
+    register_computed_fields(PARAMETER_CATALOG)
     FORMAT_CATALOG = FormatCatalog(
         format_spec_catalog=FormatSpecCatalog(formats=format_spec_dict),
         parameter_catalog=PARAMETER_CATALOG,
@@ -625,15 +621,13 @@ if __name__ == "__main__":
     REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**wuhan_resource_spec_dict))
     REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**igs_resource_spec_dict))
     REMOTE_RESOURCE_FACTORY.register(ResourceSpec(**code_resource_spec_dict))
-    METADATA_CATALOG = _build_metadata_catalog()
     LOCAL_SPEC = LocalResourceSpec.from_yaml(str(LOCAL_CONFIG_PATH))
-    local = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, METADATA_CATALOG,base_dir=base_dir)
+    local = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, PARAMETER_CATALOG, base_dir=base_dir)
 
     QF = QueryFactory(
         remote_factory=REMOTE_RESOURCE_FACTORY,
         local_factory=local,
         product_catalog=PRODUCT_CATALOG,
-        metadata_catalog=METADATA_CATALOG,
         parameter_catalog=PARAMETER_CATALOG,
     )
 

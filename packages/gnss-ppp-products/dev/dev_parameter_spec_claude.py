@@ -6,20 +6,12 @@ from token import OP
 import yaml
 
 from pydantic import BaseModel, Field   
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 from pathlib import Path
 from enum import Enum
 
-from gnss_ppp_products.specifications.metadata.metadata_catalog import MetadataCatalog
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec, LocalCollection
-
-
-def _build_metadata_catalog() -> MetadataCatalog:
-    """Build a MetadataCatalog with all computed date fields registered."""
-    catalog = MetadataCatalog()
-    register_computed_fields(catalog)
-    return catalog
 
 
 def _ensure_datetime(date: datetime.date | datetime.datetime) -> datetime.datetime:
@@ -49,6 +41,16 @@ class Parameter(BaseModel):
     pattern: Optional[str] = Field(None, description="A regex pattern to match the parameter value.")
     description: Optional[str] = Field(None, description="A description of the parameter.")
     derivation: Optional[DerivationMethod] = Field(DerivationMethod.ENUM, description="The method used to derive the parameter value.")
+    compute: Optional[Callable[[datetime.datetime], str]] = Field(None, description="A callable that computes the parameter value from a datetime.", exclude=True)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+def _extract_template_fields(template: str) -> list[str]:
+    """Extract parameter names from ``{NAME}``-style placeholders."""
+    return re.findall(r"{(\w+)}", template)
+
 
 class ParameterCatalog:
     def __init__(self, parameters: List[Parameter]):
@@ -56,12 +58,101 @@ class ParameterCatalog:
 
     def get(self, name: str, default=None) -> Optional[Parameter]:
         return self.parameters.get(name, default)
-    
+
     def __contains__(self, item):
         return item in self.parameters
-    
+
     def __getitem__(self, key):
         return self.parameters[key]
+
+    # -- registration (compatible with register_computed_fields) -----
+
+    def register(
+        self,
+        name: str,
+        pattern: Optional[str] = None,
+        *,
+        compute: Optional[Callable[[datetime.datetime], str]] = None,
+        description: Optional[str] = None,
+    ) -> Parameter:
+        """Register or update a parameter, optionally adding a compute function."""
+        existing = self.parameters.get(name)
+        if existing is not None:
+            updates: Dict[str, Any] = {}
+            if pattern is not None:
+                updates["pattern"] = pattern
+            if compute is not None:
+                updates["compute"] = compute
+            if description is not None:
+                updates["description"] = description
+            p = existing.model_copy(update=updates, deep=True)
+        else:
+            p = Parameter(
+                name=name,
+                pattern=pattern,
+                compute=compute,
+                description=description,
+                derivation=DerivationMethod.COMPUTED if compute else DerivationMethod.ENUM,
+            )
+        self.parameters[name] = p
+        return p
+
+    def computed(
+        self,
+        name: str,
+        pattern: Optional[str] = None,
+        *,
+        description: Optional[str] = None,
+    ):
+        """Decorator that registers a computed parameter field."""
+        def decorator(fn: Callable[[datetime.datetime], str]):
+            self.register(name, pattern, compute=fn, description=description)
+            return fn
+        return decorator
+
+    # -- bulk operations --------------------------------------------
+
+    def defaults(self) -> Dict[str, str]:
+        """Return ``{name: pattern}`` for every parameter with a pattern."""
+        return {
+            p.name: p.pattern
+            for p in self.parameters.values()
+            if p.pattern is not None
+        }
+
+    def resolve_params(
+        self,
+        params: List[Any],
+        date: datetime.datetime,
+    ) -> Any:
+        """Set ``.value`` on computed parameters from *date*."""
+        for param in params:
+            p = self.parameters.get(param.name)
+            if p is not None and p.compute is not None:
+                param.value = p.compute(date)
+        return params
+
+    def resolve(
+        self,
+        template: str,
+        date: datetime.datetime,
+        *,
+        computed_only: bool = False,
+    ) -> str:
+        """Substitute ``{NAME}`` placeholders in *template*."""
+        fields = _extract_template_fields(template)
+        values: Dict[str, str] = {}
+        for key in fields:
+            p = self.parameters.get(key)
+            if p is None:
+                continue
+            if p.compute is not None:
+                values[key] = p.compute(date)
+            elif not computed_only and p.pattern is not None:
+                values[key] = p.pattern
+        for key, value in values.items():
+            template = template.replace("{" + key + "}", value)
+        return template
 
 class ProductPath(BaseModel):
     pattern: str = Field( description="A regex pattern to match the product directory.")
@@ -1792,7 +1883,7 @@ class LocalResourceFactory:
         file_pattern = query.product.filename.pattern if query.product.filename else None
         if date and file_pattern:
             dt = _ensure_datetime(date)
-            file_pattern = self._metadata_catalog.resolve(file_pattern, dt, computed_only=True)
+            file_pattern = self._parameter_catalog.resolve(file_pattern, dt, computed_only=True)
 
         if file_pattern:
             return sorted(
@@ -1848,7 +1939,7 @@ class ProductQuery:
         *,
         remote_factory: RemoteResourceFactory,
         local_factory: LocalResourceFactory,
-        metadata_catalog: Optional[MetadataCatalog] = None,
+        parameter_catalog: Optional[ParameterCatalog] = None,
         query_profile: Optional[QueryProfile] = None,
         _tagged: Optional[List[_TaggedQuery]] = None,
         _pinned: Optional[Dict[str, str]] = None,
@@ -1856,7 +1947,7 @@ class ProductQuery:
     ):
         self._remote_factory = remote_factory
         self._local_factory = local_factory
-        self._metadata_catalog = metadata_catalog or _build_metadata_catalog()
+        self._parameter_catalog = parameter_catalog
         self._query_profile = query_profile or QueryProfile()
         self._date = _date
         self._pinned: Dict[str, str] = dict(_pinned) if _pinned else {}
@@ -1887,7 +1978,7 @@ class ProductQuery:
         return ProductQuery(
             remote_factory=self._remote_factory,
             local_factory=self._local_factory,
-            metadata_catalog=self._metadata_catalog,
+            parameter_catalog=self._parameter_catalog,
             query_profile=self._query_profile,
             _tagged=tagged if tagged is not None else list(self._tagged),
             _pinned=pinned if pinned is not None else dict(self._pinned),
@@ -1898,11 +1989,11 @@ class ProductQuery:
 
     def for_date(self, date: datetime.date | datetime.datetime) -> "ProductQuery":
         """Pin computed parameters to a date and resolve templates
-        using MetadataCatalog.resolve()."""
+        using ParameterCatalog.resolve()."""
         dt = _ensure_datetime(date)
-        mc = self._metadata_catalog
+        mc = self._parameter_catalog
         # Collect the names of computed fields so we can prune needed_parameters
-        computed_names = {name for name in mc._fields if mc._fields[name].compute is not None}
+        computed_names = {name for name, p in mc.parameters.items() if p.compute is not None}
         new_tagged = []
         for tq in self._tagged:
             q = tq.query
@@ -1929,9 +2020,9 @@ class ProductQuery:
         # Build pinned dict from the resolved computed values
         pinned_date = {}
         for name in computed_names:
-            field = mc._fields[name]
-            if field.compute:
-                pinned_date[name] = field.compute(dt)
+            p = mc.parameters[name]
+            if p.compute:
+                pinned_date[name] = p.compute(dt)
         new_pinned = {**self._pinned, **pinned_date}
         return self._derive(tagged=new_tagged, pinned=new_pinned, date=date)
 
@@ -2347,8 +2438,8 @@ if __name__ == "__main__":
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # Stage 2: Build factories
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    METADATA_CATALOG = _build_metadata_catalog()
-    print(f"    Metadata fields: {list(METADATA_CATALOG._fields.keys())}")
+    register_computed_fields(PARAMETER_CATALOG)
+    print(f"    Computed parameters: {[n for n, p in PARAMETER_CATALOG.parameters.items() if p.compute is not None]}")
 
     remote = RemoteResourceFactory(PRODUCT_CATALOG)
     remote.register_dict(resource_spec_dict)
@@ -2356,7 +2447,7 @@ if __name__ == "__main__":
     remote.register_dict(code_resource_spec_dict)
 
     LOCAL_SPEC = LocalResourceSpec.from_yaml(str(LOCAL_CONFIG_PATH))
-    local = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, METADATA_CATALOG)
+    local = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, PARAMETER_CATALOG)
 
     profile = QueryProfile(**query_profile_dict)
 
@@ -2372,7 +2463,7 @@ if __name__ == "__main__":
     pq = ProductQuery(
         remote_factory=remote,
         local_factory=local,
-        metadata_catalog=METADATA_CATALOG,
+        parameter_catalog=PARAMETER_CATALOG,
         query_profile=profile,
     )
     print(f"\n[3] {pq}")
@@ -2464,7 +2555,7 @@ if __name__ == "__main__":
 
     DATE = datetime.date(2025, 1,1)
     dt = _ensure_datetime(DATE)
-    mc = METADATA_CATALOG
+    mc = PARAMETER_CATALOG
 
     print(f"\n[11] Local download + discovery round-trip (date={DATE})")
 
@@ -2517,7 +2608,7 @@ if __name__ == "__main__":
 
     # 11d — Build a new LocalResourceFactory pointing at tmp_root
     #        Reuses the same LOCAL_SPEC (collections layout) but with a different base_dir
-    local2 = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, METADATA_CATALOG, base_dir=tmp_root)
+    local2 = LocalResourceFactory(LOCAL_SPEC, PRODUCT_CATALOG, PARAMETER_CATALOG, base_dir=tmp_root)
 
     print(f"\n     Local factory (post-download): {[c.id for c in local2.catalogs]} "
           f"({len(local2.all_queries)} queries)")
@@ -2526,7 +2617,7 @@ if __name__ == "__main__":
     pq2 = ProductQuery(
         remote_factory=remote,
         local_factory=local2,
-        metadata_catalog=METADATA_CATALOG,
+        parameter_catalog=PARAMETER_CATALOG,
         query_profile=profile,
     )
     pq2_dated = pq2.for_date(DATE)
