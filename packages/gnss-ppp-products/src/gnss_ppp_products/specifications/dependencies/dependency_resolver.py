@@ -13,11 +13,16 @@ the dependency spec.
 from __future__ import annotations
 
 import datetime
+import hashlib
+import json
 import logging
 import re
 from pathlib import Path
+from threading import local
+from token import OP
 from typing import List, Optional
 
+from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.specifications.dependencies.dependencies import (
     Dependency,
@@ -26,6 +31,9 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
     ResolvedDependency,
     SearchPreference,
 )
+from gnss_ppp_products.factories import QueryFactory, ResourceFetcher,FetchResult
+from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +56,7 @@ def _build_remote_url(rq: ResourceQuery) -> str:
         filename = rq.product.filename.value or rq.product.filename.pattern
     sep = "" if directory.startswith("/") else "/"
     trail = "" if directory.endswith("/") else "/"
+    hostname = hostname.split("//")[-1]  # Remove any existing protocol prefix
     return f"{protocol}://{hostname}{sep}{directory}{trail}{filename}"
 
 
@@ -56,6 +65,15 @@ def _file_pattern(rq: ResourceQuery) -> str:
     if rq.product.filename:
         return rq.product.filename.value or rq.product.filename.pattern
     return ""
+
+
+def _hash_file(path: Path) -> str:
+    """Return the SHA-256 hex digest of a file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return f"sha256:{h.hexdigest()}"
 
 
 class DependencyResolver:
@@ -79,12 +97,12 @@ class DependencyResolver:
         dep_spec: DependencySpec,
         base_dir: Path | str,
         *,
-        query_factory,
-        fetcher=None,
+        query_factory: QueryFactory,
+        fetcher: ResourceFetcher,
     ) -> None:
         self.dep_spec = dep_spec
         self.base_dir = Path(base_dir)
-        self._qf = query_factory
+        self._qf: QueryFactory = query_factory
         self._fetcher = fetcher
 
     def resolve(
@@ -123,7 +141,7 @@ class DependencyResolver:
         date: datetime.datetime,
         *,
         download: bool,
-    ) -> ResolvedDependency:
+    ) -> Optional[ResolvedDependency]:
         """Resolve a single dependency."""
         try:
             queries = self._qf.get(
@@ -138,46 +156,84 @@ class DependencyResolver:
             )
 
         if not queries:
+            logger.warning(f"No queries returned for dependency {dep.spec} with constraints {dep.constraints}")
             return ResolvedDependency(
                 spec=dep.spec, required=dep.required, status="missing",
             )
 
-        # Partition into local and remote
-        local_queries = [
-            q for q in queries
-            if (q.server.protocol or "").upper() in ("FILE", "LOCAL", "")
-        ]
-        remote_queries = [
-            q for q in queries
-            if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-        ]
+        queries = self._sort_by_preferences(queries)
 
-        # Apply preference sorting
-        remote_queries = self._sort_by_preferences(remote_queries)
+        # Fetch the queries.
+        fetched_queries: List[FetchResult] = self._fetcher.search(queries)
+
+        # Expand the fetched queries into a list of resource queries.
+        expanded_queries: List[ResourceQuery] = []
+        for fq in fetched_queries:
+            if fq.error:
+                continue
+            assert fq.query.directory.value is not None, "Fetched query must have directory value filled in"
+            assert fq.query.product.filename is not None, "Fetched query must have filename value filled in"  # type: ignore
+            if not fq.matched_filenames:
+                logger.info(f"No matches found for query {fq.query.product.filename.pattern}")
+                continue
+            for filename in fq.matched_filenames:
+                # Create a new ResourceQuery with the filename value filled in.
+                rq = fq.query.model_copy(deep=True)
+                rq.product.filename.value = filename
+                expanded_queries.append(rq)
+
+        # Infer parameter values from the filename pattern if possible
+        for rq in expanded_queries:
+            updated_parameters: List[Parameter] = infer_from_regex(  # type: ignore
+                regex=rq.product.filename.pattern,  # type: ignore
+                filename=rq.product.filename.value,  # type: ignore
+                parameters=rq.product.parameters,
+            )  
+            if updated_parameters:
+                rq.product.parameters = updated_parameters
+
+        expanded_queries = self._sort_by_preferences(expanded_queries)
+
+        # If our first query has been found locally, we can pick that.
+
+        # # Partition into local and remote
+        # local_queries = [
+        #     q for q in expanded_queries
+        #     if (q.server.protocol or "").upper() in ("FILE", "LOCAL", "")
+        # ]
+        # remote_queries = [
+        #     q for q in expanded_queries
+        #     if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+        # ]
+
+        # # Pair local and remote queries by their filename pattern.
+        # pairs: List[tuple[ResourceQuery, Optional[ResourceQuery]]] = []
+        # for lq in local_queries:
+        #     local_filename = lq.product.filename.value
+        #     for idx,rq in enumerate(remote_queries):
+        #         remote_filename = rq.product.filename.value
+        #         if local_filename == remote_filename:
+        #             pairs.append((lq, remote_queries.pop(idx)))
+        #             break
 
         # Phase 1: check local disk
-        for rq in local_queries:
-            local_path = self._check_local(rq)
-            if local_path is not None:
-                return self._make_resolved(
-                    dep, rq, status="local",
-                    local_path=local_path,
-                    rank=-1, label="local",
+        for rq in expanded_queries:
+            if (rq.server.protocol or "").upper() not in ("FILE", "LOCAL", ""):
+                # download remote matches
+                dest_dir = self._qf._local.resolve_directory(rq.product.name, date)
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                resolved = self._resolve_remote(
+                    rq, dep, dest_dir=dest_dir,
                 )
+                if resolved is not None:
+                    return resolved
+            else:
+                # check local matches
+                resolved = self._resolve_local(rq, dep)
+                if resolved is not None:
+                    return resolved
 
-        # Phase 2: search / download remote
-        if self._fetcher is not None:
-            for rank, rq in enumerate(remote_queries):
-                result = self._try_remote(
-                    dep, rq,
-                    rank=rank, download=download,
-                )
-                if result is not None:
-                    return result
-
-        return ResolvedDependency(
-            spec=dep.spec, required=dep.required, status="missing",
-        )
+        return None
 
     def _sort_by_preferences(
         self,
@@ -202,22 +258,52 @@ class DependencyResolver:
 
         return queries
 
-    def _check_local(self, rq: ResourceQuery) -> Optional[Path]:
-        """Check whether the local directory has a matching file."""
-        directory = rq.directory.value or rq.directory.pattern
-        d = Path(directory)
-        if not d.is_absolute():
-            d = self.base_dir / d
-        if not d.exists():
+    def _resolve_remote(
+            self,
+            rq: ResourceQuery,
+            dep: Dependency,
+            dest_dir: Path,
+
+    ) -> Optional[ResolvedDependency]:
+
+        assert rq.product.filename.value is not None, "Remote resolution requires filename to be filled in"
+
+        local_path = self._download_result(rq, dest_dir)
+        if local_path is None:
             return None
-        pattern = _file_pattern(rq)
-        if not pattern:
-            return None
-        pat = re.compile(pattern, re.IGNORECASE)
-        for f in sorted(d.iterdir()):
-            if f.is_file() and pat.search(f.name):
-                return f
-        return None
+        file_hash = _hash_file(local_path)
+        file_size = local_path.stat().st_size
+        resolved = self._make_resolved(
+            dep, rq,
+            status="downloaded",
+            local_path=local_path,
+            file_hash=file_hash,
+            file_size=file_size,
+        )
+        self._write_file_lock(local_path, resolved)
+        return resolved
+
+    def _resolve_local(
+        self,
+        rq: ResourceQuery,
+        dep: Dependency,
+    ) -> Optional[ResolvedDependency]:
+
+        directory = Path(rq.server.hostname) / rq.directory.value
+        assert directory.exists() and directory.is_dir(), f"Local directory {directory} does not exist for query {rq}"
+        filename = rq.product.filename.value
+        assert filename is not None, f"Local resolution requires filename to be filled in for query {rq}"
+        local_path = directory / filename
+        file_hash = _hash_file(local_path)
+        file_size = local_path.stat().st_size
+        resolved = self._make_resolved(
+            dep, rq,
+            status="local",
+            local_path=local_path,
+            file_hash=file_hash,
+            file_size=file_size,
+        )
+        return resolved
 
     def _try_remote(
         self,
@@ -240,32 +326,40 @@ class DependencyResolver:
 
         label = _get_param_value(rq, "AAA") or rq.server.hostname
         local_path: Optional[Path] = None
+        file_hash = ""
+        file_size: int | None = None
 
         if download:
             local_path = self._download_result(rq, fr)
+            if local_path is not None:
+                file_hash = _hash_file(local_path)
+                file_size = local_path.stat().st_size
 
-        return self._make_resolved(
+        resolved = self._make_resolved(
             dep, rq,
             status="downloaded" if local_path else "remote",
             local_path=local_path,
-            rank=rank,
-            label=label,
+            file_hash=file_hash,
+            file_size=file_size,
         )
+
+        if local_path is not None:
+            self._write_file_lock(local_path, resolved)
+
+        return resolved
 
     def _download_result(
         self,
         rq: ResourceQuery,
-        fr,
+        dest_dir: Path,
     ) -> Optional[Path]:
         """Download the first matched file from a FetchResult."""
-        if not fr.matched_filenames:
-            return None
 
-        directory = rq.directory.value or rq.directory.pattern
-        dest_dir = self.base_dir / directory.lstrip("/")
-        dest_dir.mkdir(parents=True, exist_ok=True)
-
-        filename = fr.matched_filenames[0]
+        assert dest_dir.exists() and dest_dir.is_dir(), "Destination directory must exist for download"
+        directory = rq.directory.value
+        assert directory is not None, "Directory must be specified for download"
+        filename = rq.product.filename.value 
+        assert filename is not None, "Filename must be specified for download"
         protocol = (rq.server.protocol or "").upper()
         hostname = rq.server.hostname
 
@@ -315,28 +409,64 @@ class DependencyResolver:
         return None
 
     @staticmethod
+    def _get_file_lock(local_path: Path) -> Optional[LockProduct]:
+        """Check for a ``<filename>.lock`` sidecar and return its path if it exists."""
+        lock_path = local_path.parent / f"{local_path.name}.lock"
+        if lock_path.exists() and lock_path.is_file():
+            with open(lock_path,'r') as f:
+                lock_data = json.load(f)
+                lock_product = LockProduct.model_validate(lock_data)
+            return lock_product
+        return None
+    
+    @staticmethod
+    def _write_file_lock(local_path: Path, resolved: ResolvedDependency) -> None:
+        """Write a ``<filename>.lock`` JSON sidecar next to the downloaded file."""
+        if resolved.lockfile is None:
+            return
+        lock_path = local_path.parent / f"{local_path.name}.lock"
+        lock_data = json.loads(resolved.lockfile.model_dump_json())
+        lock_data["local_path"] = str(local_path)
+        lock_path.write_text(json.dumps(lock_data, indent=2), encoding="utf-8")
+        logger.info("Wrote lockfile %s", lock_path)
+
+    @staticmethod
     def _make_resolved(
         dep: Dependency,
         rq: ResourceQuery,
         *,
         status: str,
         local_path: Optional[Path],
-        rank: int,
-        label: str,
+        file_hash: str = "",
+        file_size: int | None = None,
     ) -> ResolvedDependency:
         """Build a :class:`ResolvedDependency` from a ResourceQuery."""
+        from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
+
+        remote_url = _build_remote_url(rq)
+        regex = _file_pattern(rq)
+
+        lock_product: Optional[LockProduct] = DependencyResolver._get_file_lock(local_path)
+        if not lock_product:
+            lock_product = LockProduct(
+                name=dep.spec,
+                description=dep.description or "",
+                required=dep.required,
+                url=remote_url,
+                regex=regex,
+                hash=file_hash,
+                size=file_size,
+                local_directory=str(local_path.parent) if local_path else "",
+            )
+
         return ResolvedDependency(
             spec=dep.spec,
             required=dep.required,
             status=status,
-            query_result=rq,
+            remote_url=remote_url,
             local_path=local_path,
-            preference_rank=rank,
-            preference_label=label,
-            remote_url=_build_remote_url(rq),
-            regex=_file_pattern(rq),
-            format=_get_param_value(rq, "FMT"),
-            version=_get_param_value(rq, "TTT"),
-            variant=_get_param_value(rq, "PPP"),
+            hash=file_hash,
+            size=file_size,
             description=dep.description,
+            lockfile=lock_product,
         )

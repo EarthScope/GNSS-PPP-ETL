@@ -5,10 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
 
 
 class SearchPreference(BaseModel):
@@ -43,27 +46,27 @@ class DependencySpec(BaseModel):
         return cls.model_validate(raw)
 
 
-@dataclass
-class ResolvedDependency:
+
+class ResolvedDependency(BaseModel):
     """Resolution result for one dependency."""
 
     spec: str
     required: bool
     status: str  # "local" | "downloaded" | "missing"
-    query_result: object = None
-    local_path: Optional[Path] = None
-    preference_rank: int = -1
-    preference_label: str = ""
+
+    local_path: Path
+    
     # Lockfile fields — populated during resolution for later export
-    remote_url: str = ""
-    regex: str = ""
+    remote_url: Optional[str] = None
+
     hash: str = ""
     size: Optional[int] = None
     format: str = ""
     version: str = ""
     variant: str = ""
     description: str = ""
-    local_directory: str = ""
+  
+    lockfile: Optional["LockProduct"] = None
 
 
 @dataclass
@@ -99,27 +102,13 @@ class DependencyResolution:
     def to_lockfile(self, date: str = "") -> "ProductLockfile":
         """Convert fulfilled resolutions into a :class:`ProductLockfile`."""
         from gnss_ppp_products.specifications.dependencies.lockfile import (
-            LockProduct,
             ProductLockfile,
         )
 
-        products = []
-        for r in self.fulfilled:
-            if not r.remote_url:
-                continue
-            products.append(LockProduct(
-                name=r.spec,
-                format=r.format,
-                version=r.version,
-                variant=r.variant,
-                description=r.description,
-                required=r.required,
-                url=r.remote_url,
-                regex=r.regex,
-                hash=r.hash,
-                size=r.size,
-                local_directory=r.local_directory,
-            ))
+        products = [
+            r.lockfile for r in self.fulfilled
+            if r.lockfile is not None
+        ]
 
         return ProductLockfile(
             requires_date=date,
@@ -149,6 +138,6 @@ class DependencyResolution:
             path_str = str(r.local_path) if r.local_path else "(none)"
             lines.append(
                 f"{r.spec:<14s} {'yes' if r.required else 'no':<10s} "
-                f"{r.status:<12s} {r.preference_label:<20s} {path_str}"
+                f"{r.status:<12s} {path_str}"
             )
         return "\n".join(lines)

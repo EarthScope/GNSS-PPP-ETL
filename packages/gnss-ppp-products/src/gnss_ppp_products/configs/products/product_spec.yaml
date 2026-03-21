@@ -246,7 +246,7 @@ formats:
           PRODUCT:
             description: product identifier (e.g., "VMF1", "VMF3")
           RESOLUTION:
-            pattern: \b(2\.5x2|1x1|5x5)\b
+            pattern: (?:2\\.5x2|1x1|5x5)
             description: grid resolution for VMF products (e.g., "2.5x2", "1x1", "5x5")
           VMFHH:
             pattern: H(?:00|06|12|18)

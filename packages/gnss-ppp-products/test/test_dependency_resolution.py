@@ -238,3 +238,87 @@ class TestResolverWithFetcher:
             if r.status != "missing" and r.preference_label:
                 # preference_rank should be a non-negative int for remote
                 assert r.preference_rank >= 0 or r.preference_label == "local"
+
+
+# ===================================================================
+# Unit: Per-file lockfile sidecar
+# ===================================================================
+
+
+class TestFileLockSidecar:
+
+    def test_hash_file(self, tmp_path) -> None:
+        """_hash_file returns a sha256-prefixed hex digest."""
+        from gnss_ppp_products.specifications.dependencies.dependency_resolver import _hash_file
+        p = tmp_path / "sample.sp3"
+        p.write_bytes(b"hello world")
+        h = _hash_file(p)
+        assert h.startswith("sha256:")
+        assert len(h) == len("sha256:") + 64
+
+    def test_write_file_lock_creates_sidecar(self, tmp_path) -> None:
+        """_write_file_lock writes a .lock JSON file beside the downloaded file."""
+        from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
+
+        local = tmp_path / "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz"
+        local.write_bytes(b"fake orbit data")
+
+        lock = LockProduct(
+            name="ORBIT",
+            format="SP3",
+            version="FIN",
+            variant="MGX",
+            description="Precise satellite orbits",
+            required=True,
+            url="ftp://host/dir/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz",
+            regex=r"WUM\dMGXFIN_20240010000_01D_05M_ORB\.SP3.*",
+            hash="sha256:abcd1234",
+            size=15,
+        )
+
+        resolved = ResolvedDependency(
+            spec="ORBIT",
+            required=True,
+            status="downloaded",
+            local_path=local,
+            remote_url="ftp://host/dir/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz",
+            regex=r"WUM\dMGXFIN_20240010000_01D_05M_ORB\.SP3.*",
+            hash="sha256:abcd1234",
+            size=15,
+            format="SP3",
+            version="FIN",
+            variant="MGX",
+            description="Precise satellite orbits",
+            lockfile=lock,
+        )
+
+        DependencyResolver._write_file_lock(local, resolved)
+
+        lock_path = tmp_path / "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz.lock"
+        assert lock_path.exists()
+        import json
+        data = json.loads(lock_path.read_text())
+        assert data["name"] == "ORBIT"
+        assert data["hash"] == "sha256:abcd1234"
+        assert data["size"] == 15
+        assert data["url"] == "ftp://host/dir/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz"
+        assert data["local_path"] == str(local)
+
+    def test_resolved_lockfile_attached(self, tmp_path) -> None:
+        """ResolvedDependency.lockfile is a LockProduct instance."""
+        from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
+
+        resolved = ResolvedDependency(
+            spec="CLOCK",
+            required=True,
+            status="remote",
+            remote_url="ftp://host/dir/clock.clk",
+            lockfile=LockProduct(
+                name="CLOCK",
+                url="ftp://host/dir/clock.clk",
+                required=True,
+            ),
+        )
+        assert resolved.lockfile is not None
+        assert resolved.lockfile.name == "CLOCK"
+        assert resolved.lockfile.url == "ftp://host/dir/clock.clk"

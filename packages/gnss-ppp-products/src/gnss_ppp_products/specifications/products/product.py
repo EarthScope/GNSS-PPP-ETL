@@ -1,10 +1,11 @@
 """Core product models — ProductPath, Product, and catalog hierarchies."""
 
-from typing import List, Optional
+import re
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from gnss_ppp_products.specifications.parameters.parameter import Parameter
+from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
 
 
 class ProductPath(BaseModel):
@@ -24,6 +25,106 @@ class ProductPath(BaseModel):
                     self.pattern = self.pattern.replace(f"{{{param.name}}}", param.value)
 
         return None
+
+    def to_regex(self, parameter_catalog: ParameterCatalog) -> str:
+        """Convert the template pattern into a regex with named capture groups.
+
+        Each ``{PARAM}`` placeholder is replaced with ``(?P<PARAM>pattern)``
+        using the parameter's regex from *parameter_catalog*.  Literal
+        characters outside placeholders are escaped.  A trailing ``.*`` is
+        preserved as a catch-all for compression extensions.
+        """
+        template = self.pattern
+        # Split the template into placeholder tokens and literal segments
+        tokens = re.split(r"(\{(\w+)\})", template)
+        regex_parts: list[str] = []
+        i = 0
+        while i < len(tokens):
+            # re.split with 2 groups produces [literal, full_match, group_name, ...]
+            if i + 2 < len(tokens) and tokens[i + 1] is not None and tokens[i + 1].startswith("{"):
+                # Literal segment before this placeholder
+                literal = tokens[i]
+                if literal:
+                    regex_parts.append(re.escape(literal))
+                # Named group for the parameter
+                param_name = tokens[i + 2]
+                param = parameter_catalog.get(param_name)
+                param_pattern = param.pattern if param and param.pattern else r".+"
+                regex_parts.append(f"(?P<{param_name}>{param_pattern})")
+                i += 3
+            else:
+                # Trailing literal or segment with no placeholder
+                literal = tokens[i]
+                if literal:
+                    # Preserve .* as regex wildcard (common suffix for compression)
+                    literal = re.sub(r"\.\*", "\x00DOTSTAR\x00", literal)
+                    escaped = re.escape(literal)
+                    escaped = escaped.replace("\x00DOTSTAR\x00", ".*")
+                    regex_parts.append(escaped)
+                i += 1
+        return "".join(regex_parts)
+
+    def infer(self, filename: str, parameter_catalog: ParameterCatalog) -> Optional[Dict[str, str]]:
+        """Extract parameter values from *filename* using the template pattern.
+
+        Returns a ``{param_name: value}`` dict on match, or ``None`` if the
+        filename does not match the template.
+        """
+        regex = self.to_regex(parameter_catalog)
+        m = re.fullmatch(regex, filename)
+        if m is None:
+            return None
+        return {k: v for k, v in m.groupdict().items() if v is not None}
+
+
+def infer_from_regex(
+    regex: str,
+    filename: str,
+    parameters: List[Parameter],
+) -> Optional[List[Parameter]]:
+    """Infer parameter values from *filename* using a pre-built *regex*.
+
+    After ``derive()`` and the query-factory's "fill in patterns" step,
+    each parameter's ``.value`` is either a concrete literal or its regex
+    pattern.  This function reconstructs a named-group regex by replacing
+    each parameter's contribution (``param.value``) with
+    ``(?P<name>param.pattern)``, matches *filename*, and updates every
+    parameter's ``.value`` with the extracted text.
+
+    Parameters must be in **template order** (left-to-right as they appear
+    in the original filename template) so that the positional scan targets
+    the correct occurrence.
+
+    Returns the updated parameter list on match, or ``None`` if the
+    filename does not match.
+    """
+    # Single left-to-right pass: find each param.value at its expected
+    # position and wrap it with a named capture group.
+    pos = 0
+    parts: list[str] = []
+    for param in parameters:
+        if param.value is None or param.pattern is None:
+            continue
+        idx = regex.find(param.value, pos)
+        if idx == -1:
+            continue
+        # Literal regex text between the previous param and this one
+        parts.append(regex[pos:idx])
+        parts.append(f"(?P<{param.name}>{param.pattern})")
+        pos = idx + len(param.value)
+    # Remaining suffix (e.g. ``.*`` for compression)
+    parts.append(regex[pos:])
+    named_regex = "".join(parts)
+
+    m = re.fullmatch(named_regex, filename)
+    if m is None:
+        return None
+
+    for param in parameters:
+        extracted = m.groupdict().get(param.name)
+        if extracted is not None:
+            param.value = extracted
+    return parameters
 
 
 class Product(BaseModel):

@@ -24,7 +24,6 @@ class FetchResult:
 
     query: ResourceQuery
     matched_filenames: List[str] = field(default_factory=list)
-    directory_listing: List[str] = field(default_factory=list)
     error: Optional[str] = None
     download_dest: Optional[Path] = None
 
@@ -105,17 +104,16 @@ class ResourceFetcher:
             # Cache non-local listings
             if protocol not in ("FILE", "LOCAL", ""):
                 self._listing_cache[cache_key] = listing
+                
+        query.directory.value = directory  # type: ignore[union-attr]
 
         matches = self._match_files(listing, file_pattern)
-
         if matches:
-            self._resolve_values(query, directory, matches[0])
-
-        return FetchResult(
-            query=query,
-            matched_filenames=matches,
-            directory_listing=listing,
-        )
+            return FetchResult(
+                    query=query,
+                    matched_filenames=matches
+                )
+        return FetchResult(query=query, error="No matches found")
 
     # -- Protocol handlers -----------------------------------------
 

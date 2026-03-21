@@ -77,7 +77,7 @@ months = [1,3,6,9]
 days = [1,15,28]
 dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years for m in months for d in days]
 
-dates = dates[:2]
+
 for date in dates:
     resolution = dep_res.resolve(date=date,download=True)
     print(f"\n{'='*60}\nDATE: {date.date()}\n{'='*60}")
