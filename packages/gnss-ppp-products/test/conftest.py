@@ -25,8 +25,9 @@ _CONFIGS_DIR = (
 )
 META_SPEC_YAML = _CONFIGS_DIR / "meta" / "meta_spec.yaml"
 PRODUCT_SPEC_YAML = _CONFIGS_DIR / "products" / "product_spec.yaml"
-LOCAL_CONFIG = _CONFIGS_DIR / "local" / "local_config.yaml"
+LOCAL_CONFIGS = list((_CONFIGS_DIR / "local").glob("*.yaml"))
 CENTERS_DIR = _CONFIGS_DIR / "centers"
+DEP_SPECS = list((_CONFIGS_DIR / "dependencies").glob("*.yaml"))
 
 
 # ── Load specs from YAML configs via specification layer ──────────
@@ -53,8 +54,9 @@ def _build_env(*center_dicts: dict) -> ProductEnvironment:
         base_dir="/tmp/gnss_test",
         meta_spec_yaml=META_SPEC_YAML,
         product_spec_yaml=PRODUCT_SPEC_YAML,
-        local_config=str(LOCAL_CONFIG),
+        local_configs=LOCAL_CONFIGS,
         remote_specs=list(center_dicts),
+        dependency_specs=DEP_SPECS,
     )
 
 

@@ -1,3 +1,78 @@
 - make dep resolution fully asynchronous
 - reduce redundant class definitions
 - make a globally available way to "classify" a file, or infer parameters/product spec from a file name
+
+
+
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          configs/  (YAML)                               │
+│                                                                         │
+│  meta/                products/           centers/          local/       │
+│    meta_spec.yaml       product_spec.yaml   wuhan.yaml      *.yaml      │
+│                                             cod.yaml     (mergeable)    │
+│                                             cddis.yaml                  │
+│                                             igs.yaml    dependencies/   │
+│                                             gfz.yaml      *.yaml        │
+│                                             vmf.yaml   (name-keyed)     │
+└────────┬──────────────────┬──────────────────┬──────────────┬───────────┘
+         │                  │                  │              │
+         ▼                  ▼                  ▼              ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Layer 1: specifications/  (Pure Pydantic models)                       │
+│                                                                         │
+│  parameters/          format/             products/                      │
+│    Parameter            FormatSpec          Product, ProductPath         │
+│    ParameterCatalog     FormatSpecCatalog   ProductSpecCatalog           │
+│                                                                         │
+│  remote/              local/              dependencies/                  │
+│    Server, ResourceSpec  LocalResourceSpec   DependencySpec              │
+│    ResourceCatalog       LocalCollection     ResolvedDependency          │
+│    ResourceQuery         .merge()            LockProduct, ProductLockfile│
+└────────┬──────────────────┬──────────────────┬──────────────┬───────────┘
+         │                  │                  │              │
+         ▼                  ▼                  ▼              ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Layer 2: catalogs/ + factories/  (Registries + resolution)             │
+│                                                                         │
+│  ParameterCatalog ──→ FormatCatalog ──→ ProductCatalog                  │
+│                                                                         │
+│  RemoteResourceFactory     LocalResourceFactory                         │
+│  (centers registry)        (merged local specs)                         │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ProductEnvironment  (environment.py)                                   │
+│                                                                         │
+│  Wires all configs → catalogs → factories in dependency order           │
+│                                                                         │
+│    .local_configs     → merge N local YAMLs → LocalResourceFactory      │
+│    .dependency_specs  → name-keyed DependencySpec registry              │
+│    .remote_specs      → RemoteResourceFactory (center registration)     │
+│                                                                         │
+│  Accessors:                                                             │
+│    .parameter_catalog  .format_catalog  .product_catalog                │
+│    .remote_factory     .local_factory                                   │
+│    .dependency_specs   .get_dependency_spec(name)                       │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Layer 3: engine  (Query + Fetch + Resolve)                             │
+│                                                                         │
+│  QueryFactory          ResourceFetcher        DependencyResolver        │
+│    .get(product, date)   .probe(queries)        .resolve(date)          │
+│    .search(…)            .download(query, dst)  → DependencyResolution  │
+│    → ResourceQuery[]     → FetchResult          → file lock sidecars    │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  session.py: ProductSession  (User-facing API)                          │
+│                                                                         │
+│    .get("ORBIT", date)       → resolved file path on disk               │
+│    .search("ORBIT", date)    → list of available sources                │
+│    .resolve("pride-pppar", date) → DependencyResolution                 │
+└─────────────────────────────────────────────────────────────────────────┘

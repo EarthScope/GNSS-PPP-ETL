@@ -1,1 +1,2 @@
-from .remote_factory import RemoteResourceFactory,RemoteResourceSpec, RemoteResourceCatalog
+from .remote import ServerSpec, RemoteProductSpec, RemoteResourceSpec
+from .resource import Server, ResourceSpec, ResourceQuery, ResourceCatalog

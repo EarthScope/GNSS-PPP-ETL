@@ -1,6 +1,7 @@
 """LocalResourceFactory — collections-based local file-system product archives."""
 
 import datetime
+import logging
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -10,6 +11,8 @@ from gnss_ppp_products.specifications.parameters.parameter import ParameterCatal
 from gnss_ppp_products.specifications.products.product import Product, ProductPath
 from gnss_ppp_products.specifications.remote.resource import ResourceCatalog, ResourceQuery, Server
 from gnss_ppp_products.utilities.helpers import _ensure_datetime
+
+logger = logging.getLogger(__name__)
 
 
 class LocalResourceFactory:
@@ -55,12 +58,12 @@ class LocalResourceFactory:
             for item in coll.items:
                 self._item_to_dir[item] = coll.directory
 
-        # Check that all specs in the product catalog have a local directory template
+        # Warn about products in the catalog that have no local directory template
         for prod_name in product_catalog.products.keys():
             if prod_name not in self._item_to_dir:
-                raise ValueError(
-                    f"Product {prod_name!r} in catalog has no local directory template. "
-                    f"Source file: {local_spec.source_file}."
+                logger.warning(
+                    "Product %r in catalog has no local directory template. "
+                    "Source: %s", prod_name, local_spec.source_file,
                 )
 
     def resolve_directory(

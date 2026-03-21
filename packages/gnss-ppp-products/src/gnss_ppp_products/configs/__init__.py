@@ -1,48 +1,25 @@
-"""
-Configs — YAML file paths and singleton factories.
+"""Configs — YAML file paths for the bundled config data.
 
-This package bridges between agnostic specification code and the
-concrete YAML configuration files that ship with the distribution.
-All global singleton registries live here.
+Use :class:`~gnss_ppp_products.factories.ProductEnvironment` to wire
+these configs into live catalogs and factories.
 """
 
 from pathlib import Path
 
-# ------------------------------------------------------------------
-# YAML file locations
-# ------------------------------------------------------------------
+_CONFIGS_DIR = Path(__file__).resolve().parent
 
-_ASSETS_DIR = Path(__file__).resolve().parent
-
-META_SPEC_YAML = _ASSETS_DIR / "meta" / "meta_spec.yaml"
-PRODUCT_SPEC_YAML = _ASSETS_DIR / "products" / "product_spec.yaml"
-LOCAL_SPEC_YAML = _ASSETS_DIR / "local" / "local_config.yaml"
-QUERY_SPEC_YAML = _ASSETS_DIR / "query" / "query_config.yaml"
-REMOTE_SPEC_DIR = _ASSETS_DIR / "centers"
-DEPENDENCY_SPEC_DIR = _ASSETS_DIR / "tasks"
-
-# ------------------------------------------------------------------
-# Lazy singleton access — import from defaults when needed
-# ------------------------------------------------------------------
-
-from .defaults import (  # noqa: E402
-    MetaDataRegistry,
-    ProductSpecReg,
-    RemoteResourceReg,
-    LocalResourceReg,
-    QuerySpecReg,
-)
+META_SPEC_YAML = _CONFIGS_DIR / "meta" / "meta_spec.yaml"
+PRODUCT_SPEC_YAML = _CONFIGS_DIR / "products" / "product_spec.yaml"
+LOCAL_SPEC_DIR = _CONFIGS_DIR / "local"
+QUERY_SPEC_YAML = _CONFIGS_DIR / "query" / "query_config.yaml"
+CENTERS_DIR = _CONFIGS_DIR / "centers"
+DEPENDENCY_SPEC_DIR = _CONFIGS_DIR / "dependencies"
 
 __all__ = [
     "META_SPEC_YAML",
     "PRODUCT_SPEC_YAML",
-    "LOCAL_SPEC_YAML",
+    "LOCAL_SPEC_DIR",
     "QUERY_SPEC_YAML",
-    "REMOTE_SPEC_DIR",
+    "CENTERS_DIR",
     "DEPENDENCY_SPEC_DIR",
-    "MetaDataRegistry",
-    "ProductSpecReg",
-    "RemoteResourceReg",
-    "LocalResourceReg",
-    "QuerySpecReg",
 ]

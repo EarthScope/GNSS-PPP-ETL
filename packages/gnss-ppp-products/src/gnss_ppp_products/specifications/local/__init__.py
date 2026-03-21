@@ -1,1 +1,2 @@
-from .local_factory import LocalResourceSpec, LocalResourceFactory
+from .local import LocalCollection, LocalResourceSpec
+from .factory import LocalResourceFactory
