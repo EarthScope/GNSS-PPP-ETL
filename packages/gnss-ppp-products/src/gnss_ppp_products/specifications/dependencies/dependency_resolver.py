@@ -124,7 +124,8 @@ class DependencyResolver:
 
         for dep in self.dep_spec.dependencies:
             resolved = self._resolve_one(dep, date, download=download)
-            results.append(resolved)
+            if resolved:
+                results.append(resolved)
 
         resolution = DependencyResolution(
             spec_name=self.dep_spec.name,

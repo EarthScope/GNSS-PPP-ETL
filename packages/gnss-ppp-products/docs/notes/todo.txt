@@ -1,0 +1,3 @@
+- make dep resolution fully asynchronous
+- reduce redundant class definitions
+- make a globally available way to "classify" a file, or infer parameters/product spec from a file name

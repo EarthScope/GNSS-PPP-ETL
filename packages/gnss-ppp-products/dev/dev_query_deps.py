@@ -2,6 +2,7 @@ import datetime
 from email.mime import base
 import json
 from pathlib import Path
+import time
 
 from annotated_types import T
 from gnss_ppp_products.catalogs import dependency_resolver
@@ -79,7 +80,10 @@ dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years
 
 
 for date in dates:
+    start = time.time()
     resolution = dep_res.resolve(date=date,download=True)
+    end = time.time()
+    print(f"Resolution for {date.date()} took {end - start:.2f} seconds.")
     print(f"\n{'='*60}\nDATE: {date.date()}\n{'='*60}")
     print(f"Table: {resolution.spec_name}")
     print(f"{resolution.table()}\n")
