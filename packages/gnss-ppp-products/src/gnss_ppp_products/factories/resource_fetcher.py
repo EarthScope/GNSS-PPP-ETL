@@ -104,7 +104,7 @@ class ResourceFetcher:
             # Cache non-local listings
             if protocol not in ("FILE", "LOCAL", ""):
                 self._listing_cache[cache_key] = listing
-                
+
         query.directory.value = directory  # type: ignore[union-attr]
 
         matches = self._match_files(listing, file_pattern)
@@ -146,6 +146,8 @@ class ResourceFetcher:
     @staticmethod
     def _match_files(listing: List[str], file_pattern: str) -> List[str]:
         """Match filenames in a directory listing against a regex pattern."""
+        # remove .lock files from listing before matching, since they are not actual resources
+        listing = [f for f in listing if not f.endswith(".lock")]
         try:
             rx = re.compile(file_pattern, re.IGNORECASE)
             return [f for f in listing if rx.search(f)]
