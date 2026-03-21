@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 
 from annotated_types import T
-from gnss_ppp_products.catalogs import dependency_resolver
+
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.catalog import ProductSpecCatalog
 import pytest
