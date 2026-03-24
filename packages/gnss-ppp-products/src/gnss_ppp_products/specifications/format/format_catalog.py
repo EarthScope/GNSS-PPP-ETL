@@ -46,10 +46,10 @@ class FormatRegistry(BaseModel):
             )
 
     @classmethod
-    def resolve(cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog) -> FormatRegistry:
+    def build(cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog) -> FormatRegistry:
         '''
         
-        Resolve a FormatSpec by checking if metadata fields have either a pattern value provided or an entry in the metadata catalog. 
+        Build a FormatRegistry by checking if metadata fields have either a pattern value provided or an entry in the metadata catalog. 
         If a field is missing both, raise an error.
 
         '''

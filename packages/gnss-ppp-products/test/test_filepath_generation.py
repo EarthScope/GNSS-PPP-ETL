@@ -33,11 +33,11 @@ def _build_catalogs():
     """Build the full catalog chain from specification-layer catalogs."""
     pc = parameter_catalog
     register_computed_fields(pc)
-    fc = FormatCatalog.resolve(
+    fc = FormatCatalog.build(
         format_spec_catalog=format_spec_catalog,
         parameter_catalog=pc,
     )
-    prod_cat = ProductCatalog.resolve(
+    prod_cat = ProductCatalog.build(
         product_spec_catalog=product_spec_catalog,
         format_catalog=fc,
     )
@@ -135,9 +135,9 @@ class TestParameterCatalogComputed:
         # 2025 → igs20
         assert PARAM_CAT["REFFRAME"].compute(TEST_DATE) == "igs20"
 
-    def test_resolve_template(self) -> None:
+    def test_interpolate_template(self) -> None:
         template = "gnss/products/{GPSWEEK}/"
-        resolved = PARAM_CAT.resolve(template, TEST_DATE, computed_only=True)
+        resolved = PARAM_CAT.interpolate(template, TEST_DATE, computed_only=True)
         gpsweek = PARAM_CAT["GPSWEEK"].compute(TEST_DATE)
         assert resolved == f"gnss/products/{gpsweek}/"
 

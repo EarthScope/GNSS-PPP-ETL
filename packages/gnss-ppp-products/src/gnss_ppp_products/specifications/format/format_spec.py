@@ -25,8 +25,8 @@ class FormatSpec(BaseModel):
     parameters: Optional[List[dict]] = Field(default_factory=list)
     filename: Optional[str] = None
 
-    def resolve(self, parameter_catalog: ParameterCatalog) -> Product:
-        """Resolve against a ParameterCatalog to produce a Product."""
+    def materialize(self, parameter_catalog: ParameterCatalog) -> Product:
+        """Materialize against a ParameterCatalog to produce a Product."""
         resolved_parameters = {}
         for param in self.parameters:
             name = param["name"]
@@ -93,15 +93,15 @@ class FormatCatalog(Catalog):
     formats: dict[str, VersionCatalog[Product]]
 
     @classmethod
-    def resolve(cls, format_spec_catalog: FormatSpecCatalog, parameter_catalog: ParameterCatalog) -> "FormatCatalog":
-        """Resolve abstract format specs against a ParameterCatalog into concrete Products."""
+    def build(cls, format_spec_catalog: FormatSpecCatalog, parameter_catalog: ParameterCatalog) -> "FormatCatalog":
+        """Build concrete Products from abstract format specs and a ParameterCatalog."""
         formats = {}
         for format_name, format_spec_cat in format_spec_catalog.formats.items():
             versions = {}
             for version_name, version_spec in format_spec_cat.versions.items():
                 variants = {}
                 for variant_name, format_spec in version_spec.variants.items():
-                    product = format_spec.resolve(parameter_catalog)
+                    product = format_spec.materialize(parameter_catalog)
                     variants[variant_name] = product
                 versions[version_name] = VariantCatalog(variants=variants)
             formats[format_name] = VersionCatalog(versions=versions)

@@ -137,7 +137,7 @@ class QueryFactory:
                 except KeyError:
                     continue
                 for rq in resolved_queries:
-                    resolved_dir: str = self._params.resolve(rq.directory.pattern, date, computed_only=True)
+                    resolved_dir: str = self._params.interpolate(rq.directory.pattern, date, computed_only=True)
                     rq.directory = ProductPath(pattern=resolved_dir)
                     out.append(rq)
 
@@ -153,7 +153,7 @@ class QueryFactory:
                 except KeyError:
                     continue
                 for resolution_rq in resolved_queries:
-                    resolved_dir = self._params.resolve(resolution_rq.directory.pattern, date, computed_only=True)
+                    resolved_dir = self._params.interpolate(resolution_rq.directory.pattern, date, computed_only=True)
                     resolution_rq.directory = ProductPath(pattern=resolved_dir)
                     out.append(resolution_rq)
 

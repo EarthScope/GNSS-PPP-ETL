@@ -1,5 +1,7 @@
 """RemoteResourceFactory — registry of remote data centers and their resolved catalogs."""
 
+from __future__ import annotations
+
 from datetime import datetime
 import logging
 import re
@@ -35,7 +37,7 @@ class RemoteResourceFactory:
 
     def register(self, spec: ResourceSpec) -> ResourceCatalog:
         self._specs[spec.id] = spec
-        cat = ResourceCatalog.resolve(resource_spec=spec, product_catalog=self._product_catalog)
+        cat = ResourceCatalog.build(resource_spec=spec, product_catalog=self._product_catalog)
         self._catalogs[cat.id] = cat
         return cat
 
@@ -121,7 +123,7 @@ class RemoteResourceFactory:
         query = queries[0]
         query.product = product
         
-        resolved_dir = self._parameter_catalog.resolve(
+        resolved_dir = self._parameter_catalog.interpolate(
             query.directory.pattern, date, computed_only=True
         )
         query.directory.value = resolved_dir

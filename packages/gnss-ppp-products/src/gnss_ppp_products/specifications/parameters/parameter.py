@@ -118,7 +118,7 @@ class ParameterCatalog:
                 param.value = p.compute(date)
         return params
 
-    def resolve(
+    def interpolate(
         self,
         template: str,
         date: datetime.datetime,

@@ -6,7 +6,7 @@
 ### Meta Data Specification
 The metadata specification outlines individual meta-data strings that are required to perform remote and local queries by dynamic path and filename generation
 
-ex: MetaDataCatalog.resolve(f"{YYYY}_{DDD}.file") -> "2024_001.file"
+ex: MetaDataCatalog.interpolate(f"{YYYY}_{DDD}.file") -> "2024_001.file"
 
 ### Format Specification
 The format specification outlines the conventions used to 'name' product files.

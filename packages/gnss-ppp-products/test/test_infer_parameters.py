@@ -31,7 +31,7 @@ def parameter_catalog() -> ParameterCatalog:
 @pytest.fixture(scope="module")
 def format_catalog(parameter_catalog) -> FormatRegistry:
     fsc = FormatSpecCollection.from_yaml(PRODUCT_SPEC_YAML)
-    return FormatRegistry.resolve(fsc, parameter_catalog)
+    return FormatRegistry.build(fsc, parameter_catalog)
 
 
 def _build_regex_and_params(

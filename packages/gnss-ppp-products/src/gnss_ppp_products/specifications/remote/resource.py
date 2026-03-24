@@ -56,7 +56,8 @@ class ResourceQuery(BaseModel):
     directory: ProductPath
 
 
-    def resolve(self) -> 'ResourceQuery':
+    def narrow(self) -> 'ResourceQuery':
+        """Substitute already-known parameter values into directory/filename patterns."""
         to_keep = [p for p in self.product.parameters if p.value is None]
         to_update = {p.name: p for p in self.product.parameters if p.value is not None}
         format_dict = _PassthroughDict({k: p.value for k, p in to_update.items()})

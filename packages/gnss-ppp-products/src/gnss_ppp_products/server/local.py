@@ -13,7 +13,7 @@ class LocalAdapter:
     """DirectoryAdapter for local filesystem paths."""
 
     def can_connect(self, hostname: str) -> bool:
-        return True
+        return Path(hostname).exists()
 
     def list_directory(self, hostname: str, directory: str) -> List[str]:
         d = Path(hostname) / directory

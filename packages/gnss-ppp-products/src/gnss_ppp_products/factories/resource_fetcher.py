@@ -7,7 +7,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from gnss_ppp_products.server.protocol import DirectoryAdapter
 from gnss_ppp_products.server.ftp import FTPAdapter
@@ -113,8 +113,6 @@ class ResourceFetcher:
                     if not reachable:
                         raise ConnectionError(f"Server unreachable: {hostname}")
                 listing = adapter.list_directory(hostname, directory)
-                if not listing:
-                    raise Exception("Listing returned empty")
             except Exception as e:
                 return FetchResult(query=query, error=f"Listing failed: {e}")
             # Cache non-local listings
@@ -130,6 +128,7 @@ class ResourceFetcher:
                     matched_filenames=matches
                 )
         return FetchResult(query=query, error="No matches found")
+
 
     # -- Pattern matching ------------------------------------------
 
@@ -182,7 +181,8 @@ class ResourceFetcher:
 
     async def download(
         self,
-        results: List[FetchResult],
+        results: List[ResourceQuery],
+        local_resource_id:str,
         local_factory: LocalResourceFactory,
         date: datetime.datetime,
         *,
@@ -215,44 +215,32 @@ class ResourceFetcher:
 
     def _download_one(
         self,
-        result: FetchResult,
+        query: ResourceQuery,
+        local_resource_id: str,
         local_factory: LocalResourceFactory,
         date: datetime.datetime,
-    ) -> None:
+    ) -> bool:
         """Synchronously download all matched files for one FetchResult."""
-        query = result.query
-        protocol = (query.server.protocol or "").upper()
+     
+
         hostname = query.server.hostname
-        directory = self._get_directory(query) or ""
+     
 
-        adapter = self._adapters.get(protocol)
-        if adapter is None:
-            logger.error(f"No adapter for protocol {protocol!r}")
-            return
-
-        # Resolve local destination via the first registered local resource
-        local_ids = local_factory.resource_ids
-        if not local_ids:
-            logger.error("No local resources registered; cannot determine download destination")
-            return
-        sink_query = local_factory.sink_product(query.product, local_ids[0], date)
-        dest_dir = Path(sink_query.server.hostname) / sink_query.directory.value
+        dest_dir = local_factory.sink_product(query.product, local_resource_id, date).directory.value
         dest_dir.mkdir(parents=True, exist_ok=True)
 
-        for filename in result.matched_filenames:
-            dest_path = dest_dir / filename
-            if dest_path.exists():
-                logger.info(f"Already exists, skipping: {dest_path}")
-                continue
-
-            ok = False
-            try:
-                ok = adapter.download_file(hostname, directory, filename, dest_path)
-            except Exception as e:
-                logger.error(f"Download failed for {filename}: {e}")
-
-            if ok:
-                result.download_dest = dest_dir
-                logger.info(f"Downloaded {filename} → {dest_path}")
-            else:
-                logger.warning(f"Failed to download {filename} from {hostname}")
+        adapter: Optional[Union[FTPAdapter,HTTPAdapter,LocalAdapter,DirectoryAdapter]] = self._adapters.get(query.server.protocol)
+        if adapter is None:
+            logger.error(f"Unsupported protocol for download: {query.server.protocol!r}")
+            return
+        
+        try:
+            return adapter.download_file(
+                hostname=hostname,
+                directory=query.directory.value,  # type: ignore[union-attr]
+                filename=query.product.filename.value,
+                dest_path=dest_dir,
+            )
+        except Exception as e:
+            logger.error(f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}")
+            return False

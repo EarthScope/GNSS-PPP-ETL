@@ -52,8 +52,8 @@ class ResourceCatalog(Catalog):
     queries: List[ResourceQuery]
 
     @classmethod
-    def resolve(cls, resource_spec: ResourceSpec, product_catalog) -> "ResourceCatalog":
-        """Expand a ResourceSpec against a ProductCatalog into concrete queries."""
+    def build(cls, resource_spec: ResourceSpec, product_catalog) -> "ResourceCatalog":
+        """Build concrete queries by expanding a ResourceSpec against a ProductCatalog."""
         queries = []
         for rp_spec in resource_spec.products:
             if not rp_spec.available:
@@ -93,7 +93,7 @@ class ResourceCatalog(Catalog):
                                 product=pinned_product,
                                 server=server,
                                 directory=rp_spec.directory,
-                            ).resolve()
+                            ).narrow()
                         )
 
         return cls(

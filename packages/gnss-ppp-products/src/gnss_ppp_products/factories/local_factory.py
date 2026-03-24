@@ -174,7 +174,7 @@ class LocalResourceFactory:
                 f"Spec {product.name!r} not found in any local collection. "
                 f"Known specs: {list(registered_spec.item_to_dir.keys())}"
             )
-        resolved = self._parameter_catalog.resolve(directory_template, dt, computed_only=True)
+        resolved = self._parameter_catalog.interpolate(directory_template, dt, computed_only=True)
         
         out_query = ResourceQuery(
             product=product,
@@ -216,7 +216,7 @@ class LocalResourceFactory:
         dir_pattern = query.directory.pattern
         if date:
             date = _ensure_datetime(date)
-            dir_pattern = self._parameter_catalog.resolve(dir_pattern, date, computed_only=True)
+            dir_pattern = self._parameter_catalog.interpolate(dir_pattern, date, computed_only=True)
 
         # Find the registered spec that owns this query's server.
         registered_spec = None
@@ -236,7 +236,7 @@ class LocalResourceFactory:
         file_pattern = query.product.filename.pattern if query.product.filename else None
         if date and file_pattern:
             date = _ensure_datetime(date)
-            file_pattern = self._parameter_catalog.resolve(file_pattern, date, computed_only=True)
+            file_pattern = self._parameter_catalog.interpolate(file_pattern, date, computed_only=True)
         
         search_dir = registered_spec.base_dir / Path(dir_pattern)
 

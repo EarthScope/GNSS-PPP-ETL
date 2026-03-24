@@ -177,20 +177,20 @@ class ProductEnvironment:
 
         register_computed_fields(self._parameter_catalog)
 
-        self._format_catalog = FormatCatalog.resolve(
+        self._format_catalog = FormatCatalog.build(
             format_spec_catalog=FormatSpecCatalog.from_yaml(format_spec),
             parameter_catalog=self._parameter_catalog,
         )
 
         _psc = ProductSpecCatalog.from_yaml(product_spec)
-        self._product_catalog = ProductCatalog.resolve(
+        self._product_catalog = ProductCatalog.build(
             product_spec_catalog=_psc,
             format_catalog=self._format_catalog,
         )
         self._match_table = _build_match_table(_psc, self._product_catalog, self._parameter_catalog)
 
         # ── Layer 2: resource factories ───────────────────────────
-        self._remote_factory = RemoteResourceFactory(self._product_catalog)
+        self._remote_factory = RemoteResourceFactory(self._product_catalog, self._parameter_catalog)
         for spec_resource_yaml in remote_specs:
             self._remote_factory.register(ResourceSpec.from_yaml(str(spec_resource_yaml)))
 
@@ -234,18 +234,18 @@ class ProductEnvironment:
         register_computed_fields(self._parameter_catalog)
 
         fsc = FormatSpecCatalog.from_yaml(PRODUCT_SPEC_YAML)
-        self._format_catalog = FormatCatalog.resolve(
+        self._format_catalog = FormatCatalog.build(
             format_spec_catalog=fsc, parameter_catalog=self._parameter_catalog,
         )
 
         psc = ProductSpecCatalog.from_yaml(PRODUCT_SPEC_YAML)
-        self._product_catalog = ProductCatalog.resolve(
+        self._product_catalog = ProductCatalog.build(
             product_spec_catalog=psc, format_catalog=self._format_catalog,
         )
         self._match_table = _build_match_table(psc, self._product_catalog, self._parameter_catalog)
 
         # Layer 2: remote centres (all YAML files in CENTERS_DIR)
-        self._remote_factory = RemoteResourceFactory(self._product_catalog)
+        self._remote_factory = RemoteResourceFactory(self._product_catalog, self._parameter_catalog)
         for yaml_path in sorted(CENTERS_RESOURCE_DIR.glob("*.yaml")):
             self._remote_factory.register(ResourceSpec.from_yaml(str(yaml_path)))
 
@@ -313,9 +313,9 @@ class ProductEnvironment:
         pc = ParameterCatalog.from_yaml(meta_spec_yaml)
         register_computed_fields(pc)
         fsc = FormatSpecCatalog.from_yaml(product_spec_yaml)
-        fc = FormatCatalog.resolve(format_spec_catalog=fsc, parameter_catalog=pc)
+        fc = FormatCatalog.build(format_spec_catalog=fsc, parameter_catalog=pc)
         psc = ProductSpecCatalog.from_yaml(product_spec_yaml)
-        prod_cat = ProductCatalog.resolve(product_spec_catalog=psc, format_catalog=fc)
+        prod_cat = ProductCatalog.build(product_spec_catalog=psc, format_catalog=fc)
 
         env = object.__new__(cls)
         env._base_dir = base_dir
@@ -326,7 +326,7 @@ class ProductEnvironment:
         env._match_table = _build_match_table(psc, prod_cat, pc)
 
         # Remote centres
-        env._remote_factory = RemoteResourceFactory(prod_cat)
+        env._remote_factory = RemoteResourceFactory(prod_cat, pc)
         for spec in (remote_specs or []): 
             if isinstance(spec, dict):
                 env._remote_factory.register(ResourceSpec(**spec))

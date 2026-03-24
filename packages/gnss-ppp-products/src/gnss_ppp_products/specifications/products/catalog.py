@@ -25,8 +25,8 @@ class ProductSpec(BaseModel):
     parameters: Optional[List[Parameter]] = Field(default_factory=list)
     filename: Optional[str] = Field(default=None, description="Product-level filename override (takes precedence over format filename).")
 
-    def resolve(self, format_catalog: FormatCatalog) -> Product:
-        """Resolve against a FormatCatalog to produce a fully-merged Product."""
+    def materialize(self, format_catalog: FormatCatalog) -> Product:
+        """Materialize against a FormatCatalog to produce a fully-merged Product."""
         format_spec: Product = format_catalog.formats[self.format].versions[self.version].variants[self.variant]
 
         # Start with ALL format parameters, then overlay product spec overrides
@@ -99,8 +99,8 @@ class ProductCatalog(Catalog):
     products: dict[str, VersionCatalog[Product]]
 
     @classmethod
-    def resolve(cls, product_spec_catalog: ProductSpecCatalog, format_catalog: FormatCatalog) -> "ProductCatalog":
-        """Resolve abstract product specs against a FormatCatalog into concrete Products."""
+    def build(cls, product_spec_catalog: ProductSpecCatalog, format_catalog: FormatCatalog) -> "ProductCatalog":
+        """Build concrete Products from abstract product specs and a FormatCatalog."""
         products = {}
 
         for product_name, product_spec_cat in product_spec_catalog.products.items():
@@ -108,7 +108,7 @@ class ProductCatalog(Catalog):
             for version_name, version_spec in product_spec_cat.versions.items():
                 variants = {}
                 for variant_name, product_spec in version_spec.variants.items():
-                    product: Product = product_spec.resolve(format_catalog)
+                    product: Product = product_spec.materialize(format_catalog)
                     if hasattr(product, "filename") and hasattr(product.filename, "derive"):
                         product.filename.derive(product.parameters)
                     variants[variant_name] = product
