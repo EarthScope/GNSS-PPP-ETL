@@ -5,4 +5,8 @@ from gnss_ppp_products.factories import (  # noqa: F401
     ProductEnvironment,
     QueryFactory,
     ResourceFetcher,
+    FoundResource,
+    MissingProductError,
+    Resolution,
+    DiscoveryReport,
 )

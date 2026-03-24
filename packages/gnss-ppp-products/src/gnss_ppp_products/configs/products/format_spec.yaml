@@ -1,0 +1,276 @@
+RINEX:
+  name: RINEX
+  versions:
+    "2":
+      name: "2"
+      variants:
+        observation:
+          name: RINEX
+          version: "2"
+          variant: observation
+          parameters:
+            - name: SSSS
+              description: 4 char station code
+            - name: DDD
+              description: day of year (001-366)
+            - name: YY
+              description: 2 digit year
+            - name: T
+              description: file type code
+          filename: "{SSSS}{DDD}0.{YY}{T}"
+        navigation:
+          name: RINEX
+          version: "2"
+          variant: navigation
+          parameters:
+            - name: SSSS
+            - name: DDD
+            - name: YY
+            - name: T
+          filename: "{SSSS}{DDD}0.{YY}{T}"
+        meteorological:
+          name: RINEX
+          version: "2"
+          variant: meteorological
+          parameters:
+            - name: SSSS
+            - name: DDD
+            - name: YY
+          filename: "{SSSS}{DDD}0.{YY}m"
+    "3":
+      name: "3"
+      variants:
+        observation:
+          name: RINEX
+          version: "3"
+          variant: observation
+          parameters:
+            - name: SSSS
+            - name: MONUMENT
+            - name: R
+            - name: CCC
+            - name: S
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: DDU
+            - name: FRU
+            - name: D
+          filename: "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{FRU}_{D}O.rnx"
+        navigation:
+          name: RINEX
+          version: "3"
+          variant: navigation
+          parameters:
+            - name: SSSS
+            - name: MONUMENT
+            - name: R
+            - name: CCC
+            - name: S
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: DDU
+            - name: D
+          filename: "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}N.rnx"
+        meteorological:
+          name: RINEX
+          version: "3"
+          variant: meteorological
+          parameters:
+            - name: SSSS
+            - name: MONUMENT
+            - name: R
+            - name: CCC
+            - name: S
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: DDU
+            - name: D
+          filename: "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}M.rnx"
+    "4":
+      name: "4"
+      variants:
+        observation:
+          name: RINEX
+          version: "4"
+          variant: observation
+          parameters:
+            - name: SSSS
+            - name: MONUMENT
+            - name: R
+            - name: CCC
+            - name: S
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: DDU
+            - name: FRU
+            - name: D
+          filename: "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{FRU}_{D}O.rnx"
+        navigation:
+          name: RINEX
+          version: "4"
+          variant: navigation
+          parameters:
+            - name: SSSS
+            - name: MONUMENT
+            - name: R
+            - name: CCC
+            - name: S
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: DDU
+            - name: D
+          filename: "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}N.rnx"
+        meteorological:
+          name: RINEX
+          version: "4"
+          variant: meteorological
+          parameters:
+            - name: SSSS
+            - name: MONUMENT
+            - name: R
+            - name: CCC
+            - name: S
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: DDU
+            - name: D
+          filename: "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}M.rnx"
+
+PRODUCT:
+  name: PRODUCT
+  versions:
+    "1":
+      name: "1"
+      variants:
+        default:
+          name: PRODUCT
+          version: "1"
+          variant: default
+          parameters:
+            - name: AAA
+            - name: V
+            - name: PPP
+            - name: TTT
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: LEN
+            - name: SMP
+            - name: CNT
+            - name: FMT
+          filename: "{AAA}{V}{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*"
+        station:
+          name: PRODUCT
+          version: "1"
+          variant: station
+          parameters:
+            - name: AAA
+            - name: V
+            - name: PPP
+            - name: TTT
+            - name: YYYY
+            - name: DDD
+            - name: HH
+            - name: MM
+            - name: LEN
+            - name: SMP
+            - name: SSSMRCCC_
+            - name: CNT
+            - name: FMT
+          filename: "{AAA}{V}{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{SSSMRCCC_}_{CNT}.{FMT}.*"
+
+TABLE:
+  name: TABLE
+  versions:
+    "1":
+      name: "1"
+      variants:
+        default:
+          name: TABLE
+          version: "1"
+          variant: default
+          parameters: []
+          filename: ""
+
+VIENNA_MAPPING_FUNCTIONS:
+  name: VIENNA_MAPPING_FUNCTIONS
+  versions:
+    "1":
+      name: "1"
+      variants:
+        default:
+          name: VIENNA_MAPPING_FUNCTIONS
+          version: "1"
+          variant: default
+          parameters:
+            - name: PRODUCT
+            - name: YYYY
+            - name: MONTH
+            - name: DAY
+            - name: VMFHH
+              pattern: "H(?:00|06|12|18)"
+          filename: "{PRODUCT}_{YYYY}{MONTH}{DAY}.{VMFHH}"
+        orography:
+          name: VIENNA_MAPPING_FUNCTIONS
+          version: "1"
+          variant: orography
+          parameters:
+            - name: RESOLUTION
+              pattern: "\\b(2\\.5x2|1x1|5x5)\\b"
+          filename: "orography_ell_{RESOLUTION}"
+
+LEO_L1B:
+  name: LEO_L1B
+  versions:
+    "1":
+      name: "1"
+      variants:
+        default:
+          name: LEO_L1B
+          version: "1"
+          variant: default
+          parameters:
+            - name: INSTRUMENT
+            - name: YYYY
+            - name: MONTH
+            - name: DAY
+            - name: SPACECRAFT
+              pattern: "[CD]"
+            - name: RELNUM
+              pattern: "\\d+\\..*"
+          filename: "{INSTRUMENT}_{YYYY}-{MONTH}-{DAY}_{SPACECRAFT}_{RELNUM}"
+
+ANTENNAE:
+  name: ANTENNAE
+  versions:
+    "1":
+      name: "1"
+      variants:
+        default:
+          name: ANTENNAE
+          version: "1"
+          variant: default
+          parameters:
+            - name: REFFRAME
+          filename: "{REFFRAME}.atx"
+        archive:
+          name: ANTENNAE
+          version: "1"
+          variant: archive
+          parameters:
+            - name: REFFRAME
+            - name: GPSWEEK
+          filename: "{REFFRAME}_{GPSWEEK}.atx"

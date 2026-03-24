@@ -1,10 +1,14 @@
 """LocalResourceFactory — collections-based local file-system product archives."""
 
+from __future__ import annotations
+
 import datetime
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+
+from pydantic import BaseModel
 
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
@@ -12,8 +16,23 @@ from gnss_ppp_products.specifications.products.product import Product, ProductPa
 from gnss_ppp_products.specifications.remote.resource import ResourceCatalog, ResourceQuery, Server
 from gnss_ppp_products.utilities.helpers import _ensure_datetime
 
+if TYPE_CHECKING:
+    from gnss_ppp_products.specifications.products.catalog import ProductCatalog
+
 logger = logging.getLogger(__name__)
 
+
+def paths_overlap(p1: Path, p2: Path) -> bool:
+    p1 = p1.resolve()
+    p2 = p2.resolve()
+    return p1.is_relative_to(p2) or p2.is_relative_to(p1)
+
+
+class RegisteredLocalResource(BaseModel):
+    name: str
+    base_dir: Path
+    spec: LocalResourceSpec
+    item_to_dir: Dict[str, str]
 
 class LocalResourceFactory:
     """Registry of local file-system product archives using collections-based layout.
@@ -31,91 +50,173 @@ class LocalResourceFactory:
 
     def __init__(
         self,
-        local_spec: LocalResourceSpec,
-        product_catalog,
+        product_catalog: ProductCatalog,
         parameter_catalog: ParameterCatalog,
-        base_dir: Path,
     ) -> None:
-        self._local_spec = local_spec
+  
         self._product_catalog = product_catalog
         self._parameter_catalog = parameter_catalog
-        self._base_dir = base_dir
+        self._registered_specs: Dict[str,RegisteredLocalResource] = {}
+        self._alias_map: Dict[str, str] = {}  # alias → spec name
 
-        # Build a single local "server"
-        self.local_server = Server(
-            id="local_disk",
-            hostname=str(base_dir) if base_dir else "local",
+        # # Build a single local "server"
+        # self.local_server = Server(
+        #     id="local_disk",
+        #     hostname=str(base_dir) if base_dir else "local",
+        #     protocol="file",
+        #     auth_required=False,
+        #     description="Local product archive",
+        # )
+
+        # # Build spec_name → directory_template map
+        # self._item_to_dir: Dict[str, str] = {}
+        # self._catalogs: List[ResourceCatalog] = []
+
+        # for coll_name, coll in local_spec.collections.items():
+        #     for item in coll.items:
+        #         self._item_to_dir[item] = coll.directory
+
+        # # Warn about products in the catalog that have no local directory template
+        # for prod_name in product_catalog.products.keys():
+        #     if prod_name not in self._item_to_dir:
+        #         logger.warning(
+        #             "Product %r in catalog has no local directory template. "
+        #             "Source: %s", prod_name, local_spec.source_file,
+        #         )
+
+    def register(
+        self,
+        spec: LocalResourceSpec | Path | str,
+        base_dir: Path | str,
+        alias: Optional[str] = None,
+    ) -> None:
+        
+        if isinstance(base_dir, str):
+            base_dir = Path(base_dir)
+
+
+        if isinstance(spec, (Path, str)):
+            spec = LocalResourceSpec.from_yaml(str(spec))
+        
+        server = Server(
+            id=spec.name,
+            hostname=str(base_dir) if base_dir else spec.name,
             protocol="file",
             auth_required=False,
-            description="Local product archive",
+            description=spec.description,
         )
 
-        # Build spec_name → directory_template map
-        self._item_to_dir: Dict[str, str] = {}
-        self._catalogs: List[ResourceCatalog] = []
 
-        for coll_name, coll in local_spec.collections.items():
-            for item in coll.items:
-                self._item_to_dir[item] = coll.directory
-
-        # Warn about products in the catalog that have no local directory template
-        for prod_name in product_catalog.products.keys():
-            if prod_name not in self._item_to_dir:
-                logger.warning(
-                    "Product %r in catalog has no local directory template. "
-                    "Source: %s", prod_name, local_spec.source_file,
+        name = spec.name
+        if name in self._registered_specs:
+            raise ValueError(f"Local resource {name!r} is already registered.")
+        for registered_spec in self._registered_specs.values():
+            # Check if any existing base directories overlap with the new spec's base directory
+            if paths_overlap(registered_spec.base_dir, base_dir):
+                raise ValueError(
+                    f"Base directory {base_dir!r} for spec {name!r} overlaps with "
+                    f"existing base directory {registered_spec.base_dir!r} for spec "
+                    f"{registered_spec.name!r}. Please choose non-overlapping base "
+                    f"directories for local resources."
                 )
+        if alias:
+            if alias in self._alias_map:
+                raise ValueError(f"Alias {alias!r} is already in use for spec {self._alias_map[alias]!r}.")
+       
 
+        item_to_dir: Dict[str, str] = {}
+        for coll_name, coll in spec.collections.items():
+            for item in coll.items:
+                if item in item_to_dir:
+                    raise ValueError(
+                        f"Spec {item!r} is in multiple collections: "
+                        f"{item_to_dir[item]!r} and {coll_name!r}"
+                    )
+                item_to_dir[item] = coll.directory
+
+        self._registered_specs[name] = RegisteredLocalResource(
+            name=name,
+            base_dir=base_dir,
+            spec=spec,
+            item_to_dir=item_to_dir,
+        )
+        if alias:
+            self._alias_map[alias] = name
+    
+    def _get_registered_spec(self, name_or_alias: str) -> RegisteredLocalResource:
+        if name_or_alias in self._alias_map:
+            name_or_alias = self._alias_map[name_or_alias]
+        registered_spec = self._registered_specs.get(name_or_alias)
+        if registered_spec is None:
+            raise KeyError(
+                f"Local resource {name_or_alias!r} not found. "
+                f"Known resources: {list(self._registered_specs.keys())}"
+            )
+        return registered_spec
+    
     def resolve_directory(
         self,
+        local_resource_name: str,
         product_name: str,
         date: datetime.date | datetime.datetime,
     ) -> Path:
         """Resolve the local directory for a product spec on a given date."""
         dt = _ensure_datetime(date)
-        directory_template = self._item_to_dir.get(product_name)
+        registered_spec = self._get_registered_spec(local_resource_name)
+
+        
+        directory_template = registered_spec.item_to_dir.get(product_name)
         if directory_template is None:
             raise KeyError(
                 f"Spec {product_name!r} not found in any local collection. "
-                f"Known specs: {list(self._item_to_dir.keys())}"
+                f"Known specs: {list(registered_spec.item_to_dir.keys())}"
             )
         resolved = self._parameter_catalog.resolve(directory_template, dt, computed_only=True)
-        return self._base_dir / Path(resolved)
+        return registered_spec.base_dir / Path(resolved)
 
-    def resolve_product(self, product: Product, date: datetime.datetime) -> Tuple[Server, ProductPath]:
+    def resolve_product(self, local_resource_name: str, product: Product, date: datetime.datetime) -> Tuple[Server, ProductPath]:
         """Resolve a product to a (Server, ProductPath) for local access."""
         dt = _ensure_datetime(date)
-        directory_template = self._item_to_dir.get(product.name)
+        registered_spec = self._get_registered_spec(local_resource_name)
+        directory_template = registered_spec.item_to_dir.get(product.name)
         if directory_template is None:
             raise KeyError(
                 f"Spec {product.name!r} not found in any local collection. "
-                f"Known specs: {list(self._item_to_dir.keys())}"
+                f"Known specs: {list(registered_spec.item_to_dir.keys())}"
             )
         directory_template_pp: ProductPath = ProductPath(pattern=directory_template)
         directory_template_pp.derive(product.parameters)
-        return self.local_server, directory_template_pp
+        return registered_spec.server, directory_template_pp
 
     def find_local_files(
-        self, query: ResourceQuery, date: Optional[datetime.date] = None,
+        self,query: ResourceQuery, date: Optional[datetime.date] = None,
     ) -> List[Path]:
         """Search local disk for files matching a query."""
         dir_pattern = query.directory.pattern
         if date:
-            dt = _ensure_datetime(date)
-            dir_pattern = self._parameter_catalog.resolve(dir_pattern, dt, computed_only=True)
+            date = _ensure_datetime(date)
+            dir_pattern = self._parameter_catalog.resolve(dir_pattern, date, computed_only=True)
 
-        if self._base_dir:
-            search_dir = self._base_dir / dir_pattern
-        else:
-            search_dir = Path(query.server.hostname) / dir_pattern
+        registered_spec = None
+        # Find the registered spec that contains this query's server.
+        for registered_spec in self._registered_specs.values():
+            if registered_spec.server.id == query.server.id:
+                break
+        
+        if registered_spec is None:
+            raise KeyError(
+                f"Server {query.server.id!r} not found in any registered local resource. "
+                f"Known servers: {[s.server.id for s in self._registered_specs.values()]}"
+            )
+    
 
-        if not search_dir.exists():
-            return []
-
+      
         file_pattern = query.product.filename.pattern if query.product.filename else None
         if date and file_pattern:
-            dt = _ensure_datetime(date)
-            file_pattern = self._parameter_catalog.resolve(file_pattern, dt, computed_only=True)
+            date = _ensure_datetime(date)
+            file_pattern = self._parameter_catalog.resolve(file_pattern, date, computed_only=True)
+        
+        search_dir = registered_spec.base_dir / Path(dir_pattern)
 
         if file_pattern:
             return sorted(

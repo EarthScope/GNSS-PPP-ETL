@@ -1,5 +1,6 @@
 """ProductSpec and ProductCatalog — resolve product specs against FormatCatalog."""
 
+import re
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -81,7 +82,10 @@ class ProductSpecCatalog(BaseModel):
                 format_name = fmt_entry["format"]
                 parameters = []
                 for c_name, c_value in (fmt_entry.get("constraints") or {}).items():
-                    parameters.append({"name": c_name, "value": c_value})
+                    if re.search(r'[\[\]\\(){}|*+?^$]', str(c_value)):
+                        parameters.append({"name": c_name, "pattern": c_value})
+                    else:
+                        parameters.append({"name": c_name, "value": c_value})
                 variant_dict: dict = {
                     "name": prod_name,
                     "format": format_name,

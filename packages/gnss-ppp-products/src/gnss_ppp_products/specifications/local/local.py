@@ -16,7 +16,7 @@ class LocalCollection(BaseModel):
     """A group of product specs sharing a directory template."""
 
     directory: str
-    description: str = ""
+    description: Optional[str] = None
     items: List = Field(default_factory=list)
 
 
@@ -30,6 +30,7 @@ class LocalResourceSpec(BaseModel):
     """
 
     name: str = "default"
+    description: Optional[str] = None
     collections: Dict[str, LocalCollection] = Field(default_factory=dict)
     source_file: Optional[Path] = None
 
