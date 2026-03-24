@@ -166,43 +166,27 @@ The public methods delegate to existing internal components:
 - `resolve()` → `DependencyResolver` (walk dep graph) → `find()` + `download()` per product
 - `discover()` → `find(..., all=True)` across all products without download
 
-## Known Bugs (must fix before Phase 2)
+## Known Bugs ~~(must fix before Phase 2)~~ — ALL FIXED
 
-These bugs exist in the current codebase and block the `find()` / `download()` / `resolve()` phases. They do NOT affect `classify()` (Phase 1, already working).
+All three bugs have been resolved. Documented here for reference.
 
-### Bug 1: `RegisteredLocalResource` missing `server` field
+### Bug 1 (FIXED): `RegisteredLocalResource` missing `server` field
 
-**Location:** `specifications/local/factory.py` lines 31–36
+**Location:** `specifications/local/factory.py`
 
-The `RegisteredLocalResource` Pydantic model does not include a `server` field, but `resolve_product()` (line 189) returns `registered_spec.server` and `find_local_files()` (line 203) compares `registered_spec.server.id`. Both crash with `AttributeError` at runtime.
+Added `server: Server` field to `RegisteredLocalResource`.
 
-**Fix:** Add `server: Server` field to `RegisteredLocalResource`.
+### Bug 2 (FIXED): Server object created but never stored
 
-### Bug 2: Server object created but never stored
+**Location:** `specifications/local/factory.py` `register()`
 
-**Location:** `specifications/local/factory.py` `register()` method (lines 101–112, 132–139)
+Added `server=server` when constructing `RegisteredLocalResource`.
 
-The `register()` method creates a `Server` object but does not pass it to the `RegisteredLocalResource` constructor. The server is discarded.
+### Bug 3 (FIXED): `QueryFactory` → `LocalResourceFactory.resolve_product()` signature mismatch
 
-**Fix:** Pass `server=server` when constructing `RegisteredLocalResource`.
+**Location:** `factories/query_factory.py` vs `specifications/local/factory.py`
 
-### Bug 3: `QueryFactory` → `LocalResourceFactory.resolve_product()` signature mismatch
-
-**Location:** `factories/query_factory.py` line 168 vs `specifications/local/factory.py` line 177
-
-`QueryFactory` calls:
-```python
-self._local.resolve_product(to_update, date)  # 2 args: Product, datetime
-```
-
-But `resolve_product()` expects:
-```python
-def resolve_product(self, local_resource_name: str, product: Product, date: datetime.datetime)  # 3 args
-```
-
-This raises `TypeError: resolve_product() missing 1 required positional argument: 'date'` at runtime.
-
-**Fix:** `QueryFactory` must determine the correct `local_resource_name` to pass. Since the factory may have multiple registered specs, QueryFactory should iterate all registered specs and try each one for the given product, using `item_to_dir` membership to determine applicability. Add a method like `resolve_product_any(product, date) -> Tuple[Server, ProductPath]` that searches all registered specs, or restructure the `QueryFactory._local` call site to iterate.
+Changed `resolve_product()` to accept `(product, date)` and iterate all registered specs to find the one whose `item_to_dir` contains the product name. Also fixed `find_local_files()` loop that used `for x in dict: ... break` pattern which would set `x` to the last item regardless of match.
 
 ## Testing Decisions
 

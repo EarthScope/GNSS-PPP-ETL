@@ -33,6 +33,7 @@ class RegisteredLocalResource(BaseModel):
     base_dir: Path
     spec: LocalResourceSpec
     item_to_dir: Dict[str, str]
+    server: Server
 
 class LocalResourceFactory:
     """Registry of local file-system product archives using collections-based layout.
@@ -139,6 +140,7 @@ class LocalResourceFactory:
             base_dir=base_dir,
             spec=spec,
             item_to_dir=item_to_dir,
+            server=server,
         )
         if alias:
             self._alias_map[alias] = name
@@ -174,22 +176,26 @@ class LocalResourceFactory:
         resolved = self._parameter_catalog.resolve(directory_template, dt, computed_only=True)
         return registered_spec.base_dir / Path(resolved)
 
-    def resolve_product(self, local_resource_name: str, product: Product, date: datetime.datetime) -> Tuple[Server, ProductPath]:
-        """Resolve a product to a (Server, ProductPath) for local access."""
+    def resolve_product(self, product: Product, date: datetime.date | datetime.datetime) -> Tuple[Server, ProductPath]:
+        """Resolve a product to a (Server, ProductPath) for local access.
+
+        Searches all registered specs for one whose collections include
+        ``product.name``.  Returns the first match.
+        """
         dt = _ensure_datetime(date)
-        registered_spec = self._get_registered_spec(local_resource_name)
-        directory_template = registered_spec.item_to_dir.get(product.name)
-        if directory_template is None:
-            raise KeyError(
-                f"Spec {product.name!r} not found in any local collection. "
-                f"Known specs: {list(registered_spec.item_to_dir.keys())}"
-            )
-        directory_template_pp: ProductPath = ProductPath(pattern=directory_template)
-        directory_template_pp.derive(product.parameters)
-        return registered_spec.server, directory_template_pp
+        for registered_spec in self._registered_specs.values():
+            directory_template = registered_spec.item_to_dir.get(product.name)
+            if directory_template is not None:
+                directory_template_pp = ProductPath(pattern=directory_template)
+                directory_template_pp.derive(product.parameters)
+                return registered_spec.server, directory_template_pp
+        raise KeyError(
+            f"Product {product.name!r} not found in any local collection. "
+            f"Known products: {sorted({p for s in self._registered_specs.values() for p in s.item_to_dir})}"
+        )
 
     def find_local_files(
-        self,query: ResourceQuery, date: Optional[datetime.date] = None,
+        self, query: ResourceQuery, date: Optional[datetime.date] = None,
     ) -> List[Path]:
         """Search local disk for files matching a query."""
         dir_pattern = query.directory.pattern
@@ -197,12 +203,13 @@ class LocalResourceFactory:
             date = _ensure_datetime(date)
             dir_pattern = self._parameter_catalog.resolve(dir_pattern, date, computed_only=True)
 
+        # Find the registered spec that owns this query's server.
         registered_spec = None
-        # Find the registered spec that contains this query's server.
-        for registered_spec in self._registered_specs.values():
-            if registered_spec.server.id == query.server.id:
+        for candidate in self._registered_specs.values():
+            if candidate.server.id == query.server.id:
+                registered_spec = candidate
                 break
-        
+
         if registered_spec is None:
             raise KeyError(
                 f"Server {query.server.id!r} not found in any registered local resource. "
