@@ -150,11 +150,12 @@ Layer 1 models are **declarative data**. They define *what exists*, not how to b
 | Abstraction | Module | Input → Output |
 |---|---|---|
 | `Catalog` (ABC) | `specifications/catalog.py` | Base class enforcing `@classmethod resolve()` on all catalogs |
+| `ResourceFactory` (Protocol) | `factories/resource_factory.py` | Shared query-side interface for resource factories |
 | `FormatCatalog` | `specifications/format/format_spec.py` | FormatSpecCatalog + ParameterCatalog → resolved Products per format/version/variant |
 | `ProductCatalog` | `specifications/products/catalog.py` | ProductSpecCatalog + FormatCatalog → resolved Products per product/version/variant |
 | `ResourceCatalog` | `specifications/remote/resource_catalog.py` | ResourceSpec + ProductCatalog → expanded ResourceQuery list |
-| `RemoteResourceFactory` | `factories/remote_factory.py` | Registry of ResourceCatalogs per center; resolves products against centers |
-| `LocalResourceFactory` | `factories/local_factory.py` | Registry of local storage specs; resolves products to filesystem paths |
+| `RemoteResourceFactory` | `factories/remote_factory.py` | Registry of ResourceCatalogs per center; satisfies `ResourceFactory` |
+| `LocalResourceFactory` | `factories/local_factory.py` | Registry of local storage specs; satisfies `ResourceFactory` |
 
 ### Resolution Chain
 
@@ -174,12 +175,17 @@ All three catalog classes inherit from `Catalog(BaseModel)` (in `specifications/
 - `ProductCatalog.resolve(product_spec_catalog, format_catalog) -> ProductCatalog`
 - `ResourceCatalog.resolve(resource_spec, product_catalog) -> ResourceCatalog`
 
-Factory registries follow a `register()` + query pattern:
+Both resource factories satisfy the `ResourceFactory(Protocol)` (in `factories/resource_factory.py`), which defines the query-side interface:
+
+- `resource_ids -> List[str]` — identifiers for all registered resources
+- `resolve_product(product, resource_id) -> List[ResourceQuery]` — resolve a product against a named resource
+
+`QueryFactory` depends only on the `ResourceFactory` Protocol, not on concrete factory classes.
+
+Factory registration is **not** part of the protocol (different spec types at setup time):
 
 - `RemoteResourceFactory.register(ResourceSpec) -> ResourceCatalog`
-- `RemoteResourceFactory.get(center_id) -> ResourceCatalog`
 - `LocalResourceFactory.register(LocalResourceSpec, base_dir)`
-- `LocalResourceFactory.resolve_product(Product, date) -> (Server, ProductPath)`
 
 ### Key Rule
 Catalogs are **immutable after construction**. Resolution happens once; the result is cached as data. No network I/O, no filesystem writes.

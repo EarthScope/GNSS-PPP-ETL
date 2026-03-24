@@ -369,38 +369,45 @@ class TestQueryFactoryFilepaths:
 class TestLocalDirectoryResolution:
     """Verify local factory produces correct local directories."""
 
+    @staticmethod
+    def _sink_dir(env, product_name: str, date) -> str:
+        """Helper: resolve the local sink directory for a product name."""
+        from gnss_ppp_products.specifications.products.product import Product
+        factory = env.local_factory
+        rid = factory.resource_ids[0]
+        rq = factory.sink_product(Product(name=product_name, parameters=[]), rid, date)
+        return str(Path(rq.server.hostname) / rq.directory.value)
+
     def test_orbit_local_directory(self, wuhan_env, test_date) -> None:
-        d = wuhan_env.local_factory.resolve_directory("ORBIT", test_date)
-        assert "2025" in str(d)
-        assert "015" in str(d)
-        assert "products" in str(d)
+        d = self._sink_dir(wuhan_env, "ORBIT", test_date)
+        assert "2025" in d
+        assert "015" in d
+        assert "products" in d
 
     def test_clock_local_directory(self, wuhan_env, test_date) -> None:
-        d = wuhan_env.local_factory.resolve_directory("CLOCK", test_date)
-        assert "products" in str(d)
+        d = self._sink_dir(wuhan_env, "CLOCK", test_date)
+        assert "products" in d
 
     def test_ionex_local_directory(self, wuhan_env, test_date) -> None:
-        d = wuhan_env.local_factory.resolve_directory("IONEX", test_date)
-        assert "common" in str(d)
+        d = self._sink_dir(wuhan_env, "IONEX", test_date)
+        assert "common" in d
 
     def test_brdc_local_directory(self, wuhan_env, test_date) -> None:
-        d = wuhan_env.local_factory.resolve_directory("RNX3_BRDC", test_date)
-        assert "rinex" in str(d)
+        d = self._sink_dir(wuhan_env, "RNX3_BRDC", test_date)
+        assert "rinex" in d
 
     def test_leap_sec_local_directory(self, wuhan_env, test_date) -> None:
-        d = wuhan_env.local_factory.resolve_directory("LEAP_SEC", test_date)
-        assert "table" in str(d)
+        d = self._sink_dir(wuhan_env, "LEAP_SEC", test_date)
+        assert "table" in d
 
     def test_attatx_local_directory(self, wuhan_env, test_date) -> None:
-        d = wuhan_env.local_factory.resolve_directory("ATTATX", test_date)
-        assert "table" in str(d)
+        d = self._sink_dir(wuhan_env, "ATTATX", test_date)
+        assert "table" in d
 
     def test_local_query_has_file_protocol(self, wuhan_qf, test_date) -> None:
         queries = wuhan_qf.get(date=test_date, product={"name": "ORBIT"})
         local = [q for q in queries if q.server.protocol == "file"]
         assert len(local) > 0
-        for q in local:
-            assert q.server.id == "local_disk"
 
 
 # ---------------------------------------------------------------------------

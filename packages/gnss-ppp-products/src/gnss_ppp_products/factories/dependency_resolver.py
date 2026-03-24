@@ -222,7 +222,11 @@ class DependencyResolver:
         for rq in expanded_queries:
             if (rq.server.protocol or "").upper() not in ("FILE", "LOCAL", ""):
                 # download remote matches
-                dest_dir = self._qf._local.resolve_directory(rq.product.name, date)
+                local_ids = self._qf._local.resource_ids
+                if not local_ids:
+                    continue
+                sink_rq = self._qf._local.sink_product(rq.product, local_ids[0], date)
+                dest_dir = Path(sink_rq.server.hostname) / sink_rq.directory.value
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 resolved = self._resolve_remote(
                     rq, dep, dest_dir=dest_dir,

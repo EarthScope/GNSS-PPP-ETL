@@ -54,7 +54,7 @@ class ResourceQuery(BaseModel):
     product: Product
     server: Server
     directory: ProductPath
-    needed_parameters: List[Parameter] = []
+
 
     def resolve(self) -> 'ResourceQuery':
         to_keep = [p for p in self.product.parameters if p.value is None]
@@ -66,5 +66,5 @@ class ResourceQuery(BaseModel):
                 "filename": ProductPath(pattern=self.product.filename.pattern.format_map(format_dict))
             })
         self.directory = ProductPath(pattern=self.directory.pattern.format_map(format_dict))
-        self.needed_parameters = to_keep
+
         return self

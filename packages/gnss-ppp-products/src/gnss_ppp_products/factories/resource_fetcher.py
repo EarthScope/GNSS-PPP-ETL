@@ -230,7 +230,13 @@ class ResourceFetcher:
             logger.error(f"No adapter for protocol {protocol!r}")
             return
 
-        dest_dir = local_factory.resolve_directory(query.product.name, date)
+        # Resolve local destination via the first registered local resource
+        local_ids = local_factory.resource_ids
+        if not local_ids:
+            logger.error("No local resources registered; cannot determine download destination")
+            return
+        sink_query = local_factory.sink_product(query.product, local_ids[0], date)
+        dest_dir = Path(sink_query.server.hostname) / sink_query.directory.value
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         for filename in result.matched_filenames:

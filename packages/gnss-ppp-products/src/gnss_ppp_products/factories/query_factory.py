@@ -2,13 +2,12 @@
 
 import datetime
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.product import Product, ProductPath, VariantCatalog, VersionCatalog
-from gnss_ppp_products.specifications.remote.resource import ResourceQuery, Server
-from gnss_ppp_products.factories.local_factory import LocalResourceFactory
-from gnss_ppp_products.factories.remote_factory import RemoteResourceFactory
+from gnss_ppp_products.specifications.remote.resource import ResourceQuery
+from gnss_ppp_products.factories.resource_factory import ResourceFactory
 from gnss_ppp_products.utilities.helpers import _listify, expand_dict_combinations
 
 logger = logging.getLogger(__name__)
@@ -40,8 +39,8 @@ class QueryFactory:
 
     def __init__(
         self,
-        remote_factory: RemoteResourceFactory,
-        local_factory: LocalResourceFactory,
+        remote_factory: ResourceFactory,
+        local_factory: ResourceFactory,
         product_catalog,
         parameter_catalog: ParameterCatalog,
     ):
@@ -129,31 +128,30 @@ class QueryFactory:
 
         # 5.1 Local resources
         for template in product_templates_1:
-            to_update = template.model_copy(deep=True)
-            resolution: Tuple[Server, ProductPath] = self._local.resolve_product(to_update, date)
-            server, directory = resolution
-            directory.pattern = self._params.resolve(directory.pattern, date, computed_only=True)
-            rq = ResourceQuery(
-                product=to_update,
-                server=server,
-                directory=directory,
-            )
-            out.append(rq)
+            for resource_id in self._local.resource_ids:
+                if local_resources and resource_id not in local_resources:
+                    continue
+                to_update = template.model_copy(deep=True)
+                try:
+                    resolved_queries: List[ResourceQuery] = self._local.source_product(to_update, resource_id)
+                except KeyError:
+                    continue
+                for rq in resolved_queries:
+                    resolved_dir: str = self._params.resolve(rq.directory.pattern, date, computed_only=True)
+                    rq.directory = ProductPath(pattern=resolved_dir)
+                    out.append(rq)
 
         # 5.2 Remote resources
         for template in product_templates_1:
-            for center_id in self._remote.centers:
+            for center_id in self._remote.resource_ids:
                 if remote_resources and center_id.upper() in remote_resources:
                     continue
 
                 to_update = template.model_copy(deep=True)
                 try:
-                    resolved_queries: List[ResourceQuery] = self._remote.resolve_product(to_update, center_id)
+                    resolved_queries: List[ResourceQuery] = self._remote.source_product(to_update, center_id)
                 except KeyError:
                     continue
-                if not resolved_queries:
-                    continue
-
                 for resolution_rq in resolved_queries:
                     resolved_dir = self._params.resolve(resolution_rq.directory.pattern, date, computed_only=True)
                     resolution_rq.directory = ProductPath(pattern=resolved_dir)
