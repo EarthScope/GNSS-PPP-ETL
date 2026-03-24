@@ -20,7 +20,7 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
     DependencySpec,
     ResolvedDependency,
 )
-from gnss_ppp_products.specifications.dependencies.dependency_resolver import (
+from gnss_ppp_products.factories.dependency_resolver import (
     DependencyResolver,
 )
 from gnss_ppp_products.specifications.dependencies.lockfile import (

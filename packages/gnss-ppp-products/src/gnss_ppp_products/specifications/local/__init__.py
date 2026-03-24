@@ -1,2 +1,2 @@
 from .local import LocalCollection, LocalResourceSpec
-from .factory import LocalResourceFactory
+from gnss_ppp_products.factories.local_factory import LocalResourceFactory

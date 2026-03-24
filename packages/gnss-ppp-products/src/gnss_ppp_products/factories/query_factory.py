@@ -1,52 +1,17 @@
-"""QueryFactory and QueryProfile — lazy narrowing query builder."""
+"""QueryFactory — lazy narrowing query builder."""
 
 import datetime
 import logging
 from typing import Dict, List, Optional, Tuple
 
-from pydantic import BaseModel
-
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.product import Product, ProductPath, VariantCatalog, VersionCatalog
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery, Server
-from gnss_ppp_products.specifications.local.factory import LocalResourceFactory
+from gnss_ppp_products.factories.local_factory import LocalResourceFactory
 from gnss_ppp_products.factories.remote_factory import RemoteResourceFactory
 from gnss_ppp_products.utilities.helpers import _listify, expand_dict_combinations
 
 logger = logging.getLogger(__name__)
-
-
-class AxisAlias(BaseModel):
-    """Maps a human-friendly axis name to one or more parameter names."""
-    alias: str
-    parameters: List[str]
-    description: Optional[str] = None
-
-
-class SortPreference(BaseModel):
-    """Defines the preferred order for an axis during resolution."""
-    axis: str
-    order: List[str]
-
-
-class QueryProfile(BaseModel):
-    """Thin query configuration — just axis aliases and sort preferences."""
-    axes: List[AxisAlias] = []
-    sort_preferences: List[SortPreference] = []
-
-    def resolve_axis(self, alias: str) -> List[str]:
-        """Map an alias to parameter names."""
-        for ax in self.axes:
-            if ax.alias == alias:
-                return ax.parameters
-        return [alias]
-
-    def get_preference(self, axis: str) -> Optional[List[str]]:
-        """Get sort order for a given axis."""
-        for sp in self.sort_preferences:
-            if sp.axis == axis:
-                return sp.order
-        return None
 
 
 class QueryFactory:

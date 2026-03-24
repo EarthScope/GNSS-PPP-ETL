@@ -9,11 +9,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from gnss_ppp_products.server.ftp import ftp_can_connect, ftp_list_directory, ftp_download_file
-from gnss_ppp_products.server.http import http_list_directory, extract_filenames_from_html, http_get_file
+from gnss_ppp_products.server.protocol import DirectoryAdapter
+from gnss_ppp_products.server.ftp import FTPAdapter
+from gnss_ppp_products.server.http import HTTPAdapter
+from gnss_ppp_products.server.local import LocalAdapter
 from gnss_ppp_products.specifications.products.product import ProductPath
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
-from gnss_ppp_products.specifications.local.factory import LocalResourceFactory
+from gnss_ppp_products.factories.local_factory import LocalResourceFactory
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,15 @@ class ResourceFetcher:
         self._download_timeout = download_timeout
         self._listing_cache: Dict[str, List[str]] = {}
         self._connectivity_cache: Dict[str, bool] = {}
+        self._adapters: Dict[str, DirectoryAdapter] = {
+            "FTP": FTPAdapter(timeout=ftp_timeout),
+            "FTPS": FTPAdapter(timeout=ftp_timeout, use_tls=True),
+            "HTTP": HTTPAdapter(timeout=download_timeout),
+            "HTTPS": HTTPAdapter(timeout=download_timeout),
+            "FILE": LocalAdapter(),
+            "LOCAL": LocalAdapter(),
+            "": LocalAdapter(),
+        }
 
     def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
         """Search every query's server/directory for matching files."""
@@ -88,15 +99,20 @@ class ResourceFetcher:
         if cache_key in self._listing_cache:
             listing = self._listing_cache[cache_key]
         else:
+            adapter = self._adapters.get(protocol)
+            if adapter is None:
+                return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
             try:
-                if protocol in ("FTP", "FTPS"):
-                    listing = self._list_ftp(hostname, directory, use_tls=(protocol == "FTPS"))
-                elif protocol in ("HTTP", "HTTPS"):
-                    listing = self._list_http(hostname, directory)
-                elif protocol in ("FILE", "LOCAL", ""):
-                    listing = self._list_local(hostname, directory)
+                conn_key = f"{protocol}://{hostname}"
+                if conn_key in self._connectivity_cache:
+                    if not self._connectivity_cache[conn_key]:
+                        raise ConnectionError(f"Server unreachable (cached): {hostname}")
                 else:
-                    return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
+                    reachable = adapter.can_connect(hostname)
+                    self._connectivity_cache[conn_key] = reachable
+                    if not reachable:
+                        raise ConnectionError(f"Server unreachable: {hostname}")
+                listing = adapter.list_directory(hostname, directory)
                 if not listing:
                     raise Exception("Listing returned empty")
             except Exception as e:
@@ -114,32 +130,6 @@ class ResourceFetcher:
                     matched_filenames=matches
                 )
         return FetchResult(query=query, error="No matches found")
-
-    # -- Protocol handlers -----------------------------------------
-
-    def _list_ftp(self, hostname: str, directory: str, *, use_tls: bool = False) -> List[str]:
-        conn_key = f"{'ftps' if use_tls else 'ftp'}://{hostname}"
-        if conn_key in self._connectivity_cache:
-            if not self._connectivity_cache[conn_key]:
-                raise ConnectionError(f"Server unreachable (cached): {hostname}")
-        else:
-            reachable = ftp_can_connect(hostname, timeout=self._ftp_timeout, use_tls=use_tls)
-            self._connectivity_cache[conn_key] = reachable
-            if not reachable:
-                raise ConnectionError(f"Server unreachable: {hostname}")
-        return ftp_list_directory(hostname, directory, timeout=self._ftp_timeout, use_tls=use_tls)
-
-    def _list_http(self, hostname: str, directory: str) -> List[str]:
-        html = http_list_directory(hostname, directory)
-        if html is None:
-            return []
-        return extract_filenames_from_html(html)
-
-    def _list_local(self, hostname: str, directory: str) -> List[str]:
-        d = Path(hostname) / directory
-        if not d.exists():
-            return []
-        return [p.name for p in sorted(d.iterdir()) if p.is_file()]
 
     # -- Pattern matching ------------------------------------------
 
@@ -235,6 +225,11 @@ class ResourceFetcher:
         hostname = query.server.hostname
         directory = self._get_directory(query) or ""
 
+        adapter = self._adapters.get(protocol)
+        if adapter is None:
+            logger.error(f"No adapter for protocol {protocol!r}")
+            return
+
         dest_dir = local_factory.resolve_directory(query.product.name, date)
         dest_dir.mkdir(parents=True, exist_ok=True)
 
@@ -246,24 +241,7 @@ class ResourceFetcher:
 
             ok = False
             try:
-                if protocol in ("FTP", "FTPS"):
-                    ok = ftp_download_file(
-                        hostname,
-                        directory,
-                        filename,
-                        dest_path,
-                        timeout=self._download_timeout,
-                        use_tls=(protocol == "FTPS"),
-                    )
-                elif protocol in ("HTTP", "HTTPS"):
-                    result_path = http_get_file(
-                        hostname,
-                        directory,
-                        filename,
-                        dest_dir=dest_dir,
-                        timeout=self._download_timeout,
-                    )
-                    ok = result_path is not None
+                ok = adapter.download_file(hostname, directory, filename, dest_path)
             except Exception as e:
                 logger.error(f"Download failed for {filename}: {e}")
 

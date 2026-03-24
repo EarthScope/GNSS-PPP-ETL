@@ -5,11 +5,11 @@ from typing import Dict, List, Optional
 
 from gnss_ppp_products.specifications.products.product import Product, ProductPath
 from gnss_ppp_products.specifications.remote.resource import (
-    ResourceCatalog,
     ResourceQuery,
     ResourceSpec,
     Server,
 )
+from gnss_ppp_products.specifications.remote.resource_catalog import ResourceCatalog
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class RemoteResourceFactory:
 
     def register(self, spec: ResourceSpec) -> ResourceCatalog:
         self._specs[spec.id] = spec
-        cat = ResourceCatalog(resource_spec=spec, product_catalog=self._product_catalog)
+        cat = ResourceCatalog.resolve(resource_spec=spec, product_catalog=self._product_catalog)
         self._catalogs[cat.id] = cat
         return cat
 

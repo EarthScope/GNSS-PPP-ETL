@@ -24,7 +24,7 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
     DependencySpec,
     ResolvedDependency,
 )
-from gnss_ppp_products.specifications.dependencies.dependency_resolver import (
+from gnss_ppp_products.factories.dependency_resolver import (
     DependencyResolver,
 )
 from gnss_ppp_products.specifications.dependencies.lockfile import (
@@ -249,7 +249,7 @@ class TestFileLockSidecar:
 
     def test_hash_file(self, tmp_path) -> None:
         """_hash_file returns a sha256-prefixed hex digest."""
-        from gnss_ppp_products.specifications.dependencies.dependency_resolver import _hash_file
+        from gnss_ppp_products.factories.dependency_resolver import _hash_file
         p = tmp_path / "sample.sp3"
         p.write_bytes(b"hello world")
         h = _hash_file(p)

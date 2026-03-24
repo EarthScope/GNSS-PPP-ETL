@@ -7,6 +7,7 @@ from typing import List, Optional
 import yaml
 from pydantic import BaseModel, Field
 
+from gnss_ppp_products.specifications.catalog import Catalog
 from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
 from gnss_ppp_products.specifications.products.product import (
     Product,
@@ -43,18 +44,8 @@ class FormatSpec(BaseModel):
         )
 
 
-class FormatSpecVariantCatalog(BaseModel):
-    name: str
-    variants: dict[str, FormatSpec]
-
-
-class FormatSpecVersionCatalog(BaseModel):
-    name: str
-    versions: dict[str, FormatSpecVariantCatalog]
-
-
 class FormatSpecCatalog(BaseModel):
-    formats: dict[str, FormatSpecVersionCatalog]
+    formats: dict[str, VersionCatalog[FormatSpec]]
 
     @classmethod
     def from_yaml(cls, path: Path) -> "FormatSpecCatalog":
@@ -92,16 +83,18 @@ class FormatSpecCatalog(BaseModel):
                         "parameters": variant_params,
                         "filename": filename,
                     }
-                versions[str(ver_name)] = {"name": str(ver_name), "variants": variants}
-            result[fmt_name] = {"name": fmt_name, "versions": versions}
+                versions[str(ver_name)] = {"variants": variants}
+            result[fmt_name] = {"versions": versions}
         return cls(formats=result)
 
 
-class FormatCatalog(BaseModel):
+class FormatCatalog(Catalog):
     """Resolved format catalog — maps format names to VersionCatalog[VariantCatalog[Product]]."""
-    formats: dict[str, VersionCatalog]
+    formats: dict[str, VersionCatalog[Product]]
 
-    def __init__(self, format_spec_catalog: FormatSpecCatalog, parameter_catalog: ParameterCatalog):
+    @classmethod
+    def resolve(cls, format_spec_catalog: FormatSpecCatalog, parameter_catalog: ParameterCatalog) -> "FormatCatalog":
+        """Resolve abstract format specs against a ParameterCatalog into concrete Products."""
         formats = {}
         for format_name, format_spec_cat in format_spec_catalog.formats.items():
             versions = {}
@@ -110,6 +103,6 @@ class FormatCatalog(BaseModel):
                 for variant_name, format_spec in version_spec.variants.items():
                     product = format_spec.resolve(parameter_catalog)
                     variants[variant_name] = product
-                versions[version_name] = VariantCatalog(name=version_spec.name, variants=variants)
-            formats[format_name] = VersionCatalog(name=format_spec_cat.name, versions=versions)
-        super().__init__(formats=formats)
+                versions[version_name] = VariantCatalog(variants=variants)
+            formats[format_name] = VersionCatalog(versions=versions)
+        return cls(formats=formats)

@@ -95,3 +95,31 @@ def http_get_file(
             f"Error fetching HTTP file {httpserver}/{directory}/{filename}: {e}"
         )
         return None
+
+
+# ---------------------------------------------------------------------------
+# DirectoryAdapter implementation
+# ---------------------------------------------------------------------------
+
+
+class HTTPAdapter:
+    """DirectoryAdapter for HTTP/HTTPS servers."""
+
+    def __init__(self, *, timeout: int = 60) -> None:
+        self._timeout = timeout
+
+    def can_connect(self, hostname: str) -> bool:
+        return http_can_connect(hostname, timeout=min(self._timeout, 10))
+
+    def list_directory(self, hostname: str, directory: str) -> List[str]:
+        html = http_list_directory(hostname, directory)
+        if html is None:
+            return []
+        return extract_filenames_from_html(html)
+
+    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> bool:
+        result = http_get_file(
+            hostname, directory, filename,
+            dest_dir=dest_path.parent, timeout=self._timeout,
+        )
+        return result is not None

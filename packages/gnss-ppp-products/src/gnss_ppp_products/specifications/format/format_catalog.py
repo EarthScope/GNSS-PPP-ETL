@@ -1,6 +1,4 @@
-"""
-Format catalog — loads and indexes format specifications from YAML.
-"""
+"""Format registry — loads and indexes raw format specifications from YAML."""
 
 from __future__ import annotations
 
@@ -20,7 +18,7 @@ from gnss_ppp_products.specifications.format.spec import (
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 
 
-class FormatCatalog(BaseModel):
+class FormatRegistry(BaseModel):
     """Read-only registry of reusable format definitions.
 
     Loaded from the ``formats:`` key of the product spec YAML.
@@ -48,7 +46,7 @@ class FormatCatalog(BaseModel):
             )
 
     @classmethod
-    def resolve(cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog) -> FormatCatalog:
+    def resolve(cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog) -> FormatRegistry:
         '''
         
         Resolve a FormatSpec by checking if metadata fields have either a pattern value provided or an entry in the metadata catalog. 
@@ -100,4 +98,4 @@ class FormatCatalog(BaseModel):
                 versions=format_version_spec_collection_resolved,
                 compression=format_spec_entry.compression,
             )
-        return FormatCatalog(formats=format_spec_collection_resolved)
+        return FormatRegistry(formats=format_spec_collection_resolved)

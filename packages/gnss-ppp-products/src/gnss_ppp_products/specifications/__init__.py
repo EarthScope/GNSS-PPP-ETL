@@ -10,11 +10,12 @@ Subpackages
 - :mod:`.local`        — ``LocalCollection``, ``LocalResourceSpec``,
                          ``LocalResourceFactory``
 - :mod:`.remote`       — ``Server``, ``ResourceSpec``, ``ResourceQuery``,
-                         ``RemoteResourceSpec``
+                         ``ResourceCatalog``
 - :mod:`.dependencies` — ``DependencySpec``, ``DependencyResolver``,
                          ``ResolvedDependency``, ``LockProduct``, ``ProductLockfile``
 """
 
+from gnss_ppp_products.specifications.catalog import Catalog
 from gnss_ppp_products.specifications.parameters.parameter import (
     Parameter,
     ParameterCatalog,
@@ -37,22 +38,19 @@ from gnss_ppp_products.specifications.products.catalog import (
     ProductCatalog,
     ProductSpecCatalog,
 )
-from gnss_ppp_products.specifications.remote.remote import (
-    ServerSpec,
-    RemoteProductSpec,
-    RemoteResourceSpec,
-)
 from gnss_ppp_products.specifications.remote.resource import (
     Server,
     ResourceSpec,
     ResourceQuery,
+)
+from gnss_ppp_products.specifications.remote.resource_catalog import (
     ResourceCatalog,
 )
 from gnss_ppp_products.specifications.local.local import (
     LocalCollection,
     LocalResourceSpec,
 )
-from gnss_ppp_products.specifications.local.factory import (
+from gnss_ppp_products.factories.local_factory import (
     LocalResourceFactory,
 )
 from gnss_ppp_products.specifications.dependencies.dependencies import (
@@ -62,7 +60,7 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
     DependencyResolution,
     ResolvedDependency,
 )
-from gnss_ppp_products.specifications.dependencies.dependency_resolver import (
+from gnss_ppp_products.factories.dependency_resolver import (
     DependencyResolver,
 )
 from gnss_ppp_products.specifications.dependencies.lockfile import (
@@ -72,6 +70,8 @@ from gnss_ppp_products.specifications.dependencies.lockfile import (
 )
 
 __all__ = [
+    # base
+    "Catalog",
     # parameters
     "Parameter",
     "ParameterCatalog",
@@ -88,9 +88,6 @@ __all__ = [
     "ProductCatalog",
     "ProductSpecCatalog",
     # remote
-    "ServerSpec",
-    "RemoteProductSpec",
-    "RemoteResourceSpec",
     "Server",
     "ResourceSpec",
     "ResourceQuery",

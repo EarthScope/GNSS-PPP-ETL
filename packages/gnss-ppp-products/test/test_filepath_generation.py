@@ -33,11 +33,11 @@ def _build_catalogs():
     """Build the full catalog chain from specification-layer catalogs."""
     pc = parameter_catalog
     register_computed_fields(pc)
-    fc = FormatCatalog(
+    fc = FormatCatalog.resolve(
         format_spec_catalog=format_spec_catalog,
         parameter_catalog=pc,
     )
-    prod_cat = ProductCatalog(
+    prod_cat = ProductCatalog.resolve(
         product_spec_catalog=product_spec_catalog,
         format_catalog=fc,
     )

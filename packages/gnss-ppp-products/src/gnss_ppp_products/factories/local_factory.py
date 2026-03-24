@@ -13,7 +13,8 @@ from pydantic import BaseModel
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.product import Product, ProductPath
-from gnss_ppp_products.specifications.remote.resource import ResourceCatalog, ResourceQuery, Server
+from gnss_ppp_products.specifications.remote.resource import ResourceQuery, Server
+from gnss_ppp_products.specifications.remote.resource_catalog import ResourceCatalog
 from gnss_ppp_products.utilities.helpers import _ensure_datetime
 
 if TYPE_CHECKING:

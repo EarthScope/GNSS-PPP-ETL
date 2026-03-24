@@ -1,11 +1,11 @@
-"""Tests for infer_from_regex — reverse-parsing filenames via FormatCatalog."""
+"""Tests for infer_from_regex — reverse-parsing filenames via FormatRegistry."""
 
 from pathlib import Path
 from typing import List
 
 import pytest
 
-from gnss_ppp_products.specifications.format.format_catalog import FormatCatalog
+from gnss_ppp_products.specifications.format.format_catalog import FormatRegistry
 from gnss_ppp_products.specifications.format.spec import FormatSpecCollection
 from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
 from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
@@ -29,13 +29,13 @@ def parameter_catalog() -> ParameterCatalog:
 
 
 @pytest.fixture(scope="module")
-def format_catalog(parameter_catalog) -> FormatCatalog:
+def format_catalog(parameter_catalog) -> FormatRegistry:
     fsc = FormatSpecCollection.from_yaml(PRODUCT_SPEC_YAML)
-    return FormatCatalog.resolve(fsc, parameter_catalog)
+    return FormatRegistry.resolve(fsc, parameter_catalog)
 
 
 def _build_regex_and_params(
-    format_catalog: FormatCatalog,
+    format_catalog: FormatRegistry,
     format_name: str,
     version: str,
     variant: str,

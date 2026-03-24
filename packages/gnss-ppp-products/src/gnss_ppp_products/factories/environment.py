@@ -27,10 +27,9 @@ from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple, Union
 from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
 from gnss_ppp_products.specifications.format.format_spec import FormatCatalog, FormatSpecCatalog
 from gnss_ppp_products.specifications.products.catalog import ProductCatalog, ProductSpecCatalog
-from gnss_ppp_products.specifications.remote.remote import RemoteResourceSpec
 from gnss_ppp_products.specifications.remote.resource import ResourceSpec
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
-from gnss_ppp_products.specifications.local.factory import LocalResourceFactory
+from gnss_ppp_products.factories.local_factory import LocalResourceFactory
 from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 from gnss_ppp_products.factories.remote_factory import RemoteResourceFactory
 from gnss_ppp_products.specifications.products.product import Product
@@ -178,13 +177,13 @@ class ProductEnvironment:
 
         register_computed_fields(self._parameter_catalog)
 
-        self._format_catalog = FormatCatalog(
+        self._format_catalog = FormatCatalog.resolve(
             format_spec_catalog=FormatSpecCatalog.from_yaml(format_spec),
             parameter_catalog=self._parameter_catalog,
         )
 
         _psc = ProductSpecCatalog.from_yaml(product_spec)
-        self._product_catalog = ProductCatalog(
+        self._product_catalog = ProductCatalog.resolve(
             product_spec_catalog=_psc,
             format_catalog=self._format_catalog,
         )
@@ -235,12 +234,12 @@ class ProductEnvironment:
         register_computed_fields(self._parameter_catalog)
 
         fsc = FormatSpecCatalog.from_yaml(PRODUCT_SPEC_YAML)
-        self._format_catalog = FormatCatalog(
+        self._format_catalog = FormatCatalog.resolve(
             format_spec_catalog=fsc, parameter_catalog=self._parameter_catalog,
         )
 
         psc = ProductSpecCatalog.from_yaml(PRODUCT_SPEC_YAML)
-        self._product_catalog = ProductCatalog(
+        self._product_catalog = ProductCatalog.resolve(
             product_spec_catalog=psc, format_catalog=self._format_catalog,
         )
         self._match_table = _build_match_table(psc, self._product_catalog, self._parameter_catalog)
@@ -314,9 +313,9 @@ class ProductEnvironment:
         pc = ParameterCatalog.from_yaml(meta_spec_yaml)
         register_computed_fields(pc)
         fsc = FormatSpecCatalog.from_yaml(product_spec_yaml)
-        fc = FormatCatalog(format_spec_catalog=fsc, parameter_catalog=pc)
+        fc = FormatCatalog.resolve(format_spec_catalog=fsc, parameter_catalog=pc)
         psc = ProductSpecCatalog.from_yaml(product_spec_yaml)
-        prod_cat = ProductCatalog(product_spec_catalog=psc, format_catalog=fc)
+        prod_cat = ProductCatalog.resolve(product_spec_catalog=psc, format_catalog=fc)
 
         env = object.__new__(cls)
         env._base_dir = base_dir

@@ -173,3 +173,28 @@ def ftp_protocol(
             f"No matches found for {filename} in FTP directory {ftpserver}/{directory}"
         )
     return matches
+
+
+# ---------------------------------------------------------------------------
+# DirectoryAdapter implementation
+# ---------------------------------------------------------------------------
+
+
+class FTPAdapter:
+    """DirectoryAdapter for FTP/FTPS servers."""
+
+    def __init__(self, *, timeout: int = 60, use_tls: bool = False) -> None:
+        self._timeout = timeout
+        self._use_tls = use_tls
+
+    def can_connect(self, hostname: str) -> bool:
+        return ftp_can_connect(hostname, timeout=min(self._timeout, 10), use_tls=self._use_tls)
+
+    def list_directory(self, hostname: str, directory: str) -> List[str]:
+        return ftp_list_directory(hostname, directory, timeout=self._timeout, use_tls=self._use_tls)
+
+    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> bool:
+        return ftp_download_file(
+            hostname, directory, filename, dest_path,
+            timeout=self._timeout * 3, use_tls=self._use_tls,
+        )

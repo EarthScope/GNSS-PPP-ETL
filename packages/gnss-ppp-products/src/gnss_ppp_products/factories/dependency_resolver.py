@@ -31,7 +31,8 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
     ResolvedDependency,
     SearchPreference,
 )
-from gnss_ppp_products.factories import QueryFactory, ResourceFetcher,FetchResult
+from gnss_ppp_products.factories.query_factory import QueryFactory
+from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchResult
 from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
 
 

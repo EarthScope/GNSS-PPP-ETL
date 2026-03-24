@@ -1,7 +1,7 @@
 """Core product models — ProductPath, Product, and catalog hierarchies."""
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -135,13 +135,14 @@ class Product(BaseModel):
     filename: Optional[ProductPath] = Field(default=None, description="The filename pattern for the product.")
 
 
-class VariantCatalog(BaseModel):
-    """Named collection of product variants."""
-    name: str
-    variants: dict[str, Product]
+T = TypeVar("T")
 
 
-class VersionCatalog(BaseModel):
-    """Named collection of product versions, each containing variants."""
-    name: str
-    versions: dict[str, VariantCatalog]
+class VariantCatalog(BaseModel, Generic[T]):
+    """Collection of named variants."""
+    variants: dict[str, T]
+
+
+class VersionCatalog(BaseModel, Generic[T]):
+    """Collection of named versions, each containing variants."""
+    versions: dict[str, VariantCatalog[T]]

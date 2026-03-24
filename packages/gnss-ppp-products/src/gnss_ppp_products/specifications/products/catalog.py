@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+from gnss_ppp_products.specifications.catalog import Catalog
 from gnss_ppp_products.specifications.parameters.parameter import Parameter
 from gnss_ppp_products.specifications.products.product import (
     Product,
@@ -49,18 +50,8 @@ class ProductSpec(BaseModel):
         )
 
 
-class ProductSpecVariantCatalog(BaseModel):
-    name: str
-    variants: dict[str, ProductSpec]
-
-
-class ProductSpecVersionCatalog(BaseModel):
-    name: str
-    versions: dict[str, ProductSpecVariantCatalog]
-
-
 class ProductSpecCatalog(BaseModel):
-    products: dict[str, ProductSpecVersionCatalog]
+    products: dict[str, VersionCatalog[ProductSpec]]
 
     @classmethod
     def from_yaml(cls, path) -> "ProductSpecCatalog":
@@ -97,17 +88,19 @@ class ProductSpecCatalog(BaseModel):
                 if templates:
                     variant_dict["filename"] = templates[0]
                 if version not in versions:
-                    versions[version] = {"name": version, "variants": {}}
+                    versions[version] = {"variants": {}}
                 versions[version]["variants"][variant] = variant_dict
-            result[prod_name] = {"name": prod_name, "versions": versions}
+            result[prod_name] = {"versions": versions}
         return cls(products=result)
 
 
-class ProductCatalog(BaseModel):
+class ProductCatalog(Catalog):
     """Resolved product catalog — maps product names to VersionCatalog[VariantCatalog[Product]]."""
-    products: dict[str, VersionCatalog]
+    products: dict[str, VersionCatalog[Product]]
 
-    def __init__(self, product_spec_catalog: ProductSpecCatalog, format_catalog: FormatCatalog):
+    @classmethod
+    def resolve(cls, product_spec_catalog: ProductSpecCatalog, format_catalog: FormatCatalog) -> "ProductCatalog":
+        """Resolve abstract product specs against a FormatCatalog into concrete Products."""
         products = {}
 
         for product_name, product_spec_cat in product_spec_catalog.products.items():
@@ -119,7 +112,7 @@ class ProductCatalog(BaseModel):
                     if hasattr(product, "filename") and hasattr(product.filename, "derive"):
                         product.filename.derive(product.parameters)
                     variants[variant_name] = product
-                versions[version_name] = VariantCatalog(name=version_spec.name, variants=variants)
-            products[product_name] = VersionCatalog(name=product_spec_cat.name, versions=versions)
+                versions[version_name] = VariantCatalog(variants=variants)
+            products[product_name] = VersionCatalog(versions=versions)
 
-        super().__init__(products=products)
+        return cls(products=products)
