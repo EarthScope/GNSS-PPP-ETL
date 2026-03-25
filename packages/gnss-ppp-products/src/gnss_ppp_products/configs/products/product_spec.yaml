@@ -246,7 +246,7 @@ formats:
           PRODUCT:
             description: product identifier (e.g., "VMF1", "VMF3")
           RESOLUTION:
-            pattern: (?:2\.5x2|1x1|5x5)
+            pattern: \b(2\.5x2|1x1|5x5)\b
             description: grid resolution for VMF products (e.g., "2.5x2", "1x1", "5x5")
           VMFHH:
             pattern: H(?:00|06|12|18)
@@ -314,22 +314,22 @@ products:
       - format: RINEX
         version: "2"
         constraints:
-          T: "[dot]"
+          T: \b[dot]\b
         variant: observation
 
 
       - format: RINEX
         version: "3"
         constraints:
-          T: "[ONM]"
-          D: "[GRECEJSM]"
+          T: \b[ONM]\b
+          D: \b[GRECEJSM]\b
         variant: observation
 
       - format: RINEX
         version: "4"
         constraints:
-          T: "[ONM]"
-          D: "[GRECEJSM]"
+          T: \b[ONM]\b
+          D: \b[GRECEJSM]\b
         variant: observation
 
   RINEX_NAV:
@@ -340,21 +340,21 @@ products:
       - format: RINEX
         version: "2"
         constraints:
-          T: "[ngh]"
+          T: \b[ngh]\b
         variant: navigation
 
       - format: RINEX
         version: "3"
         constraints:
-          T: "[ON]"
-          D: "[GRECEJSM]"
+          T: \b[ON]\b
+          D: \b[GRECEJSM]\b
         variant: navigation
 
       - format: RINEX
         version: "4"
         constraints:
-          T: "[ON]"
-          D: "[GRECEJSM]"
+          T: \b[ON]\b
+          D: \b[GRECEJSM]\b
         variant: navigation
 
   RINEX_MET:
@@ -372,14 +372,14 @@ products:
         version: "3"
         constraints:
           T: M
-          D: "[GRECEJSM]"
+          D: \b[GRECEJSM]\b
         variant: meteorological
 
       - format: RINEX
         version: "4"
         constraints:
           T: M
-          D: "[GRECEJSM]"
+          D: \b[GRECEJSM]\b
         variant: meteorological
   
   ORBIT:
@@ -517,12 +517,14 @@ products:
   
   OROGRAPHY:
     description: >
-      Ellipsoidal terrain height grid for VMF interpolation
+      Ellipsoidal terrain height grid (5x5) for VMF interpolation
 
     formats:
 
       - format: VIENNA_MAPPING_FUNCTIONS
         version: "1"
+        constraints:
+          RESOLUTION: "5x5"
         variant: orography
 
   LEO_L1B:

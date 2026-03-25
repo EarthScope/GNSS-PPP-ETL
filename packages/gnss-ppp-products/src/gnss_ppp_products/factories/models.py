@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 
 class FoundResource(BaseModel):
@@ -18,6 +18,9 @@ class FoundResource(BaseModel):
     center: str = Field("", description="Analysis center identifier (e.g. 'WUM').")
     quality: str = Field("", description="Solution type (e.g. 'FIN', 'RAP', 'ULT').")
     parameters: Dict[str, str] = Field(default_factory=dict, description="All resolved parameter values.")
+
+    # Internal: original ResourceQuery, not serialized. Used by DownloadPipeline.
+    _query: Optional[object] = PrivateAttr(default=None)
 
     @property
     def is_local(self) -> bool:

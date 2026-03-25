@@ -58,7 +58,7 @@ class FormatSpecCatalog(BaseModel):
         with open(path, "r") as f:
             data = yaml.safe_load(f)
         result = {}
-        for fmt_name, fmt_data in data.get("formats", {}).items():
+        for fmt_name, fmt_data in data.items():
             versions = {}
             for ver_name, ver_data in (fmt_data.get("versions") or {}).items():
                 metadata = ver_data.get("metadata") or {}
@@ -70,10 +70,10 @@ class FormatSpecCatalog(BaseModel):
                             param_data = {**param_data, "pattern": param_data.pop("default")}
                         p.update(param_data)
                     parameters.append(p)
-                file_templates = ver_data.get("file_templates") or {}
+                variant_data = ver_data.get("variants") or {}
                 variants = {}
-                for variant_name, templates in file_templates.items():
-                    filename = templates[0] if templates else ""
+                for variant_name, variant in variant_data.items():
+                    filename = variant.get("filename")
                     variant_param_names = set(re.findall(r"\{(\w+)\}", filename))
                     variant_params = [p for p in parameters if p["name"] in variant_param_names]
                     variants[variant_name] = {
@@ -85,6 +85,7 @@ class FormatSpecCatalog(BaseModel):
                     }
                 versions[str(ver_name)] = {"variants": variants}
             result[fmt_name] = {"versions": versions}
+        assert result, f"No formats found in {path}"
         return cls(formats=result)
 
 
@@ -106,3 +107,23 @@ class FormatCatalog(Catalog):
                 versions[version_name] = VariantCatalog(variants=variants)
             formats[format_name] = VersionCatalog(versions=versions)
         return cls(formats=formats)
+
+    def merge(self, other: "FormatCatalog") -> "FormatCatalog":
+        """Merge another catalog into this one. Raise a warning if there are duplicate format names."""
+        merged = self.formats.copy()
+        for name, version_cat in other.formats.items():
+            for version_name, variant_cat in version_cat.versions.items():
+                for variant_name, product in variant_cat.variants.items():
+                    if (
+                        merged
+                        .get(name, VersionCatalog(versions={}))
+                        .versions.get(version_name, VariantCatalog(variants={}))
+                        .variants.get(variant_name)
+                        ):
+                        print(f"Warning: Duplicate format {name!r} version {version_name!r} variant {variant_name!r} found. Overwriting with new value.")
+                    if name not in merged:
+                        merged[name] = VersionCatalog(versions={})
+                    if version_name not in merged[name].versions:
+                        merged[name].versions[version_name] = VariantCatalog(variants={})
+                    merged[name].versions[version_name].variants[variant_name] = product
+        return FormatCatalog(formats=merged)

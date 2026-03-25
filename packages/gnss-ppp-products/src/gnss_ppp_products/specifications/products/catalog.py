@@ -93,6 +93,26 @@ class ProductSpecCatalog(BaseModel):
             result[prod_name] = {"versions": versions}
         return cls(products=result)
 
+    def merge(self,other: "ProductSpecCatalog") -> "ProductSpecCatalog":
+        """Merge another catalog into this one. Raise a warning if there are duplicate product names."""
+        merged = self.products.copy()
+        for name, product in other.products.items():
+            for version_name, variant_cat in product.versions.items():
+                for variant_name, prod in variant_cat.variants.items():
+                    if (
+                        merged.get(name, VersionCatalog(versions={}))
+                        .versions.get(version_name, VariantCatalog(variants={}))
+                        .variants.get(variant_name)
+                    ):
+                        print(
+                            f"Warning: Duplicate product spec {name!r} version {version_name!r} variant {variant_name!r} found. Overwriting with new value."
+                        )
+                    if name not in merged:
+                        merged[name] = VersionCatalog(versions={})
+                    if version_name not in merged[name].versions:
+                        merged[name].versions[version_name] = VariantCatalog(variants={})
+                    merged[name].versions[version_name].variants[variant_name] = prod
+        return ProductSpecCatalog(products=merged)
 
 class ProductCatalog(Catalog):
     """Resolved product catalog — maps product names to VersionCatalog[VariantCatalog[Product]]."""
@@ -116,3 +136,24 @@ class ProductCatalog(Catalog):
             products[product_name] = VersionCatalog(versions=versions)
 
         return cls(products=products)
+
+    def merge(self,other: "ProductCatalog") -> "ProductCatalog":
+        """Merge another catalog into this one. Raise a warning if there are duplicate product names."""
+        merged = self.products.copy()
+        for name, product in other.products.items():
+            for version_name, variant_cat in product.versions.items():
+                for variant_name, prod in variant_cat.variants.items():
+                    if (
+                        merged.get(name, VersionCatalog(versions={}))
+                        .versions.get(version_name, VariantCatalog(variants={}))
+                        .variants.get(variant_name)
+                    ):
+                        print(
+                            f"Warning: Duplicate format {name!r} version {version_name!r} variant {variant_name!r} found. Overwriting with new value."
+                        )
+                    if name not in merged:
+                        merged[name] = VersionCatalog(versions={})
+                    if version_name not in merged[name].versions:
+                        merged[name].versions[version_name] = VariantCatalog(variants={})
+                    merged[name].versions[version_name].variants[variant_name] = prod
+        return ProductCatalog(products=merged)

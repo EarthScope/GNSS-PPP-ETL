@@ -52,9 +52,9 @@ class ResolvedDependency(BaseModel):
 
     spec: str
     required: bool
-    status: str  # "local" | "downloaded" | "missing"
+    status: str  # "local" | "downloaded" | "remote" | "missing"
 
-    local_path: Path
+    local_path: Optional[Path] = None
     
     # Lockfile fields — populated during resolution for later export
     remote_url: Optional[str] = None

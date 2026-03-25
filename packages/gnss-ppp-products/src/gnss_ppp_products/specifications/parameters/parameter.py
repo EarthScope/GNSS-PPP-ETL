@@ -160,3 +160,12 @@ class ParameterCatalog:
                     kw.update(entry)
             params.append(Parameter(**kw))
         return cls(parameters=params)
+
+    def merge(self,other: "ParameterCatalog") -> "ParameterCatalog":
+        """Merge another catalog into this one. Raise a warning if there are duplicate parameter names."""
+        merged = self.parameters.copy()
+        for name, param in other.parameters.items():
+            if name in merged:
+                print(f"Warning: Duplicate parameter name '{name}' found. Overwriting with new value.")
+            merged[name] = param
+        return ParameterCatalog(parameters=list(merged.values()))

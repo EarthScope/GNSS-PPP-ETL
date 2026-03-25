@@ -32,6 +32,7 @@ from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.factories.local_factory import LocalResourceFactory
 from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 from gnss_ppp_products.factories.remote_factory import RemoteResourceFactory
+from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher
 from gnss_ppp_products.specifications.products.product import Product
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 from gnss_ppp_products.configs import (
@@ -205,6 +206,9 @@ class ProductEnvironment:
             local_resource_spec = LocalResourceSpec.from_yaml(str(local_file_spec_yaml))
             self._local_factory.register(local_resource_spec, base_dir=self._base_dir/local_resource_spec.name.upper())
 
+        # ── Resource fetcher (shared, caches connections) ─────────
+        self._resource_fetcher = ResourceFetcher()
+
         # ── Dependency specifications ─────────────────────────────
         self._dependency_specs: Dict[str, DependencySpec] = {}
         self._load_dependency_specs(dependency_specs)
@@ -254,6 +258,9 @@ class ProductEnvironment:
         self._local_factory: Optional[LocalResourceFactory] = None
         if local_paths:
             self._local_factory = self._build_local_factory(local_paths)
+
+        # Resource fetcher (shared, caches connections)
+        self._resource_fetcher = ResourceFetcher()
 
         # Dependency specs
         self._dependency_specs: Dict[str, DependencySpec] = {}
@@ -339,6 +346,9 @@ class ProductEnvironment:
         if local_paths:
             env._local_factory = env._build_local_factory(local_paths)
 
+        # Resource fetcher (shared, caches connections)
+        env._resource_fetcher = ResourceFetcher()
+
         # Dependency specs
         env._dependency_specs = {}
         env._load_dependency_specs(dependency_specs)
@@ -374,6 +384,10 @@ class ProductEnvironment:
     @property
     def local_factory(self) -> Optional[LocalResourceFactory]:
         return self._local_factory
+
+    @property
+    def resource_fetcher(self) -> ResourceFetcher:
+        return self._resource_fetcher
 
     @property
     def dependency_specs(self) -> Dict[str, DependencySpec]:
