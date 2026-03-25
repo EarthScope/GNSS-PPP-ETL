@@ -41,7 +41,7 @@ class QueryFactory:
         self,
         remote_factory: ResourceFactory,
         local_factory: ResourceFactory,
-        product_catalog,
+        product_catalog: ProductCatalog,
         parameter_catalog: ParameterCatalog,
     ):
         self._remote = remote_factory

@@ -20,9 +20,12 @@ import re
 from pathlib import Path
 from threading import local
 from token import OP
-from typing import List, Optional
+from typing import Dict, List, Optional
 
+from gnss_ppp_products.factories.environment import ProductEnvironment
 from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
+from gnss_ppp_products.specifications.parameters.parameter import Parameter
+from gnss_ppp_products.specifications.products.catalog import ProductCatalog
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.specifications.dependencies.dependencies import (
     Dependency,
@@ -96,20 +99,18 @@ class DependencyResolver:
     def __init__(
         self,
         dep_spec: DependencySpec,
-        base_dir: Path | str,
-        *,
         query_factory: QueryFactory,
+        product_environment: ProductEnvironment,
         fetcher: ResourceFetcher,
     ) -> None:
         self.dep_spec = dep_spec
-        self.base_dir = Path(base_dir)
         self._qf: QueryFactory = query_factory
         self._fetcher = fetcher
-
+        self._product_environment = product_environment
     def resolve(
         self,
         date: datetime.datetime,
-        *,
+        local_sink_id: str,
         download: bool = False,
     ) -> DependencyResolution:
         """Resolve every dependency in the spec for *date*.
@@ -124,7 +125,7 @@ class DependencyResolver:
         results: List[ResolvedDependency] = []
 
         for dep in self.dep_spec.dependencies:
-            resolved = self._resolve_one(dep, date, download=download)
+            resolved = self._resolve_one(dep, date, local_sink_id=local_sink_id, download=download)
             if resolved:
                 results.append(resolved)
 
@@ -141,7 +142,7 @@ class DependencyResolver:
         self,
         dep: Dependency,
         date: datetime.datetime,
-        *,
+        local_sink_id: str,
         download: bool,
     ) -> Optional[ResolvedDependency]:
         """Resolve a single dependency."""
@@ -193,6 +194,12 @@ class DependencyResolver:
             )  
             if updated_parameters:
                 rq.product.parameters = updated_parameters
+            classification_results = self._product_environment.classify(filename=rq.product.filename.value, parameters=rq.product.parameters)
+            if classification_results:
+                class_parameters:Dict[str,str] = classification_results.get("parameters", {}) # TODO make the classification results more structured so we don't have to do this stringly-typed dance
+                for p in rq.product.parameters:
+                    if p.name in class_parameters and p.value is None:
+                        p.value = class_parameters[p.name]
 
         expanded_queries = self._sort_by_preferences(expanded_queries)
 
@@ -222,10 +229,8 @@ class DependencyResolver:
         for rq in expanded_queries:
             if (rq.server.protocol or "").upper() not in ("FILE", "LOCAL", ""):
                 # download remote matches
-                local_ids = self._qf._local.resource_ids
-                if not local_ids:
-                    continue
-                sink_rq = self._qf._local.sink_product(rq.product, local_ids[0], date)
+
+                sink_rq = self._qf._local.sink_product(rq.product, local_sink_id, date)
                 dest_dir = Path(sink_rq.server.hostname) / sink_rq.directory.value
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 resolved = self._resolve_remote(
