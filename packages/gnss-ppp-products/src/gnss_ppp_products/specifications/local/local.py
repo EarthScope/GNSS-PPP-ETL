@@ -56,6 +56,7 @@ class LocalResourceSpec(BaseModel):
         within identically-named collections are combined (union).
         """
         merged_collections: Dict[str, LocalCollection] = {}
+        name = "_".join(spec.name for spec in specs)
         for spec in specs:
             for coll_name, coll in spec.collections.items():
                 if coll_name in merged_collections:
@@ -72,7 +73,7 @@ class LocalResourceSpec(BaseModel):
                     )
                 else:
                     merged_collections[coll_name] = coll.model_copy(deep=True)
-        return cls(name="merged", collections=merged_collections)
+        return cls(name=name, collections=merged_collections)
    
 
     # @model_validator(mode="after")
