@@ -4,33 +4,21 @@ import json
 from pathlib import Path
 import time
 
-from annotated_types import T
+from gnss_ppp_products.factories.environment import ProductEnvironment
+from gnss_ppp_products.factories.workspace import WorkSpace
+from gnss_ppp_products.factories.query_factory import QueryFactory
+from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher
+from gnss_ppp_products.factories.dependency_resolver import DependencyResolver
+from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 
-from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
-from gnss_ppp_products.specifications.products.catalog import ProductSpecCatalog
-import pytest
-
-from gnss_ppp_products.factories import (
-    ProductEnvironment,
-    QueryFactory,
-    ResourceFetcher,
+from gnss_ppp_products.configs import (
+    META_SPEC_YAML,
+    FORMAT_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
+    LOCAL_SPEC_DIR,
+    CENTERS_RESOURCE_DIR,
+    DEPENDENCY_SPEC_DIR,
 )
-from gnss_ppp_products.specifications.dependencies.dependencies import (
-    DependencyResolution,
-    DependencySpec,
-    ResolvedDependency,
-)
-from gnss_ppp_products.factories.dependency_resolver import (
-    DependencyResolver,
-)
-from gnss_ppp_products.specifications.dependencies.lockfile import (
-    ProductLockfile,
-)
-from gnss_ppp_products.specifications.format.format_spec import FormatSpecCatalog
-
-from gnss_ppp_products.specifications.remote.resource import ResourceCatalog
-# ── Paths ──────────────────────────────────────────────────────────
-
 _CONFIGS_DIR = (
     Path(__file__).resolve().parent.parent
     / "src" / "gnss_ppp_products" / "configs"
@@ -42,33 +30,38 @@ LOCAL_CONFIG = _CONFIGS_DIR / "local" / "local_config.yaml"
 CENTERS_DIR = _CONFIGS_DIR / "centers"
 
 
-parameter_catalog = ParameterCatalog.from_yaml(META_SPEC_YAML)
-format_spec_catalog = FormatSpecCatalog.from_yaml(PRODUCT_SPEC_YAML)
-product_spec_catalog = ProductSpecCatalog.from_yaml(PRODUCT_SPEC_YAML)
+
+env = ProductEnvironment()
+env.add_parameter_spec(META_SPEC_YAML)
+env.add_format_spec(FORMAT_SPEC_YAML)
+env.add_product_spec(PRODUCT_SPEC_YAML)
+for path in Path(CENTERS_RESOURCE_DIR).glob("*.yaml"):
+    env.add_resource_spec(path)
+env.build()
+
+workspace = WorkSpace()
+for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
+    workspace.add_resource_spec(path)
 
 base_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
+pride_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/SFGMain/Pride")
+workspace.register_spec(base_dir=base_dir,spec_ids=["local_config"],alias="local")
+workspace.register_spec(base_dir=pride_dir,spec_ids=["pride_config"],alias="pride")
 
-multi_env = ProductEnvironment.from_yaml(
-    base_dir=base_dir,
-    meta_spec_yaml=META_SPEC_YAML,
-    product_spec_yaml=PRODUCT_SPEC_YAML,
-    local_config=str(LOCAL_CONFIG),
-    remote_specs=list(CENTERS_DIR.glob("*.yaml")),
-)
+
+    
 
 dep_spec = DependencySpec.from_yaml(PRIDE_PPPAR_SPEC)
 
 qf = QueryFactory(
-        remote_factory=multi_env.remote_factory,
-        local_factory=multi_env.local_factory,
-        product_catalog=multi_env.product_catalog,
-        parameter_catalog=multi_env.parameter_catalog,
+    product_environment=env,
+    workspace=workspace,
     )
 fetcher = ResourceFetcher(ftp_timeout=30)
 
 dep_res = DependencyResolver(
     dep_spec=dep_spec,
-    base_dir=base_dir,
+    product_environment=env,
     query_factory=qf,
     fetcher=fetcher,
 )
@@ -81,7 +74,7 @@ dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years
 
 for date in dates:
     start = time.time()
-    resolution = dep_res.resolve(date=date,download=True)
+    resolution = dep_res.resolve(date=date,local_sink_id="local")
     end = time.time()
     print(f"Resolution for {date.date()} took {end - start:.2f} seconds.")
     print(f"\n{'='*60}\nDATE: {date.date()}\n{'='*60}")

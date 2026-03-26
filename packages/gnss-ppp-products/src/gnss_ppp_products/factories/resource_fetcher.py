@@ -206,20 +206,20 @@ class ResourceFetcher:
 
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             tasks = [
-                loop.run_in_executor(pool, self._download_one, fr, local_factory, date)
+                loop.run_in_executor(pool, self.download_one, fr, local_factory, date)
                 for fr in remote_found
             ]
             await asyncio.gather(*tasks)
 
         return results
 
-    def _download_one(
+    def download_one(
         self,
         query: ResourceQuery,
         local_resource_id: str,
         local_factory: LocalResourceFactory,
         date: datetime.datetime,
-    ) -> bool:
+    ) -> Optional[Path]:
         """Synchronously download all matched files for one FetchResult."""
      
 
@@ -243,4 +243,4 @@ class ResourceFetcher:
             )
         except Exception as e:
             logger.error(f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}")
-            return False
+            return None

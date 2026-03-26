@@ -16,6 +16,7 @@ import datetime
 import hashlib
 import json
 import logging
+from math import sin
 import re
 from pathlib import Path
 from threading import local
@@ -37,7 +38,7 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
 from gnss_ppp_products.factories.query_factory import QueryFactory
 from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchResult
 from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
-
+from .workspace import WorkSpace
 
 logger = logging.getLogger(__name__)
 
@@ -107,11 +108,12 @@ class DependencyResolver:
         self._qf: QueryFactory = query_factory
         self._fetcher = fetcher
         self._product_environment = product_environment
+
     def resolve(
         self,
         date: datetime.datetime,
         local_sink_id: str,
-        download: bool = False,
+       
     ) -> DependencyResolution:
         """Resolve every dependency in the spec for *date*.
 
@@ -125,7 +127,7 @@ class DependencyResolver:
         results: List[ResolvedDependency] = []
 
         for dep in self.dep_spec.dependencies:
-            resolved = self._resolve_one(dep, date, local_sink_id=local_sink_id, download=download)
+            resolved = self._resolve_one(dep, date, local_sink_id=local_sink_id)
             if resolved:
                 results.append(resolved)
 
@@ -143,7 +145,6 @@ class DependencyResolver:
         dep: Dependency,
         date: datetime.datetime,
         local_sink_id: str,
-        download: bool,
     ) -> Optional[ResolvedDependency]:
         """Resolve a single dependency."""
         try:
@@ -203,6 +204,22 @@ class DependencyResolver:
 
         expanded_queries = self._sort_by_preferences(expanded_queries)
 
+        '''
+        1. Sort by preferences
+        2. Group by matching parameter sets, sort so that local matches come first within each group
+        
+        '''
+        parameter_groups: Dict[str, List[ResourceQuery]] = {}
+        for rq in expanded_queries:
+            key_list = [f"{p.name}={p.value}" for p in rq.product.parameters if p.value is not None]
+            sorted_key_list = list(sorted(key_list, key=lambda x: x.split("=")[0]))  # Sort by parameter name for consistent grouping
+            key_string = "|".join(sorted_key_list)
+            parameter_groups.setdefault(key_string, []).append(rq)
+
+        protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
+        for key, group in parameter_groups.items():
+            group.sort(key=lambda rq: protocol_sort_order.index((rq.server.protocol or "").upper()) if (rq.server.protocol or "").upper() in protocol_sort_order else len(protocol_sort_order))
+
         # If our first query has been found locally, we can pick that.
 
         # # Partition into local and remote
@@ -226,25 +243,22 @@ class DependencyResolver:
         #             break
 
         # Phase 1: check local disk
-        for rq in expanded_queries:
-            if (rq.server.protocol or "").upper() not in ("FILE", "LOCAL", ""):
-                # download remote matches
+        for parameter_group in parameter_groups.values():
+            for rq in parameter_group:
+                if (rq.server.protocol or "").upper() in ("FILE", "LOCAL", ""):
+                    resolved = self._resolve_local(
+                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date)
+                    if resolved is not None:
+                        return resolved
 
-                sink_rq = self._qf._local.sink_product(rq.product, local_sink_id, date)
-                dest_dir = Path(sink_rq.server.hostname) / sink_rq.directory.value
-                dest_dir.mkdir(parents=True, exist_ok=True)
-                resolved = self._resolve_remote(
-                    rq, dep, dest_dir=dest_dir,
-                )
-                if resolved is not None:
-                    return resolved
-            else:
-                # check local matches
-                resolved = self._resolve_local(rq, dep)
-                if resolved is not None:
-                    return resolved
+                else:
+                    
+                    resolved = self._resolve_remote(
+                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date,
+                    )
+                    if resolved is not None:
+                        return resolved
 
-        return None
 
     def _sort_by_preferences(
         self,
@@ -273,13 +287,21 @@ class DependencyResolver:
             self,
             rq: ResourceQuery,
             dep: Dependency,
-            dest_dir: Path,
+            local_sink_id: str,
+            local_resource_factory:LocalResourceFactory,
+            date: datetime.datetime,
 
     ) -> Optional[ResolvedDependency]:
 
         assert rq.product.filename.value is not None, "Remote resolution requires filename to be filled in"
 
-        local_path = self._download_result(rq, dest_dir)
+        #local_path = self._download_result(rq, dest_dir)
+        local_path: Optional[Path] = self._fetcher.download_one(
+            query=rq,
+            local_resource_id=local_sink_id,
+            local_factory=local_resource_factory,
+            date = date,
+        )
         if local_path is None:
             return None
         file_hash = _hash_file(local_path)
@@ -295,22 +317,41 @@ class DependencyResolver:
         return resolved
 
     def _resolve_local(
-        self,
-        rq: ResourceQuery,
-        dep: Dependency,
+            self,
+            rq: ResourceQuery,
+            dep: Dependency,
+            local_sink_id: str,
+            local_resource_factory:LocalResourceFactory,
+            date: datetime.datetime,
+
     ) -> Optional[ResolvedDependency]:
 
-        directory = Path(rq.server.hostname) / rq.directory.value
-        assert directory.exists() and directory.is_dir(), f"Local directory {directory} does not exist for query {rq}"
+        source_directory = Path(rq.server.hostname) / rq.directory.value
+        assert source_directory.exists() and source_directory.is_dir(), f"Local directory {source_directory} does not exist for query {rq}"
         filename = rq.product.filename.value
         assert filename is not None, f"Local resolution requires filename to be filled in for query {rq}"
-        local_path = directory / filename
-        file_hash = _hash_file(local_path)
-        file_size = local_path.stat().st_size
+
+        source_path = source_directory / filename
+
+        # If the file is not present in the local_sink resource, we can copy it there.
+        sink_directory = local_resource_factory.sink_product(rq.product, local_sink_id, date).directory.value
+        assert sink_directory is not None, "Sink product must have a directory value"
+        sink_directory = Path(sink_directory)
+        if not sink_directory == source_directory:
+            sink_directory.mkdir(parents=True, exist_ok=True)
+            # Copy the file to the sink directory
+            dest_path = sink_directory / filename
+            if not dest_path.exists():
+                dest_path.write_bytes(source_path.read_bytes())
+                logger.info(f"Copied local file {source_path} to sink directory {dest_path}")
+            source_path = dest_path
+
+        file_hash = _hash_file(source_path)
+        file_size = source_path.stat().st_size
         resolved = self._make_resolved(
             dep, rq,
             status="local",
-            local_path=local_path,
+            local_path=source_path,
             file_hash=file_hash,
             file_size=file_size,
         )
@@ -429,7 +470,7 @@ class DependencyResolver:
                 lock_product = LockProduct.model_validate(lock_data)
             return lock_product
         return None
-    
+
     @staticmethod
     def _write_file_lock(local_path: Path, resolved: ResolvedDependency) -> None:
         """Write a ``<filename>.lock`` JSON sidecar next to the downloaded file."""

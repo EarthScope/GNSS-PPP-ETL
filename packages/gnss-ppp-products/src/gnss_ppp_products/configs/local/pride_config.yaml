@@ -1,0 +1,64 @@
+name: pride_config
+description: >
+  Local storage configuration for organizing downloaded GNSS products on disk.
+  Defines directory structure and naming conventions for products, as well as metadata for each product type.
+  
+collections:
+
+  # ---------------------------------------------------------------------------
+  # Precise products — core PPP inputs
+  # ---------------------------------------------------------------------------
+  products:
+    directory: "{YYYY}/products/common"
+    temporal: daily
+    description: "Precise orbit, clock, ERP, bias, and attitude products"
+    items:
+      - ORBIT
+      - CLOCK
+      - ERP
+      - BIA
+      - ATTOBX
+
+  rinex:
+    directory: "{YYYY}/{DDD}"
+    temporal: daily
+    description: "RINEX observation files for PPP processing"
+    items:
+      - RNX3_BRDC
+      - RINEX_NAV
+      - RINEX_MET
+      - RINEX_OBS
+ 
+  # ---------------------------------------------------------------------------
+  # Common / shared products
+  # ---------------------------------------------------------------------------
+  common:
+    directory: "table"
+    temporal: daily
+    description: "Broadcast navigation, ionosphere maps, and troposphere grids"
+    items:
+      - IONEX
+      - VMF
+
+  # ---------------------------------------------------------------------------
+  # Static tables and calibrations
+  # ---------------------------------------------------------------------------
+  table:
+    directory: "table"
+    temporal: static
+    description: "Reference tables, antenna calibrations, and orography grids"
+    items:
+      - ATTATX
+      - LEAP_SEC
+      - SAT_PARAMS
+      - OROGRAPHY
+
+  # ---------------------------------------------------------------------------
+  # LEO satellite instrument data
+  # ---------------------------------------------------------------------------
+  leo:
+    directory: "{YYYY}/{DDD}/leo"
+    temporal: daily
+    description: "LEO satellite Level-1B instrument data (GRACE, GRACE-FO)"
+    items:
+      - LEO_L1B

@@ -4,6 +4,9 @@ import datetime
 import logging
 from typing import Dict, List, Optional
 
+from gnss_ppp_products.factories.environment import ProductEnvironment
+from gnss_ppp_products.factories.local_factory import LocalResourceFactory
+from gnss_ppp_products.factories.workspace import WorkSpace
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.product import Product, ProductPath, VariantCatalog, VersionCatalog
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
@@ -39,15 +42,19 @@ class QueryFactory:
 
     def __init__(
         self,
-        remote_factory: ResourceFactory,
-        local_factory: ResourceFactory,
-        product_catalog: ProductCatalog,
-        parameter_catalog: ParameterCatalog,
+        product_environment: ProductEnvironment,
+        workspace: WorkSpace,
+
     ):
-        self._remote = remote_factory
-        self._local = local_factory
-        self._products = product_catalog
-        self._params = parameter_catalog
+        self._env = product_environment
+        self._workspace = workspace
+        self._remote = self._env._remote_resource_factory
+        self._products = self._env._product_catalog
+        self._params = self._env._parameter_catalog
+        self._local = LocalResourceFactory(
+            product_catalog=self._products,
+            parameter_catalog=self._params,
+        )
 
     def get(
         self,

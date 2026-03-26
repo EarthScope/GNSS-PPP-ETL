@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Protocol, runtime_checkable
+from typing import List, Optional, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -28,6 +28,6 @@ class DirectoryAdapter(Protocol):
         directory: str,
         filename: str,
         dest_path: Path,
-    ) -> bool:
-        """Download *filename* to *dest_path*.  Return *True* on success."""
+    ) -> Optional[Path]:
+        """Download *filename* to *dest_path*.  Return the path on success."""
         ...

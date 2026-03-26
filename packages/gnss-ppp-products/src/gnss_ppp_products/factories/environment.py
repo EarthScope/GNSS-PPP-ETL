@@ -481,7 +481,7 @@ from pathlib import Path
 from typing import Any, Dict, NamedTuple, Optional, List
 import re
 
-from gnss_ppp_products.factories.environment import _build_match_table
+
 from gnss_ppp_products.specifications.remote.resource import ResourceSpec, Server
 from pydantic import BaseModel
 
