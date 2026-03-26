@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from gnss_ppp_products.factories.environment import ProductEnvironment
+from gnss_ppp_products.factories.workspace import WorkSpace
 from pydantic import BaseModel
 
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
@@ -52,14 +54,17 @@ class LocalResourceFactory:
 
     def __init__(
         self,
-        product_catalog: ProductCatalog,
-        parameter_catalog: ParameterCatalog,
+        workspace: WorkSpace,
+        product_environment: ProductEnvironment,
     ) -> None:
-  
-        self._product_catalog = product_catalog
-        self._parameter_catalog = parameter_catalog
-        self._registered_specs: Dict[str,RegisteredLocalResource] = {}
-        self._alias_map: Dict[str, str] = {}  # alias → spec name
+
+        self._workspace = workspace
+        self._product_environment = product_environment
+
+        self._product_catalog = product_environment._product_catalog
+        self._parameter_catalog = product_environment._parameter_catalog
+        self._registered_specs: Dict[str,RegisteredLocalResource] = workspace._registered_specs
+        self._alias_map: Dict[str, str] = workspace._alias_map
 
         # # Build a single local "server"
         # self.local_server = Server(
@@ -124,7 +129,7 @@ class LocalResourceFactory:
         if alias:
             if alias in self._alias_map:
                 raise ValueError(f"Alias {alias!r} is already in use for spec {self._alias_map[alias]!r}.")
-       
+            self._alias_map[alias] = name
 
         item_to_dir: Dict[str, str] = {}
         for coll_name, coll in spec.collections.items():
@@ -166,6 +171,7 @@ class LocalResourceFactory:
         """Resolve the local directory for a product spec on a given date."""
         dt = _ensure_datetime(date)
         registered_spec = self._get_registered_spec(resource_id)
+     
 
         
         directory_template = registered_spec.item_to_dir.get(product.name)

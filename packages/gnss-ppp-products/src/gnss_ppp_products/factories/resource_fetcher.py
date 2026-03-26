@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+from gnss_ppp_products.server import protocol
 from gnss_ppp_products.server.protocol import DirectoryAdapter
 from gnss_ppp_products.server.ftp import FTPAdapter
 from gnss_ppp_products.server.http import HTTPAdapter
@@ -112,6 +113,8 @@ class ResourceFetcher:
                     self._connectivity_cache[conn_key] = reachable
                     if not reachable:
                         raise ConnectionError(f"Server unreachable: {hostname}")
+                    
+                logger.info(f"Listing {protocol} directory: {hostname}/{directory}")
                 listing = adapter.list_directory(hostname, directory)
             except Exception as e:
                 return FetchResult(query=query, error=f"Listing failed: {e}")
@@ -122,6 +125,7 @@ class ResourceFetcher:
         query.directory.value = directory  # type: ignore[union-attr]
 
         matches = self._match_files(listing, file_pattern)
+        logger.info(f"Found {len(matches)} matches for {hostname}/{directory} with pattern {file_pattern!r}")
         if matches:
             return FetchResult(
                     query=query,
@@ -226,20 +230,22 @@ class ResourceFetcher:
         hostname = query.server.hostname
      
 
-        dest_dir = local_factory.sink_product(query.product, local_resource_id, date).directory.value
-        dest_dir.mkdir(parents=True, exist_ok=True)
-
-        adapter: Optional[Union[FTPAdapter,HTTPAdapter,LocalAdapter,DirectoryAdapter]] = self._adapters.get(query.server.protocol)
+        destination_resource = local_factory.sink_product(query.product, local_resource_id, date)
+        destination_dir = Path(destination_resource.server.hostname) / destination_resource.directory.value  # type: ignore[union-attr]
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        destination_path = destination_dir / query.product.filename.value  # type: ignore[union-attr]
+        protocol = (query.server.protocol or "").upper()
+        adapter: Optional[Union[FTPAdapter,HTTPAdapter,LocalAdapter,DirectoryAdapter]] = self._adapters.get(protocol)
         if adapter is None:
-            logger.error(f"Unsupported protocol for download: {query.server.protocol!r}")
-            return
+            logger.error(f"Unsupported protocol for download: {protocol!r}")
+            return None
         
         try:
             return adapter.download_file(
                 hostname=hostname,
                 directory=query.directory.value,  # type: ignore[union-attr]
                 filename=query.product.filename.value,
-                dest_path=dest_dir,
+                dest_path=destination_path,
             )
         except Exception as e:
             logger.error(f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}")

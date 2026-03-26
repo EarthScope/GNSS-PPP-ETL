@@ -3,7 +3,7 @@ import re
 from contextlib import contextmanager
 from ftplib import FTP, FTP_TLS
 from pathlib import Path
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
             last_exc = e
             if ftp is not None:
                 try:
-                    ftp.quit()
+                    ftp.close()
                 except Exception:
                     pass
             ftp = None
@@ -58,9 +58,10 @@ def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
         yield ftp
     finally:
         try:
-            ftp.quit()
+            ftp.close()
         except Exception:
             pass
+   
 
 
 # ---------------------------------------------------------------------------
@@ -113,13 +114,13 @@ def ftp_download_file(
     dest_path: Path,
     timeout: int = 180,
     use_tls: bool = False,
-) -> bool:
+) -> Optional[Path]:
     """
     Download *filename* from *ftpserver*/*directory* to *dest_path*.
 
-    Parent directories are created automatically.  Returns *True* on success
-    (file exists and is non-empty), *False* on any failure (partial download
-    is deleted before returning).
+    Parent directories are created automatically.  Returns the path to the
+    downloaded file on success (file exists and is non-empty), *None* on any
+    failure (partial download is deleted before returning).
 
     If *use_tls* is ``False``, tries plain FTP first and automatically
     retries with TLS on failure.
@@ -131,16 +132,16 @@ def ftp_download_file(
             with open(dest_path, "wb") as f:
                 ftp.retrbinary(f"RETR {filename}", f.write)
             if dest_path.exists() and dest_path.stat().st_size > 0:
-                return True
+                return dest_path
             dest_path.unlink(missing_ok=True)
-            return False
+            return None
     except ConnectionError:
         dest_path.unlink(missing_ok=True)
-        return False
+        return None
     except Exception as e:  # noqa: BLE001
         logger.error(f"FTP download failed for {filename} on {ftpserver}: {e}")
         dest_path.unlink(missing_ok=True)
-        return False
+        return None
 
 
 def ftp_find_best_match_in_listing(
@@ -193,7 +194,7 @@ class FTPAdapter:
     def list_directory(self, hostname: str, directory: str) -> List[str]:
         return ftp_list_directory(hostname, directory, timeout=self._timeout, use_tls=self._use_tls)
 
-    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> bool:
+    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> Optional[Path]:
         return ftp_download_file(
             hostname, directory, filename, dest_path,
             timeout=self._timeout * 3, use_tls=self._use_tls,

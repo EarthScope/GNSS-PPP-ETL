@@ -168,7 +168,9 @@ class DependencyResolver:
         queries = self._sort_by_preferences(queries)
 
         # Fetch the queries.
+        logger.info(f"Searching for {len(queries)} queries for dependency {dep.spec}...")
         fetched_queries: List[FetchResult] = self._fetcher.search(queries)
+        logger.info(f"Fetched {len(fetched_queries)} queries for dependency {dep.spec}")
 
         # Expand the fetched queries into a list of resource queries.
         expanded_queries: List[ResourceQuery] = []

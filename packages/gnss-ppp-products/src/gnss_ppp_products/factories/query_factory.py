@@ -52,8 +52,9 @@ class QueryFactory:
         self._products = self._env._product_catalog
         self._params = self._env._parameter_catalog
         self._local = LocalResourceFactory(
-            product_catalog=self._products,
-            parameter_catalog=self._params,
+            workspace=self._workspace,
+            product_environment=self._env,
+   
         )
 
     def get(
@@ -122,17 +123,20 @@ class QueryFactory:
             parameters[name] = _listify(values)
         parameter_combinations = expand_dict_combinations(parameters)
 
-        for template in product_templates:
-            for combo in parameter_combinations:
-                updated = template.model_copy(deep=True)
-                for k, v in combo.items():
-                    param_index = next((i for i, p in enumerate(updated.parameters) if p.name == k), None)
-                    if param_index is not None:
-                        updated.parameters[param_index].value = v
-                if updated.filename is not None:
-                    updated.filename.derive(updated.parameters)
-                product_templates_1.append(updated)
-
+        if parameters:
+            parameter_combinations = expand_dict_combinations(parameters)
+            for template in product_templates:
+                for combo in parameter_combinations:
+                    updated = template.model_copy(deep=True)
+                    for k, v in combo.items():
+                        param_index = next((i for i, p in enumerate(updated.parameters) if p.name == k), None)
+                        if param_index is not None:
+                            updated.parameters[param_index].value = v
+                    if updated.filename is not None:
+                        updated.filename.derive(updated.parameters)
+                    product_templates_1.append(updated)
+        else:
+            product_templates_1 = product_templates
         # 5.1 Local resources
         for template in product_templates_1:
             for resource_id in self._local.resource_ids:

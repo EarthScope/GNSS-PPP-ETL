@@ -1,6 +1,5 @@
 """Format specifications and FormatCatalog — resolves FormatSpec → Product."""
 
-import re
 from pathlib import Path
 from typing import List, Optional
 
@@ -49,40 +48,38 @@ class FormatSpecCatalog(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: Path) -> "FormatSpecCatalog":
-        """Load from a YAML file, transforming the nested format structure.
+        """Load from a YAML file containing pre-built format specs.
 
-        Reads the ``formats:`` section and for each format/version/variant
-        injects ``name`` from the dict keys and converts ``file_templates``
-        entries into ``FormatSpec`` variant dicts.
+        Expected YAML layout::
+
+            FORMAT_NAME:
+              name: FORMAT_NAME
+              versions:
+                "1":
+                  name: "1"
+                  variants:
+                    variant_name:
+                      name: FORMAT_NAME
+                      version: "1"
+                      variant: variant_name
+                      parameters:
+                        - name: PARAM
+                      filename: "{PARAM}..."
         """
         with open(path, "r") as f:
             data = yaml.safe_load(f)
+
         result = {}
         for fmt_name, fmt_data in data.items():
+            if not isinstance(fmt_data, dict) or "versions" not in fmt_data:
+                continue
             versions = {}
             for ver_name, ver_data in (fmt_data.get("versions") or {}).items():
-                metadata = ver_data.get("metadata") or {}
-                parameters = []
-                for param_name, param_data in metadata.items():
-                    p: dict = {"name": param_name}
-                    if param_data and isinstance(param_data, dict):
-                        if "default" in param_data and "pattern" not in param_data:
-                            param_data = {**param_data, "pattern": param_data.pop("default")}
-                        p.update(param_data)
-                    parameters.append(p)
-                variant_data = ver_data.get("variants") or {}
+                if not isinstance(ver_data, dict) or "variants" not in ver_data:
+                    continue
                 variants = {}
-                for variant_name, variant in variant_data.items():
-                    filename = variant.get("filename")
-                    variant_param_names = set(re.findall(r"\{(\w+)\}", filename))
-                    variant_params = [p for p in parameters if p["name"] in variant_param_names]
-                    variants[variant_name] = {
-                        "name": fmt_name,
-                        "version": str(ver_name),
-                        "variant": variant_name,
-                        "parameters": variant_params,
-                        "filename": filename,
-                    }
+                for variant_name, variant in (ver_data.get("variants") or {}).items():
+                    variants[variant_name] = variant
                 versions[str(ver_name)] = {"variants": variants}
             result[fmt_name] = {"versions": versions}
         assert result, f"No formats found in {path}"

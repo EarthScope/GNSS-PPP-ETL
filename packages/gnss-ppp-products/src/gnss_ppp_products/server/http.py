@@ -117,9 +117,9 @@ class HTTPAdapter:
             return []
         return extract_filenames_from_html(html)
 
-    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> bool:
+    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> Optional[Path]:
         result = http_get_file(
             hostname, directory, filename,
             dest_dir=dest_path.parent, timeout=self._timeout,
         )
-        return result is not None
+        return result
