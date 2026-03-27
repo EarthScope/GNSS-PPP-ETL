@@ -128,92 +128,68 @@ class ResourceFetcher:
             _ = list(pool.map(_check, seen_hosts.items()))
 
     def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
-        """Search every query's server/directory for matching files.
+        """Search every query's server/directory for matching files."""
+        with ThreadPoolExecutor(max_workers=25) as pool:
+            return list(pool.map(self._search_one, queries))
 
-        Groups queries by directory so each remote listing is fetched at
-        most once, then matches all file patterns in-memory.
-        """
-        # ---- 1. Group queries by their listing cache key ----
-        groups: Dict[str, List[ResourceQuery]] = {}
-        query_meta: Dict[int, tuple[str, str, str]] = {}  # id(q) → (cache_key, directory, file_pattern)
-        for q in queries:
-            directory = self._get_directory(q)
-            file_pattern = self._get_file_pattern(q)
-            if not directory or not file_pattern:
-                continue
-            protocol = (q.server.protocol or "").upper()
-            hostname = q.server.hostname
-            cache_key = f"{protocol}://{hostname}/{directory}"
-            groups.setdefault(cache_key, []).append(q)
-            query_meta[id(q)] = (cache_key, directory, file_pattern)
+    def _search_one(self, query: ResourceQuery) -> FetchResult:
+        """Search a single query's directory for matching files."""
+        directory = self._get_directory(query)
+        file_pattern = self._get_file_pattern(query)
 
-        # ---- 2. Fetch each unique directory once (concurrently) ----
-        keys_to_fetch = [k for k in groups if k not in self._listing_cache]
-        if keys_to_fetch:
-            with ThreadPoolExecutor(max_workers=15) as pool:
-                list(pool.map(self._fetch_listing, keys_to_fetch, [groups[k][0] for k in keys_to_fetch]))
+        if not directory or not file_pattern:
+            return FetchResult(
+                query=query,
+                error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
+            )
 
-        # ---- 3. Match patterns against cached listings ----
-        results: List[FetchResult] = []
-        for q in queries:
-            meta = query_meta.get(id(q))
-            if meta is None:
-                results.append(FetchResult(
-                    query=q,
-                    error=f"Missing directory or file pattern",
-                ))
-                continue
-            cache_key, directory, file_pattern = meta
-            listing = self._listing_cache.get(cache_key)
-            if listing is None:
-                results.append(FetchResult(query=q, error=f"Listing unavailable for {cache_key}"))
-                continue
+        protocol = (query.server.protocol or "").upper()
+        hostname = query.server.hostname
 
-            q.directory.value = directory  # type: ignore[union-attr]
-            matches = self._match_files(listing, file_pattern)
-            if matches:
-                results.append(FetchResult(query=q, matched_filenames=matches))
-            else:
-                results.append(FetchResult(query=q, error="No matches found"))
-        return results
+        cache_key = f"{protocol}://{hostname}/{directory}"
 
-    def _fetch_listing(self, cache_key: str, representative_query: ResourceQuery) -> None:
-        """Fetch and cache the directory listing for *cache_key*.
-
-        Uses per-key locking so concurrent calls for the same directory
-        block rather than stampede the server.
-        """
+        connectivity_key = self.get_connection_cache_key(protocol,hostname)
+        # Fast path: already cached (no lock needed, dict reads are thread-safe)
         if cache_key in self._listing_cache:
-            return
+            listing = self._listing_cache[cache_key]
+        else:
+            if connectivity_key in self._connectivity_cache:
+                if not self._connectivity_cache[connectivity_key]:
+                    return FetchResult(query=query, error=f"Host {hostname} is unreachable (cached)")
+            # Per-key lock: only one thread fetches a given directory;
+            # others wait for the result instead of stampeding the server.
 
-        protocol = (representative_query.server.protocol or "").upper()
-        hostname = representative_query.server.hostname
-        directory = self._get_directory(representative_query) or ""
+            if cache_key not in self._key_locks:
+                self._key_locks[cache_key] = Lock()
+            key_lock = self._key_locks[cache_key]
 
-        # Connectivity gate
-        conn_key = self.get_connection_cache_key(protocol, hostname)
-        if conn_key in self._connectivity_cache and not self._connectivity_cache[conn_key]:
-            return  # host known unreachable
+            adapter = self._adapters.get(protocol)
+            if adapter is None:
+                return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
+            try:
+                with key_lock:
+                    if cache_key in self._listing_cache:  # check cache again after acquiring lock
+                        listing = self._listing_cache[cache_key]
+                    else:
+                        logger.info(f"Listing {protocol} directory: {hostname}/{directory}")
+                        listing = adapter.list_directory(hostname, directory)
+                        if "FILE" not in cache_key:  # don't cache local listings
+                            self._listing_cache[cache_key] = listing
 
-        # Per-key lock
-        if cache_key not in self._key_locks:
-            self._key_locks[cache_key] = Lock()
-        key_lock = self._key_locks[cache_key]
+            except Exception as e:
+                return FetchResult(query=query, error=f"Listing failed: {e}")
+     
 
-        adapter = self._adapters.get(protocol)
-        if adapter is None:
-            return
+        query.directory.value = directory  # type: ignore[union-attr]
 
-        try:
-            with key_lock:
-                if cache_key in self._listing_cache:
-                    return  # another thread filled it while we waited
-                logger.info(f"Listing {protocol} directory: {hostname}/{directory}")
-                listing = adapter.list_directory(hostname, directory)
-                if "FILE" not in cache_key:
-                    self._listing_cache[cache_key] = listing
-        except Exception as e:
-            logger.warning(f"Listing failed for {cache_key}: {e}")
+        matches = self._match_files(listing, file_pattern)
+        logger.info(f"Found {len(matches)} matches for {hostname}/{directory} with pattern {file_pattern!r}")
+        if matches:
+            return FetchResult(
+                    query=query,
+                    matched_filenames=matches
+                )
+        return FetchResult(query=query, error="No matches found")
 
     # -- Pattern matching ------------------------------------------
 

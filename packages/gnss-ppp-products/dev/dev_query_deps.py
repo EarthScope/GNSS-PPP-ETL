@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import time
 import logging
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+#logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
 from gnss_ppp_products.factories.environment import ProductEnvironment
 from gnss_ppp_products.factories.workspace import WorkSpace
