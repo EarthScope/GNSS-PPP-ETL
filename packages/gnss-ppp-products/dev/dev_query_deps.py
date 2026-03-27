@@ -35,7 +35,7 @@ qf = QueryFactory(
     product_environment=env,
     workspace=workspace,
     )
-fetcher = ResourceFetcher()
+fetcher = ResourceFetcher(max_connections=10)
 
 dep_res = DependencyResolver(
     dep_spec=dep_spec,
@@ -46,7 +46,7 @@ dep_res = DependencyResolver(
 from gnss_ppp_products.lockfile import DependencyLockFile
 station = "TEST"
 years = [2023,2024,2025]
-months = [1,3,6,9,11]
+months = [2,5,8]
 days = [3,6,9]
 days = [x+2 for x in days]
 dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years for m in months for d in days]

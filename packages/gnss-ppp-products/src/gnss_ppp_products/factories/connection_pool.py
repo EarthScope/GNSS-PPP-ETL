@@ -42,7 +42,8 @@ class ConnectionPool:
             for tls in (False, True):
                 try:
                     return fsspec.filesystem(
-                        "ftp", host=host, tls=tls, skip_instance_cache=True,
+                        "ftp", host=host, tls=tls,
+                        timeout=30, skip_instance_cache=True,
                     )
                 except Exception:
                     continue
@@ -150,43 +151,45 @@ class ConnectionPoolFactory:
         if pool is None:
             raise ValueError(f"No connection pool for: {hostname}")
 
-        full_path = pool.full_path(directory)
-
-        def _ls(conn: "fsspec.AbstractFileSystem") -> List[str]:
-            raw = conn.ls(full_path, detail=False)
-            # fsspec returns full paths; extract just filenames
-            return [os.path.basename(p) for p in raw]
-
-        # Don't cache local filesystem listings
-        if pool.protocol == "file":
-            with pool.get_connection() as conn:
-                return _ls(conn)
-
         cache_key = f"{hostname}:{directory}"
         with self._listing_cache_lock:
             if cache_key in self._listing_cache:
                 return self._listing_cache[cache_key]
 
-        with pool.get_connection() as conn:
-            try:
-                listing = _ls(conn)
-            except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
-                logger.debug(f"Stale connection for {hostname}, reconnecting: {e}")
-                fresh = pool.replace_connection(conn)
-                if fresh is None:
-                    return []
-                try:
-                    listing = _ls(fresh)
-                except Exception as e2:
-                    logger.error(f"Retry failed listing {directory} on {hostname}: {e2}")
-                    return []
-            except Exception as e:
-                logger.error(f"Error listing {directory} on {hostname}: {e}")
-                return []
+        full_path = pool.full_path(directory)
 
-        with self._listing_cache_lock:
-            self._listing_cache[cache_key] = listing
-        return listing
+        def _ls(conn: "fsspec.AbstractFileSystem") -> List[str]:
+            raw = conn.ls(full_path, detail=False)
+            return [Path(p).name for p in raw]
+
+        def _cache(listing: List[str]) -> List[str]:
+            with self._listing_cache_lock:
+                self._listing_cache[cache_key] = listing
+            return listing
+
+        try:
+            with pool.get_connection() as conn:
+                try:
+                    return _cache(_ls(conn))
+                except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
+                    if pool.protocol == "file":
+                        # Local dir doesn't exist — cache the miss silently.
+                        return _cache([])
+                    logger.debug(f"Stale connection for {hostname}, reconnecting: {e}")
+                    fresh = pool.replace_connection(conn)
+                    if fresh is None:
+                        return _cache([])
+                    try:
+                        return _cache(_ls(fresh))
+                    except Exception as e2:
+                        logger.error(f"Retry failed listing {directory} on {hostname}: {e2}")
+                        return _cache([])
+                except Exception as e:
+                    logger.error(f"Error listing {directory} on {hostname}: {e}")
+                    return _cache([])
+        except ConnectionError:
+            # Pool failed to initialise (e.g. FTP host unreachable).
+            return _cache([])
 
     def download_file(self, hostname: str, remote_path: str, target_dir: str) -> Optional[Path]:
         pool = self._pools.get(hostname)

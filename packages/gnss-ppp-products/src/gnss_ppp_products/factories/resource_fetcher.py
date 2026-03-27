@@ -3,17 +3,23 @@
 import datetime
 import logging
 import re
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+import fsspec
 
+import fsspec.utils
 from gnss_ppp_products.specifications.products.product import ProductPath
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.factories.local_factory import LocalResourceFactory
 from gnss_ppp_products.factories.connection_pool import ConnectionPoolFactory
 
 logger = logging.getLogger(__name__)
+
+# Type alias for (hostname, directory) grouping key
+_DirKey = Tuple[str, str]
 
 
 @dataclass
@@ -59,36 +65,86 @@ class ResourceFetcher:
     ) -> None:
         self._connection_pool_factory = ConnectionPoolFactory(max_connections=max_connections)
 
+    # -- Public API ------------------------------------------------
+
     def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
-        """Search every query's server/directory for matching files."""
-        # Get all unique hostenames.
-        hostnames = set(q.server.hostname for q in queries)
-        for hostname in hostnames:
+        """Search every query's server/directory for matching files.
+
+        Queries are grouped by ``(hostname, directory)`` so each unique
+        remote directory is listed exactly once.  Pattern matching for
+        every query in the group runs against the shared listing.
+        """
+        groups, rejected = self._group_queries(queries)
+
+        # Ensure connection pools exist for every hostname we'll contact.
+        for hostname, _ in groups:
             self._connection_pool_factory.add_connection(hostname)
-        with ThreadPoolExecutor(max_workers=25) as pool:
-            return list(pool.map(self._search_one, queries))
 
-    def _search_one(self, query: ResourceQuery) -> FetchResult:
-        """Search a single query's directory for matching files."""
-        directory = self._get_directory(query)
-        file_pattern = self._get_file_pattern(query)
+        # List each unique directory in parallel.
+        dir_keys = list(groups.keys())
+        with ThreadPoolExecutor(max_workers=min(len(dir_keys), 25)) as pool:
+            listings = dict(zip(dir_keys, pool.map(self._list_dir, dir_keys)))
 
-        if not directory or not file_pattern:
-            return FetchResult(
-                query=query,
-                error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
-            )
+        # Match every query's file pattern against the pre-fetched listing.
+        results: List[FetchResult] = list(rejected)
+        for key, group_queries in groups.items():
+            listing = listings[key]
+            for query, file_pattern in group_queries:
+                query.directory.value = key[1]  # type: ignore[union-attr]
+                matches = self._match_files(listing, file_pattern)
+                if matches:
+                    results.append(FetchResult(query=query, matched_filenames=matches))
+                else:
+                    results.append(FetchResult(query=query, error="No matches found"))
 
+        return results
+
+    # -- Grouping --------------------------------------------------
+
+    def _group_queries(
+        self, queries: List[ResourceQuery]
+    ) -> Tuple[Dict[_DirKey, List[Tuple[ResourceQuery, str]]], List[FetchResult]]:
+        """Group queries by ``(hostname, directory)``.
+
+        Returns a dict mapping each unique key to the queries + file
+        patterns that should be matched against that directory listing,
+        plus a list of ``FetchResult`` for queries that couldn't be
+        grouped (missing directory or pattern).
+        """
+        groups: Dict[_DirKey, List[Tuple[ResourceQuery, str]]] = defaultdict(list)
+        rejected: List[FetchResult] = []
+
+        for q in queries:
+            directory = self._get_directory(q)
+            file_pattern = self._get_file_pattern(q)
+            if not directory or not file_pattern:
+                rejected.append(FetchResult(
+                    query=q,
+                    error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
+                ))
+                continue
+            if fsspec.utils.get_protocol(q.server.hostname) == "file":
+                if not (Path(q.server.hostname)/directory).exists():
+                    rejected.append(FetchResult(
+                        query=q,
+                        error=f"Local directory does not exist: {q.server.hostname}",
+                    ))
+                    continue
+            key: _DirKey = (q.server.hostname, directory)
+            groups[key].append((q, file_pattern))
+
+        return groups, rejected
+
+    # -- Directory listing -----------------------------------------
+
+    def _list_dir(self, key: _DirKey) -> List[str]:
+        """List a single ``(hostname, directory)`` pair. Returns ``[]`` on failure."""
+        hostname, directory = key
         try:
-            listing = self._connection_pool_factory.list_directory(query.server.hostname, directory)
+            return self._connection_pool_factory.list_directory(hostname, directory)
         except Exception as e:
-            return FetchResult(query=query, error=f"Listing failed: {e}")
-        query.directory.value = directory  # type: ignore[union-attr]
-
-        matches = self._match_files(listing, file_pattern)
-        if matches:
-            return FetchResult(query=query, matched_filenames=matches)
-        return FetchResult(query=query, error="No matches found")
+            logger.error(f"Listing failed for {hostname}/{directory}: {e}")
+            return []
 
     # -- Pattern matching ------------------------------------------
 
