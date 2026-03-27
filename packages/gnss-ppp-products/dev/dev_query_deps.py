@@ -14,37 +14,14 @@ from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher
 from gnss_ppp_products.factories.dependency_resolver import DependencyResolver
 from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 
-from gnss_ppp_products.configs import (
-    META_SPEC_YAML,
-    FORMAT_SPEC_YAML,
-    PRODUCT_SPEC_YAML,
-    LOCAL_SPEC_DIR,
-    CENTERS_RESOURCE_DIR,
-    DEPENDENCY_SPEC_DIR,
-)
-_CONFIGS_DIR = (
-    Path(__file__).resolve().parent.parent
-    / "src" / "gnss_ppp_products" / "configs"
-)
-PRIDE_PPPAR_SPEC = _CONFIGS_DIR / "dependencies" / "pride_pppar.yaml"
-META_SPEC_YAML = _CONFIGS_DIR / "meta" / "meta_spec.yaml"
-PRODUCT_SPEC_YAML = _CONFIGS_DIR / "products" / "product_spec.yaml"
-LOCAL_CONFIG = _CONFIGS_DIR / "local" / "local_config.yaml"
-CENTERS_DIR = _CONFIGS_DIR / "centers"
+from gnss_ppp_products.defaults import DefaultProductEnvironment, DefaultWorkSpace, Pride_PPP_task
 
 
+env = DefaultProductEnvironment
 
-env = ProductEnvironment()
-env.add_parameter_spec(META_SPEC_YAML)
-env.add_format_spec(FORMAT_SPEC_YAML)
-env.add_product_spec(PRODUCT_SPEC_YAML)
-for path in Path(CENTERS_RESOURCE_DIR).glob("*.yaml"):
-    env.add_resource_spec(path)
-env.build()
 
-workspace = WorkSpace()
-for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
-    workspace.add_resource_spec(path)
+workspace = DefaultWorkSpace
+
 
 base_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
 pride_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/SFGMain/Pride")
@@ -54,7 +31,7 @@ workspace.register_spec(base_dir=pride_dir,spec_ids=["pride_config"],alias="prid
 
     
 
-dep_spec = DependencySpec.from_yaml(PRIDE_PPPAR_SPEC)
+dep_spec = Pride_PPP_task
 
 qf = QueryFactory(
     product_environment=env,

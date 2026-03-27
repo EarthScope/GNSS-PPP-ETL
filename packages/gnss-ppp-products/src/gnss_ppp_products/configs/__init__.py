@@ -15,6 +15,7 @@ QUERY_SPEC_YAML = _CONFIGS_DIR / "query" / "query_config.yaml"
 CENTERS_RESOURCE_DIR = _CONFIGS_DIR / "centers"
 DEPENDENCY_SPEC_DIR = _CONFIGS_DIR / "dependencies"
 FORMAT_SPEC_YAML = _CONFIGS_DIR / "products" / "format_spec.yaml"
+PRIDE_PPPAR_SPEC = _CONFIGS_DIR / "dependencies" / "pride_pppar.yaml"
 __all__ = [
     "META_SPEC_YAML",
     "PRODUCT_SPEC_YAML",
@@ -23,4 +24,5 @@ __all__ = [
     "CENTERS_RESOURCE_DIR",
     "DEPENDENCY_SPEC_DIR",
     "FORMAT_SPEC_YAML",
+    "PRIDE_PPPAR_SPEC",
 ]
