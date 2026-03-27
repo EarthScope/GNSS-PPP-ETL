@@ -223,8 +223,7 @@ class DependencyResolver:
                 product={"name": dep.spec},
                 parameters=dep.constraints or None,
             )
-            with threading.Lock():
-                self._fetcher.warm_connectivity_cache(queries)
+            
         except (ValueError, KeyError) as exc:
             logger.debug("No queries for %s: %s", dep.spec, exc)
             return ResolvedDependency(

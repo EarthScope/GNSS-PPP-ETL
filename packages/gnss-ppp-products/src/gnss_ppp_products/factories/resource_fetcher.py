@@ -6,16 +6,12 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from threading import Lock
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
-from gnss_ppp_products.server.protocol import DirectoryAdapter
-from gnss_ppp_products.server.ftp import FTPAdapter
-from gnss_ppp_products.server.http import HTTPAdapter
-from gnss_ppp_products.server.local import LocalAdapter
 from gnss_ppp_products.specifications.products.product import ProductPath
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.factories.local_factory import LocalResourceFactory
+from gnss_ppp_products.factories.connection_pool import ConnectionPoolFactory
 
 logger = logging.getLogger(__name__)
 
@@ -59,72 +55,16 @@ class ResourceFetcher:
     def __init__(
         self,
         *,
-        ftp_timeout: int = 60,
-        download_timeout: int = 180,
+        max_connections: int = 4,
     ) -> None:
-        self._ftp_timeout = ftp_timeout
-        self._download_timeout = download_timeout
-        self._listing_cache: Dict[str, List[str]] = {}
-        self._connectivity_cache: Dict[str, bool] = {}
-        self._adapters: Dict[str, DirectoryAdapter] = {
-            "FTP": FTPAdapter(timeout=ftp_timeout),
-            "FTPS": FTPAdapter(timeout=ftp_timeout, use_tls=True),
-            "HTTP": HTTPAdapter(timeout=download_timeout),
-            "HTTPS": HTTPAdapter(timeout=download_timeout),
-            "FILE": LocalAdapter(),
-            "LOCAL": LocalAdapter(),
-            "": LocalAdapter(),
-        }
-        self.thread_lock = Lock()  # protects both caches for thread safety
-        self._key_locks: Dict[str, Lock] = {}  # per-cache-key locks to prevent thundering herd
-
-    def get_connection_cache_key(self,protocol:str,hostname:str) -> str:
-        return f"{protocol.upper()}://{hostname}"
-
-    def warm_connectivity_cache(self, queries: List[ResourceQuery]) -> None:
-        """Pre-check reachability for all unique remote servers in *queries*.
-
-        Populates the internal connectivity cache so that subsequent
-        ``search()`` calls skip redundant connection probes.  Local
-        protocols are ignored.  Checks run concurrently.
-
-        FTP and FTPS share the same underlying host, so a single probe
-        result is propagated to both protocol keys.
-        """
-        # Deduplicate by hostname — one probe covers both FTP and FTPS
-        seen_hosts: Dict[str, str] = {}  # hostname → protocol to use for probe
-        for q in queries:
-            protocol = (q.server.protocol or "").upper()
-            if protocol in ("FILE", "LOCAL", ""):
-                continue
-            hostname = q.server.hostname
-            cache_key = self.get_connection_cache_key(protocol,hostname)
-            if cache_key in self._connectivity_cache:
-                continue
-
-            seen_hosts[cache_key] = protocol
-
-        if not seen_hosts:
-            return
-
-        def _check(item: tuple[str, str]) -> None:
-            cache_key, protocol = item
-            adapter = self._adapters.get(protocol)
-            if cache_key in self._connectivity_cache or adapter is None:
-                return  # already cached, no lock needed for dict read
-
-            hostname = cache_key.split("://", 1)[1]
-            reachable = adapter.can_connect(hostname)
-            self._connectivity_cache[cache_key] = reachable
-
-            label = "reachable" if reachable else "unreachable"
-            logger.info(f"Connectivity check: {cache_key} --> {label}")
-
-        with ThreadPoolExecutor(max_workers=15) as pool:
-            _ = list(pool.map(_check, seen_hosts.items()))
+        self._connection_pool_factory = ConnectionPoolFactory(max_connections=max_connections)
 
     def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
         """Search every query's server/directory for matching files."""
+        # Get all unique hostenames.
+        hostnames = set(q.server.hostname for q in queries)
+        for hostname in hostnames:
+            self._connection_pool_factory.add_connection(hostname)
         with ThreadPoolExecutor(max_workers=25) as pool:
             return list(pool.map(self._search_one, queries))
 
@@ -139,52 +79,15 @@ class ResourceFetcher:
                 error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
             )
 
-        protocol = (query.server.protocol or "").upper()
-        hostname = query.server.hostname
-
-        listing_key = f"{protocol}://{hostname}/{directory}"
-
-        connectivity_key = self.get_connection_cache_key(protocol,hostname)
-        # Fast path: already cached (no lock needed, dict reads are thread-safe)
-        if listing_key in self._listing_cache:
-            listing = self._listing_cache[listing_key]
-        else:
-            if connectivity_key in self._connectivity_cache:
-                if not self._connectivity_cache[connectivity_key]:
-                    return FetchResult(query=query, error=f"Host {hostname} is unreachable (cached)")
-            # Per-key lock: only one thread fetches a given directory;
-            # others wait for the result instead of stampeding the server.
-
-            if listing_key not in self._key_locks:
-                self._key_locks[listing_key] = Lock()
-            key_lock = self._key_locks[listing_key]
-
-            adapter = self._adapters.get(protocol)
-            if adapter is None:
-                return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
-            try:
-                with key_lock:
-                    if listing_key in self._listing_cache:  # check cache again after acquiring lock
-                        listing = self._listing_cache[listing_key]
-                    else:
-                        logger.info(f"Listing {protocol} directory: {hostname}/{directory}")
-                        listing = adapter.list_directory(hostname, directory)
-                        if "FILE" not in listing_key:  # don't cache local listings
-                            self._listing_cache[listing_key] = listing
-
-            except Exception as e:
-                return FetchResult(query=query, error=f"Listing failed: {e}")
-     
-
+        try:
+            listing = self._connection_pool_factory.list_directory(query.server.hostname, directory)
+        except Exception as e:
+            return FetchResult(query=query, error=f"Listing failed: {e}")
         query.directory.value = directory  # type: ignore[union-attr]
 
         matches = self._match_files(listing, file_pattern)
-        logger.info(f"Found {len(matches)} matches for {hostname}/{directory} with pattern {file_pattern!r}")
         if matches:
-            return FetchResult(
-                    query=query,
-                    matched_filenames=matches
-                )
+            return FetchResult(query=query, matched_filenames=matches)
         return FetchResult(query=query, error="No matches found")
 
     # -- Pattern matching ------------------------------------------
@@ -244,6 +147,7 @@ class ResourceFetcher:
     ) -> Optional[Path]:
         """Synchronously download all matched files for one FetchResult."""
 
+        # TODO use fsspec ls to get file size in bytes, and skip download if size is zero.
         hostname = query.server.hostname
 
         destination_resource = local_factory.sink_product(query.product, local_resource_id, date)
@@ -256,18 +160,12 @@ class ResourceFetcher:
             logger.info(f"Skipping download, file already exists: {destination_path}")
             return destination_path
 
-        protocol = (query.server.protocol or "").upper()
-        adapter: Optional[Union[FTPAdapter,HTTPAdapter,LocalAdapter,DirectoryAdapter]] = self._adapters.get(protocol)
-        if adapter is None:
-            logger.error(f"Unsupported protocol for download: {protocol!r}")
-            return None
-
+        
         try:
-            return adapter.download_file(
+            return self._connection_pool_factory.download_file(
                 hostname=hostname,
-                directory=query.directory.value,  # type: ignore[union-attr]
-                filename=query.product.filename.value,
-                dest_path=destination_path,
+                remote_path=str(Path(query.directory.value) / query.product.filename.value),  # type: ignore[union-attr]
+                target_dir=destination_dir,
             )
         except Exception as e:
             logger.error(f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}")

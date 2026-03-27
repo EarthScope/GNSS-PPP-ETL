@@ -80,7 +80,7 @@ class TestResourceFetcherConnectivity:
         """After listing a directory, the connectivity cache should record success."""
         from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher
 
-        fresh = ResourceFetcher(ftp_timeout=15)
+        fresh = ResourceFetcher()
         # Trigger a listing that uses ftp_can_connect internally
         listing = fresh._list_ftp("ftp://ftp.aiub.unibe.ch", "CODE/2025")
         assert len(listing) > 0
@@ -92,7 +92,7 @@ class TestResourceFetcherConnectivity:
         """A failed server should be cached and raise immediately on retry."""
         from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher
 
-        fresh = ResourceFetcher(ftp_timeout=5)
+        fresh = ResourceFetcher()
         # Force failure
         try:
             fresh._list_ftp("ftp://nonexistent.invalid.host", "/")

@@ -190,7 +190,7 @@ def gfz_qf(gfz_env) -> QueryFactory:
 
 @pytest.fixture(scope="session")
 def fetcher() -> ResourceFetcher:
-    return ResourceFetcher(ftp_timeout=30)
+    return ResourceFetcher()
 
 
 @pytest.fixture(scope="session")

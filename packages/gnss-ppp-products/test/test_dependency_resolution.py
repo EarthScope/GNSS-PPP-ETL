@@ -76,7 +76,7 @@ def resolver_with_fetcher(multi_env, dep_spec, tmp_path_factory) -> DependencyRe
         product_catalog=multi_env.product_catalog,
         parameter_catalog=multi_env.parameter_catalog,
     )
-    fetcher = ResourceFetcher(ftp_timeout=30)
+    fetcher = ResourceFetcher()
     return DependencyResolver(
         dep_spec,
         base_dir=base,

@@ -200,7 +200,7 @@ class TestFetcherCaching:
 
     def test_listing_cached_after_search(self, wuhan_qf, test_date) -> None:
         """After searching, the listing cache should contain entries."""
-        fresh_fetcher = ResourceFetcher(ftp_timeout=30)
+        fresh_fetcher = ResourceFetcher()
         queries = wuhan_qf.get(
             date=test_date,
             product={"name": "ORBIT"},
@@ -208,11 +208,11 @@ class TestFetcherCaching:
         )
         remote_queries = [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
         fresh_fetcher.search(remote_queries)
-        assert len(fresh_fetcher._listing_cache) > 0
+        assert len(fresh_fetcher._connection_pool_factory._listing_cache) > 0
 
     def test_same_directory_not_listed_twice(self, wuhan_qf, test_date) -> None:
         """Two queries sharing the same directory should reuse the cached listing."""
-        fresh_fetcher = ResourceFetcher(ftp_timeout=30)
+        fresh_fetcher = ResourceFetcher()
         # Get ERP and ORBIT — both at Wuhan go to the same orbit/ directory
         orbit_queries = wuhan_qf.get(
             date=test_date,
@@ -226,7 +226,7 @@ class TestFetcherCaching:
         ]
         fresh_fetcher.search(remote)
         # Cache should have entries, but NOT one per query — shared dirs collapse
-        assert len(fresh_fetcher._listing_cache) <= len(remote)
+        assert len(fresh_fetcher._connection_pool_factory._listing_cache) <= len(remote)
 
 
 # ---------------------------------------------------------------------------

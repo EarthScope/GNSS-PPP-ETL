@@ -5,7 +5,6 @@ from gnss_ppp_products.configs import (
     PRODUCT_SPEC_YAML,
     LOCAL_SPEC_DIR,
     CENTERS_RESOURCE_DIR,
-    DEPENDENCY_SPEC_DIR,
     PRIDE_PPPAR_SPEC,
     
 )

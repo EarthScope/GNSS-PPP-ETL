@@ -1,6 +1,4 @@
 import datetime
-from email.mime import base
-import json
 from pathlib import Path
 import time
 import logging
@@ -37,7 +35,7 @@ qf = QueryFactory(
     product_environment=env,
     workspace=workspace,
     )
-fetcher = ResourceFetcher(ftp_timeout=30)
+fetcher = ResourceFetcher()
 
 dep_res = DependencyResolver(
     dep_spec=dep_spec,
@@ -49,10 +47,10 @@ from gnss_ppp_products.lockfile import DependencyLockFile
 station = "TEST"
 years = [2023,2024,2025]
 months = [1,3,6,9,11]
-days = [1,15,20]
+days = [3,6,9]
 days = [x+2 for x in days]
 dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years for m in months for d in days]
-
+dates = dates[2:]
 times = []
 for date in dates:
     start = time.time()
@@ -64,7 +62,7 @@ for date in dates:
     print(f"Table: {resolution.spec_name}")
     print(f"{resolution.table()}\n")
     #print(f"Lockfile:\n{resolution.to_lockfile().model_dump_json(indent=2)}\n\n")
-    if dep_lockfile_path:
-        dlf = DependencyLockFile.model_validate_json(dep_lockfile_path.read_text(encoding="utf-8"))
-        print(dlf.model_dump_json(indent=2))
+    # if dep_lockfile_path:
+    #     dlf = DependencyLockFile.model_validate_json(dep_lockfile_path.read_text(encoding="utf-8"))
+    #     print(dlf.model_dump_json(indent=2))
 print(f"\nAverage resolution time: {sum(times)/len(times):.2f} seconds.")
