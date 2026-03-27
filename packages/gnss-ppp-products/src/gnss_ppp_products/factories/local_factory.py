@@ -97,14 +97,13 @@ class LocalResourceFactory:
         base_dir: Path | str,
         alias: Optional[str] = None,
     ) -> None:
-        
+
         if isinstance(base_dir, str):
             base_dir = Path(base_dir)
 
-
         if isinstance(spec, (Path, str)):
             spec = LocalResourceSpec.from_yaml(str(spec))
-        
+
         server = Server(
             id=spec.name,
             hostname=str(base_dir) if base_dir else spec.name,
@@ -112,7 +111,6 @@ class LocalResourceFactory:
             auth_required=False,
             description=spec.description,
         )
-
 
         name = spec.name
         if name in self._registered_specs:
@@ -150,7 +148,7 @@ class LocalResourceFactory:
         )
         if alias:
             self._alias_map[alias] = name
-    
+
     def _get_registered_spec(self, name_or_alias: str) -> RegisteredLocalResource:
         if name_or_alias in self._alias_map:
             name_or_alias = self._alias_map[name_or_alias]
@@ -161,7 +159,7 @@ class LocalResourceFactory:
                 f"Known resources: {list(self._registered_specs.keys())}"
             )
         return registered_spec
-    
+
     def sink_product(
         self,
         product: Product,
@@ -171,9 +169,7 @@ class LocalResourceFactory:
         """Resolve the local directory for a product spec on a given date."""
         dt = _ensure_datetime(date)
         registered_spec = self._get_registered_spec(resource_id)
-     
 
-        
         directory_template = registered_spec.item_to_dir.get(product.name)
         if directory_template is None:
             raise KeyError(
@@ -181,7 +177,7 @@ class LocalResourceFactory:
                 f"Known specs: {list(registered_spec.item_to_dir.keys())}"
             )
         resolved = self._parameter_catalog.interpolate(directory_template, dt, computed_only=True)
-        
+
         out_query = ResourceQuery(
             product=product,
             server=registered_spec.server,
@@ -189,32 +185,42 @@ class LocalResourceFactory:
         )
         return out_query
 
+    def lockfile_dir(
+        self,
+        resource_id: str,
+    ) -> Path:
+        registered_spec = self._get_registered_spec(resource_id)
+        base_dir = registered_spec.base_dir
+        dep_lockfile_dir = base_dir / "dependency_lockfiles"
+        dep_lockfile_dir.mkdir(parents=True, exist_ok=True)
+        return dep_lockfile_dir
+
     @property
     def resource_ids(self) -> List[str]:
         """Return identifiers for all registered local resources."""
         return list(self._registered_specs.keys())
 
-    def lockfile_dir(
-        self,
-        resource_id: str,
-        date: datetime.date,
-    ) -> Path:
-        """Return the lockfiles directory for a resource on a given date.
+    # def lockfile_dir(
+    #     self,
+    #     resource_id: str,
+    #     date: datetime.date,
+    # ) -> Path:
+    #     """Return the lockfiles directory for a resource on a given date.
 
-        Falls back to ``{base_dir}/locks`` if no ``lockfiles`` collection
-        is defined in the spec.
-        """
-        dt = _ensure_datetime(date)
-        registered_spec = self._get_registered_spec(resource_id)
-        lockfile_template = None
-        for coll_name, coll in registered_spec.spec.collections.items():
-            if coll_name == "lockfiles":
-                lockfile_template = coll.directory
-                break
-        if lockfile_template is None:
-            return registered_spec.base_dir / "locks"
-        resolved = self._parameter_catalog.interpolate(lockfile_template, dt, computed_only=True)
-        return registered_spec.base_dir / resolved
+    #     Falls back to ``{base_dir}/locks`` if no ``lockfiles`` collection
+    #     is defined in the spec.
+    #     """
+    #     dt = _ensure_datetime(date)
+    #     registered_spec = self._get_registered_spec(resource_id)
+    #     lockfile_template = None
+    #     for coll_name, coll in registered_spec.spec.collections.items():
+    #         if coll_name == "lockfiles":
+    #             lockfile_template = coll.directory
+    #             break
+    #     if lockfile_template is None:
+    #         return registered_spec.base_dir / "locks"
+    #     resolved = self._parameter_catalog.interpolate(lockfile_template, dt, computed_only=True)
+    #     return registered_spec.base_dir / resolved
 
     def source_product(self, product: Product, resource_id: str) -> List[ResourceQuery]:
         """Resolve a product into ResourceQuery objects for a specific local resource.
@@ -258,14 +264,12 @@ class LocalResourceFactory:
                 f"Server {query.server.id!r} not found in any registered local resource. "
                 f"Known servers: {[s.server.id for s in self._registered_specs.values()]}"
             )
-    
 
-      
         file_pattern = query.product.filename.pattern if query.product.filename else None
         if date and file_pattern:
             date = _ensure_datetime(date)
             file_pattern = self._parameter_catalog.interpolate(file_pattern, date, computed_only=True)
-        
+
         search_dir = registered_spec.base_dir / Path(dir_pattern)
 
         if file_pattern:

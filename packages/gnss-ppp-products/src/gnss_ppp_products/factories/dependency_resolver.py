@@ -12,11 +12,13 @@ the dependency spec.
 
 from __future__ import annotations
 
+from ast import Tuple
 from collections import defaultdict
 import datetime
 import hashlib
 import json
 import logging
+from os import write
 import re
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -24,6 +26,7 @@ from concurrent.futures import ThreadPoolExecutor, thread
 from functools import partial
 import threading
     
+from anyio import Lock
 from gnss_ppp_products.factories.environment import ProductEnvironment
 from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
 from gnss_ppp_products.specifications.parameters.parameter import Parameter
@@ -41,6 +44,10 @@ from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchR
 from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
 from .workspace import WorkSpace
 
+from .lockfile_manager import (
+    LockProduct, validate_lock_product,build_lock_product,get_lock_product_path,get_lock_product,write_lock_product,DependecyLockFile,
+    get_dependency_lockfile_name,get_dependency_lockfile,write_dependency_lockfile
+)
 logger = logging.getLogger(__name__)
 
 
@@ -115,8 +122,10 @@ class DependencyResolver:
         self,
         date: datetime.datetime,
         local_sink_id: str,
+        station: Optional[str] = None,
+        version: Optional[str] = "0",
        
-    ) -> DependencyResolution:
+    ) -> Tuple[DependencyResolution, Optional[Path]]:
         """Resolve every dependency in the spec for *date*.
 
         Parameters
@@ -126,26 +135,86 @@ class DependencyResolver:
         download
             If *True* and a remote match is found, download it.
         """
+        '''
+        steps:
+        1. Check for existing dependency lockfile for this spec/date/station. If found, validate each lock product and add valid ones to results, removing them from the to_resolve list.
+        2. For each remaining dependency in to_resolve, call _resolve_one in parallel
+        3. Aggregate results into a DependencyResolution and return.
+        
+        
+        
+        '''
         results: List[ResolvedDependency] = []
+        lockfiles: List[LockProduct] = []
+        to_resolve = self.dep_spec.dependencies
 
+        dep_lockfile_info: Tuple[Optional[DependecyLockFile], Optional[Path]] = get_dependency_lockfile(
+            directory=self._qf._local.lockfile_dir(local_sink_id),
+            station=station,
+            package=self.dep_spec.package,
+            task=self.dep_spec.task,
+            version=version,
+            date=date,
+        )
+        dep_lock_file, dep_lock_file_path = dep_lockfile_info
+   
+        if dep_lock_file:
+            logger.info(f"Found existing lockfile for {self.dep_spec.name} on {date.date()}: {dep_lock_file}")
+            for lock_product in dep_lock_file.products:
+                dep_spec = next((d for d in self.dep_spec.dependencies if d.spec == lock_product.name), None)
+                if dep_spec and validate_lock_product(lock_product):
+                    # Remove this product from the to_resolve list since it's already resolved in the lockfile
+                    to_resolve = [dep for dep in to_resolve if dep.spec != lock_product.name]
+
+                    resolved = ResolvedDependency(
+                        spec=lock_product.name,
+                        required=dep_spec.required,
+                        status="local",
+                        remote_url=lock_product.url,
+                        local_path=Path(lock_product.sink),
+                        hash=lock_product.hash,
+                        size=lock_product.size,
+                        description=dep_spec.description,
+                        lockfile=lock_product,
+                    )
+                    results.append(resolved)
+                else:
+                    logger.warning(f"Invalid lock product in lockfile {dep_lock_file}: {lock_product}. Will attempt to re-resolve.")
+        
+        else:
+            dep_lock_file = DependecyLockFile(
+                station=station or "",
+                package=self.dep_spec.package,
+                task=self.dep_spec.task,
+                date=date.strftime("%Y-%m-%d"),
+                products=[],
+            )
         partial_resolve_one = partial(
             self._resolve_one,
             date=date,
             local_sink_id=local_sink_id,
         )
         with ThreadPoolExecutor(max_workers=15) as executor:
-            futures = [executor.submit(partial_resolve_one, dep) for dep in self.dep_spec.dependencies]
+            futures = [executor.submit(partial_resolve_one, dep) for dep in to_resolve]
             for future in futures:
-                resolved = future.result()
-                if resolved:
+                resolved, lock_file = future.result()
+                if resolved and lock_file:
                     results.append(resolved)
+                    lockfiles.append(lock_file)
 
+        if lockfiles:
+            dep_lock_file.products.extend(lockfiles)
+            write_dependency_lockfile(
+                lockfile=dep_lock_file,
+                directory=dep_lock_file_path.parent,
+                update=True
+            )
         resolution = DependencyResolution(
             spec_name=self.dep_spec.name,
             resolved=results,
         )
         logger.info(resolution.summary())
-        return resolution
+        return resolution,dep_lock_file_path
 
     # ---- internal helpers ------------------------------------------
 
@@ -154,7 +223,7 @@ class DependencyResolver:
         dep: Dependency,
         date: datetime.datetime,
         local_sink_id: str,
-    ) -> Optional[ResolvedDependency]:
+    ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
         """Resolve a single dependency."""
         try:
             queries = self._qf.get(
@@ -168,19 +237,24 @@ class DependencyResolver:
             logger.debug("No queries for %s: %s", dep.spec, exc)
             return ResolvedDependency(
                 spec=dep.spec, required=dep.required, status="missing",
-            )
+            ), None
 
         if not queries:
             logger.warning(f"No queries returned for dependency {dep.spec} with constraints {dep.constraints}")
             return ResolvedDependency(
                 spec=dep.spec, required=dep.required, status="missing",
-            )
+            ), None
 
         queries = self._sort_by_preferences(queries)
 
         # Fetch the queries.
         logger.info(f"Searching for {len(queries)} queries for dependency {dep.spec}...")
         fetched_queries: List[FetchResult] = self._fetcher.search(queries)
+        if not fetched_queries:
+            logger.warning(f"No fetch results for dependency {dep.spec}")
+            return ResolvedDependency(
+                spec=dep.spec, required=dep.required, status="missing",
+            ), None
         logger.info(f"Fetched {len(fetched_queries)} queries for dependency {dep.spec}")
 
         # Expand the fetched queries into a list of resource queries.
@@ -197,20 +271,21 @@ class DependencyResolver:
             filename_groups[key] = self._sort_by_protocol(group)
 
         for rq_index in expanded_queries:
+            remote_urls = [_build_remote_url(rq) for rq in filename_groups[rq_index.product.filename.value] if (rq.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
             for rq in filename_groups[rq_index.product.filename.value]:
                 if (rq.server.protocol or "").upper() in ("FILE", "LOCAL", ""):
-                    resolved = self._resolve_local(
-                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date)
+                    resolved, lock_file = self._resolve_local(
+                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date, alternative_urls=remote_urls)
                     if resolved is not None:
-                        return resolved
+                        return resolved, lock_file
 
                 else:
 
-                    resolved = self._resolve_remote(
-                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date,
+                    resolved, lock_file = self._resolve_remote(
+                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date,alternative_urls=remote_urls
                     )
                     if resolved is not None:
-                        return resolved
+                        return resolved, lock_file
 
     def _expand_fetch_results(self, fetched: List[FetchResult]) -> List[ResourceQuery]:
         """Expand FetchResults into ResourceQueries with filename values filled in."""
@@ -287,8 +362,9 @@ class DependencyResolver:
             local_sink_id: str,
             local_resource_factory:LocalResourceFactory,
             date: datetime.datetime,
+            alternative_urls: Optional[List[str]] = None,
 
-    ) -> Optional[ResolvedDependency]:
+    ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
 
         assert rq.product.filename.value is not None, "Remote resolution requires filename to be filled in"
 
@@ -300,20 +376,22 @@ class DependencyResolver:
             date = date,
         )
         if local_path is None:
-            return None
-        file_hash = _hash_file(local_path)
-        file_size = local_path.stat().st_size
-        resolved = self._make_resolved(
-            dep, rq,
-            status="downloaded",
-            local_path=local_path,
-            file_hash=file_hash,
-            file_size=file_size,
-            check_existing_lock=False,
+            return (None, None)
+        lock_file: LockProduct = build_lock_product(
+            sink=local_path,
+            url=_build_remote_url(rq),
+            name=dep.spec,
+            description=dep.description or "",
+            alternative_urls=alternative_urls,
         )
-        lock_dir = local_resource_factory.lockfile_dir(local_sink_id, date)
-        self._write_file_lock(local_path, resolved, lock_dir=lock_dir)
-        return resolved
+        write_lock_product(lock_file)
+        resolved = self._make_resolved(
+            dep,
+            status="downloaded",
+            lock_file=lock_file,
+        )
+        
+        return (resolved, lock_file)
 
     def _resolve_local(
             self,
@@ -322,8 +400,9 @@ class DependencyResolver:
             local_sink_id: str,
             local_resource_factory:LocalResourceFactory,
             date: datetime.datetime,
+            alternative_urls: Optional[List[str]] = None,
 
-    ) -> Optional[ResolvedDependency]:
+    ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
 
         source_directory = Path(rq.server.hostname) / rq.directory.value
         assert source_directory.exists() and source_directory.is_dir(), f"Local directory {source_directory} does not exist for query {rq}"
@@ -346,114 +425,40 @@ class DependencyResolver:
             source_path = dest_path
 
         # Try to reuse hash from an existing lockfile to avoid re-hashing
-        lock_dir = local_resource_factory.lockfile_dir(local_sink_id, date)
-        existing_lock = self._get_file_lock(source_path, lock_dir=lock_dir)
-        if existing_lock and existing_lock.hash and existing_lock.size == source_path.stat().st_size:
-            file_hash = existing_lock.hash
-            file_size = existing_lock.size
-        else:
-            file_hash = _hash_file(source_path)
-            file_size = source_path.stat().st_size
+        if (existing_lock := get_lock_product(source_path)) is None:
+            existing_lock = build_lock_product(
+                sink=source_path,
+                url="",
+                name=dep.spec,
+                description=dep.description or "",
+                alternative_urls=alternative_urls,
+            )
+            write_lock_product(existing_lock)
 
         resolved = self._make_resolved(
-            dep, rq,
+            dep,
             status="local",
-            local_path=source_path,
-            file_hash=file_hash,
-            file_size=file_size,
-            check_existing_lock=False,
-            existing_lock=existing_lock,
+            lock_file=existing_lock,
         )
-        # Write/update the lockfile if it didn't exist or hash changed
-        if not existing_lock or existing_lock.hash != file_hash:
-            self._write_file_lock(source_path, resolved, lock_dir=lock_dir)
-        return resolved
+        
+        return (resolved, existing_lock)
 
-    @staticmethod
-    def _get_file_lock(local_path: Path, *, lock_dir: Optional[Path] = None) -> Optional[LockProduct]:
-        """Load an existing ``<filename>.lock`` sidecar.
-
-        Checks *lock_dir* first (the dedicated lockfiles directory), then
-        falls back to the file's own parent directory for backwards
-        compatibility.
-        """
-        name = f"{local_path.name}.lock"
-        candidates = []
-        if lock_dir is not None:
-            candidates.append(lock_dir / name)
-        candidates.append(local_path.parent / name)
-        for lock_path in candidates:
-            if lock_path.exists() and lock_path.is_file():
-                try:
-                    with open(lock_path, 'r') as f:
-                        lock_data = json.load(f)
-                    return LockProduct.model_validate(lock_data)
-                except Exception:
-                    logger.debug("Failed to read lockfile %s", lock_path)
-        return None
-
-    @staticmethod
-    def _write_file_lock(
-        local_path: Path,
-        resolved: ResolvedDependency,
-        *,
-        lock_dir: Optional[Path] = None,
-    ) -> None:
-        """Write a ``<filename>.lock`` JSON sidecar into *lock_dir*.
-
-        Falls back to the file's parent directory when *lock_dir* is None.
-        """
-        if resolved.lockfile is None:
-            return
-        target = lock_dir if lock_dir is not None else local_path.parent
-        target.mkdir(parents=True, exist_ok=True)
-        lock_path = target / f"{local_path.name}.lock"
-        lock_data = json.loads(resolved.lockfile.model_dump_json())
-        lock_data["local_path"] = str(local_path)
-        lock_path.write_text(json.dumps(lock_data, indent=2), encoding="utf-8")
-        logger.info("Wrote lockfile %s", lock_path)
 
     @staticmethod
     def _make_resolved(
         dep: Dependency,
-        rq: ResourceQuery,
+       
         *,
         status: str,
-        local_path: Optional[Path],
-        file_hash: str = "",
-        file_size: int | None = None,
-        check_existing_lock: bool = True,
-        existing_lock: Optional[LockProduct] = None,
+        lock_file: LockProduct,
     ) -> ResolvedDependency:
         """Build a :class:`ResolvedDependency` from a ResourceQuery."""
-        from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
-
-        remote_url = _build_remote_url(rq)
-        regex = _file_pattern(rq)
-
-        lock_product: Optional[LockProduct] = existing_lock
-        if lock_product is None and check_existing_lock and local_path is not None:
-            lock_product = DependencyResolver._get_file_lock(local_path)
-        if not lock_product:
-            lock_product = LockProduct(
-                name=dep.spec,
-                description=dep.description or "",
-                required=dep.required,
-                url=remote_url,
-                regex=regex,
-                hash=file_hash,
-                size=file_size,
-                local_directory=str(local_path.parent) if local_path else "",
-            )
+  
 
         return ResolvedDependency(
             spec=dep.spec,
             required=dep.required,
             status=status,
-            remote_url=remote_url,
-            local_path=local_path,
-            hash=file_hash,
-            size=file_size,
-            description=dep.description,
-            lockfile=lock_product,
+            remote_url=lock_file.url,
+            local_path=Path(lock_file.sink)
         )

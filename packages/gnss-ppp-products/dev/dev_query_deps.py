@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import time
 import logging
+
 #logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
 from gnss_ppp_products.factories.environment import ProductEnvironment
@@ -67,17 +68,18 @@ dep_res = DependencyResolver(
     query_factory=qf,
     fetcher=fetcher,
 )
-
+from gnss_ppp_products.factories.lockfile_manager import DependecyLockFile
+station = "TEST"
 years = [2023,2024,2025]
 months = [1,3,6,9,11]
-days = [1,15,28]
-days = [x+1 for x in days]
+days = [1,15,20]
+days = [x+2 for x in days]
 dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years for m in months for d in days]
 
 times = []
 for date in dates:
     start = time.time()
-    resolution = dep_res.resolve(date=date,local_sink_id="local")
+    resolution,dep_lockfile_path = dep_res.resolve(date=date,local_sink_id="local",station=station)
     end = time.time()
     times.append(end - start)
     print(f"Resolution for {date.date()} took {end - start:.2f} seconds.")
@@ -85,5 +87,7 @@ for date in dates:
     print(f"Table: {resolution.spec_name}")
     print(f"{resolution.table()}\n")
     #print(f"Lockfile:\n{resolution.to_lockfile().model_dump_json(indent=2)}\n\n")
-
+    if dep_lockfile_path:
+        dlf = DependecyLockFile.model_validate_json(dep_lockfile_path.read_text(encoding="utf-8"))
+        print(dlf.model_dump_json(indent=2))
 print(f"\nAverage resolution time: {sum(times)/len(times):.2f} seconds.")

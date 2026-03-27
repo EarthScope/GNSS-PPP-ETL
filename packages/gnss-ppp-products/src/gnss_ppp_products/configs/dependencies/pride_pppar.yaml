@@ -13,6 +13,8 @@ description: >
   PRIDE-PPPAR kinematic PPP-AR processing.
   Requires precise orbits, clocks, biases, attitude, broadcast
   navigation, antenna calibrations, and reference tables.
+package: PRIDE
+task: PPP
 
 preferences:
   - parameter: AAA

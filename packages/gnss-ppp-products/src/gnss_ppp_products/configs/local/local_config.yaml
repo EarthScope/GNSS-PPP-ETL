@@ -91,9 +91,9 @@ collections:
   # Lockfiles — provenance tracking for downloaded products
   # ---------------------------------------------------------------------------
   lockfiles:
-    directory: "{YYYY}/{DDD}/lockfiles"
+    directory: "dependency_lockfiles"
     temporal: daily
-    description: "Per-file sidecar lockfiles recording download provenance"
+    description: "Dependency lockfiles"
     items: []
 
   # ---------------------------------------------------------------------------

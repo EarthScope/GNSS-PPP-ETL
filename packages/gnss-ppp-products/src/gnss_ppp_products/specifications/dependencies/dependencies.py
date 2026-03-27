@@ -38,6 +38,8 @@ class DependencySpec(BaseModel):
     description: str = ""
     preferences: List[SearchPreference] = Field(default_factory=list)
     dependencies: List[Dependency] = Field(default_factory=list)
+    package:str
+    task:str
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "DependencySpec":
@@ -59,14 +61,7 @@ class ResolvedDependency(BaseModel):
     # Lockfile fields — populated during resolution for later export
     remote_url: Optional[str] = None
 
-    hash: str = ""
-    size: Optional[int] = None
-    format: str = ""
-    version: str = ""
-    variant: str = ""
-    description: str = ""
-  
-    lockfile: Optional["LockProduct"] = None
+
 
 
 @dataclass
@@ -99,22 +94,6 @@ class DependencyResolution:
             if r.local_path is not None
         }
 
-    def to_lockfile(self, date: str = "") -> "ProductLockfile":
-        """Convert fulfilled resolutions into a :class:`ProductLockfile`."""
-        from gnss_ppp_products.specifications.dependencies.lockfile import (
-            ProductLockfile,
-        )
-
-        products = [
-            r.lockfile for r in self.fulfilled
-            if r.lockfile is not None
-        ]
-
-        return ProductLockfile(
-            requires_date=date,
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            products=products,
-        )
 
     def summary(self) -> str:
         total = len(self.resolved)
