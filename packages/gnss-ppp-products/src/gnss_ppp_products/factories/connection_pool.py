@@ -42,8 +42,11 @@ class ConnectionPool:
             for tls in (False, True):
                 try:
                     return fsspec.filesystem(
-                        "ftp", host=host, tls=tls,
-                        timeout=30, skip_instance_cache=True,
+                        "ftp",
+                        host=host,
+                        tls=tls,
+                        timeout=30,
+                        skip_instance_cache=True,
                     )
                 except Exception:
                     continue
@@ -93,7 +96,9 @@ class ConnectionPool:
                 self._pool.append(connection)
             self._semaphore.release()
 
-    def replace_connection(self, dead: "fsspec.AbstractFileSystem") -> Optional["fsspec.AbstractFileSystem"]:
+    def replace_connection(
+        self, dead: "fsspec.AbstractFileSystem"
+    ) -> Optional["fsspec.AbstractFileSystem"]:
         """Swap a dead connection for a fresh one in the pool.
 
         Returns the new connection, or *None* if reconnection fails.
@@ -182,7 +187,9 @@ class ConnectionPoolFactory:
                     try:
                         return _cache(_ls(fresh))
                     except Exception as e2:
-                        logger.error(f"Retry failed listing {directory} on {hostname}: {e2}")
+                        logger.error(
+                            f"Retry failed listing {directory} on {hostname}: {e2}"
+                        )
                         return _cache([])
                 except Exception as e:
                     logger.error(f"Error listing {directory} on {hostname}: {e}")
@@ -191,7 +198,9 @@ class ConnectionPoolFactory:
             # Pool failed to initialise (e.g. FTP host unreachable).
             return _cache([])
 
-    def download_file(self, hostname: str, remote_path: str, target_dir: str) -> Optional[Path]:
+    def download_file(
+        self, hostname: str, remote_path: str, target_dir: str
+    ) -> Optional[Path]:
         pool = self._pools.get(hostname)
         if pool is None:
             raise ValueError(f"No connection pool for: {hostname}")
@@ -219,9 +228,10 @@ class ConnectionPoolFactory:
                 try:
                     return _get(fresh)
                 except Exception as e2:
-                    logger.error(f"Retry failed downloading {remote_path} from {hostname}: {e2}")
+                    logger.error(
+                        f"Retry failed downloading {remote_path} from {hostname}: {e2}"
+                    )
                     return None
             except Exception as e:
                 logger.error(f"Download failed {remote_path} from {hostname}: {e}")
                 return None
-

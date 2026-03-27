@@ -7,14 +7,19 @@ import pytest
 
 from gnss_ppp_products.specifications.format.format_catalog import FormatRegistry
 from gnss_ppp_products.specifications.format.spec import FormatSpecCollection
-from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
-from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
+from gnss_ppp_products.specifications.parameters.parameter import (
+    Parameter,
+    ParameterCatalog,
+)
+from gnss_ppp_products.specifications.products.product import (
+    ProductPath,
+    infer_from_regex,
+)
 
 
 # ── Paths ──────────────────────────────────────────────────────────
 _CONFIGS_DIR = (
-    Path(__file__).resolve().parent.parent
-    / "src" / "gnss_ppp_products" / "configs"
+    Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "configs"
 )
 META_SPEC_YAML = _CONFIGS_DIR / "meta" / "meta_spec.yaml"
 PRODUCT_SPEC_YAML = _CONFIGS_DIR / "products" / "product_spec.yaml"
@@ -70,12 +75,25 @@ class TestProductDefaultInfer:
 
     def test_standard_orbit_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "PRODUCT", "1", "default",
-            AAA="WUM", PPP="MGX", TTT="FIN",
-            YYYY="2024", DDD="001", HH="00", MM="00",
-            LEN="01D", SMP="05M", CNT="ORB", FMT="SP3",
+            format_catalog,
+            "PRODUCT",
+            "1",
+            "default",
+            AAA="WUM",
+            PPP="MGX",
+            TTT="FIN",
+            YYYY="2024",
+            DDD="001",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="05M",
+            CNT="ORB",
+            FMT="SP3",
         )
-        result = infer_from_regex(regex, "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", params)
+        result = infer_from_regex(
+            regex, "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", params
+        )
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "WUM"
@@ -93,12 +111,25 @@ class TestProductDefaultInfer:
 
     def test_clock_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "PRODUCT", "1", "default",
-            AAA="COD", PPP="OPS", TTT="RAP",
-            YYYY="2025", DDD="100", HH="00", MM="00",
-            LEN="01D", SMP="30S", CNT="CLK", FMT="CLK",
+            format_catalog,
+            "PRODUCT",
+            "1",
+            "default",
+            AAA="COD",
+            PPP="OPS",
+            TTT="RAP",
+            YYYY="2025",
+            DDD="100",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="30S",
+            CNT="CLK",
+            FMT="CLK",
         )
-        result = infer_from_regex(regex, "COD0OPSRAP_20251000000_01D_30S_CLK.CLK.gz", params)
+        result = infer_from_regex(
+            regex, "COD0OPSRAP_20251000000_01D_30S_CLK.CLK.gz", params
+        )
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "COD"
@@ -108,32 +139,69 @@ class TestProductDefaultInfer:
 
     def test_uncompressed_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "PRODUCT", "1", "default",
-            AAA="IGS", PPP="OPS", TTT="RAP",
-            YYYY="2025", DDD="100", HH="00", MM="00",
-            LEN="01D", SMP="15M", CNT="ORB", FMT="SP3",
+            format_catalog,
+            "PRODUCT",
+            "1",
+            "default",
+            AAA="IGS",
+            PPP="OPS",
+            TTT="RAP",
+            YYYY="2025",
+            DDD="100",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="15M",
+            CNT="ORB",
+            FMT="SP3",
         )
-        result = infer_from_regex(regex, "IGS0OPSRAP_20251000000_01D_15M_ORB.SP3", params)
+        result = infer_from_regex(
+            regex, "IGS0OPSRAP_20251000000_01D_15M_ORB.SP3", params
+        )
         assert result is not None
         assert next(p for p in result if p.name == "AAA").value == "IGS"
 
     def test_no_match_returns_none(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "PRODUCT", "1", "default",
-            AAA="WUM", PPP="MGX", TTT="FIN",
-            YYYY="2024", DDD="001", HH="00", MM="00",
-            LEN="01D", SMP="05M", CNT="ORB", FMT="SP3",
+            format_catalog,
+            "PRODUCT",
+            "1",
+            "default",
+            AAA="WUM",
+            PPP="MGX",
+            TTT="FIN",
+            YYYY="2024",
+            DDD="001",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="05M",
+            CNT="ORB",
+            FMT="SP3",
         )
         assert infer_from_regex(regex, "garbage_file.txt", params) is None
 
     def test_bias_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "PRODUCT", "1", "default",
-            AAA="WUM", PPP="MGX", TTT="FIN",
-            YYYY="2024", DDD="001", HH="00", MM="00",
-            LEN="01D", SMP="01D", CNT="ABS", FMT="BIA",
+            format_catalog,
+            "PRODUCT",
+            "1",
+            "default",
+            AAA="WUM",
+            PPP="MGX",
+            TTT="FIN",
+            YYYY="2024",
+            DDD="001",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="01D",
+            CNT="ABS",
+            FMT="BIA",
         )
-        result = infer_from_regex(regex, "WUM0MGXFIN_20240010000_01D_01D_ABS.BIA.gz", params)
+        result = infer_from_regex(
+            regex, "WUM0MGXFIN_20240010000_01D_01D_ABS.BIA.gz", params
+        )
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["CNT"] == "ABS"
@@ -141,12 +209,25 @@ class TestProductDefaultInfer:
 
     def test_erp_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "PRODUCT", "1", "default",
-            AAA="GFZ", PPP="MGX", TTT="RAP",
-            YYYY="2025", DDD="100", HH="00", MM="00",
-            LEN="01D", SMP="01D", CNT="ERP", FMT="ERP",
+            format_catalog,
+            "PRODUCT",
+            "1",
+            "default",
+            AAA="GFZ",
+            PPP="MGX",
+            TTT="RAP",
+            YYYY="2025",
+            DDD="100",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="01D",
+            CNT="ERP",
+            FMT="ERP",
         )
-        result = infer_from_regex(regex, "GFZ0MGXRAP_20251000000_01D_01D_ERP.ERP.gz", params)
+        result = infer_from_regex(
+            regex, "GFZ0MGXRAP_20251000000_01D_01D_ERP.ERP.gz", params
+        )
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "GFZ"
@@ -160,7 +241,10 @@ class TestProductDefaultInfer:
 class TestAntennaeInfer:
     def test_default_variant(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "ANTENNAE", "1", "default",
+            format_catalog,
+            "ANTENNAE",
+            "1",
+            "default",
             REFFRAME="igs20",
         )
         result = infer_from_regex(regex, "igs20.atx", params)
@@ -169,8 +253,12 @@ class TestAntennaeInfer:
 
     def test_archive_variant_with_gpsweek(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "ANTENNAE", "1", "archive",
-            REFFRAME="igs20", GPSWEEK="2345",
+            format_catalog,
+            "ANTENNAE",
+            "1",
+            "archive",
+            REFFRAME="igs20",
+            GPSWEEK="2345",
         )
         result = infer_from_regex(regex, "igs20_2345.atx", params)
         assert result is not None
@@ -185,8 +273,15 @@ class TestAntennaeInfer:
 class TestVMFInfer:
     def test_default_vmf_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "VIENNA_MAPPING_FUNCTIONS", "1", "default",
-            PRODUCT="VMF3", YYYY="2025", MONTH="01", DAY="15", VMFHH="H06",
+            format_catalog,
+            "VIENNA_MAPPING_FUNCTIONS",
+            "1",
+            "default",
+            PRODUCT="VMF3",
+            YYYY="2025",
+            MONTH="01",
+            DAY="15",
+            VMFHH="H06",
         )
         result = infer_from_regex(regex, "VMF3_20250115.H06", params)
         assert result is not None
@@ -199,7 +294,10 @@ class TestVMFInfer:
 
     def test_orography_variant(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "VIENNA_MAPPING_FUNCTIONS", "1", "orography",
+            format_catalog,
+            "VIENNA_MAPPING_FUNCTIONS",
+            "1",
+            "orography",
             RESOLUTION="5x5",
         )
         result = infer_from_regex(regex, "orography_ell_5x5", params)
@@ -213,8 +311,14 @@ class TestVMFInfer:
 class TestRinex2Infer:
     def test_observation_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "RINEX", "2", "observation",
-            SSSS="ALIC", DDD="015", YY="25", T="o",
+            format_catalog,
+            "RINEX",
+            "2",
+            "observation",
+            SSSS="ALIC",
+            DDD="015",
+            YY="25",
+            T="o",
         )
         result = infer_from_regex(regex, "ALIC0150.25o", params)
         assert result is not None
@@ -226,8 +330,14 @@ class TestRinex2Infer:
 
     def test_navigation_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "RINEX", "2", "navigation",
-            SSSS="BRST", DDD="015", YY="25", T="n",
+            format_catalog,
+            "RINEX",
+            "2",
+            "navigation",
+            SSSS="BRST",
+            DDD="015",
+            YY="25",
+            T="n",
         )
         result = infer_from_regex(regex, "BRST0150.25n", params)
         assert result is not None
@@ -242,12 +352,26 @@ class TestRinex2Infer:
 class TestRinex3Infer:
     def test_observation_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "RINEX", "3", "observation",
-            SSSS="ALIC", MONUMENT="0", R="0", CCC="AUS", S="R",
-            YYYY="2025", DDD="015", HH="00", MM="00",
-            DDU="01D", FRU="30S", D="M",
+            format_catalog,
+            "RINEX",
+            "3",
+            "observation",
+            SSSS="ALIC",
+            MONUMENT="0",
+            R="0",
+            CCC="AUS",
+            S="R",
+            YYYY="2025",
+            DDD="015",
+            HH="00",
+            MM="00",
+            DDU="01D",
+            FRU="30S",
+            D="M",
         )
-        result = infer_from_regex(regex, "ALIC00AUS_R_20250150000_01D_30S_MO.rnx", params)
+        result = infer_from_regex(
+            regex, "ALIC00AUS_R_20250150000_01D_30S_MO.rnx", params
+        )
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["SSSS"] == "ALIC"
@@ -263,10 +387,21 @@ class TestRinex3Infer:
 
     def test_navigation_file(self, format_catalog):
         regex, params = _build_regex_and_params(
-            format_catalog, "RINEX", "3", "navigation",
-            SSSS="BRDC", MONUMENT="0", R="0", CCC="IGN", S="R",
-            YYYY="2025", DDD="015", HH="00", MM="00",
-            DDU="01D", D="M",
+            format_catalog,
+            "RINEX",
+            "3",
+            "navigation",
+            SSSS="BRDC",
+            MONUMENT="0",
+            R="0",
+            CCC="IGN",
+            S="R",
+            YYYY="2025",
+            DDD="015",
+            HH="00",
+            MM="00",
+            DDU="01D",
+            D="M",
         )
         result = infer_from_regex(regex, "BRDC00IGN_R_20250150000_01D_MN.rnx", params)
         assert result is not None
@@ -287,17 +422,17 @@ class TestResourceProbeScenarios:
         """Build PRODUCT/1/default parameters in template order."""
         specs = [
             ("AAA", "[a-zA-Z0-9]{3}"),
-            ("V",   "[0-9]"),
+            ("V", "[0-9]"),
             ("PPP", "[A-Z0-9]{3}"),
             ("TTT", "[A-Z]{3}"),
             ("YYYY", r"\d{4}"),
-            ("DDD",  r"\d{3}"),
-            ("HH",   r"\d{2}"),
-            ("MM",   r"\d{2}"),
-            ("LEN",  r"\d{2}[DHMS]"),
-            ("SMP",  r"\d{2}[DHMS]"),
-            ("CNT",  "[A-Z]{3}"),
-            ("FMT",  "[A-Z0-9]{3}"),
+            ("DDD", r"\d{3}"),
+            ("HH", r"\d{2}"),
+            ("MM", r"\d{2}"),
+            ("LEN", r"\d{2}[DHMS]"),
+            ("SMP", r"\d{2}[DHMS]"),
+            ("CNT", "[A-Z]{3}"),
+            ("FMT", "[A-Z0-9]{3}"),
         ]
         params = []
         for name, pattern in specs:
@@ -310,9 +445,17 @@ class TestResourceProbeScenarios:
         regex = r"WMC[0-9]DEMFIN_20250150000_01D_05M_ORB\.SP3.*"
         filename = "WMC0DEMFIN_20250150000_01D_05M_ORB.SP3.gz"
         params = self._product_params(
-            AAA="WMC", PPP="DEM", TTT="FIN",
-            YYYY="2025", DDD="015", HH="00", MM="00",
-            LEN="01D", SMP="05M", CNT="ORB", FMT="SP3",
+            AAA="WMC",
+            PPP="DEM",
+            TTT="FIN",
+            YYYY="2025",
+            DDD="015",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="05M",
+            CNT="ORB",
+            FMT="SP3",
         )
         result = infer_from_regex(regex, filename, params)
         assert result is not None
@@ -323,9 +466,17 @@ class TestResourceProbeScenarios:
         regex = r"COD[0-9]OPSFIN_20250150000_01D_05M_ORB\.SP3.*"
         filename = "COD0OPSFIN_20250150000_01D_05M_ORB.SP3.gz"
         params = self._product_params(
-            AAA="COD", PPP="OPS", TTT="FIN",
-            YYYY="2025", DDD="015", HH="00", MM="00",
-            LEN="01D", SMP="05M", CNT="ORB", FMT="SP3",
+            AAA="COD",
+            PPP="OPS",
+            TTT="FIN",
+            YYYY="2025",
+            DDD="015",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="05M",
+            CNT="ORB",
+            FMT="SP3",
         )
         result = infer_from_regex(regex, filename, params)
         assert result is not None
@@ -336,9 +487,17 @@ class TestResourceProbeScenarios:
         regex = r"ESA[0-9]OPSRAP_20250150000_01D_15M_ORB\.SP3.*"
         filename = "ESA0OPSRAP_20250150000_01D_15M_ORB.SP3.gz"
         params = self._product_params(
-            AAA="ESA", PPP="OPS", TTT="RAP",
-            YYYY="2025", DDD="015", HH="00", MM="00",
-            LEN="01D", SMP="15M", CNT="ORB", FMT="SP3",
+            AAA="ESA",
+            PPP="OPS",
+            TTT="RAP",
+            YYYY="2025",
+            DDD="015",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="15M",
+            CNT="ORB",
+            FMT="SP3",
         )
         result = infer_from_regex(regex, filename, params)
         assert result is not None
@@ -370,8 +529,16 @@ class TestResourceProbeScenarios:
     def test_no_match_returns_none(self):
         regex = r"WMC[0-9]DEMFIN_20250150000_01D_05M_ORB\.SP3.*"
         params = self._product_params(
-            AAA="WMC", PPP="DEM", TTT="FIN",
-            YYYY="2025", DDD="015", HH="00", MM="00",
-            LEN="01D", SMP="05M", CNT="ORB", FMT="SP3",
+            AAA="WMC",
+            PPP="DEM",
+            TTT="FIN",
+            YYYY="2025",
+            DDD="015",
+            HH="00",
+            MM="00",
+            LEN="01D",
+            SMP="05M",
+            CNT="ORB",
+            FMT="SP3",
         )
         assert infer_from_regex(regex, "totally_different.txt", params) is None

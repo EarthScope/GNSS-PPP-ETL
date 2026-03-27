@@ -5,14 +5,24 @@ from typing import Dict, Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field
 
-from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
+from gnss_ppp_products.specifications.parameters.parameter import (
+    Parameter,
+    ParameterCatalog,
+)
 
 
 class ProductPath(BaseModel):
     """A template pattern with ``{NAME}``-style placeholders, resolved via :meth:`derive`."""
-    pattern: str = Field(description="A template pattern with {NAME}-style placeholders.")
-    value: Optional[str] = Field(None, description="The resolved value after derivation.")
-    description: Optional[str] = Field(None, description="A description of the product path.")
+
+    pattern: str = Field(
+        description="A template pattern with {NAME}-style placeholders."
+    )
+    value: Optional[str] = Field(
+        None, description="The resolved value after derivation."
+    )
+    description: Optional[str] = Field(
+        None, description="A description of the product path."
+    )
 
     def derive(self, parameters: List[Parameter]) -> None:
         """Replace ``{PARAM}`` placeholders in *pattern* with parameter values."""
@@ -22,7 +32,9 @@ class ProductPath(BaseModel):
         for param in parameters:
             if f"{{{param.name}}}" in self.pattern:
                 if param.value is not None:
-                    self.pattern = self.pattern.replace(f"{{{param.name}}}", param.value)
+                    self.pattern = self.pattern.replace(
+                        f"{{{param.name}}}", param.value
+                    )
 
         return None
 
@@ -41,7 +53,11 @@ class ProductPath(BaseModel):
         i = 0
         while i < len(tokens):
             # re.split with 2 groups produces [literal, full_match, group_name, ...]
-            if i + 2 < len(tokens) and tokens[i + 1] is not None and tokens[i + 1].startswith("{"):
+            if (
+                i + 2 < len(tokens)
+                and tokens[i + 1] is not None
+                and tokens[i + 1].startswith("{")
+            ):
                 # Literal segment before this placeholder
                 literal = tokens[i]
                 if literal:
@@ -64,7 +80,9 @@ class ProductPath(BaseModel):
                 i += 1
         return "".join(regex_parts)
 
-    def infer(self, filename: str, parameter_catalog: ParameterCatalog) -> Optional[Dict[str, str]]:
+    def infer(
+        self, filename: str, parameter_catalog: ParameterCatalog
+    ) -> Optional[Dict[str, str]]:
         """Extract parameter values from *filename* using the template pattern.
 
         Returns a ``{param_name: value}`` dict on match, or ``None`` if the
@@ -129,10 +147,17 @@ def infer_from_regex(
 
 class Product(BaseModel):
     """A resolved product with its parameters and file/directory templates."""
+
     name: str = Field(..., description="The name of the product.")
-    parameters: List[Parameter] = Field(..., description="A list of parameters for the product.")
-    directory: Optional[ProductPath] = Field(default=None, description="The directory where the product is located.")
-    filename: Optional[ProductPath] = Field(default=None, description="The filename pattern for the product.")
+    parameters: List[Parameter] = Field(
+        ..., description="A list of parameters for the product."
+    )
+    directory: Optional[ProductPath] = Field(
+        default=None, description="The directory where the product is located."
+    )
+    filename: Optional[ProductPath] = Field(
+        default=None, description="The filename pattern for the product."
+    )
 
 
 T = TypeVar("T")
@@ -140,9 +165,11 @@ T = TypeVar("T")
 
 class VariantCatalog(BaseModel, Generic[T]):
     """Collection of named variants."""
+
     variants: dict[str, T]
 
 
 class VersionCatalog(BaseModel, Generic[T]):
     """Collection of named versions, each containing variants."""
+
     versions: dict[str, VariantCatalog[T]]

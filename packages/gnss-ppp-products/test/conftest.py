@@ -5,6 +5,7 @@ configs/ and the center configs under configs/centers/.  These are reused
 across all test modules so the heavy catalog-construction work happens once
 per session.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -13,15 +14,18 @@ from pathlib import Path
 import pytest
 import yaml
 
-from gnss_ppp_products.factories import ProductEnvironment, QueryFactory, ResourceFetcher
+from gnss_ppp_products.factories import (
+    ProductEnvironment,
+    QueryFactory,
+    ResourceFetcher,
+)
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.format.format_spec import FormatSpecCatalog
 from gnss_ppp_products.specifications.products.catalog import ProductSpecCatalog
 
 # ── Paths to YAML config files ────────────────────────────────────
 _CONFIGS_DIR = (
-    Path(__file__).resolve().parent.parent
-    / "src" / "gnss_ppp_products" / "configs"
+    Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "configs"
 )
 META_SPEC_YAML = _CONFIGS_DIR / "meta" / "meta_spec.yaml"
 PRODUCT_SPEC_YAML = _CONFIGS_DIR / "products" / "product_spec.yaml"
@@ -40,6 +44,7 @@ TEST_DATE = datetime.datetime(2025, 1, 15, tzinfo=datetime.timezone.utc)
 
 
 # ── Helpers ────────────────────────────────────────────────────────
+
 
 def _load_center_yaml(filename: str) -> dict:
     """Load a single center YAML from the configs/centers/ directory."""
@@ -61,6 +66,7 @@ def _build_env(*center_dicts: dict) -> ProductEnvironment:
 
 
 # ── Session-scoped fixtures ───────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def wuhan_config() -> dict:
@@ -108,9 +114,13 @@ def cddis_env(cddis_config) -> ProductEnvironment:
 
 
 @pytest.fixture(scope="session")
-def multi_env(wuhan_config, cod_config, cddis_config, igs_config, gfz_config, vmf_config) -> ProductEnvironment:
+def multi_env(
+    wuhan_config, cod_config, cddis_config, igs_config, gfz_config, vmf_config
+) -> ProductEnvironment:
     """Environment with all centers registered."""
-    return _build_env(wuhan_config, cod_config, cddis_config, igs_config, gfz_config, vmf_config)
+    return _build_env(
+        wuhan_config, cod_config, cddis_config, igs_config, gfz_config, vmf_config
+    )
 
 
 @pytest.fixture(scope="session")

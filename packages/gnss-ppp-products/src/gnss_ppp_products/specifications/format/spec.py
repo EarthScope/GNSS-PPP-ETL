@@ -62,8 +62,10 @@ class FormatSpec(BaseModel):
             return ver.compression
         return self.compression
 
+
 class FormatSpecCollection(BaseModel):
     """Collection of format specifications from the ``formats:`` YAML key."""
+
     formats: Dict[str, FormatSpec] = Field(default_factory=dict)
 
     @classmethod

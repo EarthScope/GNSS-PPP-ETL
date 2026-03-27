@@ -25,15 +25,17 @@ class ResourceFactory(Protocol):
         """Return identifiers for all registered resources."""
         ...
 
-    def source_product(self, product: Product, resource_id: str, **args) -> List[ResourceQuery]:
+    def source_product(
+        self, product: Product, resource_id: str, **args
+    ) -> List[ResourceQuery]:
         """Resolve *product* against the resource identified by *resource_id*.
 
         Returns a list of ``ResourceQuery`` objects with directory and
         filename templates partially resolved from the product's parameters.
         """
         ...
-    
-    def sink_product(self, product:Product, resource_id: str,**args) -> ResourceQuery:
+
+    def sink_product(self, product: Product, resource_id: str, **args) -> ResourceQuery:
         """What would be the path to this product for a given resource identified by *resource_id*.
 
         Returns a ``ResourceQuery`` object with directory and filename templates

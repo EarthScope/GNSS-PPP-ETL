@@ -21,6 +21,8 @@ class LocalAdapter:
             return []
         return [p.name for p in sorted(d.iterdir()) if p.is_file()]
 
-    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> bool:
+    def download_file(
+        self, hostname: str, directory: str, filename: str, dest_path: Path
+    ) -> bool:
         # Local files don't need downloading
         return False

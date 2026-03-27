@@ -6,6 +6,7 @@ End-to-end: DependencySpec → DependencyResolver → DependencyResolution → l
 Uses the multi-centre environment (Wuhan + CODE + CDDIS) with the
 PRIDE-PPPAR dependency spec.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -35,13 +36,13 @@ from gnss_ppp_products.lockfile import (
 # ── Paths ──────────────────────────────────────────────────────────
 
 _CONFIGS_DIR = (
-    Path(__file__).resolve().parent.parent
-    / "src" / "gnss_ppp_products" / "configs"
+    Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "configs"
 )
 PRIDE_PPPAR_SPEC = _CONFIGS_DIR / "dependencies" / "pride_pppar.yaml"
 
 
 # ── Fixtures ───────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def dep_spec() -> DependencySpec:
@@ -91,7 +92,6 @@ def resolver_with_fetcher(multi_env, dep_spec, tmp_path_factory) -> DependencyRe
 
 
 class TestDependencySpecLoading:
-
     def test_spec_file_exists(self) -> None:
         assert PRIDE_PPPAR_SPEC.exists()
 
@@ -113,7 +113,17 @@ class TestDependencySpecLoading:
         required = [d for d in dep_spec.dependencies if d.required]
         assert len(required) == 9
         specs = {d.spec for d in required}
-        assert specs == {"ORBIT", "CLOCK", "ERP", "BIA", "ATTOBX", "ATTATX", "RNX3_BRDC", "LEAP_SEC", "SAT_PARAMS"}
+        assert specs == {
+            "ORBIT",
+            "CLOCK",
+            "ERP",
+            "BIA",
+            "ATTOBX",
+            "ATTATX",
+            "RNX3_BRDC",
+            "LEAP_SEC",
+            "SAT_PARAMS",
+        }
 
     def test_optional_dependencies(self, dep_spec) -> None:
         optional = [d for d in dep_spec.dependencies if not d.required]
@@ -126,7 +136,6 @@ class TestDependencySpecLoading:
 
 
 class TestResolverConstruction:
-
     def test_resolver_builds(self, resolver) -> None:
         assert resolver is not None
         assert resolver.dep_spec.name == "pride-pppar"
@@ -159,26 +168,26 @@ pytestmark_integration = pytest.mark.integration
 
 
 class TestResolverWithFetcher:
-
     @pytest.mark.integration
     def test_resolve_finds_remote_products(
-        self, resolver_with_fetcher, test_date,
+        self,
+        resolver_with_fetcher,
+        test_date,
     ) -> None:
         """At least some products should be found remotely."""
         resolution = resolver_with_fetcher.resolve(test_date)
         found = [r.status != "missing" for r in resolution.resolved]
-      
-        assert all(found), (
-            f"Expected at  no missing product.\n{resolution.table()}"
-        )
+
+        assert all(found), f"Expected at  no missing product.\n{resolution.table()}"
         print(f"\nResolution table for {test_date.isoformat()}:\n")
         print(resolution.table())
         print(f"{'-' * 60}\n")
 
-
     @pytest.mark.integration
     def test_resolve_populates_remote_url(
-        self, resolver_with_fetcher, test_date,
+        self,
+        resolver_with_fetcher,
+        test_date,
     ) -> None:
         """Found products should have a remote_url set."""
         resolution = resolver_with_fetcher.resolve(test_date)
@@ -188,7 +197,9 @@ class TestResolverWithFetcher:
 
     @pytest.mark.integration
     def test_lockfile_from_resolution(
-        self, resolver_with_fetcher, test_date,
+        self,
+        resolver_with_fetcher,
+        test_date,
     ) -> None:
         """Resolution can produce a valid lockfile."""
         resolution = resolver_with_fetcher.resolve(test_date)
@@ -202,7 +213,9 @@ class TestResolverWithFetcher:
 
     @pytest.mark.integration
     def test_lockfile_json_roundtrip(
-        self, resolver_with_fetcher, test_date,
+        self,
+        resolver_with_fetcher,
+        test_date,
     ) -> None:
         """Lockfile serializes to JSON and parses back identically."""
         resolution = resolver_with_fetcher.resolve(test_date)
@@ -216,13 +229,16 @@ class TestResolverWithFetcher:
 
     @pytest.mark.integration
     def test_lockfile_products_match_found(
-        self, resolver_with_fetcher, test_date,
+        self,
+        resolver_with_fetcher,
+        test_date,
     ) -> None:
         """Each locked product corresponds to a found resolution."""
         resolution = resolver_with_fetcher.resolve(test_date)
         lockfile = resolution.to_lockfile(date=test_date.isoformat())
         found_specs = {
-            r.spec for r in resolution.resolved
+            r.spec
+            for r in resolution.resolved
             if r.status != "missing" and r.remote_url
         }
         locked_names = {p.name for p in lockfile.products}
@@ -230,7 +246,9 @@ class TestResolverWithFetcher:
 
     @pytest.mark.integration
     def test_preference_ordering_respected(
-        self, resolver_with_fetcher, test_date,
+        self,
+        resolver_with_fetcher,
+        test_date,
     ) -> None:
         """Products from preferred centres should appear with lower ranks."""
         resolution = resolver_with_fetcher.resolve(test_date)
@@ -246,10 +264,10 @@ class TestResolverWithFetcher:
 
 
 class TestFileLockSidecar:
-
     def test_hash_file(self, tmp_path) -> None:
         """_hash_file returns a sha256-prefixed hex digest."""
         from gnss_ppp_products.factories.dependency_resolver import _hash_file
+
         p = tmp_path / "sample.sp3"
         p.write_bytes(b"hello world")
         h = _hash_file(p)
@@ -297,6 +315,7 @@ class TestFileLockSidecar:
         lock_path = tmp_path / "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz.lock"
         assert lock_path.exists()
         import json
+
         data = json.loads(lock_path.read_text())
         assert data["name"] == "ORBIT"
         assert data["hash"] == "sha256:abcd1234"

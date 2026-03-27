@@ -9,7 +9,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from gnss_ppp_products.environments import ProductEnvironment
-from gnss_ppp_products.environments import WorkSpace, RegisteredLocalResource, paths_overlap
+from gnss_ppp_products.environments import (
+    WorkSpace,
+    RegisteredLocalResource,
+    paths_overlap,
+)
 
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
@@ -48,7 +52,9 @@ class LocalResourceFactory:
 
         self._product_catalog = product_environment._product_catalog
         self._parameter_catalog = product_environment._parameter_catalog
-        self._registered_specs: Dict[str,RegisteredLocalResource] = workspace._registered_specs
+        self._registered_specs: Dict[str, RegisteredLocalResource] = (
+            workspace._registered_specs
+        )
         self._alias_map: Dict[str, str] = workspace._alias_map
 
     def register(
@@ -86,7 +92,9 @@ class LocalResourceFactory:
                 )
         if alias:
             if alias in self._alias_map:
-                raise ValueError(f"Alias {alias!r} is already in use for spec {self._alias_map[alias]!r}.")
+                raise ValueError(
+                    f"Alias {alias!r} is already in use for spec {self._alias_map[alias]!r}."
+                )
             self._alias_map[alias] = name
 
         item_to_dir: Dict[str, str] = {}
@@ -136,7 +144,9 @@ class LocalResourceFactory:
                 f"Spec {product.name!r} not found in any local collection. "
                 f"Known specs: {list(registered_spec.item_to_dir.keys())}"
             )
-        resolved = self._parameter_catalog.interpolate(directory_template, dt, computed_only=True)
+        resolved = self._parameter_catalog.interpolate(
+            directory_template, dt, computed_only=True
+        )
 
         out_query = ResourceQuery(
             product=product,
@@ -175,20 +185,26 @@ class LocalResourceFactory:
             )
         directory = ProductPath(pattern=directory_template)
         directory.derive(product.parameters)
-        return [ResourceQuery(
-            product=product,
-            server=registered_spec.server,
-            directory=directory,
-        )]
+        return [
+            ResourceQuery(
+                product=product,
+                server=registered_spec.server,
+                directory=directory,
+            )
+        ]
 
     def find_local_files(
-        self, query: ResourceQuery, date: Optional[datetime.date] = None,
+        self,
+        query: ResourceQuery,
+        date: Optional[datetime.date] = None,
     ) -> List[Path]:
         """Search local disk for files matching a query."""
         dir_pattern = query.directory.pattern
         if date:
             date = _ensure_datetime(date)
-            dir_pattern = self._parameter_catalog.interpolate(dir_pattern, date, computed_only=True)
+            dir_pattern = self._parameter_catalog.interpolate(
+                dir_pattern, date, computed_only=True
+            )
 
         # Find the registered spec that owns this query's server.
         registered_spec = None
@@ -203,16 +219,21 @@ class LocalResourceFactory:
                 f"Known servers: {[s.server.id for s in self._registered_specs.values()]}"
             )
 
-        file_pattern = query.product.filename.pattern if query.product.filename else None
+        file_pattern = (
+            query.product.filename.pattern if query.product.filename else None
+        )
         if date and file_pattern:
             date = _ensure_datetime(date)
-            file_pattern = self._parameter_catalog.interpolate(file_pattern, date, computed_only=True)
+            file_pattern = self._parameter_catalog.interpolate(
+                file_pattern, date, computed_only=True
+            )
 
         search_dir = registered_spec.base_dir / Path(dir_pattern)
 
         if file_pattern:
             return sorted(
-                p for p in search_dir.iterdir()
+                p
+                for p in search_dir.iterdir()
                 if p.is_file() and re.search(file_pattern, p.name, re.IGNORECASE)
             )
         return sorted(p for p in search_dir.iterdir() if p.is_file())

@@ -15,7 +15,11 @@ from typing import List, Optional, Union
 import yaml
 
 from gnss_ppp_products.assets.center.config import GNSSCenterConfig
-from gnss_ppp_products.assets import WuhanCenterConfig, IGSCenterConfig, CDDISCenterConfig
+from gnss_ppp_products.assets import (
+    WuhanCenterConfig,
+    IGSCenterConfig,
+    CDDISCenterConfig,
+)
 from gnss_ppp_products.tasks import DependencyType, ProductDependency, Task
 
 # ---------------------------------------------------------------------------
@@ -31,12 +35,12 @@ def _load_dependency_yaml(path: Optional[Path] = None) -> dict:
     with open(path) as fh:
         return yaml.safe_load(fh)
 
+
 CENTERS = {
     "wuhan": WuhanCenterConfig,
     "igs": IGSCenterConfig,
     "cddis": CDDISCenterConfig,
 }
-
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +71,7 @@ def load_centers(
         names = dep.get("centers", [])
 
     centers: List[GNSSCenterConfig] = []
-    for name in (names or []):
+    for name in names or []:
         if name not in CENTERS:
             raise ValueError(f"Unknown center name: {name}")
         centers.append(CENTERS[name])

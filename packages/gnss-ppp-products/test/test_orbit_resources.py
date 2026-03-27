@@ -4,6 +4,7 @@ Tests: Orbit/Clock products via QueryFactory.
 Products: ORBIT, CLOCK, ERP, BIA, ATTOBX
 Centers : Wuhan (FTP), CODE (FTP), CDDIS (FTPS)
 """
+
 from __future__ import annotations
 
 import datetime
@@ -18,7 +19,11 @@ pytestmark = pytest.mark.integration
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    return [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -39,8 +44,8 @@ def _assert_found(results, product_name, min_matches=1):
 # Unit: Wuhan Orbit/Clock query expansion
 # ---------------------------------------------------------------------------
 
-class TestWuhanOrbitExpansion:
 
+class TestWuhanOrbitExpansion:
     def test_orbit_queries_returned(self, wuhan_qf, test_date) -> None:
         queries = _get_remote_queries(wuhan_qf, test_date, "ORBIT", {"AAA": "WUM"})
         assert len(queries) > 0
@@ -92,8 +97,8 @@ class TestWuhanOrbitExpansion:
 # Unit: CODE Orbit/Clock query expansion
 # ---------------------------------------------------------------------------
 
-class TestCODOrbitExpansion:
 
+class TestCODOrbitExpansion:
     def test_orbit_queries_returned(self, cod_qf, test_date) -> None:
         queries = _get_remote_queries(cod_qf, test_date, "ORBIT")
         assert len(queries) > 0
@@ -131,8 +136,8 @@ class TestCODOrbitExpansion:
 # Unit: CDDIS Orbit/Clock query expansion
 # ---------------------------------------------------------------------------
 
-class TestCDDISOrbitExpansion:
 
+class TestCDDISOrbitExpansion:
     def test_orbit_queries_returned(self, cddis_qf, test_date) -> None:
         queries = _get_remote_queries(cddis_qf, test_date, "ORBIT", {"AAA": "WUM"})
         assert len(queries) > 0
@@ -158,8 +163,8 @@ class TestCDDISOrbitExpansion:
 # Integration: Wuhan FTP orbit probe
 # ---------------------------------------------------------------------------
 
-class TestWuhanOrbitProbe:
 
+class TestWuhanOrbitProbe:
     def test_orbit_found(self, wuhan_qf, fetcher, test_date) -> None:
         results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
         _assert_found(results, "ORBIT")
@@ -198,8 +203,8 @@ class TestWuhanOrbitProbe:
 # Integration: CODE FTP orbit probe
 # ---------------------------------------------------------------------------
 
-class TestCODOrbitProbe:
 
+class TestCODOrbitProbe:
     def test_orbit_found(self, cod_qf, fetcher, test_date) -> None:
         results = _search_remote(cod_qf, fetcher, test_date, "ORBIT")
         _assert_found(results, "ORBIT")
@@ -227,8 +232,8 @@ class TestCODOrbitProbe:
 # Integration: CDDIS FTPS orbit probe
 # ---------------------------------------------------------------------------
 
-class TestCDDISOrbitProbe:
 
+class TestCDDISOrbitProbe:
     def test_orbit_found(self, cddis_qf, fetcher, test_date) -> None:
         results = _search_remote(cddis_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
         _assert_found(results, "ORBIT")

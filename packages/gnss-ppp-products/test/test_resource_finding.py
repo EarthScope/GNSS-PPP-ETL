@@ -9,6 +9,7 @@ Products: ORBIT, CLOCK, ERP, BIA, IONEX, RNX3_BRDC, LEAP_SEC, SAT_PARAMS, ATTOBX
 
 All tests in this module are marked ``integration`` (hit real servers).
 """
+
 from __future__ import annotations
 
 import datetime
@@ -27,10 +28,15 @@ pytestmark = pytest.mark.integration
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
     """Run the full query→search pipeline and return only remote FetchResults."""
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    remote_queries = [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    remote_queries = [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
     results = fetcher.search(remote_queries)
     return results
 
@@ -48,6 +54,7 @@ def _assert_found(results, product_name, min_matches=1):
 # ---------------------------------------------------------------------------
 # Wuhan (FTP) — igs.gnsswhu.cn
 # ---------------------------------------------------------------------------
+
 
 class TestWuhanResourceFinding:
     """Search for products on Wuhan FTP."""
@@ -104,7 +111,9 @@ class TestWuhanResourceFinding:
         for r in found:
             assert len(r.directory_listing) > 0
 
-    def test_matched_filename_is_subset_of_listing(self, wuhan_qf, fetcher, test_date) -> None:
+    def test_matched_filename_is_subset_of_listing(
+        self, wuhan_qf, fetcher, test_date
+    ) -> None:
         results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
         found = _assert_found(results, "ORBIT")
         for r in found:
@@ -115,6 +124,7 @@ class TestWuhanResourceFinding:
 # ---------------------------------------------------------------------------
 # CODE (FTP) — ftp.aiub.unibe.ch
 # ---------------------------------------------------------------------------
+
 
 class TestCODResourceFinding:
     """Search for products on CODE FTP."""
@@ -139,7 +149,9 @@ class TestCODResourceFinding:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")
         found = _assert_found(results, "IONEX")
         for r in found:
-            assert any("GIM" in f.upper() or "INX" in f.upper() for f in r.matched_filenames)
+            assert any(
+                "GIM" in f.upper() or "INX" in f.upper() for f in r.matched_filenames
+            )
 
     def test_orbit_directory_is_code_year(self, cod_qf, fetcher, test_date) -> None:
         """CODE orbit files should be under CODE/{YYYY}/."""
@@ -160,6 +172,7 @@ class TestCODResourceFinding:
 # ---------------------------------------------------------------------------
 # CDDIS (FTPS) — gdc.cddis.eosdis.nasa.gov
 # ---------------------------------------------------------------------------
+
 
 class TestCDDISResourceFinding:
     """Search for products on CDDIS FTPS."""
@@ -195,6 +208,7 @@ class TestCDDISResourceFinding:
 # Cross-center: ResourceFetcher caching
 # ---------------------------------------------------------------------------
 
+
 class TestFetcherCaching:
     """Verify ResourceFetcher caches directory listings across queries."""
 
@@ -206,7 +220,11 @@ class TestFetcherCaching:
             product={"name": "ORBIT"},
             parameters={"AAA": "WUM"},
         )
-        remote_queries = [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+        remote_queries = [
+            q
+            for q in queries
+            if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+        ]
         fresh_fetcher.search(remote_queries)
         assert len(fresh_fetcher._connection_pool_factory._listing_cache) > 0
 
@@ -221,7 +239,8 @@ class TestFetcherCaching:
         )
         erp_queries = wuhan_qf.get(date=test_date, product={"name": "ERP"})
         remote = [
-            q for q in orbit_queries + erp_queries
+            q
+            for q in orbit_queries + erp_queries
             if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
         ]
         fresh_fetcher.search(remote)
@@ -232,6 +251,7 @@ class TestFetcherCaching:
 # ---------------------------------------------------------------------------
 # FetchResult properties
 # ---------------------------------------------------------------------------
+
 
 class TestFetchResultProperties:
     """Verify FetchResult convenience properties."""

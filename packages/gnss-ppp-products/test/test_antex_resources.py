@@ -4,6 +4,7 @@ Tests: Antenna phase center (ANTEX) products via QueryFactory.
 Products: ATTATX
 Centers : IGS (HTTPS via files.igs.org)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,11 @@ pytestmark = pytest.mark.integration
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    return [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -37,8 +42,8 @@ def _assert_found(results, product_name, min_matches=1):
 # Unit: IGS ANTEX query expansion
 # ---------------------------------------------------------------------------
 
-class TestIGSAntexExpansion:
 
+class TestIGSAntexExpansion:
     def test_attatx_queries_returned(self, igs_qf, test_date) -> None:
         queries = _get_remote_queries(igs_qf, test_date, "ATTATX")
         assert len(queries) > 0
@@ -58,8 +63,8 @@ class TestIGSAntexExpansion:
 # Integration: IGS ANTEX probe
 # ---------------------------------------------------------------------------
 
-class TestIGSAntexProbe:
 
+class TestIGSAntexProbe:
     def test_attatx_found(self, igs_qf, fetcher, test_date) -> None:
         results = _search_remote(igs_qf, fetcher, test_date, "ATTATX")
         _assert_found(results, "ATTATX")

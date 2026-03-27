@@ -15,7 +15,10 @@ class SearchPreference(BaseModel):
     """One slot in the preference cascade."""
 
     parameter: str
-    sorting: List[str] = Field(default_factory=list, description="List of product parameters to sort by for this preference.")
+    sorting: List[str] = Field(
+        default_factory=list,
+        description="List of product parameters to sort by for this preference.",
+    )
     description: str = ""
 
 
@@ -35,15 +38,14 @@ class DependencySpec(BaseModel):
     description: str = ""
     preferences: List[SearchPreference] = Field(default_factory=list)
     dependencies: List[Dependency] = Field(default_factory=list)
-    package:str
-    task:str
+    package: str
+    task: str
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "DependencySpec":
         with open(path) as fh:
             raw = yaml.safe_load(fh)
         return cls.model_validate(raw)
-
 
 
 class ResolvedDependency(BaseModel):
@@ -54,11 +56,9 @@ class ResolvedDependency(BaseModel):
     status: str  # "local" | "downloaded" | "remote" | "missing"
 
     local_path: Optional[Path] = None
-    
+
     # Lockfile fields — populated during resolution for later export
     remote_url: Optional[str] = None
-
-
 
 
 @dataclass
@@ -78,19 +78,10 @@ class DependencyResolution:
 
     @property
     def all_required_fulfilled(self) -> bool:
-        return all(
-            r.status != "missing"
-            for r in self.resolved
-            if r.required
-        )
+        return all(r.status != "missing" for r in self.resolved if r.required)
 
     def product_paths(self) -> Dict[str, Path]:
-        return {
-            r.spec: r.local_path
-            for r in self.resolved
-            if r.local_path is not None
-        }
-
+        return {r.spec: r.local_path for r in self.resolved if r.local_path is not None}
 
     def summary(self) -> str:
         total = len(self.resolved)

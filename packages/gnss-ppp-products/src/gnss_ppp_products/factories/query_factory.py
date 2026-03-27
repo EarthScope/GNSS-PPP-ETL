@@ -8,7 +8,12 @@ from gnss_ppp_products.environments import ProductEnvironment
 from gnss_ppp_products.factories.local_factory import LocalResourceFactory
 from gnss_ppp_products.environments import WorkSpace
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
-from gnss_ppp_products.specifications.products.product import Product, ProductPath, VariantCatalog, VersionCatalog
+from gnss_ppp_products.specifications.products.product import (
+    Product,
+    ProductPath,
+    VariantCatalog,
+    VersionCatalog,
+)
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.factories.resource_factory import ResourceFactory
 from gnss_ppp_products.utilities.helpers import _listify, expand_dict_combinations
@@ -44,7 +49,6 @@ class QueryFactory:
         self,
         product_environment: ProductEnvironment,
         workspace: WorkSpace,
-
     ):
         self._env = product_environment
         self._workspace = workspace
@@ -54,7 +58,6 @@ class QueryFactory:
         self._local = LocalResourceFactory(
             workspace=self._workspace,
             product_environment=self._env,
-   
         )
 
     def get(
@@ -98,18 +101,30 @@ class QueryFactory:
         product_version_query = _listify(product.get("version"))
         product_variant_query = _listify(product.get("variant"))
 
-        product_version_catalog: Optional[VersionCatalog] = self._products.products.get(product_name_query)
+        product_version_catalog: Optional[VersionCatalog] = self._products.products.get(
+            product_name_query
+        )
         if product_version_catalog is None:
-            raise ValueError(f"Product {product_name_query!r} not found in ProductCatalog")
-        versions = product_version_query or list(product_version_catalog.versions.keys())
+            raise ValueError(
+                f"Product {product_name_query!r} not found in ProductCatalog"
+            )
+        versions = product_version_query or list(
+            product_version_catalog.versions.keys()
+        )
         for version in versions:
-            variant_cat: Optional[VariantCatalog] = product_version_catalog.versions.get(version)
+            variant_cat: Optional[VariantCatalog] = (
+                product_version_catalog.versions.get(version)
+            )
             if variant_cat is None:
-                raise ValueError(f"Version {version!r} not found for product {product_name_query!r}")
+                raise ValueError(
+                    f"Version {version!r} not found for product {product_name_query!r}"
+                )
             variants = product_variant_query or list(variant_cat.variants.keys())
             for variant in variants:
                 if variant not in variant_cat.variants:
-                    raise ValueError(f"Variant {variant!r} not found for product {product_name_query!r} version {version!r}")
+                    raise ValueError(
+                        f"Variant {variant!r} not found for product {product_name_query!r} version {version!r}"
+                    )
                 product_templates.append(variant_cat.variants[variant])
 
         # 2. Resolve date fields via ParameterCatalog
@@ -129,7 +144,14 @@ class QueryFactory:
                 for combo in parameter_combinations:
                     updated = template.model_copy(deep=True)
                     for k, v in combo.items():
-                        param_index = next((i for i, p in enumerate(updated.parameters) if p.name == k), None)
+                        param_index = next(
+                            (
+                                i
+                                for i, p in enumerate(updated.parameters)
+                                if p.name == k
+                            ),
+                            None,
+                        )
                         if param_index is not None:
                             updated.parameters[param_index].value = v
                     if updated.filename is not None:
@@ -144,11 +166,15 @@ class QueryFactory:
                     continue
                 to_update = template.model_copy(deep=True)
                 try:
-                    resolved_queries: List[ResourceQuery] = self._local.source_product(to_update, resource_id)
+                    resolved_queries: List[ResourceQuery] = self._local.source_product(
+                        to_update, resource_id
+                    )
                 except KeyError:
                     continue
                 for rq in resolved_queries:
-                    resolved_dir: str = self._params.interpolate(rq.directory.pattern, date, computed_only=True)
+                    resolved_dir: str = self._params.interpolate(
+                        rq.directory.pattern, date, computed_only=True
+                    )
                     rq.directory = ProductPath(pattern=resolved_dir)
                     out.append(rq)
 
@@ -160,11 +186,15 @@ class QueryFactory:
 
                 to_update = template.model_copy(deep=True)
                 try:
-                    resolved_queries: List[ResourceQuery] = self._remote.source_product(to_update, center_id)
+                    resolved_queries: List[ResourceQuery] = self._remote.source_product(
+                        to_update, center_id
+                    )
                 except KeyError:
                     continue
                 for resolution_rq in resolved_queries:
-                    resolved_dir = self._params.interpolate(resolution_rq.directory.pattern, date, computed_only=True)
+                    resolved_dir = self._params.interpolate(
+                        resolution_rq.directory.pattern, date, computed_only=True
+                    )
                     resolution_rq.directory = ProductPath(pattern=resolved_dir)
                     out.append(resolution_rq)
 

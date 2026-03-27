@@ -2,6 +2,7 @@ from pathlib import Path
 import gzip
 from typing import Optional
 
+
 def uncompress_file(file_path: Path, dest_dir: Optional[Path]) -> Path:
     """
     Decompresses a file using zlib and returns the path of the decompressed file.
@@ -34,8 +35,9 @@ def uncompress_file(file_path: Path, dest_dir: Optional[Path]) -> Path:
         # Optionally, remove the corrupted file
         file_path.unlink(missing_ok=True)
         return None
-    
+
     return out_file_path
+
 
 def is_gzip_file(file_path: Path) -> bool:
     """
@@ -52,6 +54,7 @@ def is_gzip_file(file_path: Path) -> bool:
     with open(file_path, "rb") as f:
         magic_number = f.read(2)
     return magic_number == b"\x1f\x8b"
+
 
 def is_corrupted_gzip(file_path: Path) -> bool:
     """
@@ -72,6 +75,7 @@ def is_corrupted_gzip(file_path: Path) -> bool:
         return False
     except EOFError:
         return True
+
 
 def safe_uncompress_file(file_path: Path, dest_dir: Optional[Path]) -> Optional[Path]:
     """

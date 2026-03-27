@@ -4,6 +4,7 @@ Tests: LEO satellite (GRACE) products via QueryFactory.
 Products: LEO_L1B
 Centers : GFZ (FTP)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -19,7 +20,11 @@ pytestmark = [
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    return [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -40,8 +45,8 @@ def _assert_found(results, product_name, min_matches=1):
 # Unit: GFZ LEO query expansion
 # ---------------------------------------------------------------------------
 
-class TestGFZLEOExpansion:
 
+class TestGFZLEOExpansion:
     def test_leo_queries_returned(self, gfz_qf, test_date) -> None:
         queries = _get_remote_queries(gfz_qf, test_date, "LEO_L1B")
         assert len(queries) > 0
@@ -62,8 +67,8 @@ class TestGFZLEOExpansion:
 # Integration: GFZ LEO probe
 # ---------------------------------------------------------------------------
 
-class TestGFZLEOProbe:
 
+class TestGFZLEOProbe:
     def test_leo_found(self, gfz_qf, fetcher, test_date) -> None:
         results = _search_remote(gfz_qf, fetcher, test_date, "LEO_L1B")
         _assert_found(results, "LEO_L1B")

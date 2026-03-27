@@ -152,7 +152,9 @@ def get_nav_file(
         logger.error("No TIME OF FIRST OBS found in RINEX file.")
         return None
 
-    nav_date = start_date.date() if isinstance(start_date, datetime.datetime) else start_date
+    nav_date = (
+        start_date.date() if isinstance(start_date, datetime.datetime) else start_date
+    )
 
     task = build_task(
         local_storage_root=pride_dir,
@@ -160,6 +162,7 @@ def get_nav_file(
 
     # Only resolve RINEX dependency
     from gnss_ppp_products.tasks import ProductDependency
+
     task.dependencies = [ProductDependency(type=DependencyType.RINEX, required=True)]
 
     result = task.resolve(date=nav_date)
@@ -233,7 +236,9 @@ def get_gnss_products(
         if ts_start is None:
             logger.error("No TIME OF FIRST OBS found in RINEX file.")
             return None
-        start_date = ts_start.date() if isinstance(ts_start, datetime.datetime) else ts_start
+        start_date = (
+            ts_start.date() if isinstance(ts_start, datetime.datetime) else ts_start
+        )
     elif date is not None:
         if isinstance(date, datetime.datetime):
             start_date = date.date()
@@ -285,7 +290,9 @@ def get_gnss_products(
     config_template = PRIDEPPPFileConfig.load_default()
     config_template.satellite_products = satellite_products
 
-    daily_config_dir = pride_dir / str(start_date.year) / f"{start_date.timetuple().tm_yday:03d}"
+    daily_config_dir = (
+        pride_dir / str(start_date.year) / f"{start_date.timetuple().tm_yday:03d}"
+    )
     daily_config_dir.mkdir(parents=True, exist_ok=True)
     daily_config_path = daily_config_dir / "config_file"
     config_template.write_config_file(daily_config_path)

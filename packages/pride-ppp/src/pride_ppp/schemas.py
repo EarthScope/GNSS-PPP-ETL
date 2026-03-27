@@ -113,7 +113,11 @@ class RemoteResourceFTP:
 
     def __str__(self):
         return str(
-            {"ftpserver": self.ftpserver, "directory": self.directory, "file": self.file_name}
+            {
+                "ftpserver": self.ftpserver,
+                "directory": self.directory,
+                "file": self.file_name,
+            }
         )
 
 
@@ -137,7 +141,9 @@ class WuhanIGS:
         dir_extension = f"{year}/{doy}/{year[2:]}p"
         directory = "/".join([cls.daily_gps_dir, dir_extension])
         remote_query = RemoteQuery.rnx2(date, constellation)
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query)
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query
+        )
 
     @classmethod
     def get_rinex_3_nav(cls, date: datetime.date) -> RemoteResourceFTP:
@@ -145,43 +151,69 @@ class WuhanIGS:
         year, doy = _parse_date(date)
         dir_extension = f"{year}/{doy}/{year[2:]}p"
         directory = "/".join([cls.daily_gps_dir, dir_extension])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query)
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query
+        )
 
     @classmethod
     def get_product_sp3(cls, date: datetime.date) -> RemoteResourceFTP:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_product_dir, f"{year}/orbit"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.sp3(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.sp3(date),
+        )
 
     @classmethod
     def get_product_obx(cls, date: datetime.date) -> RemoteResourceFTP:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_product_dir, f"{year}/orbit"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.obx(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.obx(date),
+        )
 
     @classmethod
     def get_product_clk(cls, date: datetime.date) -> RemoteResourceFTP:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_product_dir, f"{year}/clock"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.clk(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.clk(date),
+        )
 
     @classmethod
     def get_product_sum(cls, date: datetime.date) -> RemoteResourceFTP:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_product_dir, f"{year}/clock"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.sum(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.sum(date),
+        )
 
     @classmethod
     def get_product_bias(cls, date: datetime.date) -> RemoteResourceFTP:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_product_dir, f"{year}/bias"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.bias(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.bias(date),
+        )
 
     @classmethod
     def get_product_erp(cls, date: datetime.date) -> RemoteResourceFTP:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_product_dir, f"{year}/orbit"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.erp(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.erp(date),
+        )
 
 
 class GSSC:
@@ -197,14 +229,18 @@ class GSSC:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_gps_dir, f"{year}/{doy}"])
         remote_query = RemoteQuery.rnx2(date, constellation)
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query)
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query
+        )
 
     @classmethod
     def get_rinex_3_nav(cls, date: datetime.date) -> RemoteResourceFTP:
         remote_query = RemoteQuery.rnx3(date)
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_gps_dir, f"{year}/{doy}"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query)
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query
+        )
 
 
 class CLSIGS:
@@ -223,44 +259,68 @@ class CLSIGS:
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_gps_dir, f"{year}/{doy}"])
         remote_query = RemoteQuery.rnx2(date, constellation)
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query)
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query
+        )
 
     @classmethod
     def get_rinex_3_nav(cls, date: datetime.date) -> RemoteResourceFTP:
         remote_query = RemoteQuery.rnx3(date)
         year, doy = _parse_date(date)
         directory = "/".join([cls.daily_gps_dir, f"{year}/{doy}"])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query)
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver, directory=directory, remote_query=remote_query
+        )
 
     @classmethod
     def get_product_sp3(cls, date: datetime.date) -> RemoteResourceFTP:
         gps_week = _date_to_gps_week(date)
         directory = "/".join([cls.daily_products_dir, str(gps_week)])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.sp3(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.sp3(date),
+        )
 
     @classmethod
     def get_product_clk(cls, date: datetime.date) -> RemoteResourceFTP:
         gps_week = _date_to_gps_week(date)
         directory = "/".join([cls.daily_products_dir, str(gps_week)])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.clk(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.clk(date),
+        )
 
     @classmethod
     def get_product_erp(cls, date: datetime.date) -> RemoteResourceFTP:
         gps_week = _date_to_gps_week(date)
         directory = "/".join([cls.daily_products_dir, str(gps_week)])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.erp(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.erp(date),
+        )
 
     @classmethod
     def get_product_obx(cls, date: datetime.date) -> RemoteResourceFTP:
         gps_week = _date_to_gps_week(date)
         directory = "/".join([cls.daily_products_dir, str(gps_week)])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.obx(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.obx(date),
+        )
 
     @classmethod
     def get_product_bias(cls, date: datetime.date) -> RemoteResourceFTP:
         gps_week = _date_to_gps_week(date)
         directory = "/".join([cls.daily_products_dir, str(gps_week)])
-        return RemoteResourceFTP(ftpserver=cls.ftpserver, directory=directory, remote_query=RemoteQuery.bias(date))
+        return RemoteResourceFTP(
+            ftpserver=cls.ftpserver,
+            directory=directory,
+            remote_query=RemoteQuery.bias(date),
+        )
 
 
 class Potsdam:

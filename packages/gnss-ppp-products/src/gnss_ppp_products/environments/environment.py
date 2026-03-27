@@ -37,6 +37,7 @@ from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 
+
 class _MatchEntry(NamedTuple):
     template_len: int
     compiled_regex: re.Pattern
@@ -46,12 +47,15 @@ class _MatchEntry(NamedTuple):
     variant: str
     fixed_params: dict
 
+
 def _merged_parameter_catalog(
     base: ParameterCatalog,
     product_params: List[Parameter],
 ) -> ParameterCatalog:
     """Merge product-specific parameter patterns into the global catalog."""
-    merged = {name: param.model_copy(deep=True) for name, param in base.parameters.items()}
+    merged = {
+        name: param.model_copy(deep=True) for name, param in base.parameters.items()
+    }
     for p in product_params:
         if p.name in merged:
             updates = {}
@@ -62,6 +66,7 @@ def _merged_parameter_catalog(
         else:
             merged[p.name] = p.model_copy(deep=True)
     return ParameterCatalog(list(merged.values()))
+
 
 def _build_match_table(
     product_spec_catalog: ProductSpecCatalog,
@@ -75,20 +80,33 @@ def _build_match_table(
             for var_name, product in var_cat.variants.items():
                 if product.filename is None:
                     continue
-                spec = product_spec_catalog.products[prod_name].versions[ver_name].variants[var_name]
-                merged = _merged_parameter_catalog(parameter_catalog, product.parameters)
+                spec = (
+                    product_spec_catalog.products[prod_name]
+                    .versions[ver_name]
+                    .variants[var_name]
+                )
+                merged = _merged_parameter_catalog(
+                    parameter_catalog, product.parameters
+                )
                 regex_str = product.filename.to_regex(merged)
-                entries.append(_MatchEntry(
-                    template_len=len(product.filename.pattern),
-                    compiled_regex=re.compile(regex_str),
-                    product_name=prod_name,
-                    format_name=spec.format,
-                    version=ver_name,
-                    variant=var_name,
-                    fixed_params={p.name: p.value for p in product.parameters if p.value is not None},
-                ))
+                entries.append(
+                    _MatchEntry(
+                        template_len=len(product.filename.pattern),
+                        compiled_regex=re.compile(regex_str),
+                        product_name=prod_name,
+                        format_name=spec.format,
+                        version=ver_name,
+                        variant=var_name,
+                        fixed_params={
+                            p.name: p.value
+                            for p in product.parameters
+                            if p.value is not None
+                        },
+                    )
+                )
     entries.sort(key=lambda e: -e.template_len)
     return entries
+
 
 class LoadedSpecs(BaseModel):
     filename: Path | str
@@ -124,9 +142,9 @@ class ProductEnvironment:
         path = Path(path)
         assert path.exists(), f"Parameter spec file not found: {path}"
         assert path.is_file(), f"Parameter spec path must be a file: {path}"
-        assert (
-            id not in self._parameter_specs
-        ), f"Parameter spec with id '{id}' already exists. Please choose a unique id."
+        assert id not in self._parameter_specs, (
+            f"Parameter spec with id '{id}' already exists. Please choose a unique id."
+        )
         parameter_spec_catalog = ParameterCatalog.from_yaml(path)
         self._parameter_specs[id] = LoadedSpecs(
             filename=path, built=parameter_spec_catalog
@@ -136,9 +154,9 @@ class ProductEnvironment:
         path = Path(path)
         assert path.exists(), f"Format spec file not found: {path}"
         assert path.is_file(), f"Format spec path must be a file: {path}"
-        assert (
-            id not in self._format_specs
-        ), f"Format spec with id '{id}' already exists. Please choose a unique id."
+        assert id not in self._format_specs, (
+            f"Format spec with id '{id}' already exists. Please choose a unique id."
+        )
 
         format_spec_catalog = FormatSpecCatalog.from_yaml(path)
         self._format_specs[id] = LoadedSpecs(filename=path, built=format_spec_catalog)
@@ -147,9 +165,9 @@ class ProductEnvironment:
         path = Path(path)
         assert path.exists(), f"Product spec file not found: {path}"
         assert path.is_file(), f"Product spec path must be a file: {path}"
-        assert (
-            id not in self._product_specs
-        ), f"Product spec with id '{id}' already exists. Please choose a unique id."
+        assert id not in self._product_specs, (
+            f"Product spec with id '{id}' already exists. Please choose a unique id."
+        )
         product_spec: ProductSpecCatalog = ProductSpecCatalog.from_yaml(path)
         self._product_specs[id] = LoadedSpecs(filename=path, built=product_spec)
         if self._product_spec_catalog is None:
@@ -164,9 +182,9 @@ class ProductEnvironment:
 
         resource_spec = ResourceSpec.from_yaml(path)
         id = resource_spec.id
-        assert (
-            id not in self._resource_specs
-        ), f"Resource spec with id '{id}' already exists. Please choose a unique id."
+        assert id not in self._resource_specs, (
+            f"Resource spec with id '{id}' already exists. Please choose a unique id."
+        )
         self._resource_specs[id] = LoadedSpecs(filename=path, built=resource_spec)
 
     def _build_parameter_catalog(self) -> None:
@@ -179,9 +197,9 @@ class ProductEnvironment:
         register_computed_fields(self._parameter_catalog)
 
     def _build_format_catalog(self) -> None:
-        assert (
-            self._parameter_catalog is not None
-        ), "Parameter catalog must be built before building format catalog"
+        assert self._parameter_catalog is not None, (
+            "Parameter catalog must be built before building format catalog"
+        )
         for id, spec in self._format_specs.items():
             format_catalog_new = FormatCatalog.build(
                 format_spec_catalog=spec.built,
@@ -193,15 +211,15 @@ class ProductEnvironment:
                 self._format_catalog = self._format_catalog.merge(format_catalog_new)
 
     def _build_product_catalog(self) -> None:
-        assert (
-            self._format_catalog is not None
-        ), "Format catalog must be built before building product catalog"
-        assert (
-            self._product_spec_catalog is not None
-        ), "Product spec catalog must be built before building product catalog"
-        assert (
-            self._parameter_catalog is not None
-        ), "Parameter catalog must be built before building product catalog"
+        assert self._format_catalog is not None, (
+            "Format catalog must be built before building product catalog"
+        )
+        assert self._product_spec_catalog is not None, (
+            "Product spec catalog must be built before building product catalog"
+        )
+        assert self._parameter_catalog is not None, (
+            "Parameter catalog must be built before building product catalog"
+        )
         for id, spec in self._product_specs.items():
             product_catalog_new = ProductCatalog.build(
                 product_spec_catalog=spec.built, format_catalog=self._format_catalog
@@ -218,12 +236,12 @@ class ProductEnvironment:
         )
 
     def _build_remote_resource_factory(self) -> None:
-        assert (
-            self._product_catalog is not None
-        ), "Product catalog must be built before building remote resource factory"
-        assert (
-            self._parameter_catalog is not None
-        ), "Parameter catalog must be built before building remote resource factory"
+        assert self._product_catalog is not None, (
+            "Product catalog must be built before building remote resource factory"
+        )
+        assert self._parameter_catalog is not None, (
+            "Parameter catalog must be built before building remote resource factory"
+        )
         factory = RemoteResourceFactory(
             product_catalog=self._product_catalog,
             parameter_catalog=self._parameter_catalog,

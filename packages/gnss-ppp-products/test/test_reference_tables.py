@@ -4,6 +4,7 @@ Tests: Reference table products via QueryFactory.
 Products: LEAP_SEC, SAT_PARAMS
 Centers : Wuhan (FTP)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,11 @@ pytestmark = pytest.mark.integration
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    return [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -37,8 +42,8 @@ def _assert_found(results, product_name, min_matches=1):
 # Unit: Reference table query expansion
 # ---------------------------------------------------------------------------
 
-class TestReferenceTableExpansion:
 
+class TestReferenceTableExpansion:
     def test_leap_sec_queries_returned(self, wuhan_qf, test_date) -> None:
         queries = _get_remote_queries(wuhan_qf, test_date, "LEAP_SEC")
         assert len(queries) > 0
@@ -67,8 +72,8 @@ class TestReferenceTableExpansion:
 # Integration: Reference table probes
 # ---------------------------------------------------------------------------
 
-class TestReferenceTableProbe:
 
+class TestReferenceTableProbe:
     def test_leap_sec_found(self, wuhan_qf, fetcher, test_date) -> None:
         results = _search_remote(wuhan_qf, fetcher, test_date, "LEAP_SEC")
         found = _assert_found(results, "LEAP_SEC")

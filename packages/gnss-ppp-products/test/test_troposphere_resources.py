@@ -4,6 +4,7 @@ Tests: Troposphere (VMF) products via QueryFactory.
 Products: VMF
 Centers : VMF / TU Wien (HTTPS)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,11 @@ pytestmark = pytest.mark.integration
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    return [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -37,8 +42,8 @@ def _assert_found(results, product_name, min_matches=1):
 # Unit: VMF query expansion
 # ---------------------------------------------------------------------------
 
-class TestVMFExpansion:
 
+class TestVMFExpansion:
     def test_vmf_queries_returned(self, vmf_qf, test_date) -> None:
         queries = _get_remote_queries(vmf_qf, test_date, "VMF")
         assert len(queries) > 0
@@ -64,8 +69,8 @@ class TestVMFExpansion:
 # Integration: VMF HTTPS probe
 # ---------------------------------------------------------------------------
 
-class TestVMFProbe:
 
+class TestVMFProbe:
     def test_vmf_found(self, vmf_qf, fetcher, test_date) -> None:
         results = _search_remote(vmf_qf, fetcher, test_date, "VMF")
         _assert_found(results, "VMF")
@@ -74,4 +79,6 @@ class TestVMFProbe:
         results = _search_remote(vmf_qf, fetcher, test_date, "VMF")
         found = _assert_found(results, "VMF")
         for r in found:
-            assert any("VMF" in f.upper() or "vmf" in f.lower() for f in r.matched_filenames)
+            assert any(
+                "VMF" in f.upper() or "vmf" in f.lower() for f in r.matched_filenames
+            )

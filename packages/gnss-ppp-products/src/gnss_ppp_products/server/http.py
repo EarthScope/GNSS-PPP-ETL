@@ -60,9 +60,7 @@ def http_protocol(
     filequery: str,
 ) -> List[str]:
     out = []
-    listing: Optional[str] = http_list_directory(
-        server=httpserver, directory=directory
-    )
+    listing: Optional[str] = http_list_directory(server=httpserver, directory=directory)
     if listing is None:
         return out
     for filename in extract_filenames_from_html(listing):
@@ -117,9 +115,14 @@ class HTTPAdapter:
             return []
         return extract_filenames_from_html(html)
 
-    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> Optional[Path]:
+    def download_file(
+        self, hostname: str, directory: str, filename: str, dest_path: Path
+    ) -> Optional[Path]:
         result = http_get_file(
-            hostname, directory, filename,
-            dest_dir=dest_path.parent, timeout=self._timeout,
+            hostname,
+            directory,
+            filename,
+            dest_dir=dest_path.parent,
+            timeout=self._timeout,
         )
         return result

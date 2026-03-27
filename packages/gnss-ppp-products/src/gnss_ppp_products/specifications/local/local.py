@@ -43,7 +43,7 @@ class LocalResourceSpec(BaseModel):
         """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
-        
+
         class_instance = cls.model_validate(raw.get("local", raw))
         class_instance.source_file = Path(path)
         return class_instance

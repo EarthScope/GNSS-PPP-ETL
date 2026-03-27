@@ -18,10 +18,21 @@ class DerivationMethod(str, Enum):
 class Parameter(BaseModel):
     name: str = Field(..., description="The name of the parameter.")
     value: Optional[str] = Field(None, description="The value of the parameter.")
-    pattern: Optional[str] = Field(None, description="A regex pattern to match the parameter value.")
-    description: Optional[str] = Field(None, description="A description of the parameter.")
-    derivation: Optional[DerivationMethod] = Field(DerivationMethod.ENUM, description="The method used to derive the parameter value.")
-    compute: Optional[Callable[[datetime.datetime], str]] = Field(None, description="A callable that computes the parameter value from a datetime.", exclude=True)
+    pattern: Optional[str] = Field(
+        None, description="A regex pattern to match the parameter value."
+    )
+    description: Optional[str] = Field(
+        None, description="A description of the parameter."
+    )
+    derivation: Optional[DerivationMethod] = Field(
+        DerivationMethod.ENUM,
+        description="The method used to derive the parameter value.",
+    )
+    compute: Optional[Callable[[datetime.datetime], str]] = Field(
+        None,
+        description="A callable that computes the parameter value from a datetime.",
+        exclude=True,
+    )
 
     class Config:
         arbitrary_types_allowed = True
@@ -78,7 +89,9 @@ class ParameterCatalog:
                 pattern=pattern,
                 compute=compute,
                 description=description,
-                derivation=DerivationMethod.COMPUTED if compute else DerivationMethod.ENUM,
+                derivation=DerivationMethod.COMPUTED
+                if compute
+                else DerivationMethod.ENUM,
             )
         self.parameters[name] = p
         return p
@@ -91,9 +104,11 @@ class ParameterCatalog:
         description: Optional[str] = None,
     ):
         """Decorator that registers a computed parameter field."""
+
         def decorator(fn: Callable[[datetime.datetime], str]):
             self.register(name, pattern, compute=fn, description=description)
             return fn
+
         return decorator
 
     # -- bulk operations --------------------------------------------
@@ -101,9 +116,7 @@ class ParameterCatalog:
     def defaults(self) -> Dict[str, str]:
         """Return ``{name: pattern}`` for every parameter with a pattern."""
         return {
-            p.name: p.pattern
-            for p in self.parameters.values()
-            if p.pattern is not None
+            p.name: p.pattern for p in self.parameters.values() if p.pattern is not None
         }
 
     def resolve_params(
@@ -161,11 +174,13 @@ class ParameterCatalog:
             params.append(Parameter(**kw))
         return cls(parameters=params)
 
-    def merge(self,other: "ParameterCatalog") -> "ParameterCatalog":
+    def merge(self, other: "ParameterCatalog") -> "ParameterCatalog":
         """Merge another catalog into this one. Raise a warning if there are duplicate parameter names."""
         merged = self.parameters.copy()
         for name, param in other.parameters.items():
             if name in merged:
-                print(f"Warning: Duplicate parameter name '{name}' found. Overwriting with new value.")
+                print(
+                    f"Warning: Duplicate parameter name '{name}' found. Overwriting with new value."
+                )
             merged[name] = param
         return ParameterCatalog(parameters=list(merged.values()))

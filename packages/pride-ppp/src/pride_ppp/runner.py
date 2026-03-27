@@ -110,9 +110,7 @@ def rinex_to_kin(
         logger.info(f"Kin file {kin_file_new} already exists, skipping processing")
         kin_file = kin_file_new
         if res_file_new.exists():
-            logger.info(
-                f"Res file {res_file_new} already exists, skipping processing"
-            )
+            logger.info(f"Res file {res_file_new} already exists, skipping processing")
             res_file = res_file_new
         else:
             logger.warning(f"Res file {res_file_new} not found")
@@ -126,9 +124,7 @@ def rinex_to_kin(
         if res_file_path.exists():
             shutil.move(src=res_file_path, dst=res_file_new)
             res_file = res_file_new
-            logger.info(
-                f"Res file {res_file} already exists, moved to {res_file_new}"
-            )
+            logger.info(f"Res file {res_file} already exists, moved to {res_file_new}")
         else:
             logger.warning(f"Res file {res_file_path} not found")
         return kin_file, res_file

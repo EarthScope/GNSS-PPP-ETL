@@ -80,10 +80,7 @@ def rinex_get_time_range(source: str | Path) -> Tuple[datetime, datetime]:
                     except Exception:
                         pass
 
-    if (
-        timestamp_data_start is not None
-        and timestamp_data_end == timestamp_data_start
-    ):
+    if timestamp_data_start is not None and timestamp_data_end == timestamp_data_start:
         timestamp_data_end = datetime(
             year=timestamp_data_start.year,
             month=timestamp_data_start.month,

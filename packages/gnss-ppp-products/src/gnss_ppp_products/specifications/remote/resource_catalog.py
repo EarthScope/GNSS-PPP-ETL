@@ -85,7 +85,10 @@ class ResourceCatalog(Catalog):
                             base_product.parameters, combo
                         )
                         pinned_product = base_product.model_copy(
-                            update={"parameters": merged_params, "name": rp_spec.product_name},
+                            update={
+                                "parameters": merged_params,
+                                "name": rp_spec.product_name,
+                            },
                             deep=True,
                         )
                         queries.append(

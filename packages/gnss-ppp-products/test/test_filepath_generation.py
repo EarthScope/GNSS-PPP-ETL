@@ -7,6 +7,7 @@ for all product types at each stage of resolution.
 
 These tests are purely offline (no network access).
 """
+
 from __future__ import annotations
 
 import datetime
@@ -15,19 +16,34 @@ from pathlib import Path
 
 import pytest
 
-from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
+from gnss_ppp_products.specifications.parameters.parameter import (
+    Parameter,
+    ParameterCatalog,
+)
 from gnss_ppp_products.specifications.products.product import Product, ProductPath
-from gnss_ppp_products.specifications.products.catalog import ProductCatalog, ProductSpecCatalog
-from gnss_ppp_products.specifications.format.format_spec import FormatCatalog, FormatSpecCatalog
+from gnss_ppp_products.specifications.products.catalog import (
+    ProductCatalog,
+    ProductSpecCatalog,
+)
+from gnss_ppp_products.specifications.format.format_spec import (
+    FormatCatalog,
+    FormatSpecCatalog,
+)
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery, Server
 from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
-from conftest import TEST_DATE, parameter_catalog, format_spec_catalog, product_spec_catalog
+from conftest import (
+    TEST_DATE,
+    parameter_catalog,
+    format_spec_catalog,
+    product_spec_catalog,
+)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _build_catalogs():
     """Build the full catalog chain from specification-layer catalogs."""
@@ -51,11 +67,14 @@ PARAM_CAT, FORMAT_CAT, PRODUCT_CAT = _build_catalogs()
 # Unit: ProductPath.derive
 # ---------------------------------------------------------------------------
 
+
 class TestProductPathDerive:
     """Verify ProductPath template substitution."""
 
     def test_simple_substitution(self) -> None:
-        pp = ProductPath(pattern="{AAA}0{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*")
+        pp = ProductPath(
+            pattern="{AAA}0{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*"
+        )
         params = [
             Parameter(name="AAA", value="WUM"),
             Parameter(name="PPP", value="MGX"),
@@ -102,6 +121,7 @@ class TestProductPathDerive:
 # Unit: ParameterCatalog — computed fields
 # ---------------------------------------------------------------------------
 
+
 class TestParameterCatalogComputed:
     """Verify date-computed parameter resolution."""
 
@@ -145,6 +165,7 @@ class TestParameterCatalogComputed:
 # ---------------------------------------------------------------------------
 # Unit: ProductCatalog — product resolution
 # ---------------------------------------------------------------------------
+
 
 class TestProductCatalogResolution:
     """Verify product catalog resolves specs into Products with correct filenames."""
@@ -227,6 +248,7 @@ class TestProductCatalogResolution:
 # Unit: QueryFactory — filepath generation for each product type
 # ---------------------------------------------------------------------------
 
+
 class TestQueryFactoryFilepaths:
     """Verify QueryFactory.get() produces correct resolved directory and filename patterns."""
 
@@ -237,7 +259,11 @@ class TestQueryFactoryFilepaths:
         assert len(remote) > 0
         for q in remote:
             # Directory should have 2025 or GPS week resolved (computed)
-            d = q.directory.pattern if hasattr(q.directory, "pattern") else str(q.directory)
+            d = (
+                q.directory.pattern
+                if hasattr(q.directory, "pattern")
+                else str(q.directory)
+            )
             assert "2025" in d or gpsweek in d  # Either year or GPS week
 
     def test_orbit_filename_has_sp3(self, wuhan_qf, test_date) -> None:
@@ -348,7 +374,9 @@ class TestQueryFactoryFilepaths:
         remote = [q for q in queries if q.server.protocol != "file"]
         dirs = [q.directory.pattern for q in remote]
         # CDDIS uses gnss/products/{GPSWEEK}/ — should have the GPS week resolved
-        assert any(gpsweek in d for d in dirs), f"No directory with GPS week {gpsweek}: {dirs}"
+        assert any(gpsweek in d for d in dirs), (
+            f"No directory with GPS week {gpsweek}: {dirs}"
+        )
 
     def test_filename_is_valid_regex(self, wuhan_qf, test_date) -> None:
         """Generated filename patterns should be valid regex (for ResourceFetcher matching)."""
@@ -366,6 +394,7 @@ class TestQueryFactoryFilepaths:
 # Unit: Local directory resolution
 # ---------------------------------------------------------------------------
 
+
 class TestLocalDirectoryResolution:
     """Verify local factory produces correct local directories."""
 
@@ -373,6 +402,7 @@ class TestLocalDirectoryResolution:
     def _sink_dir(env, product_name: str, date) -> str:
         """Helper: resolve the local sink directory for a product name."""
         from gnss_ppp_products.specifications.products.product import Product
+
         factory = env.local_factory
         rid = factory.resource_ids[0]
         rq = factory.sink_product(Product(name=product_name, parameters=[]), rid, date)
@@ -413,6 +443,7 @@ class TestLocalDirectoryResolution:
 # ---------------------------------------------------------------------------
 # Unit: Query counts and structure
 # ---------------------------------------------------------------------------
+
 
 class TestQueryStructure:
     """Verify query factory generates expected numbers and shapes of queries."""

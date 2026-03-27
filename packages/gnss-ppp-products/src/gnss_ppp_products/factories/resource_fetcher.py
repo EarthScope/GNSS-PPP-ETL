@@ -63,7 +63,9 @@ class ResourceFetcher:
         *,
         max_connections: int = 4,
     ) -> None:
-        self._connection_pool_factory = ConnectionPoolFactory(max_connections=max_connections)
+        self._connection_pool_factory = ConnectionPoolFactory(
+            max_connections=max_connections
+        )
 
     # -- Public API ------------------------------------------------
 
@@ -118,17 +120,21 @@ class ResourceFetcher:
             directory = self._get_directory(q)
             file_pattern = self._get_file_pattern(q)
             if not directory or not file_pattern:
-                rejected.append(FetchResult(
-                    query=q,
-                    error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
-                ))
+                rejected.append(
+                    FetchResult(
+                        query=q,
+                        error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
+                    )
+                )
                 continue
             if fsspec.utils.get_protocol(q.server.hostname) == "file":
-                if not (Path(q.server.hostname)/directory).exists():
-                    rejected.append(FetchResult(
-                        query=q,
-                        error=f"Local directory does not exist: {q.server.hostname}",
-                    ))
+                if not (Path(q.server.hostname) / directory).exists():
+                    rejected.append(
+                        FetchResult(
+                            query=q,
+                            error=f"Local directory does not exist: {q.server.hostname}",
+                        )
+                    )
                     continue
             key: _DirKey = (q.server.hostname, directory)
             groups[key].append((q, file_pattern))
@@ -162,11 +168,15 @@ class ResourceFetcher:
     # -- Value resolution ------------------------------------------
 
     @staticmethod
-    def _resolve_values(query: ResourceQuery, directory: str, matched_filename: str) -> None:
+    def _resolve_values(
+        query: ResourceQuery, directory: str, matched_filename: str
+    ) -> None:
         """Populate .value on the query's directory and filename ProductPaths."""
         if isinstance(query.directory, ProductPath):
             query.directory.value = directory
-        if query.product.filename is not None and isinstance(query.product.filename, ProductPath):
+        if query.product.filename is not None and isinstance(
+            query.product.filename, ProductPath
+        ):
             query.product.filename.value = matched_filename
 
     # -- Helpers ---------------------------------------------------
@@ -193,7 +203,6 @@ class ResourceFetcher:
             return fn
         return None
 
-
     def download_one(
         self,
         query: ResourceQuery,
@@ -206,8 +215,13 @@ class ResourceFetcher:
         # TODO use fsspec ls to get file size in bytes, and skip download if size is zero.
         hostname = query.server.hostname
 
-        destination_resource = local_factory.sink_product(query.product, local_resource_id, date)
-        destination_dir = Path(destination_resource.server.hostname) / destination_resource.directory.value  # type: ignore[union-attr]
+        destination_resource = local_factory.sink_product(
+            query.product, local_resource_id, date
+        )
+        destination_dir = (
+            Path(destination_resource.server.hostname)
+            / destination_resource.directory.value
+        )  # type: ignore[union-attr]
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination_path = destination_dir / query.product.filename.value  # type: ignore[union-attr]
 
@@ -216,13 +230,16 @@ class ResourceFetcher:
             logger.info(f"Skipping download, file already exists: {destination_path}")
             return destination_path
 
-        
         try:
             return self._connection_pool_factory.download_file(
                 hostname=hostname,
-                remote_path=str(Path(query.directory.value) / query.product.filename.value),  # type: ignore[union-attr]
+                remote_path=str(
+                    Path(query.directory.value) / query.product.filename.value
+                ),  # type: ignore[union-attr]
                 target_dir=destination_dir,
             )
         except Exception as e:
-            logger.error(f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}")
+            logger.error(
+                f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}"
+            )
             return None

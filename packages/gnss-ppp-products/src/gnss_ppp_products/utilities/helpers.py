@@ -18,7 +18,9 @@ def hash_file(path: Path) -> str:
 def _ensure_datetime(date: datetime.date | datetime.datetime) -> datetime.datetime:
     """Coerce a date to a timezone-aware datetime (UTC)."""
     if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
-        return datetime.datetime(date.year, date.month, date.day, tzinfo=datetime.timezone.utc)
+        return datetime.datetime(
+            date.year, date.month, date.day, tzinfo=datetime.timezone.utc
+        )
     if date.tzinfo is None:
         return date.replace(tzinfo=datetime.timezone.utc)
     return date

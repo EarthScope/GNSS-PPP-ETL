@@ -87,7 +87,8 @@ class PrideCLIConfig(BaseModel):
     )
     override: bool = False
     override_products_download: bool = Field(
-        False, title="Flag to Override Existing Products Download",
+        False,
+        title="Flag to Override Existing Products Download",
     )
     pride_configfile_path: Optional[Path] = Field(
         None,

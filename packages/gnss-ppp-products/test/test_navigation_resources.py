@@ -4,6 +4,7 @@ Tests: Broadcast navigation products via QueryFactory.
 Products: RNX3_BRDC
 Centers : Wuhan (FTP), CDDIS (FTPS)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,11 @@ pytestmark = pytest.mark.integration
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    return [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -37,8 +42,8 @@ def _assert_found(results, product_name, min_matches=1):
 # Unit: Wuhan broadcast navigation
 # ---------------------------------------------------------------------------
 
-class TestWuhanNavigationExpansion:
 
+class TestWuhanNavigationExpansion:
     def test_brdc_queries_returned(self, wuhan_qf, test_date) -> None:
         queries = _get_remote_queries(wuhan_qf, test_date, "RNX3_BRDC")
         assert len(queries) > 0
@@ -64,8 +69,8 @@ class TestWuhanNavigationExpansion:
 # Unit: CDDIS broadcast navigation
 # ---------------------------------------------------------------------------
 
-class TestCDDISNavigationExpansion:
 
+class TestCDDISNavigationExpansion:
     def test_brdc_queries_returned(self, cddis_qf, test_date) -> None:
         queries = _get_remote_queries(cddis_qf, test_date, "RNX3_BRDC")
         assert len(queries) > 0
@@ -85,8 +90,8 @@ class TestCDDISNavigationExpansion:
 # Integration: Wuhan navigation probe
 # ---------------------------------------------------------------------------
 
-class TestWuhanNavigationProbe:
 
+class TestWuhanNavigationProbe:
     def test_brdc_found(self, wuhan_qf, fetcher, test_date) -> None:
         results = _search_remote(wuhan_qf, fetcher, test_date, "RNX3_BRDC")
         _assert_found(results, "RNX3_BRDC")
@@ -102,8 +107,8 @@ class TestWuhanNavigationProbe:
 # Integration: CDDIS navigation probe
 # ---------------------------------------------------------------------------
 
-class TestCDDISNavigationProbe:
 
+class TestCDDISNavigationProbe:
     def test_brdc_found(self, cddis_qf, fetcher, test_date) -> None:
         results = _search_remote(cddis_qf, fetcher, test_date, "RNX3_BRDC")
         _assert_found(results, "RNX3_BRDC")

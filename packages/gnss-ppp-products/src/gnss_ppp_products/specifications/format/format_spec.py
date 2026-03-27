@@ -7,7 +7,10 @@ import yaml
 from pydantic import BaseModel, Field
 
 from gnss_ppp_products.specifications.catalog import Catalog
-from gnss_ppp_products.specifications.parameters.parameter import Parameter, ParameterCatalog
+from gnss_ppp_products.specifications.parameters.parameter import (
+    Parameter,
+    ParameterCatalog,
+)
 from gnss_ppp_products.specifications.products.product import (
     Product,
     ProductPath,
@@ -18,6 +21,7 @@ from gnss_ppp_products.specifications.products.product import (
 
 class FormatSpec(BaseModel):
     """A single file-format definition with parameter overrides and filename template."""
+
     name: str
     version: Optional[str] = None
     variant: Optional[str] = None
@@ -88,10 +92,13 @@ class FormatSpecCatalog(BaseModel):
 
 class FormatCatalog(Catalog):
     """Resolved format catalog — maps format names to VersionCatalog[VariantCatalog[Product]]."""
+
     formats: dict[str, VersionCatalog[Product]]
 
     @classmethod
-    def build(cls, format_spec_catalog: FormatSpecCatalog, parameter_catalog: ParameterCatalog) -> "FormatCatalog":
+    def build(
+        cls, format_spec_catalog: FormatSpecCatalog, parameter_catalog: ParameterCatalog
+    ) -> "FormatCatalog":
         """Build concrete Products from abstract format specs and a ParameterCatalog."""
         formats = {}
         for format_name, format_spec_cat in format_spec_catalog.formats.items():
@@ -112,15 +119,18 @@ class FormatCatalog(Catalog):
             for version_name, variant_cat in version_cat.versions.items():
                 for variant_name, product in variant_cat.variants.items():
                     if (
-                        merged
-                        .get(name, VersionCatalog(versions={}))
+                        merged.get(name, VersionCatalog(versions={}))
                         .versions.get(version_name, VariantCatalog(variants={}))
                         .variants.get(variant_name)
-                        ):
-                        print(f"Warning: Duplicate format {name!r} version {version_name!r} variant {variant_name!r} found. Overwriting with new value.")
+                    ):
+                        print(
+                            f"Warning: Duplicate format {name!r} version {version_name!r} variant {variant_name!r} found. Overwriting with new value."
+                        )
                     if name not in merged:
                         merged[name] = VersionCatalog(versions={})
                     if version_name not in merged[name].versions:
-                        merged[name].versions[version_name] = VariantCatalog(variants={})
+                        merged[name].versions[version_name] = VariantCatalog(
+                            variants={}
+                        )
                     merged[name].versions[version_name].variants[variant_name] = product
         return FormatCatalog(formats=merged)

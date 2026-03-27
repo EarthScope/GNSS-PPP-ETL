@@ -33,7 +33,10 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
 )
 from gnss_ppp_products.factories.query_factory import QueryFactory
 from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchResult
-from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
+from gnss_ppp_products.specifications.products.product import (
+    ProductPath,
+    infer_from_regex,
+)
 from gnss_ppp_products.environments import WorkSpace
 from gnss_ppp_products.lockfile import (
     LockProduct,
@@ -47,6 +50,7 @@ from gnss_ppp_products.lockfile import (
     get_dependency_lockfile,
     write_dependency_lockfile,
 )
+
 logger = logging.getLogger(__name__)
 
 
@@ -107,14 +111,12 @@ class DependencyResolver:
         self._fetcher = fetcher
         self._product_environment = product_environment
 
-
     def resolve(
         self,
         date: datetime.datetime,
         local_sink_id: str,
         station: Optional[str] = None,
         version: Optional[str] = "0",
-       
     ) -> Tuple[DependencyResolution, Optional[Path]]:
         """Resolve every dependency in the spec for *date*.
 
@@ -125,7 +127,7 @@ class DependencyResolver:
         download
             If *True* and a remote match is found, download it.
         """
-        '''
+        """
         steps:
         1. Check for existing dependency lockfile for this spec/date/station. If found, validate each lock product and add valid ones to results, removing them from the to_resolve list.
         2. For each remaining dependency in to_resolve, call _resolve_one in parallel
@@ -133,28 +135,41 @@ class DependencyResolver:
         
         
         
-        '''
+        """
         results: List[ResolvedDependency] = []
         lockfiles: List[LockProduct] = []
         to_resolve = self.dep_spec.dependencies
 
-        dep_lockfile_info: Tuple[Optional[DependencyLockFile], Optional[Path]] = get_dependency_lockfile(
-            directory=self._qf._local.lockfile_dir(local_sink_id),
-            station=station,
-            package=self.dep_spec.package,
-            task=self.dep_spec.task,
-            version=version,
-            date=date,
+        dep_lockfile_info: Tuple[Optional[DependencyLockFile], Optional[Path]] = (
+            get_dependency_lockfile(
+                directory=self._qf._local.lockfile_dir(local_sink_id),
+                station=station,
+                package=self.dep_spec.package,
+                task=self.dep_spec.task,
+                version=version,
+                date=date,
+            )
         )
         dep_lock_file, dep_lock_file_path = dep_lockfile_info
-   
+
         if dep_lock_file:
-            logger.info(f"Found existing lockfile for {self.dep_spec.name} on {date.date()}: {dep_lock_file}")
+            logger.info(
+                f"Found existing lockfile for {self.dep_spec.name} on {date.date()}: {dep_lock_file}"
+            )
             for lock_product in dep_lock_file.products:
-                dep_spec = next((d for d in self.dep_spec.dependencies if d.spec == lock_product.name), None)
+                dep_spec = next(
+                    (
+                        d
+                        for d in self.dep_spec.dependencies
+                        if d.spec == lock_product.name
+                    ),
+                    None,
+                )
                 if dep_spec and validate_lock_product(lock_product):
                     # Remove this product from the to_resolve list since it's already resolved in the lockfile
-                    to_resolve = [dep for dep in to_resolve if dep.spec != lock_product.name]
+                    to_resolve = [
+                        dep for dep in to_resolve if dep.spec != lock_product.name
+                    ]
 
                     resolved = ResolvedDependency(
                         spec=lock_product.name,
@@ -169,8 +184,10 @@ class DependencyResolver:
                     )
                     results.append(resolved)
                 else:
-                    logger.warning(f"Invalid lock product in lockfile {dep_lock_file_path}: \n{lock_product}. Will attempt to re-resolve.")
-        
+                    logger.warning(
+                        f"Invalid lock product in lockfile {dep_lock_file_path}: \n{lock_product}. Will attempt to re-resolve."
+                    )
+
         else:
             dep_lock_file = DependencyLockFile(
                 station=station or "",
@@ -197,16 +214,14 @@ class DependencyResolver:
         if lockfiles:
             dep_lock_file.products.extend(lockfiles)
             write_dependency_lockfile(
-                lockfile=dep_lock_file,
-                directory=dep_lock_file_path.parent,
-                update=True
+                lockfile=dep_lock_file, directory=dep_lock_file_path.parent, update=True
             )
         resolution = DependencyResolution(
             spec_name=self.dep_spec.name,
             resolved=results,
         )
         logger.info(resolution.summary())
-        return resolution,dep_lock_file_path
+        return resolution, dep_lock_file_path
 
     # ---- internal helpers ------------------------------------------
 
@@ -223,34 +238,45 @@ class DependencyResolver:
                 product={"name": dep.spec},
                 parameters=dep.constraints or None,
             )
-            
+
         except (ValueError, KeyError) as exc:
             logger.debug("No queries for %s: %s", dep.spec, exc)
             return ResolvedDependency(
-                spec=dep.spec, required=dep.required, status="missing",
+                spec=dep.spec,
+                required=dep.required,
+                status="missing",
             ), None
 
         if not queries:
-            logger.warning(f"No queries returned for dependency {dep.spec} with constraints {dep.constraints}")
+            logger.warning(
+                f"No queries returned for dependency {dep.spec} with constraints {dep.constraints}"
+            )
             return ResolvedDependency(
-                spec=dep.spec, required=dep.required, status="missing",
+                spec=dep.spec,
+                required=dep.required,
+                status="missing",
             ), None
 
         queries = self._sort_by_preferences(queries)
 
         # Fetch the queries.
-        logger.info(f"Searching for {len(queries)} queries for dependency {dep.spec}...")
+        logger.info(
+            f"Searching for {len(queries)} queries for dependency {dep.spec}..."
+        )
         fetched_queries: List[FetchResult] = self._fetcher.search(queries)
         if not fetched_queries:
             logger.warning(f"No fetch results for dependency {dep.spec}")
             return ResolvedDependency(
-                spec=dep.spec, required=dep.required, status="missing",
+                spec=dep.spec,
+                required=dep.required,
+                status="missing",
             ), None
         logger.info(f"Fetched {len(fetched_queries)} queries for dependency {dep.spec}")
 
         # Expand the fetched queries into a list of resource queries.
-        expanded_queries: List[ResourceQuery] = self._expand_fetch_results(fetched_queries)
-
+        expanded_queries: List[ResourceQuery] = self._expand_fetch_results(
+            fetched_queries
+        )
 
         expanded_queries = self._sort_by_preferences(expanded_queries)
         filename_groups = defaultdict(list)
@@ -262,18 +288,32 @@ class DependencyResolver:
             filename_groups[key] = self._sort_by_protocol(group)
 
         for rq_index in expanded_queries:
-            remote_urls = [_build_remote_url(rq) for rq in filename_groups[rq_index.product.filename.value] if (rq.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+            remote_urls = [
+                _build_remote_url(rq)
+                for rq in filename_groups[rq_index.product.filename.value]
+                if (rq.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+            ]
             for rq in filename_groups[rq_index.product.filename.value]:
                 if (rq.server.protocol or "").upper() in ("FILE", "LOCAL", ""):
                     resolved, lock_file = self._resolve_local(
-                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date, alternative_urls=remote_urls)
+                        rq=rq,
+                        dep=dep,
+                        local_sink_id=local_sink_id,
+                        local_resource_factory=self._qf._local,
+                        date=date,
+                        alternative_urls=remote_urls,
+                    )
                     if resolved is not None:
                         return resolved, lock_file
 
                 else:
-
                     resolved, lock_file = self._resolve_remote(
-                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date,alternative_urls=remote_urls
+                        rq=rq,
+                        dep=dep,
+                        local_sink_id=local_sink_id,
+                        local_resource_factory=self._qf._local,
+                        date=date,
+                        alternative_urls=remote_urls,
                     )
                     if resolved is not None:
                         return resolved, lock_file
@@ -284,10 +324,16 @@ class DependencyResolver:
         for fq in fetched:
             if fq.error:
                 continue
-            assert fq.query.directory.value is not None, "Fetched query must have directory value filled in"
-            assert fq.query.product.filename is not None, "Fetched query must have filename value filled in"  # type: ignore
+            assert fq.query.directory.value is not None, (
+                "Fetched query must have directory value filled in"
+            )
+            assert fq.query.product.filename is not None, (
+                "Fetched query must have filename value filled in"
+            )  # type: ignore
             if not fq.matched_filenames:
-                logger.info(f"No matches found for query {fq.query.product.filename.pattern}")
+                logger.info(
+                    f"No matches found for query {fq.query.product.filename.pattern}"
+                )
                 continue
             for filename in fq.matched_filenames:
                 # Create a new ResourceQuery with the filename value filled in.
@@ -296,7 +342,7 @@ class DependencyResolver:
                 rq = self._update_parameters(rq)
                 expanded.append(rq)
         return expanded
-    
+
     def _sort_by_preferences(
         self,
         queries: List[ResourceQuery],
@@ -325,10 +371,14 @@ class DependencyResolver:
         protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
         return sorted(
             queries,
-            key=lambda rq: protocol_sort_order.index((rq.server.protocol or "").upper()) if (rq.server.protocol or "").upper() in protocol_sort_order else len(protocol_sort_order)
+            key=lambda rq: (
+                protocol_sort_order.index((rq.server.protocol or "").upper())
+                if (rq.server.protocol or "").upper() in protocol_sort_order
+                else len(protocol_sort_order)
+            ),
         )
 
-    def _update_parameters(self,resource_query: ResourceQuery) -> ResourceQuery:
+    def _update_parameters(self, resource_query: ResourceQuery) -> ResourceQuery:
         """Update a ResourceQuery's parameters by re-interpolating its directory and filename patterns."""
         updated = resource_query.model_copy(deep=True)
         updated_params: List[Parameter] = infer_from_regex(
@@ -337,9 +387,14 @@ class DependencyResolver:
             parameters=updated.product.parameters,
         )
         updated.product.parameters = updated_params
-        classification_results = self._product_environment.classify(filename=updated.product.filename.value, parameters=updated.product.parameters)
+        classification_results = self._product_environment.classify(
+            filename=updated.product.filename.value,
+            parameters=updated.product.parameters,
+        )
         if classification_results:
-            class_parameters:Dict[str,str] = classification_results.get("parameters", {}) # TODO make the classification results more structured so we don't have to do this stringly-typed dance
+            class_parameters: Dict[str, str] = classification_results.get(
+                "parameters", {}
+            )  # TODO make the classification results more structured so we don't have to do this stringly-typed dance
             for p in updated.product.parameters:
                 if p.name in class_parameters and p.value is None:
                     p.value = class_parameters[p.name]
@@ -347,24 +402,25 @@ class DependencyResolver:
         return updated
 
     def _resolve_remote(
-            self,
-            rq: ResourceQuery,
-            dep: Dependency,
-            local_sink_id: str,
-            local_resource_factory:LocalResourceFactory,
-            date: datetime.datetime,
-            alternative_urls: Optional[List[str]] = None,
-
+        self,
+        rq: ResourceQuery,
+        dep: Dependency,
+        local_sink_id: str,
+        local_resource_factory: LocalResourceFactory,
+        date: datetime.datetime,
+        alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
 
-        assert rq.product.filename.value is not None, "Remote resolution requires filename to be filled in"
+        assert rq.product.filename.value is not None, (
+            "Remote resolution requires filename to be filled in"
+        )
 
         # local_path = self._download_result(rq, dest_dir)
         local_path: Optional[Path] = self._fetcher.download_one(
             query=rq,
             local_resource_id=local_sink_id,
             local_factory=local_resource_factory,
-            date = date,
+            date=date,
         )
         if local_path is None:
             return (None, None)
@@ -381,29 +437,34 @@ class DependencyResolver:
             status="downloaded",
             lock_file=lock_file,
         )
-        
+
         return (resolved, lock_file)
 
     def _resolve_local(
-            self,
-            rq: ResourceQuery,
-            dep: Dependency,
-            local_sink_id: str,
-            local_resource_factory:LocalResourceFactory,
-            date: datetime.datetime,
-            alternative_urls: Optional[List[str]] = None,
-
+        self,
+        rq: ResourceQuery,
+        dep: Dependency,
+        local_sink_id: str,
+        local_resource_factory: LocalResourceFactory,
+        date: datetime.datetime,
+        alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
 
         source_directory = Path(rq.server.hostname) / rq.directory.value
-        assert source_directory.exists() and source_directory.is_dir(), f"Local directory {source_directory} does not exist for query {rq}"
+        assert source_directory.exists() and source_directory.is_dir(), (
+            f"Local directory {source_directory} does not exist for query {rq}"
+        )
         filename = rq.product.filename.value
-        assert filename is not None, f"Local resolution requires filename to be filled in for query {rq}"
+        assert filename is not None, (
+            f"Local resolution requires filename to be filled in for query {rq}"
+        )
 
         source_path = source_directory / filename
 
         # If the file is not present in the local_sink resource, we can copy it there.
-        sink_query = local_resource_factory.sink_product(rq.product, local_sink_id, date)
+        sink_query = local_resource_factory.sink_product(
+            rq.product, local_sink_id, date
+        )
         sink_directory = Path(sink_query.server.hostname) / sink_query.directory.value
         assert sink_directory is not None, "Sink product must have a directory value"
         if not sink_directory == source_directory:
@@ -412,7 +473,9 @@ class DependencyResolver:
             dest_path = sink_directory / filename
             if not dest_path.exists():
                 dest_path.write_bytes(source_path.read_bytes())
-                logger.info(f"Copied local file {source_path} to sink directory {dest_path}")
+                logger.info(
+                    f"Copied local file {source_path} to sink directory {dest_path}"
+                )
             source_path = dest_path
 
         # Try to reuse hash from an existing lockfile to avoid re-hashing
@@ -431,25 +494,22 @@ class DependencyResolver:
             status="local",
             lock_file=existing_lock,
         )
-        
-        return (resolved, existing_lock)
 
+        return (resolved, existing_lock)
 
     @staticmethod
     def _make_resolved(
         dep: Dependency,
-       
         *,
         status: str,
         lock_file: LockProduct,
     ) -> ResolvedDependency:
         """Build a :class:`ResolvedDependency` from a ResourceQuery."""
-  
 
         return ResolvedDependency(
             spec=dep.spec,
             required=dep.required,
             status=status,
             remote_url=lock_file.url,
-            local_path=Path(lock_file.sink)
+            local_path=Path(lock_file.sink),
         )

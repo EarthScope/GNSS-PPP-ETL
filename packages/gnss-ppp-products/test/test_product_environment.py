@@ -122,7 +122,13 @@ class TestClassify:
             (
                 "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz",
                 "ORBIT",
-                {"AAA": "WUM", "TTT": "FIN", "CNT": "ORB", "FMT": "SP3", "YYYY": "2024"},
+                {
+                    "AAA": "WUM",
+                    "TTT": "FIN",
+                    "CNT": "ORB",
+                    "FMT": "SP3",
+                    "YYYY": "2024",
+                },
             ),
             (
                 "COD0OPSRAP_20251000000_01D_30S_CLK.CLK.gz",
@@ -141,7 +147,9 @@ class TestClassify:
             ),
             ("igs20.atx", "ATTATX", {"REFFRAME": "igs20"}),
             (
-                "NCC12500.25o", "RINEX_OBS", {"SSSS": "NCC1", "DDD": "250", "YY": "25", "T": "o"}
+                "NCC12500.25o",
+                "RINEX_OBS",
+                {"SSSS": "NCC1", "DDD": "250", "YY": "25", "T": "o"},
             ),
         ],
     )
@@ -180,7 +188,9 @@ class TestClassify:
         assert result["parameters"]["AAA"] == "IGS"
 
     def test_classify_strips_path(self, env):
-        result = env.classify("/data/products/WUM/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz")
+        result = env.classify(
+            "/data/products/WUM/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz"
+        )
         assert result is not None
         assert result["product"] == "ORBIT"
         assert result["parameters"]["AAA"] == "WUM"

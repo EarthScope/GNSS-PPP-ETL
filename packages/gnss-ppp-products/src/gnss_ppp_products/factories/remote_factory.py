@@ -28,8 +28,9 @@ class RemoteResourceFactory:
         remote.register(ResourceSpec(**igs_dict))
     """
 
-    def __init__(self, product_catalog: ProductCatalog,
-                 parameter_catalog: ParameterCatalog) -> None:
+    def __init__(
+        self, product_catalog: ProductCatalog, parameter_catalog: ParameterCatalog
+    ) -> None:
         self._product_catalog = product_catalog
         self._parameter_catalog = parameter_catalog
         self._catalogs: Dict[str, ResourceCatalog] = {}
@@ -37,7 +38,9 @@ class RemoteResourceFactory:
 
     def register(self, spec: ResourceSpec) -> ResourceCatalog:
         self._specs[spec.id] = spec
-        cat = ResourceCatalog.build(resource_spec=spec, product_catalog=self._product_catalog)
+        cat = ResourceCatalog.build(
+            resource_spec=spec, product_catalog=self._product_catalog
+        )
         self._catalogs[cat.id] = cat
         return cat
 
@@ -66,8 +69,12 @@ class RemoteResourceFactory:
     @staticmethod
     def match_pinned_query(found: Product, incoming: Product) -> Optional[Product]:
         """Check if a found query matches an incoming product based on pinned parameters."""
-        found_params = {p.name: p.value for p in found.parameters if p.value is not None}
-        incoming_params = {p.name: p.value for p in incoming.parameters if p.value is not None}
+        found_params = {
+            p.name: p.value for p in found.parameters if p.value is not None
+        }
+        incoming_params = {
+            p.name: p.value for p in incoming.parameters if p.value is not None
+        }
         matching_keys = set(found_params.keys()) & set(incoming_params.keys())
         for key in matching_keys:
             found_val = found_params[key]
@@ -101,7 +108,9 @@ class RemoteResourceFactory:
             query = query.model_copy(deep=True)
             incoming = product.model_copy(deep=True)
 
-            matched_product: Optional[Product] = self.match_pinned_query(query.product, incoming)
+            matched_product: Optional[Product] = self.match_pinned_query(
+                query.product, incoming
+            )
             if matched_product is None:
                 continue
 
@@ -112,7 +121,9 @@ class RemoteResourceFactory:
 
         return results
 
-    def sink_product(self, product: Product, resource_id: str, date: datetime) -> ResourceQuery:
+    def sink_product(
+        self, product: Product, resource_id: str, date: datetime
+    ) -> ResourceQuery:
         """Resolve the remote directory/filename for uploading *product* to *resource_id*."""
         queries = self.source_product(product, resource_id)
         if not queries:
@@ -122,7 +133,7 @@ class RemoteResourceFactory:
         # Use the first matching query as the canonical upload target.
         query = queries[0]
         query.product = product
-        
+
         resolved_dir = self._parameter_catalog.interpolate(
             query.directory.pattern, date, computed_only=True
         )

@@ -18,9 +18,7 @@ import datetime
 from enum import Enum
 
 
-GNSS_START_TIME = datetime.datetime(
-    1980, 1, 6, tzinfo=datetime.timezone.utc
-)
+GNSS_START_TIME = datetime.datetime(1980, 1, 6, tzinfo=datetime.timezone.utc)
 
 
 class IGSAntexReferenceFrameType(Enum):
@@ -110,14 +108,14 @@ def _refframe(date: datetime.datetime) -> str:
 
 
 _COMPUTED_FIELDS = [
-    ("DDD",      _ddd,      None),
-    ("GPSWEEK",  _gpsweek,  None),
-    ("YYYY",     _yyyy,     None),
-    ("DAY",      _day,      None),
-    ("MONTH",    _month,    None),
-    ("YY",       _yy,       None),
-    ("HH",       _hh,       None),
-    ("MM",       _mm,       None),
+    ("DDD", _ddd, None),
+    ("GPSWEEK", _gpsweek, None),
+    ("YYYY", _yyyy, None),
+    ("DAY", _day, None),
+    ("MONTH", _month, None),
+    ("YY", _yy, None),
+    ("HH", _hh, None),
+    ("MM", _mm, None),
     ("REFFRAME", _refframe, None),
 ]
 

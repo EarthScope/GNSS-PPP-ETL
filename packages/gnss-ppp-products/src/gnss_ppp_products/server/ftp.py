@@ -61,7 +61,6 @@ def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
             ftp.close()
         except Exception:
             pass
-   
 
 
 # ---------------------------------------------------------------------------
@@ -69,9 +68,7 @@ def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
 # ---------------------------------------------------------------------------
 
 
-def ftp_can_connect(
-    ftpserver: str, timeout: int = 10, use_tls: bool = False
-) -> bool:
+def ftp_can_connect(ftpserver: str, timeout: int = 10, use_tls: bool = False) -> bool:
     """Return True if an FTP login succeeds on *ftpserver*."""
     try:
         with _ftp_connect(ftpserver, timeout=timeout, use_tls=use_tls):
@@ -189,13 +186,23 @@ class FTPAdapter:
         self._use_tls = use_tls
 
     def can_connect(self, hostname: str) -> bool:
-        return ftp_can_connect(hostname, timeout=min(self._timeout, 10), use_tls=self._use_tls)
+        return ftp_can_connect(
+            hostname, timeout=min(self._timeout, 10), use_tls=self._use_tls
+        )
 
     def list_directory(self, hostname: str, directory: str) -> List[str]:
-        return ftp_list_directory(hostname, directory, timeout=self._timeout, use_tls=self._use_tls)
+        return ftp_list_directory(
+            hostname, directory, timeout=self._timeout, use_tls=self._use_tls
+        )
 
-    def download_file(self, hostname: str, directory: str, filename: str, dest_path: Path) -> Optional[Path]:
+    def download_file(
+        self, hostname: str, directory: str, filename: str, dest_path: Path
+    ) -> Optional[Path]:
         return ftp_download_file(
-            hostname, directory, filename, dest_path,
-            timeout=self._timeout * 3, use_tls=self._use_tls,
+            hostname,
+            directory,
+            filename,
+            dest_path,
+            timeout=self._timeout * 3,
+            use_tls=self._use_tls,
         )

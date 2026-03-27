@@ -17,7 +17,9 @@ class FoundResource(BaseModel):
     uri: str = Field(..., description="Local file path or remote URL.")
     center: str = Field("", description="Analysis center identifier (e.g. 'WUM').")
     quality: str = Field("", description="Solution type (e.g. 'FIN', 'RAP', 'ULT').")
-    parameters: Dict[str, str] = Field(default_factory=dict, description="All resolved parameter values.")
+    parameters: Dict[str, str] = Field(
+        default_factory=dict, description="All resolved parameter values."
+    )
 
     # Internal: original ResourceQuery, not serialized. Used by DownloadPipeline.
     _query: Optional[object] = PrivateAttr(default=None)
@@ -38,7 +40,9 @@ class Resolution(BaseModel):
     """Result of resolving all dependencies for a task."""
 
     task: str = Field(..., description="Dependency spec name (e.g. 'pride-pppar').")
-    paths: List[Path] = Field(default_factory=list, description="Local paths of all resolved products.")
+    paths: List[Path] = Field(
+        default_factory=list, description="Local paths of all resolved products."
+    )
     lockfile: Optional["ProductLockfile"] = None
 
     model_config = {"arbitrary_types_allowed": True}
@@ -67,7 +71,9 @@ class DiscoveryReport(BaseModel):
     def centers(self) -> List[str]:
         return sorted(set(e.center for e in self.entries if e.center))
 
-    def filter(self, product: Optional[str] = None, center: Optional[str] = None) -> List[DiscoveryEntry]:
+    def filter(
+        self, product: Optional[str] = None, center: Optional[str] = None
+    ) -> List[DiscoveryEntry]:
         out = self.entries
         if product:
             out = [e for e in out if e.product == product]
@@ -83,11 +89,16 @@ class MissingProductError(Exception):
         self.missing = missing
         self.task = task
         products = ", ".join(missing)
-        msg = f"Missing required products for task {task!r}: {products}" if task else f"Missing required products: {products}"
+        msg = (
+            f"Missing required products for task {task!r}: {products}"
+            if task
+            else f"Missing required products: {products}"
+        )
         super().__init__(msg)
 
 
 # Deferred import to avoid circular dependency
 def _resolve_lockfile_forward_ref() -> None:
     from gnss_ppp_products.specifications.dependencies.lockfile import ProductLockfile
+
     Resolution.model_rebuild()

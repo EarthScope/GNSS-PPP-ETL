@@ -13,6 +13,7 @@ import yaml
 
 class Server(BaseModel):
     """A remote or local server endpoint."""
+
     id: str
     hostname: str
     protocol: Optional[str] = None
@@ -22,6 +23,7 @@ class Server(BaseModel):
 
 class ResourceProductSpec(BaseModel):
     """A product offering within a resource/center — maps a catalog product to a server with parameter overrides."""
+
     id: str
     server_id: str
     available: bool = True
@@ -34,6 +36,7 @@ class ResourceProductSpec(BaseModel):
 
 class ResourceSpec(BaseModel):
     """Root resource specification for a data center."""
+
     id: str
     name: str
     description: Optional[str] = None
@@ -55,17 +58,23 @@ class ResourceQuery(BaseModel):
     server: Server
     directory: ProductPath
 
-
-    def narrow(self) -> 'ResourceQuery':
+    def narrow(self) -> "ResourceQuery":
         """Substitute already-known parameter values into directory/filename patterns."""
         to_keep = [p for p in self.product.parameters if p.value is None]
         to_update = {p.name: p for p in self.product.parameters if p.value is not None}
         format_dict = _PassthroughDict({k: p.value for k, p in to_update.items()})
 
         if self.product.filename:
-            self.product = self.product.model_copy(deep=True, update={
-                "filename": ProductPath(pattern=self.product.filename.pattern.format_map(format_dict))
-            })
-        self.directory = ProductPath(pattern=self.directory.pattern.format_map(format_dict))
+            self.product = self.product.model_copy(
+                deep=True,
+                update={
+                    "filename": ProductPath(
+                        pattern=self.product.filename.pattern.format_map(format_dict)
+                    )
+                },
+            )
+        self.directory = ProductPath(
+            pattern=self.directory.pattern.format_map(format_dict)
+        )
 
         return self

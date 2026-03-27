@@ -31,8 +31,7 @@ class FormatRegistry(BaseModel):
             return self.formats[name]
         except KeyError:
             raise KeyError(
-                f"Format {name!r} not found. "
-                f"Available: {sorted(self.formats)}"
+                f"Format {name!r} not found. Available: {sorted(self.formats)}"
             )
 
     def get_version(self, format_name: str, version: str) -> FormatVersionSpec:
@@ -46,15 +45,17 @@ class FormatRegistry(BaseModel):
             )
 
     @classmethod
-    def build(cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog) -> FormatRegistry:
-        '''
-        
-        Build a FormatRegistry by checking if metadata fields have either a pattern value provided or an entry in the metadata catalog. 
+    def build(
+        cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog
+    ) -> FormatRegistry:
+        """
+
+        Build a FormatRegistry by checking if metadata fields have either a pattern value provided or an entry in the metadata catalog.
         If a field is missing both, raise an error.
 
-        '''
+        """
         resolved_versions = {}
-        format_spec_collection : Dict[str, FormatSpec] = format_spec.formats
+        format_spec_collection: Dict[str, FormatSpec] = format_spec.formats
         format_spec_collection_resolved: Dict[str, FormatSpec] = {}
 
         for format_spec_name, format_spec_entry in format_spec_collection.items():
@@ -65,17 +66,20 @@ class FormatRegistry(BaseModel):
                 if version_spec.metadata is None:
                     continue
                 for field_name, field_def in version_spec.metadata.items():
-
                     pattern = field_def.pattern if field_def is not None else None
                     default = field_def.default if field_def is not None else None
                     field_default = pattern or default
                     if field_default is None:
-                        assert field_name in metadata_catalog.parameters, f"Field {field_name!r} not found in parameter catalog for format {format_spec_name!r} version {version_name!r}"
+                        assert field_name in metadata_catalog.parameters, (
+                            f"Field {field_name!r} not found in parameter catalog for format {format_spec_name!r} version {version_name!r}"
+                        )
                         field_default = metadata_catalog.parameters[field_name].pattern
 
                     resolved_metadata[field_name] = FormatFieldDef(
                         pattern=field_default,
-                        description=field_def.description if field_def is not None else None,
+                        description=field_def.description
+                        if field_def is not None
+                        else None,
                     )
                 for variant_name, file_template in version_spec.file_templates.items():
                     # Check if all placeholders in the file template have corresponding metadata fields
@@ -84,14 +88,18 @@ class FormatRegistry(BaseModel):
                     matches = re.findall(r"\{(.*?)\}", file_template)
                     for match in matches:
                         if match not in resolved_metadata:
-                            raise ValueError(f"Placeholder {match!r} in file template {file_template!r} for format {format_spec_name!r} version {version_name!r} variant {variant_name!r} does not have a corresponding metadata field.")
-                        
-                format_version_spec_collection_resolved[version_name] = FormatVersionSpec(
-                    description=version_spec.description,
-                    notes=version_spec.notes,
-                    metadata=resolved_metadata,
-                    file_templates=version_spec.file_templates,
-                    compression=version_spec.compression,
+                            raise ValueError(
+                                f"Placeholder {match!r} in file template {file_template!r} for format {format_spec_name!r} version {version_name!r} variant {variant_name!r} does not have a corresponding metadata field."
+                            )
+
+                format_version_spec_collection_resolved[version_name] = (
+                    FormatVersionSpec(
+                        description=version_spec.description,
+                        notes=version_spec.notes,
+                        metadata=resolved_metadata,
+                        file_templates=version_spec.file_templates,
+                        compression=version_spec.compression,
+                    )
                 )
             format_spec_collection_resolved[format_spec_name] = FormatSpec(
                 description=format_spec_entry.description,

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 
+
 def paths_overlap(p1: Path, p2: Path) -> bool:
     p1 = p1.resolve()
     p2 = p2.resolve()
@@ -51,9 +52,9 @@ class WorkSpace:
         name = spec.name
         if id is not None:
             name = id
-        assert (
-            name not in self._resource_specs
-        ), f"Resource spec with name '{name}' already exists. Please choose a unique name."
+        assert name not in self._resource_specs, (
+            f"Resource spec with name '{name}' already exists. Please choose a unique name."
+        )
         self._resource_specs[name] = spec
 
     def register_spec(
@@ -65,9 +66,9 @@ class WorkSpace:
         assert base_dir.is_dir(), f"Base directory must be a directory: {base_dir}"
         specs_to_register: List[LocalResourceSpec] = []
         for spec_id in spec_ids:
-            assert (
-                spec_id in self._resource_specs
-            ), f"Spec id '{spec_id}' not found. Available specs: {list(self._resource_specs.keys())}"
+            assert spec_id in self._resource_specs, (
+                f"Spec id '{spec_id}' not found. Available specs: {list(self._resource_specs.keys())}"
+            )
             built_spec = self._resource_specs[spec_id]
             specs_to_register.append(built_spec)
 

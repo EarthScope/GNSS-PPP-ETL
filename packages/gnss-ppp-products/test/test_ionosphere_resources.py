@@ -4,6 +4,7 @@ Tests: Ionosphere (GIM) products via QueryFactory.
 Products: IONEX
 Centers : CODE (FTP), Wuhan (FTP), CDDIS (FTPS)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,11 @@ pytestmark = pytest.mark.integration
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
+    return [
+        q
+        for q in queries
+        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+    ]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -37,8 +42,8 @@ def _assert_found(results, product_name, min_matches=1):
 # Unit: CODE GIM query expansion
 # ---------------------------------------------------------------------------
 
-class TestCODGIMExpansion:
 
+class TestCODGIMExpansion:
     def test_ionex_queries_returned(self, cod_qf, test_date) -> None:
         queries = _get_remote_queries(cod_qf, test_date, "IONEX")
         assert len(queries) > 0
@@ -64,8 +69,8 @@ class TestCODGIMExpansion:
 # Unit: Wuhan GIM query expansion
 # ---------------------------------------------------------------------------
 
-class TestWuhanGIMExpansion:
 
+class TestWuhanGIMExpansion:
     def test_ionex_queries_returned(self, wuhan_qf, test_date) -> None:
         queries = _get_remote_queries(wuhan_qf, test_date, "IONEX")
         assert len(queries) > 0
@@ -86,8 +91,8 @@ class TestWuhanGIMExpansion:
 # Unit: CDDIS GIM query expansion
 # ---------------------------------------------------------------------------
 
-class TestCDDISGIMExpansion:
 
+class TestCDDISGIMExpansion:
     def test_ionex_queries_returned(self, cddis_qf, test_date) -> None:
         queries = _get_remote_queries(cddis_qf, test_date, "IONEX", {"AAA": "COD"})
         assert len(queries) > 0
@@ -108,17 +113,21 @@ class TestCDDISGIMExpansion:
 # Integration: CODE GIM probe
 # ---------------------------------------------------------------------------
 
-class TestCODGIMProbe:
 
+class TestCODGIMProbe:
     def test_ionex_found(self, cod_qf, fetcher, test_date) -> None:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")
         _assert_found(results, "IONEX")
 
-    def test_ionex_filenames_contain_gim_or_inx(self, cod_qf, fetcher, test_date) -> None:
+    def test_ionex_filenames_contain_gim_or_inx(
+        self, cod_qf, fetcher, test_date
+    ) -> None:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")
         found = _assert_found(results, "IONEX")
         for r in found:
-            assert any("GIM" in f.upper() or "INX" in f.upper() for f in r.matched_filenames)
+            assert any(
+                "GIM" in f.upper() or "INX" in f.upper() for f in r.matched_filenames
+            )
 
     def test_ionex_filenames_contain_cod(self, cod_qf, fetcher, test_date) -> None:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")
@@ -131,8 +140,8 @@ class TestCODGIMProbe:
 # Integration: Wuhan GIM probe
 # ---------------------------------------------------------------------------
 
-class TestWuhanGIMProbe:
 
+class TestWuhanGIMProbe:
     def test_ionex_found(self, wuhan_qf, fetcher, test_date) -> None:
         results = _search_remote(wuhan_qf, fetcher, test_date, "IONEX")
         _assert_found(results, "IONEX")
@@ -142,8 +151,8 @@ class TestWuhanGIMProbe:
 # Integration: CDDIS GIM probe
 # ---------------------------------------------------------------------------
 
-class TestCDDISGIMProbe:
 
+class TestCDDISGIMProbe:
     def test_ionex_found(self, cddis_qf, fetcher, test_date) -> None:
         results = _search_remote(cddis_qf, fetcher, test_date, "IONEX", {"AAA": "COD"})
         _assert_found(results, "IONEX")

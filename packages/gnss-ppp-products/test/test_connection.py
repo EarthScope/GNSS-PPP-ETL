@@ -7,6 +7,7 @@ unreachable hosts.
 
 These tests hit real FTP servers and are marked ``integration``.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -17,6 +18,7 @@ from gnss_ppp_products.server.ftp import ftp_can_connect, _ftp_connect
 # ---------------------------------------------------------------------------
 # Integration: reach real servers
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestFtpCanConnect:
@@ -29,9 +31,12 @@ class TestFtpCanConnect:
         assert ftp_can_connect("ftp://ftp.aiub.unibe.ch", timeout=15) is True
 
     def test_cddis_ftps_reachable(self) -> None:
-        assert ftp_can_connect(
-            "ftps://gdc.cddis.eosdis.nasa.gov", timeout=15, use_tls=True
-        ) is True
+        assert (
+            ftp_can_connect(
+                "ftps://gdc.cddis.eosdis.nasa.gov", timeout=15, use_tls=True
+            )
+            is True
+        )
 
     def test_hostname_prefix_stripped(self) -> None:
         """ftp:// and ftps:// prefixes must be stripped before connecting."""
@@ -44,6 +49,7 @@ class TestFtpCanConnect:
 # ---------------------------------------------------------------------------
 # Integration: _ftp_connect context manager
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestFtpConnectContextManager:
@@ -71,6 +77,7 @@ class TestFtpConnectContextManager:
 # ---------------------------------------------------------------------------
 # Integration: connectivity cache in ResourceFetcher
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestResourceFetcherConnectivity:

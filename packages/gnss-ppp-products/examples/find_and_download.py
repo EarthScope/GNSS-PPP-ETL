@@ -41,11 +41,11 @@ from gnss_ppp_products.factories import (
 # Override any of these with environment variables.
 
 WORKSPACE = Path(os.environ.get("WORKSPACE", tempfile.mkdtemp(prefix="gnss_example_")))
-PRODUCT   = os.environ.get("PRODUCT", "ORBIT")
-VERSION   = os.environ.get("VERSION", "1")
-CENTER    = os.environ.get("CENTER", "WUM")       # e.g. WUM, COD, IGS, GFZ
-DATE_STR  = os.environ.get("DATE", "2025-01-15")  # YYYY-MM-DD
-DOWNLOAD  = "--download" in sys.argv               # pass --download to fetch files
+PRODUCT = os.environ.get("PRODUCT", "ORBIT")
+VERSION = os.environ.get("VERSION", "1")
+CENTER = os.environ.get("CENTER", "WUM")  # e.g. WUM, COD, IGS, GFZ
+DATE_STR = os.environ.get("DATE", "2025-01-15")  # YYYY-MM-DD
+DOWNLOAD = "--download" in sys.argv  # pass --download to fetch files
 
 
 def main() -> None:
@@ -68,7 +68,7 @@ def main() -> None:
     env = ProductEnvironment(workspace=WORKSPACE)
 
     products = sorted(env.product_catalog.products.keys())
-    centers  = sorted(env.remote_factory.centers)
+    centers = sorted(env.remote_factory.centers)
     print(f"  Loaded {len(products)} products, {len(centers)} remote centers")
     print(f"  Products: {', '.join(products)}")
     print()
@@ -131,6 +131,7 @@ def main() -> None:
 
 
 # ── Helpers ───────────────────────────────────────────────────────
+
 
 def _print_results(found: list[FetchResult]) -> None:
     """Print a summary table of found files."""
