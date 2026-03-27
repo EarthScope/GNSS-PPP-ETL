@@ -53,7 +53,7 @@ class LockfileWriter:
         Path
             Path to the written lockfile.
         """
-        lock_dir = self._base_dir / ".locks"
+        lock_dir = self._base_dir / "locks"
         lock_dir.mkdir(parents=True, exist_ok=True)
 
         date_str = date.strftime("%Y%j")

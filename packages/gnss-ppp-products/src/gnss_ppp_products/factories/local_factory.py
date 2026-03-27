@@ -194,6 +194,28 @@ class LocalResourceFactory:
         """Return identifiers for all registered local resources."""
         return list(self._registered_specs.keys())
 
+    def lockfile_dir(
+        self,
+        resource_id: str,
+        date: datetime.date,
+    ) -> Path:
+        """Return the lockfiles directory for a resource on a given date.
+
+        Falls back to ``{base_dir}/locks`` if no ``lockfiles`` collection
+        is defined in the spec.
+        """
+        dt = _ensure_datetime(date)
+        registered_spec = self._get_registered_spec(resource_id)
+        lockfile_template = None
+        for coll_name, coll in registered_spec.spec.collections.items():
+            if coll_name == "lockfiles":
+                lockfile_template = coll.directory
+                break
+        if lockfile_template is None:
+            return registered_spec.base_dir / "locks"
+        resolved = self._parameter_catalog.interpolate(lockfile_template, dt, computed_only=True)
+        return registered_spec.base_dir / resolved
+
     def source_product(self, product: Product, resource_id: str) -> List[ResourceQuery]:
         """Resolve a product into ResourceQuery objects for a specific local resource.
 

@@ -2,14 +2,15 @@
 
 import asyncio
 import datetime
+from functools import cache
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Union
-from concurrent.futures import ThreadPoolExecutor
+from sqlite3 import connect
 from threading import Lock
+from typing import Dict, List, Optional, Union
 
 from gnss_ppp_products.server import protocol
 from gnss_ppp_products.server.protocol import DirectoryAdapter
@@ -79,66 +80,140 @@ class ResourceFetcher:
             "": LocalAdapter(),
         }
         self.thread_lock = Lock()  # protects both caches for thread safety
-        self.thread_pool = ThreadPoolExecutor(max_workers=15)  # shared thread pool for concurrent downloads
+        self._key_locks: Dict[str, Lock] = {}  # per-cache-key locks to prevent thundering herd
+
+    def get_connection_cache_key(self,protocol:str,hostname:str) -> str:
+        return f"{protocol.upper()}://{hostname}"
+
+    def warm_connectivity_cache(self, queries: List[ResourceQuery]) -> None:
+        """Pre-check reachability for all unique remote servers in *queries*.
+
+        Populates the internal connectivity cache so that subsequent
+        ``search()`` calls skip redundant connection probes.  Local
+        protocols are ignored.  Checks run concurrently.
+
+        FTP and FTPS share the same underlying host, so a single probe
+        result is propagated to both protocol keys.
+        """
+        # Deduplicate by hostname — one probe covers both FTP and FTPS
+        seen_hosts: Dict[str, str] = {}  # hostname → protocol to use for probe
+        for q in queries:
+            protocol = (q.server.protocol or "").upper()
+            if protocol in ("FILE", "LOCAL", ""):
+                continue
+            hostname = q.server.hostname
+            cache_key = self.get_connection_cache_key(protocol,hostname)
+            if cache_key in self._connectivity_cache:
+                continue
+
+            seen_hosts[cache_key] = protocol
+
+        if not seen_hosts:
+            return
+
+        def _check(item: tuple[str, str]) -> None:
+            cache_key, protocol = item
+            adapter = self._adapters.get(protocol)
+            if cache_key in self._connectivity_cache or adapter is None:
+                return  # already cached, no lock needed for dict read
+
+            hostname = cache_key.split("://", 1)[1]
+            reachable = adapter.can_connect(hostname)
+            self._connectivity_cache[cache_key] = reachable
+
+            label = "reachable" if reachable else "unreachable"
+            logger.info(f"Connectivity check: {cache_key} --> {label}")
+
+        with ThreadPoolExecutor(max_workers=15) as pool:
+            _ = list(pool.map(_check, seen_hosts.items()))
 
     def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
-        """Search every query's server/directory for matching files."""
-        return list(self.thread_pool.map(self._search_one, queries))
+        """Search every query's server/directory for matching files.
 
-    def _search_one(self, query: ResourceQuery) -> FetchResult:
-        """Search a single query's directory for matching files."""
-        directory = self._get_directory(query)
-        file_pattern = self._get_file_pattern(query)
+        Groups queries by directory so each remote listing is fetched at
+        most once, then matches all file patterns in-memory.
+        """
+        # ---- 1. Group queries by their listing cache key ----
+        groups: Dict[str, List[ResourceQuery]] = {}
+        query_meta: Dict[int, tuple[str, str, str]] = {}  # id(q) → (cache_key, directory, file_pattern)
+        for q in queries:
+            directory = self._get_directory(q)
+            file_pattern = self._get_file_pattern(q)
+            if not directory or not file_pattern:
+                continue
+            protocol = (q.server.protocol or "").upper()
+            hostname = q.server.hostname
+            cache_key = f"{protocol}://{hostname}/{directory}"
+            groups.setdefault(cache_key, []).append(q)
+            query_meta[id(q)] = (cache_key, directory, file_pattern)
 
-        if not directory or not file_pattern:
-            return FetchResult(
-                query=query,
-                error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
-            )
+        # ---- 2. Fetch each unique directory once (concurrently) ----
+        keys_to_fetch = [k for k in groups if k not in self._listing_cache]
+        if keys_to_fetch:
+            with ThreadPoolExecutor(max_workers=15) as pool:
+                list(pool.map(self._fetch_listing, keys_to_fetch, [groups[k][0] for k in keys_to_fetch]))
 
-        protocol = (query.server.protocol or "").upper()
-        hostname = query.server.hostname
+        # ---- 3. Match patterns against cached listings ----
+        results: List[FetchResult] = []
+        for q in queries:
+            meta = query_meta.get(id(q))
+            if meta is None:
+                results.append(FetchResult(
+                    query=q,
+                    error=f"Missing directory or file pattern",
+                ))
+                continue
+            cache_key, directory, file_pattern = meta
+            listing = self._listing_cache.get(cache_key)
+            if listing is None:
+                results.append(FetchResult(query=q, error=f"Listing unavailable for {cache_key}"))
+                continue
 
-        cache_key = f"{protocol}://{hostname}/{directory}"
+            q.directory.value = directory  # type: ignore[union-attr]
+            matches = self._match_files(listing, file_pattern)
+            if matches:
+                results.append(FetchResult(query=q, matched_filenames=matches))
+            else:
+                results.append(FetchResult(query=q, error="No matches found"))
+        return results
 
+    def _fetch_listing(self, cache_key: str, representative_query: ResourceQuery) -> None:
+        """Fetch and cache the directory listing for *cache_key*.
+
+        Uses per-key locking so concurrent calls for the same directory
+        block rather than stampede the server.
+        """
         if cache_key in self._listing_cache:
-            listing = self._listing_cache[cache_key]
-        else:
-            adapter = self._adapters.get(protocol)
-            if adapter is None:
-                return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
-            try:
-                conn_key = f"{protocol}://{hostname}"
-                if conn_key in self._connectivity_cache:
-                    if not self._connectivity_cache[conn_key]:
-                        raise ConnectionError(f"Server unreachable (cached): {hostname}")
-                else:
-                    reachable = adapter.can_connect(hostname)
-                    with self.thread_lock:
-                        self._connectivity_cache[conn_key] = reachable
-                    if not reachable:
-                        raise ConnectionError(f"Server unreachable: {hostname}")
-                    
+            return
+
+        protocol = (representative_query.server.protocol or "").upper()
+        hostname = representative_query.server.hostname
+        directory = self._get_directory(representative_query) or ""
+
+        # Connectivity gate
+        conn_key = self.get_connection_cache_key(protocol, hostname)
+        if conn_key in self._connectivity_cache and not self._connectivity_cache[conn_key]:
+            return  # host known unreachable
+
+        # Per-key lock
+        if cache_key not in self._key_locks:
+            self._key_locks[cache_key] = Lock()
+        key_lock = self._key_locks[cache_key]
+
+        adapter = self._adapters.get(protocol)
+        if adapter is None:
+            return
+
+        try:
+            with key_lock:
+                if cache_key in self._listing_cache:
+                    return  # another thread filled it while we waited
                 logger.info(f"Listing {protocol} directory: {hostname}/{directory}")
                 listing = adapter.list_directory(hostname, directory)
-            except Exception as e:
-                return FetchResult(query=query, error=f"Listing failed: {e}")
-            # Cache non-local listings
-            if protocol not in ("FILE", "LOCAL", ""):
-                with self.thread_lock:
+                if "FILE" not in cache_key:
                     self._listing_cache[cache_key] = listing
-
-        query.directory.value = directory  # type: ignore[union-attr]
-
-        matches = self._match_files(listing, file_pattern)
-        logger.info(f"Found {len(matches)} matches for {hostname}/{directory} with pattern {file_pattern!r}")
-        if matches:
-            return FetchResult(
-                    query=query,
-                    matched_filenames=matches
-                )
-        return FetchResult(query=query, error="No matches found")
-
+        except Exception as e:
+            logger.warning(f"Listing failed for {cache_key}: {e}")
 
     # -- Pattern matching ------------------------------------------
 
@@ -231,10 +306,8 @@ class ResourceFetcher:
         date: datetime.datetime,
     ) -> Optional[Path]:
         """Synchronously download all matched files for one FetchResult."""
-     
 
         hostname = query.server.hostname
-     
 
         destination_resource = local_factory.sink_product(query.product, local_resource_id, date)
         destination_dir = Path(destination_resource.server.hostname) / destination_resource.directory.value  # type: ignore[union-attr]
@@ -245,7 +318,7 @@ class ResourceFetcher:
         if adapter is None:
             logger.error(f"Unsupported protocol for download: {protocol!r}")
             return None
-        
+
         try:
             return adapter.download_file(
                 hostname=hostname,

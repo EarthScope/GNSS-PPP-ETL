@@ -88,6 +88,15 @@ collections:
       - OROGRAPHY
 
   # ---------------------------------------------------------------------------
+  # Lockfiles — provenance tracking for downloaded products
+  # ---------------------------------------------------------------------------
+  lockfiles:
+    directory: "{YYYY}/{DDD}/lockfiles"
+    temporal: daily
+    description: "Per-file sidecar lockfiles recording download provenance"
+    items: []
+
+  # ---------------------------------------------------------------------------
   # LEO satellite instrument data
   # ---------------------------------------------------------------------------
   leo:

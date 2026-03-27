@@ -3,6 +3,8 @@ from email.mime import base
 import json
 from pathlib import Path
 import time
+import logging
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
 from gnss_ppp_products.factories.environment import ProductEnvironment
 from gnss_ppp_products.factories.workspace import WorkSpace
@@ -57,7 +59,7 @@ qf = QueryFactory(
     product_environment=env,
     workspace=workspace,
     )
-fetcher = ResourceFetcher(ftp_timeout=30)
+fetcher = ResourceFetcher(ftp_timeout=10)
 
 dep_res = DependencyResolver(
     dep_spec=dep_spec,

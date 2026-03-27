@@ -14,18 +14,15 @@ from __future__ import annotations
 
 from collections import defaultdict
 import datetime
-from email.policy import default
 import hashlib
 import json
 import logging
-from math import exp, sin
 import re
 from pathlib import Path
-from threading import local
-from token import OP
 from typing import Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, thread
 from functools import partial
+import threading
     
 from gnss_ppp_products.factories.environment import ProductEnvironment
 from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
@@ -112,7 +109,6 @@ class DependencyResolver:
         self._qf: QueryFactory = query_factory
         self._fetcher = fetcher
         self._product_environment = product_environment
-        self.thread_pool = ThreadPoolExecutor(max_workers=25)  # shared thread pool for concurrent downloads
 
 
     def resolve(
@@ -132,12 +128,28 @@ class DependencyResolver:
         """
         results: List[ResolvedDependency] = []
 
+        # Pre-warm: probe connectivity for all unique remote servers so
+        # that per-dependency threads don't duplicate slow connection checks.
+        # all_queries: List[ResourceQuery] = []
+        # for dep in self.dep_spec.dependencies:
+        #     try:
+        #         qs = self._qf.get(
+        #             date,
+        #             product={"name": dep.spec},
+        #             parameters=dep.constraints or None,
+        #         )
+        #         all_queries.extend(qs)
+        #     except (ValueError, KeyError):
+        #         pass
+        # if all_queries:
+        #     self._fetcher.warm_connectivity_cache(all_queries)
+
         partial_resolve_one = partial(
             self._resolve_one,
             date=date,
             local_sink_id=local_sink_id,
         )
-        with ThreadPoolExecutor(max_workers=25) as executor:
+        with ThreadPoolExecutor(max_workers=15) as executor:
             futures = [executor.submit(partial_resolve_one, dep) for dep in self.dep_spec.dependencies]
             for future in futures:
                 resolved = future.result()
@@ -166,6 +178,8 @@ class DependencyResolver:
                 product={"name": dep.spec},
                 parameters=dep.constraints or None,
             )
+            with threading.Lock():
+                self._fetcher.warm_connectivity_cache(queries)
         except (ValueError, KeyError) as exc:
             logger.debug("No queries for %s: %s", dep.spec, exc)
             return ResolvedDependency(
@@ -311,8 +325,10 @@ class DependencyResolver:
             local_path=local_path,
             file_hash=file_hash,
             file_size=file_size,
+            check_existing_lock=False,
         )
-        self._write_file_lock(local_path, resolved)
+        lock_dir = local_resource_factory.lockfile_dir(local_sink_id, date)
+        self._write_file_lock(local_path, resolved, lock_dir=lock_dir)
         return resolved
 
     def _resolve_local(
@@ -345,137 +361,69 @@ class DependencyResolver:
                 logger.info(f"Copied local file {source_path} to sink directory {dest_path}")
             source_path = dest_path
 
-        file_hash = _hash_file(source_path)
-        file_size = source_path.stat().st_size
+        # Try to reuse hash from an existing lockfile to avoid re-hashing
+        lock_dir = local_resource_factory.lockfile_dir(local_sink_id, date)
+        existing_lock = self._get_file_lock(source_path, lock_dir=lock_dir)
+        if existing_lock and existing_lock.hash and existing_lock.size == source_path.stat().st_size:
+            file_hash = existing_lock.hash
+            file_size = existing_lock.size
+        else:
+            file_hash = _hash_file(source_path)
+            file_size = source_path.stat().st_size
+
         resolved = self._make_resolved(
             dep, rq,
             status="local",
             local_path=source_path,
             file_hash=file_hash,
             file_size=file_size,
+            check_existing_lock=False,
+            existing_lock=existing_lock,
         )
+        # Write/update the lockfile if it didn't exist or hash changed
+        if not existing_lock or existing_lock.hash != file_hash:
+            self._write_file_lock(source_path, resolved, lock_dir=lock_dir)
         return resolved
 
-    def _try_remote(
-        self,
-        dep: Dependency,
-        rq: ResourceQuery,
-        *,
-        rank: int,
-        download: bool,
-    ) -> Optional[ResolvedDependency]:
-        """Use ResourceFetcher to search (and optionally download) one query."""
-        from gnss_ppp_products.factories.resource_fetcher import FetchResult
+    @staticmethod
+    def _get_file_lock(local_path: Path, *, lock_dir: Optional[Path] = None) -> Optional[LockProduct]:
+        """Load an existing ``<filename>.lock`` sidecar.
 
-        results = self._fetcher.search([rq])
-        if not results:
-            return None
-
-        fr: FetchResult = results[0]
-        if not fr.found:
-            return None
-
-        label = _get_param_value(rq, "AAA") or rq.server.hostname
-        local_path: Optional[Path] = None
-        file_hash = ""
-        file_size: int | None = None
-
-        if download:
-            local_path = self._download_result(rq, fr)
-            if local_path is not None:
-                file_hash = _hash_file(local_path)
-                file_size = local_path.stat().st_size
-
-        resolved = self._make_resolved(
-            dep, rq,
-            status="downloaded" if local_path else "remote",
-            local_path=local_path,
-            file_hash=file_hash,
-            file_size=file_size,
-        )
-
-        if local_path is not None:
-            self._write_file_lock(local_path, resolved)
-
-        return resolved
-
-    def _download_result(
-        self,
-        rq: ResourceQuery,
-        dest_dir: Path,
-    ) -> Optional[Path]:
-        """Download the first matched file from a FetchResult."""
-
-        assert dest_dir.exists() and dest_dir.is_dir(), "Destination directory must exist for download"
-        directory = rq.directory.value
-        assert directory is not None, "Directory must be specified for download"
-        filename = rq.product.filename.value 
-        assert filename is not None, "Filename must be specified for download"
-        protocol = (rq.server.protocol or "").upper()
-        hostname = rq.server.hostname
-
-        if protocol in ("FTP", "FTPS"):
-            return self._download_ftp(
-                hostname, directory, filename, dest_dir,
-                use_tls=(protocol == "FTPS"),
-            )
-        if protocol in ("HTTP", "HTTPS"):
-            return self._download_http(
-                hostname, directory, filename, dest_dir,
-            )
-
-        logger.warning("Unsupported protocol for download: %s", protocol)
-        return None
-
-    def _download_ftp(
-        self,
-        hostname: str,
-        directory: str,
-        filename: str,
-        dest_dir: Path,
-        *,
-        use_tls: bool = False,
-    ) -> Optional[Path]:
-        from gnss_ppp_products.server.ftp import ftp_download_file
-
-        dest = dest_dir / filename
-        if ftp_download_file(hostname, directory, filename, dest, use_tls=use_tls):
-            logger.info("Downloaded %s → %s", filename, dest)
-            return dest
-        return None
-
-    def _download_http(
-        self,
-        hostname: str,
-        directory: str,
-        filename: str,
-        dest_dir: Path,
-    ) -> Optional[Path]:
-        from gnss_ppp_products.server.http import http_get_file
-
-        result = http_get_file(hostname, directory, filename, dest_dir)
-        if result is not None:
-            logger.info("Downloaded %s → %s", filename, result)
-            return result
+        Checks *lock_dir* first (the dedicated lockfiles directory), then
+        falls back to the file's own parent directory for backwards
+        compatibility.
+        """
+        name = f"{local_path.name}.lock"
+        candidates = []
+        if lock_dir is not None:
+            candidates.append(lock_dir / name)
+        candidates.append(local_path.parent / name)
+        for lock_path in candidates:
+            if lock_path.exists() and lock_path.is_file():
+                try:
+                    with open(lock_path, 'r') as f:
+                        lock_data = json.load(f)
+                    return LockProduct.model_validate(lock_data)
+                except Exception:
+                    logger.debug("Failed to read lockfile %s", lock_path)
         return None
 
     @staticmethod
-    def _get_file_lock(local_path: Path) -> Optional[LockProduct]:
-        """Check for a ``<filename>.lock`` sidecar and return its path if it exists."""
-        lock_path = local_path.parent / f"{local_path.name}.lock"
-        if lock_path.exists() and lock_path.is_file():
-            with open(lock_path,'r') as f:
-                lock_data = json.load(f)
-                lock_product = LockProduct.model_validate(lock_data)
-            return lock_product
-        return None
+    def _write_file_lock(
+        local_path: Path,
+        resolved: ResolvedDependency,
+        *,
+        lock_dir: Optional[Path] = None,
+    ) -> None:
+        """Write a ``<filename>.lock`` JSON sidecar into *lock_dir*.
 
-    @staticmethod
-    def _write_file_lock(local_path: Path, resolved: ResolvedDependency) -> None:
-        """Write a ``<filename>.lock`` JSON sidecar next to the downloaded file."""
+        Falls back to the file's parent directory when *lock_dir* is None.
+        """
         if resolved.lockfile is None:
             return
-        lock_path = local_path.parent / f"{local_path.name}.lock"
+        target = lock_dir if lock_dir is not None else local_path.parent
+        target.mkdir(parents=True, exist_ok=True)
+        lock_path = target / f"{local_path.name}.lock"
         lock_data = json.loads(resolved.lockfile.model_dump_json())
         lock_data["local_path"] = str(local_path)
         lock_path.write_text(json.dumps(lock_data, indent=2), encoding="utf-8")
@@ -490,6 +438,8 @@ class DependencyResolver:
         local_path: Optional[Path],
         file_hash: str = "",
         file_size: int | None = None,
+        check_existing_lock: bool = True,
+        existing_lock: Optional[LockProduct] = None,
     ) -> ResolvedDependency:
         """Build a :class:`ResolvedDependency` from a ResourceQuery."""
         from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
@@ -497,7 +447,9 @@ class DependencyResolver:
         remote_url = _build_remote_url(rq)
         regex = _file_pattern(rq)
 
-        lock_product: Optional[LockProduct] = DependencyResolver._get_file_lock(local_path)
+        lock_product: Optional[LockProduct] = existing_lock
+        if lock_product is None and check_existing_lock and local_path is not None:
+            lock_product = DependencyResolver._get_file_lock(local_path)
         if not lock_product:
             lock_product = LockProduct(
                 name=dep.spec,
