@@ -5,34 +5,18 @@ from gnss_ppp_products.factories.remote_factory import RemoteResourceFactory
 from gnss_ppp_products.factories.query_factory import QueryFactory
 from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchResult
 from gnss_ppp_products.factories.environment import ProductEnvironment
-from gnss_ppp_products.factories.models import (
-    DiscoveryEntry,
-    DiscoveryReport,
-    FoundResource,
-    MissingProductError,
-    Resolution,
-)
-from gnss_ppp_products.pipelines import (
-    FindPipeline,
-    DownloadPipeline,
-    LockfileWriter,
-    ResolvePipeline,
-)
+from gnss_ppp_products.factories.workspace import WorkSpace
+from gnss_ppp_products.factories.dependency_resolver import DependencyResolver
+from gnss_ppp_products.factories.lockfile_manager import DependecyLockFile
 
 __all__ = [
     "ProductEnvironment",
+    "WorkSpace",
+    "DependencyResolver",
     "ResourceFactory",
     "RemoteResourceFactory",
     "QueryFactory",
     "ResourceFetcher",
     "FetchResult",
-    "DiscoveryEntry",
-    "DiscoveryReport",
-    "FoundResource",
-    "MissingProductError",
-    "Resolution",
-    "FindPipeline",
-    "DownloadPipeline",
-    "LockfileWriter",
-    "ResolvePipeline",
+    "DependecyLockFile",
 ]

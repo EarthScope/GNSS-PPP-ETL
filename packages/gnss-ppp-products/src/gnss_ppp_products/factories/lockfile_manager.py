@@ -1,16 +1,9 @@
-import hashlib
 from pathlib import Path
 import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional, Tuple
 
-def _hash_file(path: Path) -> str:
-    """Return the SHA-256 hex digest of a file."""
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 16), b""):
-            h.update(chunk)
-    return f"sha256:{h.hexdigest()}"
+from gnss_ppp_products.utilities.helpers import hash_file as _hash_file
 
 class LockProductAlternative(BaseModel):
     """An alternative (mirror / fallback) source for a locked product."""

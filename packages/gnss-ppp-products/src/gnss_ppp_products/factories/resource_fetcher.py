@@ -1,18 +1,14 @@
 """ResourceFetcher — protocol-agnostic file search and download."""
 
-import asyncio
 import datetime
-from functools import cache
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from sqlite3 import connect
 from threading import Lock
 from typing import Dict, List, Optional, Union
 
-from gnss_ppp_products.server import protocol
 from gnss_ppp_products.server.protocol import DirectoryAdapter
 from gnss_ppp_products.server.ftp import FTPAdapter
 from gnss_ppp_products.server.http import HTTPAdapter

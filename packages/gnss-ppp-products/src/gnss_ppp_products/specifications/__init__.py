@@ -7,12 +7,11 @@ Subpackages
 - :mod:`.format`       — ``FormatFieldDef``, ``FormatVersionSpec``, ``FormatSpec``,
                          ``FormatCatalog``, ``FormatSpecCatalog``
 - :mod:`.products`     — ``Product``, ``ProductPath``, ``ProductCatalog``
-- :mod:`.local`        — ``LocalCollection``, ``LocalResourceSpec``,
-                         ``LocalResourceFactory``
+- :mod:`.local`        — ``LocalCollection``, ``LocalResourceSpec``
 - :mod:`.remote`       — ``Server``, ``ResourceSpec``, ``ResourceQuery``,
                          ``ResourceCatalog``
-- :mod:`.dependencies` — ``DependencySpec``, ``DependencyResolver``,
-                         ``ResolvedDependency``, ``LockProduct``, ``ProductLockfile``
+- :mod:`.dependencies` — ``DependencySpec``, ``ResolvedDependency``,
+                         ``LockProduct``, ``ProductLockfile``
 """
 
 from gnss_ppp_products.specifications.catalog import Catalog
@@ -50,18 +49,12 @@ from gnss_ppp_products.specifications.local.local import (
     LocalCollection,
     LocalResourceSpec,
 )
-from gnss_ppp_products.factories.local_factory import (
-    LocalResourceFactory,
-)
 from gnss_ppp_products.specifications.dependencies.dependencies import (
     SearchPreference,
     Dependency,
     DependencySpec,
     DependencyResolution,
     ResolvedDependency,
-)
-from gnss_ppp_products.factories.dependency_resolver import (
-    DependencyResolver,
 )
 from gnss_ppp_products.specifications.dependencies.lockfile import (
     LockProduct,
@@ -95,14 +88,12 @@ __all__ = [
     # local
     "LocalCollection",
     "LocalResourceSpec",
-    "LocalResourceFactory",
     # dependencies
     "SearchPreference",
     "Dependency",
     "DependencySpec",
     "DependencyResolution",
     "ResolvedDependency",
-    "DependencyResolver",
     "LockProduct",
     "LockProductAlternative",
     "ProductLockfile",

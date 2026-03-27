@@ -9,14 +9,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from gnss_ppp_products.factories.environment import ProductEnvironment
-from gnss_ppp_products.factories.workspace import WorkSpace
-from pydantic import BaseModel
+from gnss_ppp_products.factories.workspace import WorkSpace, RegisteredLocalResource, paths_overlap
 
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.product import Product, ProductPath
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery, Server
-from gnss_ppp_products.specifications.remote.resource_catalog import ResourceCatalog
 from gnss_ppp_products.utilities.helpers import _ensure_datetime
 
 if TYPE_CHECKING:
@@ -24,19 +22,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
-def paths_overlap(p1: Path, p2: Path) -> bool:
-    p1 = p1.resolve()
-    p2 = p2.resolve()
-    return p1.is_relative_to(p2) or p2.is_relative_to(p1)
-
-
-class RegisteredLocalResource(BaseModel):
-    name: str
-    base_dir: Path
-    spec: LocalResourceSpec
-    item_to_dir: Dict[str, str]
-    server: Server
 
 class LocalResourceFactory:
     """Registry of local file-system product archives using collections-based layout.
@@ -65,31 +50,6 @@ class LocalResourceFactory:
         self._parameter_catalog = product_environment._parameter_catalog
         self._registered_specs: Dict[str,RegisteredLocalResource] = workspace._registered_specs
         self._alias_map: Dict[str, str] = workspace._alias_map
-
-        # # Build a single local "server"
-        # self.local_server = Server(
-        #     id="local_disk",
-        #     hostname=str(base_dir) if base_dir else "local",
-        #     protocol="file",
-        #     auth_required=False,
-        #     description="Local product archive",
-        # )
-
-        # # Build spec_name → directory_template map
-        # self._item_to_dir: Dict[str, str] = {}
-        # self._catalogs: List[ResourceCatalog] = []
-
-        # for coll_name, coll in local_spec.collections.items():
-        #     for item in coll.items:
-        #         self._item_to_dir[item] = coll.directory
-
-        # # Warn about products in the catalog that have no local directory template
-        # for prod_name in product_catalog.products.keys():
-        #     if prod_name not in self._item_to_dir:
-        #         logger.warning(
-        #             "Product %r in catalog has no local directory template. "
-        #             "Source: %s", prod_name, local_spec.source_file,
-        #         )
 
     def register(
         self,
@@ -199,28 +159,6 @@ class LocalResourceFactory:
     def resource_ids(self) -> List[str]:
         """Return identifiers for all registered local resources."""
         return list(self._registered_specs.keys())
-
-    # def lockfile_dir(
-    #     self,
-    #     resource_id: str,
-    #     date: datetime.date,
-    # ) -> Path:
-    #     """Return the lockfiles directory for a resource on a given date.
-
-    #     Falls back to ``{base_dir}/locks`` if no ``lockfiles`` collection
-    #     is defined in the spec.
-    #     """
-    #     dt = _ensure_datetime(date)
-    #     registered_spec = self._get_registered_spec(resource_id)
-    #     lockfile_template = None
-    #     for coll_name, coll in registered_spec.spec.collections.items():
-    #         if coll_name == "lockfiles":
-    #             lockfile_template = coll.directory
-    #             break
-    #     if lockfile_template is None:
-    #         return registered_spec.base_dir / "locks"
-    #     resolved = self._parameter_catalog.interpolate(lockfile_template, dt, computed_only=True)
-    #     return registered_spec.base_dir / resolved
 
     def source_product(self, product: Product, resource_id: str) -> List[ResourceQuery]:
         """Resolve a product into ResourceQuery objects for a specific local resource.

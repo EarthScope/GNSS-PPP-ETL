@@ -23,6 +23,20 @@ class RegisteredLocalResource(BaseModel):
 
 
 class WorkSpace:
+    """Registry of local storage directories and their layout specifications.
+
+    Manages the mapping between ``LocalResourceSpec`` definitions (loaded from
+    YAML) and concrete base directories on disk.  Each registered spec gets a
+    ``Server(protocol='file')`` so that local resources can be queried with the
+    same ``ResourceQuery`` interface used for remote servers.
+
+    Usage::
+
+        ws = WorkSpace()
+        ws.add_resource_spec('local_config.yaml')
+        ws.register_spec(base_dir='/data/gnss', spec_ids=['local_config'], alias='local')
+    """
+
     def __init__(self):
 
         self._registered_specs: Dict[str, RegisteredLocalResource] = {}

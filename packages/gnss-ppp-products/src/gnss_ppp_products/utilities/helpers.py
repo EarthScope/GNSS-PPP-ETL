@@ -1,7 +1,18 @@
 """Shared helper functions and sentinel types."""
 
 import datetime
+import hashlib
 import itertools
+from pathlib import Path
+
+
+def hash_file(path: Path) -> str:
+    """Return the SHA-256 hex digest of a file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return f"sha256:{h.hexdigest()}"
 
 
 def _ensure_datetime(date: datetime.date | datetime.datetime) -> datetime.datetime:

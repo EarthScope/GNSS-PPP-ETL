@@ -79,7 +79,7 @@ dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years
 times = []
 for date in dates:
     start = time.time()
-    resolution,dep_lockfile_path = dep_res.resolve(date=date,local_sink_id="local",station=station)
+    resolution,dep_lockfile_path = dep_res.resolve(date=date,local_sink_id="local")
     end = time.time()
     times.append(end - start)
     print(f"Resolution for {date.date()} took {end - start:.2f} seconds.")

@@ -12,25 +12,17 @@ the dependency spec.
 
 from __future__ import annotations
 
-from ast import Tuple
 from collections import defaultdict
 import datetime
-import hashlib
-import json
 import logging
-from os import write
 import re
 from pathlib import Path
 from typing import Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor, thread
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import threading
-    
-from anyio import Lock
+
 from gnss_ppp_products.factories.environment import ProductEnvironment
-from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
-from gnss_ppp_products.specifications.parameters.parameter import Parameter
-from gnss_ppp_products.specifications.products.catalog import ProductCatalog
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.specifications.dependencies.dependencies import (
     Dependency,
@@ -43,10 +35,17 @@ from gnss_ppp_products.factories.query_factory import QueryFactory
 from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchResult
 from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
 from .workspace import WorkSpace
-
 from .lockfile_manager import (
-    LockProduct, validate_lock_product,build_lock_product,get_lock_product_path,get_lock_product,write_lock_product,DependecyLockFile,
-    get_dependency_lockfile_name,get_dependency_lockfile,write_dependency_lockfile
+    LockProduct,
+    validate_lock_product,
+    build_lock_product,
+    get_lock_product_path,
+    get_lock_product,
+    write_lock_product,
+    DependecyLockFile,
+    get_dependency_lockfile_name,
+    get_dependency_lockfile,
+    write_dependency_lockfile,
 )
 logger = logging.getLogger(__name__)
 
@@ -78,15 +77,6 @@ def _file_pattern(rq: ResourceQuery) -> str:
     if rq.product.filename:
         return rq.product.filename.value or rq.product.filename.pattern
     return ""
-
-
-def _hash_file(path: Path) -> str:
-    """Return the SHA-256 hex digest of a file."""
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 16), b""):
-            h.update(chunk)
-    return f"sha256:{h.hexdigest()}"
 
 
 class DependencyResolver:
@@ -179,7 +169,7 @@ class DependencyResolver:
                     )
                     results.append(resolved)
                 else:
-                    logger.warning(f"Invalid lock product in lockfile {dep_lock_file}: {lock_product}. Will attempt to re-resolve.")
+                    logger.warning(f"Invalid lock product in lockfile {dep_lock_file_path}: \n{lock_product}. Will attempt to re-resolve.")
         
         else:
             dep_lock_file = DependecyLockFile(
