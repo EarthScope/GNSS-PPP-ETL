@@ -12,17 +12,21 @@ the dependency spec.
 
 from __future__ import annotations
 
+from collections import defaultdict
 import datetime
+from email.policy import default
 import hashlib
 import json
 import logging
-from math import sin
+from math import exp, sin
 import re
 from pathlib import Path
 from threading import local
 from token import OP
 from typing import Dict, List, Optional
-
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+    
 from gnss_ppp_products.factories.environment import ProductEnvironment
 from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
 from gnss_ppp_products.specifications.parameters.parameter import Parameter
@@ -108,6 +112,8 @@ class DependencyResolver:
         self._qf: QueryFactory = query_factory
         self._fetcher = fetcher
         self._product_environment = product_environment
+        self.thread_pool = ThreadPoolExecutor(max_workers=25)  # shared thread pool for concurrent downloads
+
 
     def resolve(
         self,
@@ -126,10 +132,17 @@ class DependencyResolver:
         """
         results: List[ResolvedDependency] = []
 
-        for dep in self.dep_spec.dependencies:
-            resolved = self._resolve_one(dep, date, local_sink_id=local_sink_id)
-            if resolved:
-                results.append(resolved)
+        partial_resolve_one = partial(
+            self._resolve_one,
+            date=date,
+            local_sink_id=local_sink_id,
+        )
+        with ThreadPoolExecutor(max_workers=25) as executor:
+            futures = [executor.submit(partial_resolve_one, dep) for dep in self.dep_spec.dependencies]
+            for future in futures:
+                resolved = future.result()
+                if resolved:
+                    results.append(resolved)
 
         resolution = DependencyResolution(
             spec_name=self.dep_spec.name,
@@ -173,8 +186,38 @@ class DependencyResolver:
         logger.info(f"Fetched {len(fetched_queries)} queries for dependency {dep.spec}")
 
         # Expand the fetched queries into a list of resource queries.
-        expanded_queries: List[ResourceQuery] = []
-        for fq in fetched_queries:
+        expanded_queries: List[ResourceQuery] = self._expand_fetch_results(fetched_queries)
+
+
+        expanded_queries = self._sort_by_preferences(expanded_queries)
+        filename_groups = defaultdict(list)
+        for rq in expanded_queries:
+            filename_groups[rq.product.filename.value].append(rq)
+
+        # sort by server protocol
+        for key, group in filename_groups.items():
+            filename_groups[key] = self._sort_by_protocol(group)
+
+        for rq_index in expanded_queries:
+            for rq in filename_groups[rq_index.product.filename.value]:
+                if (rq.server.protocol or "").upper() in ("FILE", "LOCAL", ""):
+                    resolved = self._resolve_local(
+                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date)
+                    if resolved is not None:
+                        return resolved
+
+                else:
+
+                    resolved = self._resolve_remote(
+                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date,
+                    )
+                    if resolved is not None:
+                        return resolved
+
+    def _expand_fetch_results(self, fetched: List[FetchResult]) -> List[ResourceQuery]:
+        """Expand FetchResults into ResourceQueries with filename values filled in."""
+        expanded: List[ResourceQuery] = []
+        for fq in fetched:
             if fq.error:
                 continue
             assert fq.query.directory.value is not None, "Fetched query must have directory value filled in"
@@ -186,82 +229,10 @@ class DependencyResolver:
                 # Create a new ResourceQuery with the filename value filled in.
                 rq = fq.query.model_copy(deep=True)
                 rq.product.filename.value = filename
-                expanded_queries.append(rq)
-
-        # Infer parameter values from the filename pattern if possible
-        for rq in expanded_queries:
-            updated_parameters: List[Parameter] = infer_from_regex(  # type: ignore
-                regex=rq.product.filename.pattern,  # type: ignore
-                filename=rq.product.filename.value,  # type: ignore
-                parameters=rq.product.parameters,
-            )  
-            if updated_parameters:
-                rq.product.parameters = updated_parameters
-            classification_results = self._product_environment.classify(filename=rq.product.filename.value, parameters=rq.product.parameters)
-            if classification_results:
-                class_parameters:Dict[str,str] = classification_results.get("parameters", {}) # TODO make the classification results more structured so we don't have to do this stringly-typed dance
-                for p in rq.product.parameters:
-                    if p.name in class_parameters and p.value is None:
-                        p.value = class_parameters[p.name]
-
-        expanded_queries = self._sort_by_preferences(expanded_queries)
-
-        '''
-        1. Sort by preferences
-        2. Group by matching parameter sets, sort so that local matches come first within each group
-        
-        '''
-        parameter_groups: Dict[str, List[ResourceQuery]] = {}
-        for rq in expanded_queries:
-            key_list = [f"{p.name}={p.value}" for p in rq.product.parameters if p.value is not None]
-            sorted_key_list = list(sorted(key_list, key=lambda x: x.split("=")[0]))  # Sort by parameter name for consistent grouping
-            key_string = "|".join(sorted_key_list)
-            parameter_groups.setdefault(key_string, []).append(rq)
-
-        protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
-        for key, group in parameter_groups.items():
-            group.sort(key=lambda rq: protocol_sort_order.index((rq.server.protocol or "").upper()) if (rq.server.protocol or "").upper() in protocol_sort_order else len(protocol_sort_order))
-
-        # If our first query has been found locally, we can pick that.
-
-        # # Partition into local and remote
-        # local_queries = [
-        #     q for q in expanded_queries
-        #     if (q.server.protocol or "").upper() in ("FILE", "LOCAL", "")
-        # ]
-        # remote_queries = [
-        #     q for q in expanded_queries
-        #     if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-        # ]
-
-        # # Pair local and remote queries by their filename pattern.
-        # pairs: List[tuple[ResourceQuery, Optional[ResourceQuery]]] = []
-        # for lq in local_queries:
-        #     local_filename = lq.product.filename.value
-        #     for idx,rq in enumerate(remote_queries):
-        #         remote_filename = rq.product.filename.value
-        #         if local_filename == remote_filename:
-        #             pairs.append((lq, remote_queries.pop(idx)))
-        #             break
-
-        # Phase 1: check local disk
-        for parameter_group in parameter_groups.values():
-            for rq in parameter_group:
-                if (rq.server.protocol or "").upper() in ("FILE", "LOCAL", ""):
-                    resolved = self._resolve_local(
-                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date)
-                    if resolved is not None:
-                        return resolved
-
-                else:
-                    
-                    resolved = self._resolve_remote(
-                        rq=rq, dep=dep, local_sink_id=local_sink_id, local_resource_factory=self._qf._local, date=date,
-                    )
-                    if resolved is not None:
-                        return resolved
-
-
+                rq = self._update_parameters(rq)
+                expanded.append(rq)
+        return expanded
+    
     def _sort_by_preferences(
         self,
         queries: List[ResourceQuery],
@@ -275,15 +246,41 @@ class DependencyResolver:
             sorting = [v.upper() for v in pref.sorting]
 
             def _key(rq: ResourceQuery, _pn=param_name, _s=sorting) -> int:
-                val = _get_param_value(rq, _pn).upper()
                 try:
+                    val = _get_param_value(rq, _pn).upper()
                     return _s.index(val)
-                except ValueError:
+                except (ValueError, TypeError):
                     return len(_s)
 
             queries = sorted(queries, key=_key)
 
         return queries
+
+    def _sort_by_protocol(self, queries: List[ResourceQuery]) -> List[ResourceQuery]:
+        """Sort queries by server protocol, preferring local/file over remote."""
+        protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
+        return sorted(
+            queries,
+            key=lambda rq: protocol_sort_order.index((rq.server.protocol or "").upper()) if (rq.server.protocol or "").upper() in protocol_sort_order else len(protocol_sort_order)
+        )
+
+    def _update_parameters(self,resource_query: ResourceQuery) -> ResourceQuery:
+        """Update a ResourceQuery's parameters by re-interpolating its directory and filename patterns."""
+        updated = resource_query.model_copy(deep=True)
+        updated_params: List[Parameter] = infer_from_regex(
+            regex=updated.product.filename.pattern,  # type: ignore
+            filename=updated.product.filename.value,  # type: ignore
+            parameters=updated.product.parameters,
+        )
+        updated.product.parameters = updated_params
+        classification_results = self._product_environment.classify(filename=updated.product.filename.value, parameters=updated.product.parameters)
+        if classification_results:
+            class_parameters:Dict[str,str] = classification_results.get("parameters", {}) # TODO make the classification results more structured so we don't have to do this stringly-typed dance
+            for p in updated.product.parameters:
+                if p.name in class_parameters and p.value is None:
+                    p.value = class_parameters[p.name]
+
+        return updated
 
     def _resolve_remote(
             self,
@@ -297,7 +294,7 @@ class DependencyResolver:
 
         assert rq.product.filename.value is not None, "Remote resolution requires filename to be filled in"
 
-        #local_path = self._download_result(rq, dest_dir)
+        # local_path = self._download_result(rq, dest_dir)
         local_path: Optional[Path] = self._fetcher.download_one(
             query=rq,
             local_resource_id=local_sink_id,
@@ -336,9 +333,9 @@ class DependencyResolver:
         source_path = source_directory / filename
 
         # If the file is not present in the local_sink resource, we can copy it there.
-        sink_directory = local_resource_factory.sink_product(rq.product, local_sink_id, date).directory.value
+        sink_query = local_resource_factory.sink_product(rq.product, local_sink_id, date)
+        sink_directory = Path(sink_query.server.hostname) / sink_query.directory.value
         assert sink_directory is not None, "Sink product must have a directory value"
-        sink_directory = Path(sink_directory)
         if not sink_directory == source_directory:
             sink_directory.mkdir(parents=True, exist_ok=True)
             # Copy the file to the sink directory

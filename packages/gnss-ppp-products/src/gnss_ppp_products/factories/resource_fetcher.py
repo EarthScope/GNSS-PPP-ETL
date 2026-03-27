@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 from gnss_ppp_products.server import protocol
 from gnss_ppp_products.server.protocol import DirectoryAdapter
@@ -76,10 +78,12 @@ class ResourceFetcher:
             "LOCAL": LocalAdapter(),
             "": LocalAdapter(),
         }
+        self.thread_lock = Lock()  # protects both caches for thread safety
+        self.thread_pool = ThreadPoolExecutor(max_workers=15)  # shared thread pool for concurrent downloads
 
     def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
         """Search every query's server/directory for matching files."""
-        return [self._search_one(q) for q in queries]
+        return list(self.thread_pool.map(self._search_one, queries))
 
     def _search_one(self, query: ResourceQuery) -> FetchResult:
         """Search a single query's directory for matching files."""
@@ -110,7 +114,8 @@ class ResourceFetcher:
                         raise ConnectionError(f"Server unreachable (cached): {hostname}")
                 else:
                     reachable = adapter.can_connect(hostname)
-                    self._connectivity_cache[conn_key] = reachable
+                    with self.thread_lock:
+                        self._connectivity_cache[conn_key] = reachable
                     if not reachable:
                         raise ConnectionError(f"Server unreachable: {hostname}")
                     
@@ -120,7 +125,8 @@ class ResourceFetcher:
                 return FetchResult(query=query, error=f"Listing failed: {e}")
             # Cache non-local listings
             if protocol not in ("FILE", "LOCAL", ""):
-                self._listing_cache[cache_key] = listing
+                with self.thread_lock:
+                    self._listing_cache[cache_key] = listing
 
         query.directory.value = directory  # type: ignore[union-attr]
 
