@@ -7,8 +7,8 @@ import logging
 
 #logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
-from gnss_ppp_products.factories.environment import ProductEnvironment
-from gnss_ppp_products.factories.workspace import WorkSpace
+from gnss_ppp_products.environments import ProductEnvironment
+from gnss_ppp_products.environments import WorkSpace
 from gnss_ppp_products.factories.query_factory import QueryFactory
 from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher
 from gnss_ppp_products.factories.dependency_resolver import DependencyResolver
@@ -68,7 +68,7 @@ dep_res = DependencyResolver(
     query_factory=qf,
     fetcher=fetcher,
 )
-from gnss_ppp_products.factories.lockfile_manager import DependecyLockFile
+from gnss_ppp_products.lockfile import DependencyLockFile
 station = "TEST"
 years = [2023,2024,2025]
 months = [1,3,6,9,11]
@@ -88,6 +88,6 @@ for date in dates:
     print(f"{resolution.table()}\n")
     #print(f"Lockfile:\n{resolution.to_lockfile().model_dump_json(indent=2)}\n\n")
     if dep_lockfile_path:
-        dlf = DependecyLockFile.model_validate_json(dep_lockfile_path.read_text(encoding="utf-8"))
+        dlf = DependencyLockFile.model_validate_json(dep_lockfile_path.read_text(encoding="utf-8"))
         print(dlf.model_dump_json(indent=2))
 print(f"\nAverage resolution time: {sum(times)/len(times):.2f} seconds.")

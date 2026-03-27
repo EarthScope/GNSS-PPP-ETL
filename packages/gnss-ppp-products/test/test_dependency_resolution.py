@@ -27,8 +27,8 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
 from gnss_ppp_products.factories.dependency_resolver import (
     DependencyResolver,
 )
-from gnss_ppp_products.specifications.dependencies.lockfile import (
-    ProductLockfile,
+from gnss_ppp_products.lockfile import (
+    DependencyLockFile as ProductLockfile,
 )
 
 
@@ -258,7 +258,7 @@ class TestFileLockSidecar:
 
     def test_write_file_lock_creates_sidecar(self, tmp_path) -> None:
         """_write_file_lock writes a .lock JSON file beside the downloaded file."""
-        from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
+        from gnss_ppp_products.lockfile import LockProduct
 
         local = tmp_path / "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz"
         local.write_bytes(b"fake orbit data")
@@ -306,7 +306,7 @@ class TestFileLockSidecar:
 
     def test_resolved_lockfile_attached(self, tmp_path) -> None:
         """ResolvedDependency.lockfile is a LockProduct instance."""
-        from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
+        from gnss_ppp_products.lockfile import LockProduct
 
         resolved = ResolvedDependency(
             spec="CLOCK",

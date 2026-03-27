@@ -10,8 +10,10 @@ Subpackages
 - :mod:`.local`        — ``LocalCollection``, ``LocalResourceSpec``
 - :mod:`.remote`       — ``Server``, ``ResourceSpec``, ``ResourceQuery``,
                          ``ResourceCatalog``
-- :mod:`.dependencies` — ``DependencySpec``, ``ResolvedDependency``,
-                         ``LockProduct``, ``ProductLockfile``
+- :mod:`.dependencies` — ``DependencySpec``, ``ResolvedDependency``
+
+Lockfile models (``LockProduct``, ``DependencyLockFile``) live in
+:mod:`gnss_ppp_products.lockfile` but are re-exported here for convenience.
 """
 
 from gnss_ppp_products.specifications.catalog import Catalog
@@ -56,10 +58,10 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
     DependencyResolution,
     ResolvedDependency,
 )
-from gnss_ppp_products.specifications.dependencies.lockfile import (
+from gnss_ppp_products.lockfile import (
     LockProduct,
     LockProductAlternative,
-    ProductLockfile,
+    DependencyLockFile,
 )
 
 __all__ = [
@@ -96,5 +98,5 @@ __all__ = [
     "ResolvedDependency",
     "LockProduct",
     "LockProductAlternative",
-    "ProductLockfile",
+    "DependencyLockFile",
 ]

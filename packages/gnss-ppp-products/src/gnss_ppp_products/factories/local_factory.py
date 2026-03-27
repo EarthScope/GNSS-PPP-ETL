@@ -8,8 +8,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
-from gnss_ppp_products.factories.environment import ProductEnvironment
-from gnss_ppp_products.factories.workspace import WorkSpace, RegisteredLocalResource, paths_overlap
+from gnss_ppp_products.environments import ProductEnvironment
+from gnss_ppp_products.environments import WorkSpace, RegisteredLocalResource, paths_overlap
 
 from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog

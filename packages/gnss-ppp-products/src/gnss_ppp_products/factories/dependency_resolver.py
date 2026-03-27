@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import threading
 
-from gnss_ppp_products.factories.environment import ProductEnvironment
+from gnss_ppp_products.environments import ProductEnvironment
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.specifications.dependencies.dependencies import (
     Dependency,
@@ -34,15 +34,15 @@ from gnss_ppp_products.specifications.dependencies.dependencies import (
 from gnss_ppp_products.factories.query_factory import QueryFactory
 from gnss_ppp_products.factories.resource_fetcher import ResourceFetcher, FetchResult
 from gnss_ppp_products.specifications.products.product import ProductPath, infer_from_regex
-from .workspace import WorkSpace
-from .lockfile_manager import (
+from gnss_ppp_products.environments import WorkSpace
+from gnss_ppp_products.lockfile import (
     LockProduct,
+    DependencyLockFile,
     validate_lock_product,
     build_lock_product,
     get_lock_product_path,
     get_lock_product,
     write_lock_product,
-    DependecyLockFile,
     get_dependency_lockfile_name,
     get_dependency_lockfile,
     write_dependency_lockfile,
@@ -138,7 +138,7 @@ class DependencyResolver:
         lockfiles: List[LockProduct] = []
         to_resolve = self.dep_spec.dependencies
 
-        dep_lockfile_info: Tuple[Optional[DependecyLockFile], Optional[Path]] = get_dependency_lockfile(
+        dep_lockfile_info: Tuple[Optional[DependencyLockFile], Optional[Path]] = get_dependency_lockfile(
             directory=self._qf._local.lockfile_dir(local_sink_id),
             station=station,
             package=self.dep_spec.package,
@@ -172,7 +172,7 @@ class DependencyResolver:
                     logger.warning(f"Invalid lock product in lockfile {dep_lock_file_path}: \n{lock_product}. Will attempt to re-resolve.")
         
         else:
-            dep_lock_file = DependecyLockFile(
+            dep_lock_file = DependencyLockFile(
                 station=station or "",
                 package=self.dep_spec.package,
                 task=self.dep_spec.task,
@@ -187,6 +187,8 @@ class DependencyResolver:
         with ThreadPoolExecutor(max_workers=15) as executor:
             futures = [executor.submit(partial_resolve_one, dep) for dep in to_resolve]
             for future in futures:
+                if not future:
+                    continue
                 resolved, lock_file = future.result()
                 if resolved and lock_file:
                     results.append(resolved)

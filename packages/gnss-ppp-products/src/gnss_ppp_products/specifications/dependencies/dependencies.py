@@ -5,13 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    from gnss_ppp_products.specifications.dependencies.lockfile import LockProduct
 
 
 class SearchPreference(BaseModel):

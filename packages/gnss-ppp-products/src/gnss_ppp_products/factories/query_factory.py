@@ -4,9 +4,9 @@ import datetime
 import logging
 from typing import Dict, List, Optional
 
-from gnss_ppp_products.factories.environment import ProductEnvironment
+from gnss_ppp_products.environments import ProductEnvironment
 from gnss_ppp_products.factories.local_factory import LocalResourceFactory
-from gnss_ppp_products.factories.workspace import WorkSpace
+from gnss_ppp_products.environments import WorkSpace
 from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
 from gnss_ppp_products.specifications.products.product import Product, ProductPath, VariantCatalog, VersionCatalog
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
