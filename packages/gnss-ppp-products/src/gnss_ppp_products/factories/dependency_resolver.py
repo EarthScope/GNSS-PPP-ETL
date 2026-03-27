@@ -128,22 +128,6 @@ class DependencyResolver:
         """
         results: List[ResolvedDependency] = []
 
-        # Pre-warm: probe connectivity for all unique remote servers so
-        # that per-dependency threads don't duplicate slow connection checks.
-        # all_queries: List[ResourceQuery] = []
-        # for dep in self.dep_spec.dependencies:
-        #     try:
-        #         qs = self._qf.get(
-        #             date,
-        #             product={"name": dep.spec},
-        #             parameters=dep.constraints or None,
-        #         )
-        #         all_queries.extend(qs)
-        #     except (ValueError, KeyError):
-        #         pass
-        # if all_queries:
-        #     self._fetcher.warm_connectivity_cache(all_queries)
-
         partial_resolve_one = partial(
             self._resolve_one,
             date=date,

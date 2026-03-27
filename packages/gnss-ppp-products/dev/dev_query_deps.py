@@ -59,7 +59,7 @@ qf = QueryFactory(
     product_environment=env,
     workspace=workspace,
     )
-fetcher = ResourceFetcher(ftp_timeout=10)
+fetcher = ResourceFetcher(ftp_timeout=30)
 
 dep_res = DependencyResolver(
     dep_spec=dep_spec,
@@ -69,17 +69,21 @@ dep_res = DependencyResolver(
 )
 
 years = [2023,2024,2025]
-months = [1,3,6,9]
+months = [1,3,6,9,11]
 days = [1,15,28]
+days = [x+1 for x in days]
 dates = [datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc) for y in years for m in months for d in days]
 
-
+times = []
 for date in dates:
     start = time.time()
     resolution = dep_res.resolve(date=date,local_sink_id="local")
     end = time.time()
+    times.append(end - start)
     print(f"Resolution for {date.date()} took {end - start:.2f} seconds.")
     print(f"\n{'='*60}\nDATE: {date.date()}\n{'='*60}")
     print(f"Table: {resolution.spec_name}")
     print(f"{resolution.table()}\n")
-    print(f"Lockfile:\n{resolution.to_lockfile().model_dump_json(indent=2)}\n\n")
+    #print(f"Lockfile:\n{resolution.to_lockfile().model_dump_json(indent=2)}\n\n")
+
+print(f"\nAverage resolution time: {sum(times)/len(times):.2f} seconds.")

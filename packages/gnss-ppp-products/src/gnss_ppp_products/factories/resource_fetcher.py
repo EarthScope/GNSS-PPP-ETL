@@ -146,12 +146,12 @@ class ResourceFetcher:
         protocol = (query.server.protocol or "").upper()
         hostname = query.server.hostname
 
-        cache_key = f"{protocol}://{hostname}/{directory}"
+        listing_key = f"{protocol}://{hostname}/{directory}"
 
         connectivity_key = self.get_connection_cache_key(protocol,hostname)
         # Fast path: already cached (no lock needed, dict reads are thread-safe)
-        if cache_key in self._listing_cache:
-            listing = self._listing_cache[cache_key]
+        if listing_key in self._listing_cache:
+            listing = self._listing_cache[listing_key]
         else:
             if connectivity_key in self._connectivity_cache:
                 if not self._connectivity_cache[connectivity_key]:
@@ -159,22 +159,22 @@ class ResourceFetcher:
             # Per-key lock: only one thread fetches a given directory;
             # others wait for the result instead of stampeding the server.
 
-            if cache_key not in self._key_locks:
-                self._key_locks[cache_key] = Lock()
-            key_lock = self._key_locks[cache_key]
+            if listing_key not in self._key_locks:
+                self._key_locks[listing_key] = Lock()
+            key_lock = self._key_locks[listing_key]
 
             adapter = self._adapters.get(protocol)
             if adapter is None:
                 return FetchResult(query=query, error=f"Unsupported protocol: {protocol!r}")
             try:
                 with key_lock:
-                    if cache_key in self._listing_cache:  # check cache again after acquiring lock
-                        listing = self._listing_cache[cache_key]
+                    if listing_key in self._listing_cache:  # check cache again after acquiring lock
+                        listing = self._listing_cache[listing_key]
                     else:
                         logger.info(f"Listing {protocol} directory: {hostname}/{directory}")
                         listing = adapter.list_directory(hostname, directory)
-                        if "FILE" not in cache_key:  # don't cache local listings
-                            self._listing_cache[cache_key] = listing
+                        if "FILE" not in listing_key:  # don't cache local listings
+                            self._listing_cache[listing_key] = listing
 
             except Exception as e:
                 return FetchResult(query=query, error=f"Listing failed: {e}")
@@ -238,41 +238,6 @@ class ResourceFetcher:
             return fn
         return None
 
-    # -- Async download --------------------------------------------
-
-    async def download(
-        self,
-        results: List[ResourceQuery],
-        local_resource_id:str,
-        local_factory: LocalResourceFactory,
-        date: datetime.datetime,
-        *,
-        max_workers: int = 4,
-    ) -> List[FetchResult]:
-        """Download found remote files to the complementary local directory.
-
-        For each ``FetchResult`` with ``found=True`` and a non-local protocol,
-        resolves the local directory via *local_factory*, creates it, and
-        downloads every matched file into it.
-
-        Downloads run concurrently in a thread pool (FTP/HTTP are blocking IO).
-        """
-        loop = asyncio.get_running_loop()
-        remote_found = [
-            fr for fr in results
-            if fr.found and (fr.query.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-        ]
-        if not remote_found:
-            return results
-
-        with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            tasks = [
-                loop.run_in_executor(pool, self.download_one, fr, local_factory, date)
-                for fr in remote_found
-            ]
-            await asyncio.gather(*tasks)
-
-        return results
 
     def download_one(
         self,
@@ -289,6 +254,12 @@ class ResourceFetcher:
         destination_dir = Path(destination_resource.server.hostname) / destination_resource.directory.value  # type: ignore[union-attr]
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination_path = destination_dir / query.product.filename.value  # type: ignore[union-attr]
+
+        # Skip download if the file already exists and is non-empty
+        if destination_path.exists() and destination_path.stat().st_size > 0:
+            logger.info(f"Skipping download, file already exists: {destination_path}")
+            return destination_path
+
         protocol = (query.server.protocol or "").upper()
         adapter: Optional[Union[FTPAdapter,HTTPAdapter,LocalAdapter,DirectoryAdapter]] = self._adapters.get(protocol)
         if adapter is None:
