@@ -19,19 +19,21 @@ pip install pride-ppp
 ## Quick start
 
 ```python
+from pathlib import Path
 from pride_ppp import PrideProcessor
 
 processor = PrideProcessor(
-    rinex_files=["SITE00USA_R_20250010000_01D_30S_MO.rnx"],
-    center="whu",
+    pride_dir=Path("/data/pride"),
+    output_dir=Path("/data/output"),
 )
-results = processor.process()
+result = processor.process(Path("SITE00USA_R_20250020000_01D_30S_MO.rnx"), site="SITE")
 
-for r in results:
-    if r.success:
-        print(r.kin_df.head())       # kinematic positions
-        print(r.res_df.head())       # residuals
+if result.success:
+    print(result.positions().head())   # kinematic positions
+    print(result.residuals().head())   # residuals
 ```
+
+See [examples/](examples/) for more (single file, batch processing).
 
 ## API overview
 

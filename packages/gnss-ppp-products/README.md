@@ -21,16 +21,12 @@ pip install gnss-ppp-products
 
 ```python
 from datetime import datetime, timezone
-from gnss_ppp_products import ProductEnvironment, QueryFactory, ResourceFetcher
+from gnss_ppp_products import QueryFactory, ResourceFetcher
+from gnss_ppp_products.defaults import DefaultProductEnvironment, DefaultWorkSpace
 
-# Build the catalog chain from bundled specs
-env = ProductEnvironment()
-env.add_defaults()
-env.build()
-
-# Generate remote queries for a product + date
-qf = QueryFactory(product_environment=env)
-queries = qf.get(date=datetime(2025, 1, 2, tzinfo=timezone.utc), product="ORBIT")
+# Query for orbit products on all registered centers
+qf = QueryFactory(product_environment=DefaultProductEnvironment, workspace=DefaultWorkSpace)
+queries = qf.get(date=datetime(2025, 1, 2, tzinfo=timezone.utc), product={"name": "ORBIT"})
 
 # Search remote servers for matching files
 fetcher = ResourceFetcher()
@@ -39,6 +35,8 @@ for r in results:
     if r.found:
         print(r.query.server.hostname, r.matched_filenames)
 ```
+
+See [examples/](examples/) for more (dependency resolution, single-center downloads).
 
 ## Architecture
 
