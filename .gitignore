@@ -2,7 +2,7 @@
 gnss-ppp-products/node_modules/*
 .github/skills/*
 .DS_Store
-.vscode/*
+.vscode/
 *.pyc.*
 __pycache__/
 *.pyo
