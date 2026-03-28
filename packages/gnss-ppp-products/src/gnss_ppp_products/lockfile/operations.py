@@ -18,7 +18,6 @@ import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 import logging
-from venv import logger
 from gnss_ppp_products.lockfile.models import (
     DependencyLockFile,
     LockProduct,
@@ -26,19 +25,34 @@ from gnss_ppp_products.lockfile.models import (
 )
 from gnss_ppp_products.utilities.helpers import hash_file as _hash_file
 
-logger  = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 def validate_lock_product(product: LockProduct) -> bool:
     """Check that a lock-product's sink file exists and its hash matches.
+
+    Also accepts the decompressed version of a ``.gz`` sink
+    (e.g. ``foo.SP3`` when the lock records ``foo.SP3.gz``).
 
     Args:
         product: The lock-product entry to validate.
 
     Returns:
-        ``True`` if the sink file exists and (when a hash is recorded)
-        the file's current SHA-256 matches the stored hash.
+        ``True`` if the sink file (or its decompressed counterpart)
+        exists and (when a hash is recorded) the file's current
+        SHA-256 matches the stored hash.
     """
     sink_path = Path(product.sink)
+
+    # Accept the decompressed version when the .gz is gone
+    if not sink_path.exists() and sink_path.suffix == ".gz":
+        decompressed = sink_path.with_suffix("")
+        if decompressed.exists():
+            # Update the lock product to point to the decompressed file
+            product.sink = str(decompressed)
+            product.hash = _hash_file(decompressed)
+            product.size = decompressed.stat().st_size
+            return True
+
     if not sink_path.exists():
         logger.warning(f"Lock product validation failed: sink file does not exist: {sink_path}")
         return False

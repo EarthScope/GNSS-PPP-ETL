@@ -51,6 +51,7 @@ from gnss_ppp_products.lockfile import (
     get_dependency_lockfile,
     write_dependency_lockfile,
 )
+from gnss_ppp_products.utilities.helpers import decompress_gzip
 
 logger = logging.getLogger(__name__)
 
@@ -178,11 +179,21 @@ class DependencyResolver:
                     ),
                     None,
                 )
+                original_sink = lock_product.sink
                 if dep_spec and validate_lock_product(lock_product):
                     # Remove this product from the to_resolve list since it's already resolved in the lockfile
                     to_resolve = [
                         dep for dep in to_resolve if dep.spec != lock_product.name
                     ]
+
+                    # If validation updated the sink (e.g. .gz → decompressed),
+                    # persist the change so future runs don't re-validate.
+                    if lock_product.sink != original_sink:
+                        write_dependency_lockfile(
+                            lockfile=dep_lock_file,
+                            directory=dep_lock_file_path.parent,
+                            update=True,
+                        )
 
                     resolved = ResolvedDependency(
                         spec=lock_product.name,
@@ -554,6 +565,13 @@ class DependencyResolver:
 
         source_path = source_directory / filename
 
+        # Prefer an already-decompressed version on disk
+        if source_path.suffix == ".gz":
+            decompressed = source_path.with_suffix("")
+            if decompressed.exists() and decompressed.stat().st_size > 0:
+                source_path = decompressed
+                filename = decompressed.name
+
         # If the file is not present in the local_sink resource, we can copy it there.
         sink_query = local_resource_factory.sink_product(
             rq.product, local_sink_id, date
@@ -570,6 +588,12 @@ class DependencyResolver:
                     f"Copied local file {source_path} to sink directory {dest_path}"
                 )
             source_path = dest_path
+
+        # Decompress gzip files in the sink
+        if source_path.suffix == ".gz" and source_path.exists():
+            decompressed = decompress_gzip(source_path)
+            if decompressed is not None:
+                source_path = decompressed
 
         # Try to reuse hash from an existing lockfile to avoid re-hashing
         if (existing_lock := get_lock_product(source_path)) is None:

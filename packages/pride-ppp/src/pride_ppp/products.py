@@ -11,7 +11,6 @@ that points to the resolved files on disk.
 from __future__ import annotations
 
 import datetime
-import gzip
 import logging
 from pathlib import Path
 from typing import Dict, Optional
@@ -56,36 +55,6 @@ _SPEC_TO_PRODUCT_FIELD: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-def uncompress_file(file_path: Path, dest_dir: Optional[Path] = None) -> Optional[Path]:
-    """Decompress a gzip file and return the path of the decompressed file.
-
-    Args:
-        file_path: The path of the compressed file.
-        dest_dir: Destination directory for the decompressed file.
-
-    Returns:
-        The path of the decompressed file, or ``None`` on failure.
-    """
-    if not file_path.exists():
-        raise FileNotFoundError(f"File {file_path} does not exist.")
-
-    out_file_path = file_path.with_suffix("")
-    if dest_dir is not None:
-        out_file_path = dest_dir / out_file_path.name
-        if not dest_dir.exists():
-            dest_dir.mkdir(parents=True, exist_ok=True)
-    try:
-        with gzip.open(file_path, "rb") as f_in:
-            with open(out_file_path, "wb") as f_out:
-                f_out.write(f_in.read())
-    except EOFError as e:
-        logger.error(f"Failed to decompress {file_path}: {e}")
-        file_path.unlink(missing_ok=True)
-        return None
-    file_path.unlink(missing_ok=True)
-    return out_file_path
-
-
 def _build_resolver(
     pride_dir: Path,
     dep_spec: Optional[DependencySpec] = None,
@@ -110,9 +79,10 @@ def _build_resolver(
     if dep_spec is None:
         dep_spec = Pride_PPP_task
 
-    workspace.register_spec(
-        base_dir=pride_dir, spec_ids=["pride_config"], alias="pride"
-    )
+    if "pride_config" not in workspace._registered_specs:
+        workspace.register_spec(
+            base_dir=pride_dir, spec_ids=["pride_config"], alias="pride"
+        )
 
     qf = QueryFactory(product_environment=env, workspace=workspace)
     fetcher = ResourceFetcher(max_connections=10)
@@ -162,12 +132,6 @@ def _resolution_to_satellite_products(
         path = rd.local_path
         if path is None:
             continue
-
-        # Decompress if needed
-        if path.suffix == ".gz" and path.exists():
-            decompressed = uncompress_file(path, path.parent)
-            if decompressed is not None:
-                path = decompressed
 
         product_status[field] = path.name
         if product_dir is None:

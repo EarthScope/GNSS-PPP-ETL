@@ -18,6 +18,7 @@ from gnss_ppp_products.specifications.products.product import ProductPath
 from gnss_ppp_products.specifications.remote.resource import ResourceQuery
 from gnss_ppp_products.factories.local_factory import LocalResourceFactory
 from gnss_ppp_products.factories.connection_pool import ConnectionPoolFactory
+from gnss_ppp_products.utilities.helpers import decompress_gzip
 
 logger = logging.getLogger(__name__)
 
@@ -286,13 +287,20 @@ class ResourceFetcher:
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination_path = destination_dir / query.product.filename.value  # type: ignore[union-attr]
 
+        # Prefer an already-decompressed version on disk
+        if destination_path.suffix == ".gz":
+            decompressed_path = destination_path.with_suffix("")
+            if decompressed_path.exists() and decompressed_path.stat().st_size > 0:
+                logger.info(f"Skipping download, decompressed file already exists: {decompressed_path}")
+                return decompressed_path
+
         # Skip download if the file already exists and is non-empty
         if destination_path.exists() and destination_path.stat().st_size > 0:
             logger.info(f"Skipping download, file already exists: {destination_path}")
             return destination_path
 
         try:
-            return self._connection_pool_factory.download_file(
+            result = self._connection_pool_factory.download_file(
                 hostname=hostname,
                 remote_path=str(
                     Path(query.directory.value) / query.product.filename.value
@@ -304,3 +312,12 @@ class ResourceFetcher:
                 f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}"
             )
             return None
+
+        # Decompress gzip files after download
+        if result is not None and result.suffix == ".gz":
+            decompressed = decompress_gzip(result)
+            if decompressed is not None:
+                return decompressed
+            logger.warning(f"Decompression failed for {result}, returning compressed file")
+
+        return result
