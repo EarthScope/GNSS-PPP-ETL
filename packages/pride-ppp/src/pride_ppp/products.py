@@ -57,6 +57,7 @@ _SPEC_TO_PRODUCT_FIELD: Dict[str, str] = {
 
 def _build_resolver(
     pride_dir: Path,
+    pride_install_dir: Optional[Path] = None,
     dep_spec: Optional[DependencySpec] = None,
     env: Optional[ProductEnvironment] = None,
     workspace: Optional[WorkSpace] = None,
@@ -83,6 +84,12 @@ def _build_resolver(
         workspace.register_spec(
             base_dir=pride_dir, spec_ids=["pride_config"], alias="pride"
         )
+    if pride_install_dir and "pride_install_config" not in workspace._registered_specs:
+        workspace.register_spec(
+            base_dir=pride_install_dir,
+            spec_ids=["pride_install_config"],
+            alias="pride_install",
+            )
 
     qf = QueryFactory(product_environment=env, workspace=workspace)
     fetcher = ResourceFetcher(max_connections=10)
@@ -187,6 +194,7 @@ def _write_pride_config(
 def resolve_products(
     date: datetime.date | datetime.datetime,
     pride_dir: Path,
+        pride_install_dir: Optional[Path] = None,
     *,
     dep_spec: Optional[DependencySpec] = None,
     env: Optional[ProductEnvironment] = None,
@@ -219,7 +227,7 @@ def resolve_products(
         date = date.replace(tzinfo=datetime.timezone.utc)
 
     resolver, _ = _build_resolver(
-        pride_dir=pride_dir, dep_spec=dep_spec, env=env, workspace=workspace
+        pride_dir=pride_dir, dep_spec=dep_spec, env=env, workspace=workspace,pride_install_dir=pride_install_dir,
     )
 
     resolution, _ = resolver.resolve(
@@ -231,6 +239,7 @@ def resolve_products(
 def get_gnss_products(
     rinex_path: Optional[Path] = None,
     pride_dir: Optional[Path] = None,
+    pride_install_dir: Optional[Path] = None,
     *,
     date: Optional[datetime.date | datetime.datetime] = None,
     override: bool = False,
@@ -289,6 +298,7 @@ def get_gnss_products(
     resolution = resolve_products(
         date=start_date,
         pride_dir=pride_dir,
+        pride_install_dir=pride_install_dir,
         local_sink_id=local_sink_id,
         station=station,
     )
@@ -307,3 +317,71 @@ def get_gnss_products(
     config_path = _write_pride_config(satellite_products, table_dir,pride_dir, start_date)
     logger.info(f"PRIDE config written to {config_path}")
     return config_path
+
+
+def get_nav_file(
+    rinex_path: Path,
+    pride_dir: Path,
+    pride_install_dir: Optional[Path] = None,
+    *,
+    override: bool = False,
+    local_sink_id: str = "pride",
+) -> Optional[Path]:
+    """Resolve a broadcast navigation file for a RINEX observation.
+
+    Uses the dependency resolver to find or download the ``RNX3_BRDC``
+    product for the date extracted from the RINEX file header.
+
+    Args:
+        rinex_path: Path to the RINEX observation file.
+        pride_dir: Root directory for local PRIDE product storage.
+        pride_install_dir: Optional PRIDE installation directory.
+        override: If ``True``, re-resolve even if a nav file exists locally.
+        local_sink_id: Local resource identifier (default ``'pride'``).
+
+    Returns:
+        Path to the resolved navigation file, or ``None`` on failure.
+    """
+    ts_start, _ = rinex_get_time_range(rinex_path)
+    if ts_start is None:
+        logger.error("No TIME OF FIRST OBS found in RINEX file.")
+        return None
+
+    start_date = (
+        ts_start.date() if isinstance(ts_start, datetime.datetime) else ts_start
+    )
+
+    nav_spec = DependencySpec(
+        name="nav-only",
+        description="Broadcast navigation retrieval",
+        package="PRIDE",
+        task="NAV",
+        preferences=Pride_PPP_task.preferences,
+        dependencies=[
+            dep
+            for dep in Pride_PPP_task.dependencies
+            if dep.spec == "RNX3_BRDC"
+        ],
+    )
+
+    resolver, _ = _build_resolver(
+        pride_dir=pride_dir,
+        pride_install_dir=pride_install_dir,
+        dep_spec=nav_spec,
+    )
+
+    target_date = datetime.datetime(
+        start_date.year, start_date.month, start_date.day,
+        tzinfo=datetime.timezone.utc,
+    )
+    resolution, _ = resolver.resolve(
+        date=target_date, local_sink_id=local_sink_id
+    )
+
+    for rd in resolution.fulfilled:
+        if rd.spec == "RNX3_BRDC" and rd.local_path is not None:
+            logger.info("Resolved navigation file: %s", rd.local_path)
+            return rd.local_path
+
+    logger.error("Failed to resolve broadcast navigation file for %s", start_date)
+    return None

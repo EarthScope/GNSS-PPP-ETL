@@ -1,87 +1,31 @@
-# Layers, dependencies
+# `specifications/`: The Definitive Blueprints for GNSS Products
 
+Alright, pay attention, because this `specifications/` directory is the very foundation upon which our entire GNSS product handling system is built. This is where we meticulously define *everything* about the products we care about – what they are, how they're formatted, where they come from, and what metadata they contain. Think of it as the ultimate set of blueprints and dictionaries that allow our system to understand and interact with the complex world of GNSS data.
 
-## Specification Layer
+This module houses several critical sub-modules, each dedicated to defining a particular aspect of our data landscape:
 
-### Meta Data Specification
-The metadata specification outlines individual meta-data strings that are required to perform remote and local queries by dynamic path and filename generation
+### `parameters/`: The Metadata Glossary
+*   This module (and its corresponding `meta_spec.yaml` in `configs/meta/`) defines all the individual metadata fields (like `YYYY`, `AAA`, `GPSWEEK`) that appear in filenames and descriptions. It specifies their patterns, descriptions, and how they're derived. It's the dictionary for all those arcane abbreviations.
 
-ex: MetaDataCatalog.interpolate(f"{YYYY}_{DDD}.file") -> "2024_001.file"
+### `format/`: The File Format Rulebook
+*   This module (and `format_spec.yaml` in `configs/products/`) defines the concrete structures and naming conventions for different file formats (e.g., RINEX versions 2, 3, 4; our generic `PRODUCT` format; VMF). It provides filename templates and lists the parameters that populate them. It tells us *how* a file is physically laid out and named.
 
-### Format Specification
-The format specification outlines the conventions used to 'name' product files.
+### `products/`: The Product Catalogue
+*   This module (and `product_spec.yaml` in `configs/products/`) defines the abstract types of GNSS products we process (e.g., `ORBIT`, `CLOCK`, `IONEX`). For each product type, it specifies its general characteristics, what formats it can take, and any high-level constraints. It tells us *what* a particular product conceptually is.
 
-### Product Specification
-The product specification outlines a list of products avaialable to query from local/remote resources and define task dependencies
+### `remote/`: The Remote Resource Directory
+*   This module defines how remote data sources (like IGS, CDDIS, GFZ) are specified. It covers details like server hostnames, protocols (FTP, HTTP), authentication requirements, and the specific product offerings from each analysis center. It tells us *where* to find products remotely.
 
-### Local resource Specification
-The local resource specification outlines how to store and locate a specific product in a local file system
+### `local/`: The Local Archive Layout
+*   This module defines how downloaded GNSS products are organized and stored on our local disk. It specifies directory structures, temporal categories (daily, static), and logical collections of products, linking them to physical paths. It tells us *where* to store products locally.
 
-### Remote resource specification
-The remote resource specification outlines a collection of server configurations and products available to query from an analysis center or other entity.
+### `dependencies/`: The Product Shopping Lists
+*   This module defines *dependency specifications*, which are bundles of required products for specific processing engines or tasks. It also includes preference rules for selecting products from different analysis centers or solution types. It tells us *what combination of products* is needed for a particular job.
 
-### Query specification
-The query specification outlines the parameters, products, and resource to find and store a given product and its parameters. 
+### `queries/`: The Search Dimensions
+*   This module (and `query_config.yaml` in `configs/query/`) defines the "search axes" – the user-facing parameters (like `date`, `center`, `solution`) that can be used to query for GNSS products. It maps these axes to underlying metadata fields and specifies how they apply to different product types. It tells us *how to ask* for specific products.
 
-### Dependency specification
-The dependency specification outlines the products needed to perform a GNSS related task and the local/remote resources to locate said product.
+### `catalog.py`: The Compiler
+*   While not a subdirectory, `catalog.py` is a crucial file within this module. It houses the logic for building the various "catalogs" (like `ProductCatalog`, `FormatCatalog`) by taking the raw specifications defined in the YAML files and compiling them into highly efficient, interconnected Python objects. This compilation step transforms static definitions into a dynamic, usable knowledge base.
 
-
-## Catalog-Factory-Engine layer
-
-This layer is where specifications are loaded into python objects and validated against their dependencies. The dependency relations are as follows:
-
-metadata spec -> metadata catalog
-
-checks: 
-1. make sure the file formatting is correct
-
-format spec -> format catalog
-
-checks: 
-1. make sure the file formatting is correct
-
-[format catalog, metadata catalog] -> product catalog
-
-checks: 
-1. make sure the file formatting is correct
-2. make sure we can find all the metadata and format references listed in the product catalog and that our product variants can 'build'
-
-
-[metadata catalog, product catalog] -> local resource factory
-
-checks: 
-1. make sure the file formatting is correct
-2. make sure our product references can be found in the product catalog
-3. make sure our metadata references can be found in the metadata catalog
-
-
-
-[metadata catalog, product catalog] -> remote resource factory
-
-checks: 
-1. make sure the file formatting is correct
-2. make sure our product references can be found in the product catalog
-3. make sure our metadata references can be found in the metadata catalog
-
-
-[metadata catalog, product catalog,] -> query engine
-
-checks: 
-1. make sure the file formatting is correct
-2. make sure our product references can be found in the product catalog
-3. make sure our metadata references can be found in the metadata catalog
-
-
-[query spec, product catalog,remote resource factory] -> task dependency catalog
-
-checks: 
-1. make sure the file formatting is correct
-2. make sure our product references can be found in the product catalog
-3. make sure our remote resource refernces can be found in the remote resource factory
-
-
-
-## Environment layer
-
-The environment layer is where outputs from the Catalog-Factory-Engine layer meet to perform tasks. Here we can define our set of specification files, test remote resource availablility, and interface with external applications via the SDK.
+In essence, the `specifications/` module is the beating heart of our ETL system's intelligence. It translates the messy, real-world complexity of GNSS data into an ordered, machine-readable format, enabling everything from dynamic query generation to reliable file fetching and local storage. Don't go mucking about with these definitions lightly; they are the very ground rules of our operation!

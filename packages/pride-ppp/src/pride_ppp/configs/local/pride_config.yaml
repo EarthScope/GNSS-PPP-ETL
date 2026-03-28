@@ -52,6 +52,14 @@ collections:
       - LEAP_SEC
       - SAT_PARAMS
       - OROGRAPHY
+      - FILE_NAME_TABLE
+      - OCEAN_TIDE_FES2004
+      - OCEAN_LOAD_GREEN
+      - GPT3_GRID
+      - OCEAN_LOAD_PROGRAM
+      - OROGRAPHY_1X1
+   
+ 
 
   # ---------------------------------------------------------------------------
   # LEO satellite instrument data

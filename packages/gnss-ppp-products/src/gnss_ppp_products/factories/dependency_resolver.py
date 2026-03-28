@@ -18,6 +18,7 @@ import datetime
 import logging
 import re
 from pathlib import Path
+
 from typing import Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -472,9 +473,10 @@ class DependencyResolver:
             class_parameters: Dict[str, str] = classification_results.get(
                 "parameters", {}
             )  # TODO make the classification results more structured so we don't have to do this stringly-typed dance
-            for p in updated.product.parameters:
-                if p.name in class_parameters and p.value is None:
-                    p.value = class_parameters[p.name]
+            if updated.product.parameters is not None:
+                for p in updated.product.parameters:
+                    if p.name in class_parameters and p.value is None:
+                        p.value = class_parameters[p.name]
 
         return updated
 
