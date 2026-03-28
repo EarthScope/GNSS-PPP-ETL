@@ -1,0 +1,26 @@
+name: pride_install_config
+description: >
+  Layout of the PRIDE-PPPAR installation's table directory.
+  Used to locate static support files that ship with the PRIDE-PPPAR
+  software and must be copied to a processing workspace.
+
+collections:
+
+  # ---------------------------------------------------------------------------
+  # Static support files shipped with PRIDE-PPPAR
+  # ---------------------------------------------------------------------------
+  table:
+    directory: "table"
+    temporal: static
+    description: "Static tables, models, and calibration files from the PRIDE-PPPAR installation"
+    items:
+      - FILE_NAME_TABLE
+      - OCEAN_TIDE_FES2004
+      - OCEAN_LOAD_GREEN
+      - GPT3_GRID
+      - OCEAN_LOAD_PROGRAM
+      - OROGRAPHY
+      - OROGRAPHY_1X1
+      - ATTATX
+      - LEAP_SEC
+      - SAT_PARAMS

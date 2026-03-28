@@ -1,0 +1,123 @@
+id: IGS
+name: International GNSS Service (via IGN France)
+website: https://igs.org/
+
+servers:
+  - id: ign_ftp
+    name: IGN France FTP
+    hostname: "ftp://igs.ign.fr"
+    protocol: ftp
+    auth_required: false
+    description: IGN France FTP mirror
+
+  - id: igs_http
+    name: IGS HTTP
+    hostname: "https://files.igs.org"
+    protocol: https
+    auth_required: false
+    description: IGS HTTP server for ANTEX and station data
+
+products:
+  # ── Orbits ──────────────────────────────────────────────────────
+  - id: igs_orbit
+    product_name: ORBIT
+    server_id: ign_ftp
+    available: true
+    description: IGS combined precise orbits
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 05M}
+      - {name: SMP, value: 15M}
+    directory: {pattern: "pub/igs/products/{GPSWEEK}/"}
+
+  # ── Clocks ──────────────────────────────────────────────────────
+  - id: igs_clock
+    product_name: CLOCK
+    server_id: ign_ftp
+    available: true
+    description: IGS combined precise clocks
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 30S}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "pub/igs/products/{GPSWEEK}/"}
+
+  # ── ERP ─────────────────────────────────────────────────────────
+  - id: igs_erp
+    product_name: ERP
+    server_id: ign_ftp
+    available: true
+    description: IGS combined Earth rotation parameters
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/igs/products/{GPSWEEK}/"}
+
+  # ── Biases ──────────────────────────────────────────────────────
+  - id: igs_bias
+    product_name: BIA
+    server_id: ign_ftp
+    available: true
+    description: IGS combined biases
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/igs/products/{GPSWEEK}/"}
+
+  # ── Attitude (ORBEX) ───────────────────────────────────────────
+  - id: igs_obx
+    product_name: ATTOBX
+    server_id: ign_ftp
+    available: true
+    description: Satellite attitude (ORBEX) — multi-AC products hosted on IGS
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: COD}
+      - {name: AAA, value: GRG}
+      - {name: AAA, value: JPL}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/igs/products/{GPSWEEK}/"}
+
+  # ── Broadcast navigation ───────────────────────────────────────
+  - id: igs_nav
+    product_name: RNX3_BRDC
+    server_id: ign_ftp
+    available: true
+    description: IGS merged broadcast navigation (RINEX 3)
+    parameters:
+      - {name: CCC, value: IGS}
+      - {name: D, value: M}
+    directory: {pattern: "pub/igs/data/{YYYY}/{DDD}/"}
+
+  # ── ANTEX ──────────────────────────────────────────────────────
+  - id: igs_atx
+    product_name: ATTATX
+    server_id: igs_http
+    available: true
+    description: IGS antenna phase center model (current)
+    parameters:
+      - {name: REFFRAME, value: igs20}
+    directory: {pattern: "pub/station/general/"}
+
+  - id: igs_atx_archive
+    product_name: ATTATX
+    product_version: ["1"]
+    server_id: igs_http
+    available: true
+    description: IGS antenna phase center model (archive)
+    parameters:
+      - {name: REFFRAME, value: igs20}
+    directory: {pattern: "pub/station/general/pcv_archive/"}

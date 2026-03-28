@@ -1,2 +1,10 @@
 .venv/*
 gnss-ppp-products/node_modules/*
+
+*.pyc.*
+__pycache__/
+*.pyo
+*.pyd
+*.__pycache__/.*
+*.cpython* 
+.*cpython.*

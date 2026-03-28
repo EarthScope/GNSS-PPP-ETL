@@ -1,0 +1,146 @@
+# Station / receiver identifiers
+SSSS:
+  - pattern: "[A-Za-z0-9]{4}"         # 4-char station code
+  - description: 4-character station code (e.g., "ALIC", "BRST")
+  - derivation: enum 
+
+MONUMENT:
+  - pattern: "[0-9]"              # 1-char monument / marker number
+  - description: 1-character monument or marker number
+  - derivation: enum
+R:
+  - pattern: "[0-9]{1}"                     # receiver number
+  - description: Receiver number (0 if not specified)
+  - derivation: enum
+
+CCC:
+  - pattern: "[A-Za-z0-9]{3}"          # 3-char data-center / agency code
+  - description: 3-character data center or agency code (e.g., "COD", "IGS", "JPL")
+  - derivation: enum
+
+SSSMRCCC_:
+  - pattern: "[A-Z0-9]{9}_"      # optional station identifier block
+  - description: Optional station identifier block (e.g., "ALIC00MRC_", "BRST01MRC_")
+  - derivation: enum
+# Time fields
+YYYY:
+  - pattern: "\\d{4}"                 # 4-digit year
+  - description: 4-digit year (e.g., "2024")
+  - derivation: computed 
+
+YY:
+  - pattern: "\\d{2}"                   # 2-digit year
+  - description: 2-digit year (e.g., "24" for 2024)
+  - derivation: computed
+
+MONTH:
+  - pattern: "\\d{2}"                # 2-digit month
+  - description: 2-digit month (01–12)
+  - derivation: computed
+
+DAY:
+  - pattern: "\\d{2}"                  # 2-digit day
+  - description: 2-digit day of month (01–31)
+  - derivation: computed
+
+
+DDD:
+  - pattern: "\\d{3}"                  # day of year (001–366)
+  - description: 3-digit day of year (001–366)
+  - derivation: computed
+
+HH:
+  - pattern: "\\d{2}"                   # hour
+  - description: 2-digit hour of day (00–23)
+  - derivation: computed
+
+MM:
+  - pattern: "\\d{2}"                   # minute
+  - description: 2-digit minute of hour (00–59)
+  - derivation: computed
+
+VMFHH:
+  - pattern: "H\\d{2}"              # VMF sub-daily hour tag (H00, H06, …)
+  - description: VMF sub-daily hour tag (H00, H06, H12, H18)
+  - derivation: enum
+
+# Period / sampling
+DDU:
+  - pattern: "\\d{2}[DHMS]"            # file period   (01D, 01H, 15M)
+  - derivation: enum
+
+FRU:
+  - pattern: "\\d{2}[DHMS]"            # sampling rate  (30S, 01S)
+  - derivation: enum
+LEN:
+  - pattern: "\\d{2}[DHMS]"            # product length
+  - derivation: enum
+SMP:
+  - pattern: "\\d{2}[DHMS]"            # temporal sampling resolution
+  - derivation: enum
+
+# Product identifiers
+AAA:
+  - pattern: "[a-zA-Z0-9]{3}"             # analysis-center code (WUM, COD, …)
+  - derivation: enum
+V:
+  - pattern: "[0-9]"                     # version / solution identifier
+  - derivation: enum
+PPP:
+  - pattern: "[A-Z0-9]{3}"             # campaign / project code
+  - derivation: enum
+TTT:
+  - pattern: "[A-Z]{3}"                # solution type (FIN, RAP, ULT, …)
+  - derivation: enum
+CNT:
+  - pattern: "[A-Z]{3}"                # content type  (ORB, CLK, ERP, …)
+  - derivation: enum
+FMT:
+  - pattern: "[A-Z0-9]{3}"             # format code   (SP3, CLK, BIA, …)
+  - derivation: enum
+
+# RINEX type / system codes
+S:
+  - pattern: "[A-Z]"                     # data source (R=receiver, S=stream)
+  - derivation: enum
+
+D:
+  - pattern: "[A-Z]"                     # satellite system identifier
+  - derivation: enum
+T:
+  - pattern: "[a-zA-Z]"                  # file type code
+  - derivation: enum
+
+# VMF-specific
+PRODUCT:
+  - pattern: "[A-Za-z0-9]+"        # VMF product id  (VMF1, VMF3)
+  - derivation: enum
+RESOLUTION:
+  - pattern: "[0-9x.]+"         # grid resolution (2.5x2, 5x5)
+  - derivation: enum
+
+# GPS time
+GPSWEEK:
+  - pattern: "\\d{4}"              # GPS week number
+  - description: GPS week number since January 6, 1980
+  - derivation: computed
+
+REFFRAME:
+  - pattern: "igs[0-9A-Z]{2}"     # IGS reference frame name (e.g., "igs20", "igs14", "igsR3")
+  - derivation: computed
+
+# LEO (GRACE / GRACE-FO) specific
+INSTRUMENT:
+  - pattern: "[A-Z]{3}1B"
+  - description: LEO instrument code with level suffix (e.g., GNV1B, ACC1B)
+  - derivation: enum
+
+SPACECRAFT:
+  - pattern: "[CD]"
+  - description: Spacecraft identifier (C or D for GRACE/GRACE-FO)
+  - derivation: enum
+
+RELNUM:
+  - pattern: "\\d+\\..*"
+  - description: Release/version number followed by file extension
+  - derivation: enum

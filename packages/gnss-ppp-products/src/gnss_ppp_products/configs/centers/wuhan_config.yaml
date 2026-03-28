@@ -1,0 +1,194 @@
+id: WUM
+name: Wuhan University GNSS Research Center
+website: http://www.igs.gnsswhu.cn/
+
+servers:
+  - id: wuhan_ftp
+    name: Primary FTP
+    hostname: "ftp://igs.gnsswhu.cn"
+    protocol: ftp
+    auth_required: false
+    description: Primary FTP server, no authentication required
+
+products:
+  # ── Orbits ──────────────────────────────────────────────────────
+  - id: wuhan_orbit
+    product_name: ORBIT
+    server_id: wuhan_ftp
+    available: true
+    description: Precise satellite orbits
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: WMC}
+    directory: {pattern: "pub/whu/phasebias/{YYYY}/orbit/"}
+
+  # ── Orbits (IGS-style weekly directory) ──────────────────────────
+  - id: wuhan_orbit_weekly
+    product_name: ORBIT
+    server_id: wuhan_ftp
+    available: true
+    description: Precise satellite orbits (IGS mirror, weekly directory)
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: WMC}
+    directory: {pattern: "pub/gps/products/{GPSWEEK}/"}
+
+  # ── Clocks (IGS-style weekly directory) ─────────────────────────
+  - id: wuhan_clock_weekly
+    product_name: CLOCK
+    server_id: wuhan_ftp
+    available: true
+    description: Precise clocks (IGS mirror, weekly directory)
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 30S}
+    directory: {pattern: "pub/gps/products/{GPSWEEK}/"}
+
+  # ── ERP (IGS-style weekly directory) ────────────────────────────
+  - id: wuhan_erp_weekly
+    product_name: ERP
+    server_id: wuhan_ftp
+    available: true
+    description: Earth rotation parameters (IGS mirror, weekly directory)
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "pub/gps/products/{GPSWEEK}/"}
+
+  # ── Biases (IGS-style weekly directory) ─────────────────────────
+  - id: wuhan_bias_weekly
+    product_name: BIA
+    server_id: wuhan_ftp
+    available: true
+    description: Observable-specific signal biases (IGS mirror, weekly directory)
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "pub/gps/products/{GPSWEEK}/"}
+
+  # ── Attitude ORBEX (IGS-style weekly directory) ─────────────────
+  - id: wuhan_obx_weekly
+    product_name: ATTOBX
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite attitude (IGS mirror, weekly directory — COD/WUM)
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: COD}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/gps/products/{GPSWEEK}/"}
+
+  # ── Clocks ──────────────────────────────────────────────────────
+  - id: wuhan_clock
+    product_name: CLOCK
+    server_id: wuhan_ftp
+    available: true
+    description: Precise satellite and station clocks
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: WMC}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+      - {name: PPP, value: DEM}
+      - {name: SMP, value: 30S}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "pub/whu/phasebias/{YYYY}/clock/"}
+
+  # ── ERP ─────────────────────────────────────────────────────────
+  - id: wuhan_erp
+    product_name: ERP
+    server_id: wuhan_ftp
+    available: true
+    description: Earth rotation parameters
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "pub/whu/phasebias/{YYYY}/orbit/"}
+
+  # ── Biases ──────────────────────────────────────────────────────
+  - id: wuhan_bias
+    product_name: BIA
+    server_id: wuhan_ftp
+    available: true
+    description: Observable-specific signal biases (OSB)
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: WMC}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+      - {name: PPP, value: DEM}
+    directory: {pattern: "pub/whu/phasebias/{YYYY}/bias/"}
+
+  # ── Attitude (ORBEX) ───────────────────────────────────────────
+  - id: wuhan_obx
+    product_name: ATTOBX
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite attitude quaternions (ORBEX)
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: WMC}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: MGX}
+      - {name: PPP, value: DEM}
+    directory: {pattern: "pub/whu/phasebias/{YYYY}/orbit/"}
+
+  # ── Ionosphere (GIM) ───────────────────────────────────────────
+  - id: wuhan_gim
+    product_name: IONEX
+    server_id: wuhan_ftp
+    available: true
+    description: Global Ionosphere Maps (mirrored from various centers)
+    parameters:
+      - {name: AAA, value: COD}
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: JPL}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 01H}
+      - {name: SMP, value: 02H}
+    directory: {pattern: "pub/gps/products/ionex/{YYYY}/{DDD}/"}
+
+  # ── Broadcast navigation ───────────────────────────────────────
+  - id: wuhan_nav
+    product_name: RNX3_BRDC
+    server_id: wuhan_ftp
+    available: true
+    description: RINEX 3 broadcast navigation (multi-GNSS)
+    parameters:
+      - {name: CCC, value: IGS}
+      - {name: D, value: E}
+      - {name: D, value: M}
+    directory: {pattern: "pub/gps/data/daily/{YYYY}/{DDD}/{YY}p/"}
+
+  # ── Reference tables ───────────────────────────────────────────
+  - id: wuhan_leap_seconds
+    product_name: LEAP_SEC
+    server_id: wuhan_ftp
+    available: true
+    description: Leap seconds table (PRIDE-PPPAR)
+    parameters: []
+    directory: {pattern: "pub/whu/phasebias/table"}
+
+  - id: wuhan_sat_parameters
+    product_name: SAT_PARAMS
+    server_id: wuhan_ftp
+    available: true
+    description: Satellite physical parameters table
+    parameters: []
+    directory: {pattern: "pub/whu/phasebias/table"}

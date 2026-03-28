@@ -1,0 +1,246 @@
+products:
+
+  RINEX_OBS:
+    description: GNSS observation measurements recorded by receivers.
+
+    formats:
+
+      - format: RINEX
+        version: "2"
+        constraints:
+          T: \b[dot]\b
+        variant: observation
+
+
+      - format: RINEX
+        version: "3"
+        constraints:
+          T: \b[ONM]\b
+          D: \b[GRECEJSM]\b
+        variant: observation
+
+      - format: RINEX
+        version: "4"
+        constraints:
+          T: \b[ONM]\b
+          D: \b[GRECEJSM]\b
+        variant: observation
+
+  RINEX_NAV:
+    description: Broadcast satellite ephemerides and clock parameters.
+
+    formats:
+
+      - format: RINEX
+        version: "2"
+        constraints:
+          T: \b[ngh]\b
+        variant: navigation
+
+      - format: RINEX
+        version: "3"
+        constraints:
+          T: \b[ON]\b
+          D: \b[GRECEJSM]\b
+        variant: navigation
+
+      - format: RINEX
+        version: "4"
+        constraints:
+          T: \b[ON]\b
+          D: \b[GRECEJSM]\b
+        variant: navigation
+
+  RINEX_MET:
+    description: Meteorological data associated with GNSS stations.
+
+    formats:
+
+      - format: RINEX
+        version: "2"
+        constraints:
+          T: m
+        variant: meteorological
+
+      - format: RINEX
+        version: "3"
+        constraints:
+          T: M
+          D: \b[GRECEJSM]\b
+        variant: meteorological
+
+      - format: RINEX
+        version: "4"
+        constraints:
+          T: M
+          D: \b[GRECEJSM]\b
+        variant: meteorological
+  
+  ORBIT:
+    description: >
+      Satellite orbit products providing precise ephemerides. ex: WMC0DEMFIN_20252270000_01D_05M_ORB.SP3
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          LEN: "01D"
+          CNT: "ORB"
+          FMT: "SP3"
+        variant: default
+
+  CLOCK:
+    description: >
+      Satellite and/or receiver clock products providing precise clock parameters. ex: SHA0MGXRAP_20182700000_01D_05M_CLK.CLK.gz
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          FMT: "CLK"
+          LEN: "01D"
+          CNT: "CLK"
+        variant: default
+
+  ERP:
+    description: >
+      Earth rotation parameter (ERP) products.
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          FMT: "ERP"
+          LEN: "01D"
+          CNT: "ERP"
+          SMP: "01D"
+        variant: default
+  
+  BIA:
+    description: >
+      Bias products providing differential code and/or phase biases.
+      ex: WMC0DEMFIN_20252240000_01D_01D_OSB.BIA
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          FMT: "BIA"
+          LEN: "01D"
+          CNT: "OSB"
+        variant: default
+  
+  ATTOBX:
+    description: >
+      ORBEX format products providing satellite orbit and/or attitude information.
+      ex: WMC0DEMFIN_20252240000_01D_30S_ATT.OBX
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          FMT: "OBX"
+          LEN: "01D"
+          CNT: "ATT"
+          SMP: "30S"
+        variant: default
+
+  IONEX:
+    description: >
+      IONEX format products providing global ionospheric TEC maps and related products.
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          FMT: "INX"
+          LEN: "01D"
+          CNT: "GIM"
+        variant: default
+
+  RNX3_BRDC:
+    description: >
+      RINEX 3 navigation files containing broadcast ephemerides and clock parameters.
+      ex: BRDC00IGN_R_20252530000_01D_EN.rnx.gz
+
+    formats:
+
+      - format: RINEX
+        version: "3"
+        constraints:
+          SSSS: "BRDC"
+          DDU: "01D"
+          S: "R"
+        variant: navigation
+  
+  LEAP_SEC:
+    description: >
+      Leap second table providing scheduled and historical leap second information.
+
+    formats:
+
+      - format: TABLE
+        version: "1"
+        file_templates:
+          - "leap.sec"
+  SAT_PARAMS:
+    description: >
+      Satellite parameters table providing metadata about GNSS satellites (e.g., antenna types, signal frequencies).
+
+    formats:
+
+      - format: TABLE
+        version: "1"
+        file_templates:
+          - "sat_parameters"
+  VMF:
+    description: >
+      Vienna Mapping Functions (VMF) providing tropospheric mapping function grids.
+
+    formats:
+
+      - format: VIENNA_MAPPING_FUNCTIONS
+        version: "1"
+        variant: default
+  
+  OROGRAPHY:
+    description: >
+      Ellipsoidal terrain height grid (5x5) for VMF interpolation
+
+    formats:
+
+      - format: VIENNA_MAPPING_FUNCTIONS
+        version: "1"
+        constraints:
+          RESOLUTION: "5x5"
+        variant: orography
+
+  LEO_L1B:
+    description: >
+      LEO satellite Level-1B instrument data (GRACE, GRACE-FO).
+
+    formats:
+
+      - format: LEO_L1B
+        version: "1"
+        variant: default
+
+  ATTATX:
+    description: >
+      ATX format products providing antenna information, including phase center variations and offsets.
+
+    formats:
+
+      - format: ANTENNAE
+        version: "1"
+        variant: default
+
+      - format: ANTENNAE
+        version: "1"
+        variant: archive

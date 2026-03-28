@@ -1,0 +1,76 @@
+# PRIDE-PPPAR Static Table Products
+# ==================================
+#
+# Product definitions for static support files that ship with the
+# PRIDE-PPPAR software installation.  These are not downloadable
+# GNSS data products — they are model grids, lookup tables, and
+# calibration data bundled with the software.
+
+products:
+
+  FILE_NAME_TABLE:
+    description: >
+      Satellite name/identifier lookup table used by PRIDE-PPPAR.
+
+    formats:
+
+      - format: TABLE
+        version: "1"
+        file_templates:
+          - "file_name"
+
+  OCEAN_TIDE_FES2004:
+    description: >
+      FES2004 ocean tide model coefficients for tidal loading corrections.
+
+    formats:
+
+      - format: TABLE
+        version: "1"
+        file_templates:
+          - "FES2004S1.dat"
+
+  OCEAN_LOAD_GREEN:
+    description: >
+      Green's function coefficients for ocean tidal loading displacement.
+
+    formats:
+
+      - format: TABLE
+        version: "1"
+        file_templates:
+          - "Love_load_cm.dat"
+
+  GPT3_GRID:
+    description: >
+      GPT3 global pressure and temperature model grid for tropospheric modelling.
+
+    formats:
+
+      - format: TABLE
+        version: "1"
+        file_templates:
+          - "gpt3_1.grd"
+
+  OCEAN_LOAD_PROGRAM:
+    description: >
+      Pre-computed ocean loading parameters lookup table used by PRIDE-PPPAR.
+
+    formats:
+
+      - format: TABLE
+        version: "1"
+        file_templates:
+          - "oceanload"
+
+  OROGRAPHY_1X1:
+    description: >
+      Ellipsoidal terrain height grid (1x1) for VMF interpolation.
+
+    formats:
+
+      - format: VIENNA_MAPPING_FUNCTIONS
+        version: "1"
+        constraints:
+          RESOLUTION: "1x1"
+        variant: orography

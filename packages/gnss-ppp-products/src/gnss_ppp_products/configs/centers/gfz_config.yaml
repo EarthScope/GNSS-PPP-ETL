@@ -1,0 +1,46 @@
+id: GFZ
+name: GFZ Potsdam
+website: https://www.gfz-potsdam.de/
+
+servers:
+  - id: gfz_ftp
+    name: ISDC FTP
+    hostname: "ftp://isdcftp.gfz-potsdam.de"
+    protocol: ftp
+    auth_required: false
+    description: Information System and Data Center (ISDC) FTP
+
+products:
+  # ── Orbits ──────────────────────────────────────────────────────
+  - id: gfz_orbit
+    product_name: ORBIT
+    server_id: gfz_ftp
+    available: true
+    description: Precise orbits
+    parameters:
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: GBM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 05M}
+      - {name: SMP, value: 15M}
+    directory: {pattern: "gnss/products/final/w{GPSWEEK}/"}
+
+  # ── Clocks ──────────────────────────────────────────────────────
+  - id: gfz_clock
+    product_name: CLOCK
+    server_id: gfz_ftp
+    available: true
+    description: Precise clocks
+    parameters:
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: GBM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 30S}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "gnss/products/final/w{GPSWEEK}/"}

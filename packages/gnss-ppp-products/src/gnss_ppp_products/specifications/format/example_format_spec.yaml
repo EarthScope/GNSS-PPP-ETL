@@ -1,0 +1,244 @@
+name: default
+
+formats:
+
+  RINEX:
+    description: Receiver Independent Exchange Format used for GNSS observation, navigation, and meteorological data.
+
+    versions:
+
+      "2":
+        description: >
+          Legacy format primarily used for GPS and GLONASS.
+          Station names are 4 characters. File naming is short
+          and strongly tied to day-of-year.
+
+        metadata:
+          SSSS:
+            description: 4 char station code
+          DDD:
+            description: day of year (001-366)
+          YY:
+            description: 2 digit year
+          T:
+            description: file type code
+
+        file_templates:
+
+          observation:
+            - "{SSSS}{DDD}0.{YY}{T}"
+         
+
+          navigation:
+            - "{SSSS}{DDD}0.{YY}{T}"
+
+          meteorological:
+            - "{SSSS}{DDD}0.{YY}m"
+
+        compression:
+          - ".Z"
+          - ".gz"
+
+      "3":
+        notes: >
+          Modern multi-GNSS format supporting GPS, GLONASS,
+          Galileo, BeiDou, QZSS, SBAS. Introduces long filenames
+          with extensive metadata encoding.
+
+        metadata:
+          SSSS:
+            description: 4 char station code
+          MONUMENT:
+            description: 1 char monument/marker number
+          R:
+            description: receiver number
+          CCC:
+            description: 3 char data center / agency
+          S:
+            description: data source (R=receiver, S=stream)
+          YYYY:
+            description: 4 digit year
+          DDD:
+            description: day of year
+          HH:
+            description: hour
+          MM:
+            description: minute
+          DDU:
+            description: file period (01D, 01H, 15M)
+          FRU:
+            description: sampling interval (30S, 01S)
+          D:
+            description: satellite system identifier
+          T:
+            description: file type
+
+        file_templates:
+
+          observation:
+            - "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{FRU}_{D}O.rnx"
+
+          navigation:
+            - "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}N.rnx"
+
+          meteorological:
+            - "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}M.rnx"
+
+        compression:
+          - ".gz"
+          - ".crx.gz"
+
+      "4":
+        notes: >
+          Latest RINEX standard emphasizing improved navigation
+          message support and modern GNSS signals.
+
+        metadata:
+          SSSS:
+          MONUMENT:
+          R:
+          CCC:
+          S:
+          YYYY:
+          DDD:
+          HH:
+          MM:
+          DDU:
+          FRU:
+          D:
+          T:
+
+        file_templates:
+
+          observation:
+            - "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{FRU}_{D}O.rnx"
+
+          navigation:
+            - "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}N.rnx"
+
+          meteorological:
+            - "{SSSS}{MONUMENT}{R}{CCC}_{S}_{YYYY}{DDD}{HH}{MM}_{DDU}_{D}M.rnx"
+
+        compression:
+          - ".gz"
+          - ".crx.gz"
+
+  PRODUCT:
+    description: >
+      Generic product format for various GNSS data types (SP3, CLK, ERP, etc.)
+      with flexible metadata and filename file_templates.
+    versions: 
+      "1":
+      
+        metadata:
+          AAA:
+            description: analysis center code (e.g., "WUM", "COD")
+          V:
+            description: version/solution identifier
+          PPP:
+            description: campaign/project specification
+          TTT:
+            description: solution type identifier (e.g., "FIN", "RAP", "ULT")
+          YYYY:
+            description: 4 digit year
+          DDD:
+            description: day of year
+          HH:
+            description: hour (for sub-daily products)
+          MM:
+            description: minute (for sub-daily products)
+          LEN:
+            description: product intended nominal start epoch
+          SMP:
+            description: temporal sampling resolution (e.g., "05M" for 5 minutes)
+          CNT:
+            description: content type (e.g., "ORB", "CLK", "ERP")
+          SSSMRCCC_:
+            description: optional station identifier
+          FMT:
+            description: format code for products with multiple formats (e.g., "SP3", "CLK")
+
+        file_templates:
+          default:
+            - "{AAA}{V}{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*"
+          station:
+            - "{AAA}{V}{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{SSSMRCCC}_{CNT}.{FMT}.*"
+    compression:
+      - ".gz"
+      - ".zip"
+
+  TABLE:
+    description: >
+      Table data (i.e. leap.sec or sat_parameters)
+    versions:
+      "1":
+        file_templates:
+          default:
+            - ""
+  VIENNA_MAPPING_FUNCTIONS:
+    description: >
+      Vienna Mapping Functions (VMF) providing tropospheric mapping function grids.
+
+    versions:
+      "1":
+        metadata:
+          PRODUCT:
+            description: product identifier (e.g., "VMF1", "VMF3")
+          RESOLUTION:
+            pattern: \b(2\.5x2|1x1|5x5)\b
+            description: grid resolution for VMF products (e.g., "2.5x2", "1x1", "5x5")
+          VMFHH:
+            pattern: H(?:00|06|12|18)
+            description: hour of day for sub-daily products (H00, H06, H12, H18)
+          YYYY:
+            description: 4 digit year
+          MONTH:
+            description: 2 digit month
+          DAY:
+            description: 2 digit day
+
+        file_templates:
+          default:
+            - "{PRODUCT}_{YYYY}{MONTH}{DAY}.{VMFHH}"
+          orography:
+            - "orography_ell_{RESOLUTION}"
+
+  LEO_L1B:
+    description: >
+      LEO satellite Level-1B instrument data format used for
+      GRACE and GRACE-FO missions hosted at GFZ ISDC.
+    versions:
+      "1":
+        metadata:
+          INSTRUMENT:
+            description: e.g., GNV1B, ACC1B, SCA1B
+          YYYY:
+          MONTH:
+          DAY:
+          SPACECRAFT:
+            pattern: "[CD]"
+          RELNUM:
+            pattern: "\\d+\\..*"
+        file_templates:
+          default:
+            - "{INSTRUMENT}_{YYYY}-{MONTH}-{DAY}_{SPACECRAFT}_{RELNUM}"
+
+  ANTENNAE:
+    description: >
+      Antenna information in ATX format, including phase center variations and offsets.
+      Filenames use the IGS reference frame name (e.g. igs20) — there is no
+      separate analysis-center prefix.  Archive files carry a GPS-week
+      suffix; the query should match any week and select the most recent
+      file whose week is <= the target date.
+    versions:
+      "1":
+        metadata:
+          REFFRAME:
+            description: full IGS frame name (e.g., "igs20", "igs14")
+          GPSWEEK:
+          
+        file_templates:
+          archive:
+            - "{REFFRAME}_{GPSWEEK}.atx"
+          default:
+            - "{REFFRAME}.atx"

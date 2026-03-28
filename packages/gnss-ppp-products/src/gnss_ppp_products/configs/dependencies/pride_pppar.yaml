@@ -1,0 +1,91 @@
+# PRIDE-PPPAR — Dependency Specification
+# =======================================
+#
+# Products required for kinematic PPP ambiguity resolution
+# using the PRIDE-PPPAR engine (Wuhan University).
+#
+# The preferences define a cascade of analysis centres to try,
+# ordered by preference.  The resolver walks the list top-down
+# and picks the first centre that has all required files.
+
+name: pride-pppar
+description: >
+  PRIDE-PPPAR kinematic PPP-AR processing.
+  Requires precise orbits, clocks, biases, attitude, broadcast
+  navigation, antenna calibrations, and reference tables.
+package: PRIDE
+task: PPP
+
+preferences:
+  - parameter: AAA
+    sorting: [WUM, COD, GFZ, ESA]
+    description: >
+      Prefer Wuhan, then CODE, GFZ, ESA analysis centres.
+  - parameter: TTT
+    sorting: [FIN, RAP, ULT]
+    description: >
+      Prefer final solutions, then rapid, then ultra-rapid.
+
+dependencies:
+  - spec: ORBIT
+    required: true
+    description: Precise satellite orbits (SP3)
+
+  - spec: CLOCK
+    required: true
+    description: Precise satellite clocks (CLK)
+
+  - spec: ERP
+    required: true
+    description: Earth rotation parameters
+
+  - spec: BIA
+    required: true
+    description: Observable-specific signal biases
+
+  - spec: ATTOBX
+    required: true
+    description: Satellite attitude quaternions (OBX)
+
+  - spec: ATTATX
+    required: true
+    description: Antenna phase center corrections (ANTEX)
+
+  - spec: RNX3_BRDC
+    required: true
+    description: Broadcast navigation RINEX 3
+
+  - spec: LEAP_SEC
+    required: true
+    description: Leap second table
+
+  - spec: SAT_PARAMS
+    required: true
+    description: Satellite metadata parameters table
+
+  # ---------------------------------------------------------------------------
+  # Static tables from PRIDE-PPPAR installation
+  # ---------------------------------------------------------------------------
+  - spec: FILE_NAME_TABLE
+    required: true
+    description: Satellite name/identifier lookup table
+
+  - spec: OCEAN_TIDE_FES2004
+    required: true
+    description: FES2004 ocean tide model coefficients
+
+  - spec: OCEAN_LOAD_GREEN
+    required: true
+    description: Green's function coefficients for ocean tidal loading
+
+  - spec: GPT3_GRID
+    required: true
+    description: GPT3 global pressure and temperature model grid
+
+  - spec: OCEAN_LOAD_PROGRAM
+    required: true
+    description: Pre-computed ocean loading parameters
+
+  - spec: OROGRAPHY_1X1
+    required: true
+    description: Ellipsoidal terrain height grid (1x1)

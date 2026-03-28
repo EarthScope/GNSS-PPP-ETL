@@ -1,0 +1,20 @@
+Queries:
+
+- mandatory parameters: 
+    format, content, time
+- optional parameters:
+    center, campaign, quality, interval, duration 
+
+Desired functionality: 
+
+When an optional parameters is not passed, it is replaced with a regex to search for candidate files
+in the "directory".
+
+
+# 
+mandatory_params = {time:datetime.datetime,format:str,content:str}
+CenterConfig.build_product_queries(mandatory_params) --> List[RinexFileQuery].search()
+CenterConfig.build_rinex_queries(mandatory_params) --> List[ProductFileQuery]
+
+
+--> List[ProductFileQuery | RinexFileQuery].search() --> List[RemoteProductAddress].get() --> List[Product | RinexProduct]

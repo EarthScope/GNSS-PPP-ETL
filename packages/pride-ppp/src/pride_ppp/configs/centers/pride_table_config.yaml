@@ -1,0 +1,126 @@
+# PRIDE-PPPAR GitHub Table Directory
+# ====================================
+#
+# Static table files shipped with the PRIDE-PPPAR software, served
+# from the PrideLab GitHub repository's raw content endpoint.
+#
+# Source: https://github.com/PrideLab/PRIDE-PPPAR/tree/master/table
+
+id: PRIDE
+name: PrideLab PRIDE-PPPAR (GitHub)
+description: >
+  Static table files from the PRIDE-PPPAR repository at Wuhan University.
+  These include satellite metadata, ocean tide models, tropospheric grids,
+  antenna calibrations, and other supporting data.
+website: https://github.com/PrideLab/PRIDE-PPPAR
+
+servers:
+  - id: pride_github
+    name: GitHub Raw Content
+    hostname: "https://raw.githubusercontent.com"
+    protocol: https
+    auth_required: false
+    description: GitHub raw content CDN for the PRIDE-PPPAR repository
+
+products:
+  # ── Static table files (PRIDE-specific) ─────────────────────────
+  - id: pride_file_name_table
+    product_name: FILE_NAME_TABLE
+    server_id: pride_github
+    available: true
+    description: Satellite name/identifier lookup table
+    parameters: []
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  - id: pride_ocean_tide
+    product_name: OCEAN_TIDE_FES2004
+    server_id: pride_github
+    available: true
+    description: FES2004 ocean tide model coefficients
+    parameters: []
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  - id: pride_ocean_load_green
+    product_name: OCEAN_LOAD_GREEN
+    server_id: pride_github
+    available: true
+    description: Green's function coefficients for ocean tidal loading
+    parameters: []
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  - id: pride_gpt3_grid
+    product_name: GPT3_GRID
+    server_id: pride_github
+    available: true
+    description: GPT3 global pressure and temperature model grid
+    parameters: []
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  - id: pride_ocean_load
+    product_name: OCEAN_LOAD_PROGRAM
+    server_id: pride_github
+    available: true
+    description: Pre-computed ocean loading parameters
+    parameters: []
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  # ── Static table files (base products) ──────────────────────────
+  - id: pride_leap_sec
+    product_name: LEAP_SEC
+    server_id: pride_github
+    available: true
+    description: IERS leap seconds file
+    parameters: []
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  - id: pride_sat_params
+    product_name: SAT_PARAMS
+    server_id: pride_github
+    available: true
+    description: Satellite metadata parameters table
+    parameters: []
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  # ── Antenna calibrations (ANTEX archive) ────────────────────────
+  - id: pride_atx_igs14
+    product_name: ATTATX
+    product_version: ["1"]
+    server_id: pride_github
+    available: true
+    description: IGS14 ANTEX (archive snapshot, GPS week 2247)
+    parameters:
+      - {name: REFFRAME, value: igs14}
+      - {name: GPSWEEK, value: "2247"}
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  - id: pride_atx_igs20
+    product_name: ATTATX
+    product_version: ["1"]
+    server_id: pride_github
+    available: true
+    description: IGS20 ANTEX (archive snapshot, GPS week 2317)
+    parameters:
+      - {name: REFFRAME, value: igs20}
+      - {name: GPSWEEK, value: "2317"}
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  - id: pride_atx_igsR3
+    product_name: ATTATX
+    product_version: ["1"]
+    server_id: pride_github
+    available: true
+    description: IGS Repro3 ANTEX (archive snapshot, GPS week 2135)
+    parameters:
+      - {name: REFFRAME, value: igsR3}
+      - {name: GPSWEEK, value: "2135"}
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+
+  # ── Orography grid ─────────────────────────────────────────────
+  - id: pride_orography_1x1
+    product_name: OROGRAPHY_1X1
+    server_id: pride_github
+    available: true
+    description: Ellipsoidal terrain height grid (1x1)
+    parameters:
+      - {name: RESOLUTION, value: "1x1"}
+    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
