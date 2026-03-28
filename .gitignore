@@ -1,6 +1,8 @@
 .venv/*
 gnss-ppp-products/node_modules/*
-
+.github/skills/*
+.DS_Store
+.vscode/*
 *.pyc.*
 __pycache__/
 *.pyo
