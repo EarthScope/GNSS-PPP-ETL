@@ -1,3 +1,5 @@
+"""Author: Franklyn Dunbar"""
+
 from .product import (
     Product,
     ProductPath,

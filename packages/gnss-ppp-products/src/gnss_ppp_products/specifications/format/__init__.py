@@ -1,3 +1,5 @@
+"""Author: Franklyn Dunbar"""
+
 from .spec import FormatFieldDef, FormatVersionSpec, FormatSpec, FormatSpecCollection
 
 # FormatCatalog, FormatSpecCatalog live in format_spec.py

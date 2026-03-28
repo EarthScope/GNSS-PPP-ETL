@@ -1,4 +1,7 @@
-"""Parameter model and ParameterCatalog — replaces MetadataField + MetadataCatalog."""
+"""Author: Franklyn Dunbar
+
+Parameter model and ParameterCatalog — replaces MetadataField + MetadataCatalog.
+"""
 
 import datetime
 import re
@@ -54,6 +57,15 @@ class ParameterCatalog:
         self.parameters = {parameter.name: parameter for parameter in parameters}
 
     def get(self, name: str, default=None) -> Optional[Parameter]:
+        """Retrieve a parameter by name.
+
+        Args:
+            name: Parameter name.
+            default: Value returned when *name* is not found.
+
+        Returns:
+            The :class:`Parameter` or *default*.
+        """
         return self.parameters.get(name, default)
 
     def __contains__(self, item):
@@ -72,7 +84,17 @@ class ParameterCatalog:
         compute: Optional[Callable[[datetime.datetime], str]] = None,
         description: Optional[str] = None,
     ) -> Parameter:
-        """Register or update a parameter, optionally adding a compute function."""
+        """Register or update a parameter, optionally adding a compute function.
+
+        Args:
+            name: Parameter name.
+            pattern: Regex pattern for the parameter value.
+            compute: Callable that derives the value from a datetime.
+            description: Human-readable description.
+
+        Returns:
+            The newly created or updated :class:`Parameter`.
+        """
         existing = self.parameters.get(name)
         if existing is not None:
             updates: Dict[str, Any] = {}
@@ -103,7 +125,16 @@ class ParameterCatalog:
         *,
         description: Optional[str] = None,
     ):
-        """Decorator that registers a computed parameter field."""
+        """Decorator that registers a computed parameter field.
+
+        Args:
+            name: Parameter name.
+            pattern: Regex pattern for the parameter value.
+            description: Human-readable description.
+
+        Returns:
+            A decorator that wraps the compute function.
+        """
 
         def decorator(fn: Callable[[datetime.datetime], str]):
             self.register(name, pattern, compute=fn, description=description)
@@ -114,7 +145,11 @@ class ParameterCatalog:
     # -- bulk operations --------------------------------------------
 
     def defaults(self) -> Dict[str, str]:
-        """Return ``{name: pattern}`` for every parameter with a pattern."""
+        """Return ``{name: pattern}`` for every parameter with a pattern.
+
+        Returns:
+            Mapping of parameter names to their regex patterns.
+        """
         return {
             p.name: p.pattern for p in self.parameters.values() if p.pattern is not None
         }
@@ -124,7 +159,15 @@ class ParameterCatalog:
         params: List[Any],
         date: datetime.datetime,
     ) -> Any:
-        """Set ``.value`` on computed parameters from *date*."""
+        """Set ``.value`` on computed parameters from *date*.
+
+        Args:
+            params: List of :class:`Parameter`-like objects.
+            date: Reference datetime for computed fields.
+
+        Returns:
+            The same *params* list with computed values filled in.
+        """
         for param in params:
             p = self.parameters.get(param.name)
             if p is not None and p.compute is not None:
@@ -138,7 +181,16 @@ class ParameterCatalog:
         *,
         computed_only: bool = False,
     ) -> str:
-        """Substitute ``{NAME}`` placeholders in *template*."""
+        """Substitute ``{NAME}`` placeholders in *template*.
+
+        Args:
+            template: String containing ``{NAME}``-style placeholders.
+            date: Reference datetime for computed fields.
+            computed_only: If ``True``, only replace computed parameters.
+
+        Returns:
+            The interpolated string.
+        """
         fields = _extract_template_fields(template)
         values: Dict[str, str] = {}
         for key in fields:
@@ -175,7 +227,16 @@ class ParameterCatalog:
         return cls(parameters=params)
 
     def merge(self, other: "ParameterCatalog") -> "ParameterCatalog":
-        """Merge another catalog into this one. Raise a warning if there are duplicate parameter names."""
+        """Merge another catalog into this one.
+
+        Duplicate names are overwritten by *other* with a warning.
+
+        Args:
+            other: Catalog to merge.
+
+        Returns:
+            A new :class:`ParameterCatalog` with combined parameters.
+        """
         merged = self.parameters.copy()
         for name, param in other.parameters.items():
             if name in merged:

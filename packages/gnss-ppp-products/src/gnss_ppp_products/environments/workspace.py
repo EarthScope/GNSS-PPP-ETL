@@ -1,3 +1,12 @@
+"""Author: Franklyn Dunbar
+
+Workspace management for local GNSS product storage.
+
+Maps :class:`LocalResourceSpec` definitions (loaded from YAML) to concrete
+base directories on disk so that local resources can be queried through the
+same :class:`ResourceQuery` interface used for remote servers.
+"""
+
 from pathlib import Path
 
 from typing import Any, Dict, Optional, List
@@ -10,12 +19,31 @@ from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 
 
 def paths_overlap(p1: Path, p2: Path) -> bool:
+    """Check whether two paths share a common ancestor-descendant relationship.
+
+    Args:
+        p1: First filesystem path.
+        p2: Second filesystem path.
+
+    Returns:
+        ``True`` if either path is a parent of (or equal to) the other.
+    """
     p1 = p1.resolve()
     p2 = p2.resolve()
     return p1.is_relative_to(p2) or p2.is_relative_to(p1)
 
 
 class RegisteredLocalResource(BaseModel):
+    """A local resource spec that has been bound to a base directory.
+
+    Attributes:
+        name: Human-readable identifier for this resource.
+        base_dir: Absolute base directory on disk.
+        spec: The underlying local resource specification.
+        item_to_dir: Mapping of item names to their subdirectory.
+        server: A ``file``-protocol :class:`Server` wrapping *base_dir*.
+    """
+
     name: str
     base_dir: Path
     spec: LocalResourceSpec
@@ -45,6 +73,17 @@ class WorkSpace:
         self._resource_specs: Dict[str, LocalResourceSpec] = {}
 
     def add_resource_spec(self, path: Path | str, id: Optional[str] = None) -> None:
+        """Load a :class:`LocalResourceSpec` from a YAML file.
+
+        Args:
+            path: Path to the YAML specification file.
+            id: Optional override for the spec name.  Defaults to the
+                name declared inside the YAML file.
+
+        Raises:
+            AssertionError: If *path* does not exist or a spec with
+                the same name is already registered.
+        """
         path = Path(path)
         assert path.exists(), f"Resource spec file not found: {path}"
         assert path.is_file(), f"Resource spec path must be a file: {path}"
@@ -60,6 +99,23 @@ class WorkSpace:
     def register_spec(
         self, base_dir: Path | str, spec_ids: List[str], alias: Optional[str] = None
     ) -> None:
+        """Bind loaded spec(s) to a base directory and register the result.
+
+        When multiple *spec_ids* are given they are merged into a single
+        :class:`LocalResourceSpec`.  The resulting resource is stored in
+        ``_registered_specs`` and can later be used to build local queries.
+
+        Args:
+            base_dir: Root directory on disk for the resource.
+            spec_ids: One or more previously loaded spec identifiers.
+            alias: Optional alias that also maps to this resource.
+
+        Raises:
+            AssertionError: If *base_dir* does not exist or any
+                *spec_id* has not been loaded.
+            ValueError: If *alias* is already in use or *base_dir* overlaps
+                with an existing registration.
+        """
         if isinstance(base_dir, str):
             base_dir = Path(base_dir)
         assert base_dir.exists(), f"Base directory not found: {base_dir}"

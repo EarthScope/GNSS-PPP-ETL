@@ -1,4 +1,7 @@
-"""Format registry — loads and indexes raw format specifications from YAML."""
+"""Author: Franklyn Dunbar
+
+Format registry — loads and indexes raw format specifications from YAML.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +30,17 @@ class FormatRegistry(BaseModel):
     formats: Dict[str, FormatSpec] = Field(default_factory=dict)
 
     def get_format(self, name: str) -> FormatSpec:
+        """Retrieve a format by name.
+
+        Args:
+            name: Format name.
+
+        Returns:
+            The matching :class:`FormatSpec`.
+
+        Raises:
+            KeyError: If *name* is not registered.
+        """
         try:
             return self.formats[name]
         except KeyError:
@@ -35,6 +49,18 @@ class FormatRegistry(BaseModel):
             )
 
     def get_version(self, format_name: str, version: str) -> FormatVersionSpec:
+        """Retrieve a specific version of a format.
+
+        Args:
+            format_name: Format name.
+            version: Version identifier.
+
+        Returns:
+            The matching :class:`FormatVersionSpec`.
+
+        Raises:
+            KeyError: If the format or version is not found.
+        """
         fmt = self.get_format(format_name)
         try:
             return fmt.versions[version]
@@ -48,11 +74,23 @@ class FormatRegistry(BaseModel):
     def build(
         cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog
     ) -> FormatRegistry:
-        """
+        """Build a FormatRegistry by resolving metadata field defaults.
 
-        Build a FormatRegistry by checking if metadata fields have either a pattern value provided or an entry in the metadata catalog.
-        If a field is missing both, raise an error.
+        Verifies that every metadata field referenced in a format version
+        has either a pattern value or an entry in *metadata_catalog*.
 
+        Args:
+            format_spec: Raw format specification collection.
+            metadata_catalog: Global parameter catalog for field defaults.
+
+        Returns:
+            A :class:`FormatRegistry` with all fields resolved.
+
+        Raises:
+            AssertionError: If a field is missing both a pattern and
+                a catalog entry.
+            ValueError: If a file template placeholder has no
+                corresponding metadata field.
         """
         resolved_versions = {}
         format_spec_collection: Dict[str, FormatSpec] = format_spec.formats

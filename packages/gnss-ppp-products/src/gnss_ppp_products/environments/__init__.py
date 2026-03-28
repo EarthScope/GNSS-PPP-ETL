@@ -1,11 +1,13 @@
-"""Environments — setup and configuration for product resolution.
+"""Author: Franklyn Dunbar
+
+Environments — setup and configuration for product resolution.
 
 Provides the two core configuration objects:
 
 - :class:`ProductEnvironment` — loads YAML specs and builds the full catalog
   chain (parameters → formats → products → remote resource factory).
 - :class:`WorkSpace` — registers local storage directories and maps them
-  to ``LocalResourceSpec`` layouts.
+  to :class:`LocalResourceSpec` layouts.
 """
 
 from gnss_ppp_products.environments.environment import ProductEnvironment

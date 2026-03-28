@@ -1,4 +1,7 @@
-"""Pure Pydantic models and result types for dependency specifications."""
+"""Author: Franklyn Dunbar
+
+Pure Pydantic models and result types for dependency specifications.
+"""
 
 from __future__ import annotations
 
@@ -43,6 +46,14 @@ class DependencySpec(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "DependencySpec":
+        """Load a dependency specification from a YAML file.
+
+        Args:
+            path: Path to the YAML file.
+
+        Returns:
+            A :class:`DependencySpec` instance.
+        """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
         return cls.model_validate(raw)
@@ -70,20 +81,33 @@ class DependencyResolution:
 
     @property
     def fulfilled(self) -> List[ResolvedDependency]:
+        """Dependencies that have been resolved (not missing)."""
         return [r for r in self.resolved if r.status != "missing"]
 
     @property
     def missing(self) -> List[ResolvedDependency]:
+        """Dependencies that could not be resolved."""
         return [r for r in self.resolved if r.status == "missing"]
 
     @property
     def all_required_fulfilled(self) -> bool:
+        """``True`` if every required dependency has been resolved."""
         return all(r.status != "missing" for r in self.resolved if r.required)
 
     def product_paths(self) -> Dict[str, Path]:
+        """Return a ``{spec: path}`` mapping for resolved local files.
+
+        Returns:
+            Dict mapping spec names to their local paths.
+        """
         return {r.spec: r.local_path for r in self.resolved if r.local_path is not None}
 
     def summary(self) -> str:
+        """Return a one-line summary of resolution counts.
+
+        Returns:
+            Human-readable summary string.
+        """
         total = len(self.resolved)
         local = sum(1 for r in self.resolved if r.status == "local")
         downloaded = sum(1 for r in self.resolved if r.status == "downloaded")
@@ -96,6 +120,12 @@ class DependencyResolution:
         )
 
     def table(self) -> str:
+        """Return a formatted table of all resolved dependencies.
+
+        Returns:
+            Multi-line string with columns for spec, required,
+            status, and path.
+        """
         lines = [
             f"{'spec':<14s} {'required':<10s} {'status':<12s} "
             f"{'preference':<20s} {'path'}"

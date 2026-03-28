@@ -1,4 +1,26 @@
-"""Lockfile — models and I/O for reproducible product manifests."""
+"""
+Author: Franklyn Dunbar
+
+Lockfile — models and I/O for reproducible product manifests.
+
+This package provides Pydantic models and file-system operations for
+creating, reading, writing, and validating *lockfiles*.  A lockfile
+records the exact resolved products (with hashes, sizes, and source
+URLs) for a single processing date, enabling reproducible GNSS PPP
+runs.
+
+Public API
+----------
+Models:
+    :class:`LockProduct`, :class:`LockProductAlternative`,
+    :class:`DependencyLockFile`
+
+Operations:
+    :func:`validate_lock_product`, :func:`build_lock_product`,
+    :func:`get_lock_product_path`, :func:`get_lock_product`,
+    :func:`write_lock_product`, :func:`get_dependency_lockfile_name`,
+    :func:`get_dependency_lockfile`, :func:`write_dependency_lockfile`
+"""
 
 from gnss_ppp_products.lockfile.models import (
     LockProduct,

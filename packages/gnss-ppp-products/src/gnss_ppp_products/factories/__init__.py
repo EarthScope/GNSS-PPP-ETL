@@ -1,4 +1,7 @@
-"""Factories — Layer 2: query construction, resource discovery, and file fetching."""
+"""Author: Franklyn Dunbar
+
+Factories — Layer 2: query construction, resource discovery, and file fetching.
+"""
 
 from gnss_ppp_products.factories.resource_factory import ResourceFactory
 from gnss_ppp_products.factories.remote_factory import RemoteResourceFactory

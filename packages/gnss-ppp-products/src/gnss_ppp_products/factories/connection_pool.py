@@ -1,4 +1,7 @@
-"""Connection pool — thread-safe fsspec filesystem instances per host."""
+"""Author: Franklyn Dunbar
+
+Connection pool — thread-safe fsspec filesystem instances per host.
+"""
 
 import logging
 import os
@@ -28,6 +31,11 @@ class ConnectionPool:
         self._failed = False
 
     def _connect(self) -> Optional[fsspec.AbstractFileSystem]:
+        """Create a single fsspec filesystem connection.
+
+        Returns:
+            A filesystem instance, or ``None`` on failure.
+        """
         if self.protocol == "file":
             try:
                 return fsspec.filesystem("file")
@@ -62,6 +70,7 @@ class ConnectionPool:
             return None
 
     def _initialize_pool(self):
+        """Lazily initialise the connection pool (double-checked locking)."""
         if self._initialized or self._failed:
             return
         with self._pool_lock:
@@ -83,6 +92,14 @@ class ConnectionPool:
 
     @contextmanager
     def get_connection(self):
+        """Acquire a connection from the pool.
+
+        Yields:
+            An :class:`fsspec.AbstractFileSystem` instance.
+
+        Raises:
+            ConnectionError: If the pool failed to initialise.
+        """
         self._initialize_pool()
         if not self._initialized:
             raise ConnectionError(f"No connections available for {self.hostname}")
@@ -140,18 +157,49 @@ class ConnectionPoolFactory:
         self._listing_cache_lock = threading.Lock()
 
     def add_connection(self, hostname: str):
+        """Ensure a connection pool exists for *hostname*.
+
+        Args:
+            hostname: Server address to pool.
+        """
         with self._factory_lock:
             if hostname not in self._pools:
                 self._pools[hostname] = ConnectionPool(hostname, self.max_connections)
 
     @contextmanager
     def get_connection(self, hostname: str):
+        """Acquire a connection for *hostname*.
+
+        Args:
+            hostname: Server address.
+
+        Yields:
+            An :class:`fsspec.AbstractFileSystem` instance.
+
+        Raises:
+            ValueError: If no pool exists for *hostname*.
+        """
         if hostname not in self._pools:
             raise ValueError(f"No connection pool for: {hostname}")
         with self._pools[hostname].get_connection() as connection:
             yield connection
 
     def list_directory(self, hostname: str, directory: str) -> List[str]:
+        """List a remote or local directory with caching.
+
+        Results (including empty lists for failed lookups) are cached
+        to avoid redundant network calls.
+
+        Args:
+            hostname: Server address.
+            directory: Directory path.
+
+        Returns:
+            A list of filenames.
+
+        Raises:
+            ValueError: If no pool exists for *hostname*.
+        """
         pool = self._pools.get(hostname)
         if pool is None:
             raise ValueError(f"No connection pool for: {hostname}")
@@ -201,6 +249,21 @@ class ConnectionPoolFactory:
     def download_file(
         self, hostname: str, remote_path: str, target_dir: str
     ) -> Optional[Path]:
+        """Download a file from a remote or local host.
+
+        Retries once with a fresh connection on broken-pipe errors.
+
+        Args:
+            hostname: Server address.
+            remote_path: Relative path on the remote host.
+            target_dir: Local directory to write the file into.
+
+        Returns:
+            Path to the downloaded file, or ``None`` on failure.
+
+        Raises:
+            ValueError: If no pool exists for *hostname*.
+        """
         pool = self._pools.get(hostname)
         if pool is None:
             raise ValueError(f"No connection pool for: {hostname}")

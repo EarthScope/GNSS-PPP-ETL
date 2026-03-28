@@ -1,3 +1,12 @@
+"""Author: Franklyn Dunbar
+
+Default singleton instances for the GNSS PPP product environment.
+
+Constructs pre-configured :data:`DefaultProductEnvironment`,
+:data:`DefaultWorkSpace`, and :data:`Pride_PPP_task` from the bundled
+YAML specifications shipped with the package.
+"""
+
 from pathlib import Path
 from gnss_ppp_products.configs import (
     META_SPEC_YAML,

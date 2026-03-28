@@ -1,4 +1,7 @@
-"""Server, ResourceSpec, ResourceQuery — remote resource models (Layer 1)."""
+"""Author: Franklyn Dunbar
+
+Server, ResourceSpec, ResourceQuery — remote resource models (Layer 1).
+"""
 
 from pathlib import Path
 from typing import Dict, List, Optional, Union
@@ -46,6 +49,14 @@ class ResourceSpec(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "ResourceSpec":
+        """Load a resource specification from a YAML file.
+
+        Args:
+            path: Path to the YAML file.
+
+        Returns:
+            A :class:`ResourceSpec` instance.
+        """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
         return cls.model_validate(raw)
@@ -59,7 +70,11 @@ class ResourceQuery(BaseModel):
     directory: ProductPath
 
     def narrow(self) -> "ResourceQuery":
-        """Substitute already-known parameter values into directory/filename patterns."""
+        """Substitute already-known parameter values into directory/filename patterns.
+
+        Returns:
+            ``self``, mutated in place.
+        """
         to_keep = [p for p in self.product.parameters if p.value is None]
         to_update = {p.name: p for p in self.product.parameters if p.value is not None}
         format_dict = _PassthroughDict({k: p.value for k, p in to_update.items()})

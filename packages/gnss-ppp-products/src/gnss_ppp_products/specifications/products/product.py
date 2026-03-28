@@ -1,4 +1,7 @@
-"""Core product models — ProductPath, Product, and catalog hierarchies."""
+"""Author: Franklyn Dunbar
+
+Core product models — ProductPath, Product, and catalog hierarchies.
+"""
 
 import re
 from typing import Dict, Generic, List, Optional, TypeVar
@@ -25,7 +28,11 @@ class ProductPath(BaseModel):
     )
 
     def derive(self, parameters: List[Parameter]) -> None:
-        """Replace ``{PARAM}`` placeholders in *pattern* with parameter values."""
+        """Replace ``{PARAM}`` placeholders in *pattern* with parameter values.
+
+        Args:
+            parameters: List of parameters to substitute.
+        """
         if self.value is not None:
             return
 
@@ -43,8 +50,14 @@ class ProductPath(BaseModel):
 
         Each ``{PARAM}`` placeholder is replaced with ``(?P<PARAM>pattern)``
         using the parameter's regex from *parameter_catalog*.  Literal
-        characters outside placeholders are escaped.  A trailing ``.*`` is
-        preserved as a catch-all for compression extensions.
+        characters outside placeholders are escaped.
+
+        Args:
+            parameter_catalog: Catalog supplying regex patterns for each
+                parameter name.
+
+        Returns:
+            A regex string suitable for :func:`re.fullmatch`.
         """
         template = self.pattern
         # Split the template into placeholder tokens and literal segments
@@ -85,8 +98,12 @@ class ProductPath(BaseModel):
     ) -> Optional[Dict[str, str]]:
         """Extract parameter values from *filename* using the template pattern.
 
-        Returns a ``{param_name: value}`` dict on match, or ``None`` if the
-        filename does not match the template.
+        Args:
+            filename: Product filename to match.
+            parameter_catalog: Catalog supplying regex patterns.
+
+        Returns:
+            A ``{param_name: value}`` dict on match, or ``None``.
         """
         regex = self.to_regex(parameter_catalog)
         m = re.fullmatch(regex, filename)
@@ -105,16 +122,17 @@ def infer_from_regex(
     After ``derive()`` and the query-factory's "fill in patterns" step,
     each parameter's ``.value`` is either a concrete literal or its regex
     pattern.  This function reconstructs a named-group regex by replacing
-    each parameter's contribution (``param.value``) with
-    ``(?P<name>param.pattern)``, matches *filename*, and updates every
-    parameter's ``.value`` with the extracted text.
+    each parameter's contribution with ``(?P<name>pattern)``, then
+    matches *filename* and updates every parameter's ``.value``.
 
-    Parameters must be in **template order** (left-to-right as they appear
-    in the original filename template) so that the positional scan targets
-    the correct occurrence.
+    Args:
+        regex: Pre-built regex string (values already substituted).
+        filename: Product filename to match.
+        parameters: Ordered list of parameters (template order,
+            left-to-right).
 
-    Returns the updated parameter list on match, or ``None`` if the
-    filename does not match.
+    Returns:
+        The updated parameter list on match, or ``None``.
     """
     # Single left-to-right pass: find each param.value at its expected
     # position and wrap it with a named capture group.

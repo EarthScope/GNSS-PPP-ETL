@@ -1,4 +1,7 @@
-"""QueryFactory — lazy narrowing query builder."""
+"""Author: Franklyn Dunbar
+
+QueryFactory — lazy narrowing query builder.
+"""
 
 import datetime
 import logging
@@ -70,24 +73,20 @@ class QueryFactory:
     ) -> list[ResourceQuery]:
         """Narrow parameter ranges and return searchable resources.
 
-        Parameters
-        ----------
-        date : datetime.datetime
-            Target date for computed metadata fields (e.g. YYYY, DDD).
-        product : dict
-            Product query with ``name``, optionally ``version``, ``variant``.
-        parameters : dict[str, str | list[str]] | None
-            User constraints on metadata fields.  If *None* or empty,
-            no narrowing is applied — all parameter values remain as
-            wildcards (resolved to regex patterns in the final step).
-        local_resources : list[str]
-            If specified, only include local resources with these collection IDs.
-        remote_resources : list[str]
-            If specified, only include remote resources with these center IDs.
+        Args:
+            date: Target date for computed metadata fields.
+            product: Product query dict with ``name``, optionally
+                ``version`` and ``variant``.
+            parameters: User constraints on metadata fields.  Unset
+                fields remain as wildcard regex patterns.
+            local_resources: If given, restrict to these local collection IDs.
+            remote_resources: If given, restrict to these remote center IDs.
 
-        Returns
-        -------
-        list[ResourceQuery]
+        Returns:
+            A list of :class:`ResourceQuery` objects.
+
+        Raises:
+            ValueError: If the product, version, or variant is not found.
         """
         parameters = parameters or {}
         local_resources = _listify(local_resources)

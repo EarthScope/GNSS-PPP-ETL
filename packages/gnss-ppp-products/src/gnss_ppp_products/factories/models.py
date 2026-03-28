@@ -1,4 +1,7 @@
-"""Public return types and exceptions for the ProductEnvironment API."""
+"""Author: Franklyn Dunbar
+
+Public return types and exceptions for the ProductEnvironment API.
+"""
 
 from __future__ import annotations
 
@@ -26,11 +29,12 @@ class FoundResource(BaseModel):
 
     @property
     def is_local(self) -> bool:
+        """``True`` if this resource was found on the local filesystem."""
         return self.source == "local"
 
     @property
     def path(self) -> Optional[Path]:
-        """Return the local Path if this is a local resource, else None."""
+        """Return the local :class:`Path` if this is a local resource, else ``None``."""
         if self.is_local:
             return Path(self.uri)
         return None
@@ -74,6 +78,15 @@ class DiscoveryReport(BaseModel):
     def filter(
         self, product: Optional[str] = None, center: Optional[str] = None
     ) -> List[DiscoveryEntry]:
+        """Filter entries by product name and/or center.
+
+        Args:
+            product: Product name filter.
+            center: Center identifier filter.
+
+        Returns:
+            Matching :class:`DiscoveryEntry` instances.
+        """
         out = self.entries
         if product:
             out = [e for e in out if e.product == product]

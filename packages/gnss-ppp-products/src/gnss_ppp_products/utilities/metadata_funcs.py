@@ -1,14 +1,18 @@
-"""Computed metadata field registrations for a ``MetadataCatalog``.
+"""Author: Franklyn Dunbar
 
-Defines date-to-metadata transformations (DDD, GPSWEEK, YYYY, REFFRAME, etc.)
-and :func:`register_computed_fields` which wires them onto a catalog.
+Computed metadata field registrations for a :class:`ParameterCatalog`.
+
+Defines date-to-metadata transformations (``DDD``, ``GPSWEEK``, ``YYYY``,
+``REFFRAME``, etc.) and :func:`register_computed_fields` which wires
+them onto a catalog so that parameter values can be derived from a
+processing date at query time.
 
 Usage::
 
-    from gnss_ppp_products.catalogs import MetadataCatalog
+    from gnss_ppp_products.specifications.parameters.parameter import ParameterCatalog
     from gnss_ppp_products.utilities.metadata_funcs import register_computed_fields
 
-    cat = MetadataCatalog.from_yaml("meta_spec.yaml")
+    cat = ParameterCatalog.from_yaml("meta_spec.yaml")
     register_computed_fields(cat)
 """
 
@@ -22,7 +26,11 @@ GNSS_START_TIME = datetime.datetime(1980, 1, 6, tzinfo=datetime.timezone.utc)
 
 
 class IGSAntexReferenceFrameType(Enum):
-    """Reference frame types for ANTEX files."""
+    """IGS ANTEX reference frame identifiers.
+
+    Maps each IGS reference frame to its canonical lowercase string
+    used in ANTEX filenames (e.g. ``igs20.atx``).
+    """
 
     IGS05 = "igs05"
     IGS08 = "igs08"
@@ -123,10 +131,12 @@ _COMPUTED_FIELDS = [
 def register_computed_fields(registry) -> None:
     """Register all date-derived computed fields onto *registry*.
 
-    Parameters
-    ----------
-    registry : MetadataCatalog
-        The metadata catalog instance to extend.
+    Iterates over the built-in ``_COMPUTED_FIELDS`` list and calls
+    ``registry.computed()`` for each one, wiring the pure date
+    transformation functions into the catalog.
+
+    Args:
+        registry: A :class:`ParameterCatalog` instance to extend.
     """
     for name, func, pattern in _COMPUTED_FIELDS:
         registry.computed(name=name, pattern=pattern)(func)

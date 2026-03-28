@@ -1,4 +1,7 @@
-"""LocalResourceFactory — collections-based local file-system product archives."""
+"""Author: Franklyn Dunbar
+
+LocalResourceFactory — collections-based local file-system product archives.
+"""
 
 from __future__ import annotations
 
@@ -63,6 +66,17 @@ class LocalResourceFactory:
         base_dir: Path | str,
         alias: Optional[str] = None,
     ) -> None:
+        """Register a local resource specification.
+
+        Args:
+            spec: A :class:`LocalResourceSpec`, or a path to a YAML file.
+            base_dir: Root directory on disk for the resource.
+            alias: Optional alias that also maps to this resource.
+
+        Raises:
+            ValueError: If *base_dir* overlaps with an existing
+                registration or *alias* is already taken.
+        """
 
         if isinstance(base_dir, str):
             base_dir = Path(base_dir)
@@ -134,7 +148,19 @@ class LocalResourceFactory:
         resource_id: str,
         date: datetime.date,
     ) -> ResourceQuery:
-        """Resolve the local directory for a product spec on a given date."""
+        """Resolve the local directory for a product on a given date.
+
+        Args:
+            product: Product to locate.
+            resource_id: Local resource identifier.
+            date: Target date for computed template fields.
+
+        Returns:
+            A :class:`ResourceQuery` with resolved directory path.
+
+        Raises:
+            KeyError: If *resource_id* or *product.name* is not found.
+        """
         dt = _ensure_datetime(date)
         registered_spec = self._get_registered_spec(resource_id)
 
@@ -159,6 +185,14 @@ class LocalResourceFactory:
         self,
         resource_id: str,
     ) -> Path:
+        """Return the dependency lockfile directory for a resource.
+
+        Args:
+            resource_id: Local resource identifier.
+
+        Returns:
+            Path to the lockfile directory (created if needed).
+        """
         registered_spec = self._get_registered_spec(resource_id)
         base_dir = registered_spec.base_dir
         dep_lockfile_dir = base_dir / "dependency_lockfiles"
@@ -171,10 +205,17 @@ class LocalResourceFactory:
         return list(self._registered_specs.keys())
 
     def source_product(self, product: Product, resource_id: str) -> List[ResourceQuery]:
-        """Resolve a product into ResourceQuery objects for a specific local resource.
+        """Resolve a product into ResourceQuery objects for a local resource.
 
-        Looks up the registered spec identified by *resource_id* and builds
-        a ``ResourceQuery`` with the collection's directory template.
+        Args:
+            product: Product to resolve.
+            resource_id: Local resource identifier.
+
+        Returns:
+            A list of :class:`ResourceQuery` objects.
+
+        Raises:
+            KeyError: If *resource_id* or *product.name* is not found.
         """
         registered_spec = self._get_registered_spec(resource_id)
         directory_template = registered_spec.item_to_dir.get(product.name)
@@ -198,7 +239,18 @@ class LocalResourceFactory:
         query: ResourceQuery,
         date: Optional[datetime.date] = None,
     ) -> List[Path]:
-        """Search local disk for files matching a query."""
+        """Search local disk for files matching a query.
+
+        Args:
+            query: ResourceQuery with directory and filename patterns.
+            date: Optional date for interpolating computed fields.
+
+        Returns:
+            Sorted list of matching file paths.
+
+        Raises:
+            KeyError: If the query's server is not registered.
+        """
         dir_pattern = query.directory.pattern
         if date:
             date = _ensure_datetime(date)

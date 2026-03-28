@@ -1,4 +1,7 @@
-"""ResourceCatalog — resolve a ResourceSpec against a ProductCatalog into queryable products."""
+"""Author: Franklyn Dunbar
+
+ResourceCatalog — resolve a ResourceSpec against a ProductCatalog into queryable products.
+"""
 
 from itertools import product as iterproduct
 from typing import List, Optional
@@ -17,7 +20,14 @@ from gnss_ppp_products.specifications.remote.resource import (
 def _cartesian_product(
     param_groups: dict[str, list[Parameter]],
 ) -> list[list[Parameter]]:
-    """Expand {name: [vals...]} into list of combinations, one Parameter per name."""
+    """Expand ``{name: [vals...]}`` into a list of parameter combinations.
+
+    Args:
+        param_groups: Mapping of parameter names to their possible values.
+
+    Returns:
+        A list of parameter lists, one per Cartesian combination.
+    """
     names = list(param_groups.keys())
     if not names:
         return [[]]
@@ -29,7 +39,15 @@ def _merge_parameters(
     base_params: List[Parameter],
     overrides: List[Parameter],
 ) -> List[Parameter]:
-    """Return base params with overrides applied (by name)."""
+    """Return base params with overrides applied by name.
+
+    Args:
+        base_params: Original parameters from the product.
+        overrides: Parameter overrides from the resource spec.
+
+    Returns:
+        A list of merged :class:`Parameter` instances.
+    """
     result = {p.name: p.model_copy(deep=True) for p in base_params}
     for override in overrides:
         if override.name in result:
@@ -53,7 +71,15 @@ class ResourceCatalog(Catalog):
 
     @classmethod
     def build(cls, resource_spec: ResourceSpec, product_catalog) -> "ResourceCatalog":
-        """Build concrete queries by expanding a ResourceSpec against a ProductCatalog."""
+        """Build concrete queries by expanding a ResourceSpec against a ProductCatalog.
+
+        Args:
+            resource_spec: Raw resource specification for a data center.
+            product_catalog: Resolved product catalog.
+
+        Returns:
+            A :class:`ResourceCatalog` containing all expanded queries.
+        """
         queries = []
         for rp_spec in resource_spec.products:
             if not rp_spec.available:

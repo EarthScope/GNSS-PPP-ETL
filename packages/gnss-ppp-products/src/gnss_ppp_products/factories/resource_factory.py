@@ -1,4 +1,7 @@
-"""ResourceFactory — common interface for local and remote resource registries."""
+"""Author: Franklyn Dunbar
+
+ResourceFactory — common interface for local and remote resource registries.
+"""
 
 from __future__ import annotations
 
@@ -30,19 +33,34 @@ class ResourceFactory(Protocol):
     ) -> List[ResourceQuery]:
         """Resolve *product* against the resource identified by *resource_id*.
 
-        Returns a list of ``ResourceQuery`` objects with directory and
-        filename templates partially resolved from the product's parameters.
+        Args:
+            product: Product to resolve.
+            resource_id: Identifier of the target resource.
+            **args: Additional keyword arguments.
+
+        Returns:
+            A list of :class:`ResourceQuery` objects.
         """
         ...
 
     def sink_product(self, product: Product, resource_id: str, **args) -> ResourceQuery:
-        """What would be the path to this product for a given resource identified by *resource_id*.
+        """Return the target path for *product* on *resource_id*.
 
-        Returns a ``ResourceQuery`` object with directory and filename templates
-        partially resolved from the product's parameters.
+        Args:
+            product: Product to resolve.
+            resource_id: Identifier of the target resource.
+            **args: Additional keyword arguments.
+
+        Returns:
+            A :class:`ResourceQuery` with resolved path templates.
         """
         ...
 
     def register(self, spec, **args) -> None:
-        """Register a resource specification with the factory."""
+        """Register a resource specification with the factory.
+
+        Args:
+            spec: The resource specification to register.
+            **args: Additional keyword arguments.
+        """
         ...

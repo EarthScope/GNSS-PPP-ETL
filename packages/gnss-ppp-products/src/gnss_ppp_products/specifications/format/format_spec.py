@@ -1,4 +1,7 @@
-"""Format specifications and FormatCatalog — resolves FormatSpec → Product."""
+"""Author: Franklyn Dunbar
+
+Format specifications and FormatCatalog — resolves FormatSpec → Product.
+"""
 
 from pathlib import Path
 from typing import List, Optional
@@ -29,7 +32,14 @@ class FormatSpec(BaseModel):
     filename: Optional[str] = None
 
     def materialize(self, parameter_catalog: ParameterCatalog) -> Product:
-        """Materialize against a ParameterCatalog to produce a Product."""
+        """Materialize against a ParameterCatalog to produce a Product.
+
+        Args:
+            parameter_catalog: Global parameter catalog for defaults.
+
+        Returns:
+            A :class:`Product` with resolved parameters.
+        """
         resolved_parameters = {}
         for param in self.parameters:
             name = param["name"]
@@ -99,7 +109,15 @@ class FormatCatalog(Catalog):
     def build(
         cls, format_spec_catalog: FormatSpecCatalog, parameter_catalog: ParameterCatalog
     ) -> "FormatCatalog":
-        """Build concrete Products from abstract format specs and a ParameterCatalog."""
+        """Build concrete Products from abstract format specs and a ParameterCatalog.
+
+        Args:
+            format_spec_catalog: The raw format spec definitions.
+            parameter_catalog: Global parameter catalog.
+
+        Returns:
+            A :class:`FormatCatalog` mapping format names to resolved products.
+        """
         formats = {}
         for format_name, format_spec_cat in format_spec_catalog.formats.items():
             versions = {}
@@ -113,7 +131,16 @@ class FormatCatalog(Catalog):
         return cls(formats=formats)
 
     def merge(self, other: "FormatCatalog") -> "FormatCatalog":
-        """Merge another catalog into this one. Raise a warning if there are duplicate format names."""
+        """Merge another catalog into this one.
+
+        Duplicate entries are overwritten by *other* with a warning.
+
+        Args:
+            other: Catalog to merge.
+
+        Returns:
+            A new :class:`FormatCatalog` with combined entries.
+        """
         merged = self.formats.copy()
         for name, version_cat in other.formats.items():
             for version_name, variant_cat in version_cat.versions.items():

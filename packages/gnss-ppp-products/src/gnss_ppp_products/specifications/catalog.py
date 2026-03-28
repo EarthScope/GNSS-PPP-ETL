@@ -1,4 +1,6 @@
-"""Base class for Layer 2 catalog objects.
+"""Author: Franklyn Dunbar
+
+Base class for Layer 2 catalog objects.
 
 All catalog classes must implement ``build()`` as a classmethod that
 constructs a fully-built instance from lower-layer specifications.
@@ -29,5 +31,13 @@ class Catalog(BaseModel):
     @classmethod
     @abstractmethod
     def build(cls, *args: Any, **kwargs: Any) -> "Catalog":
-        """Build a concrete catalog instance from lower-layer specs."""
+        """Build a concrete catalog instance from lower-layer specs.
+
+        Args:
+            *args: Positional arguments specific to each subclass.
+            **kwargs: Keyword arguments specific to each subclass.
+
+        Returns:
+            A fully built catalog instance.
+        """
         ...

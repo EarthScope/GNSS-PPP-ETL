@@ -1,4 +1,7 @@
-"""RemoteResourceFactory — registry of remote data centers and their resolved catalogs."""
+"""Author: Franklyn Dunbar
+
+RemoteResourceFactory — registry of remote data centers and their resolved catalogs.
+"""
 
 from __future__ import annotations
 
@@ -37,6 +40,14 @@ class RemoteResourceFactory:
         self._specs: Dict[str, ResourceSpec] = {}
 
     def register(self, spec: ResourceSpec) -> ResourceCatalog:
+        """Register a remote resource specification and build its catalog.
+
+        Args:
+            spec: Resource specification for a data center.
+
+        Returns:
+            The newly built :class:`ResourceCatalog`.
+        """
         self._specs[spec.id] = spec
         cat = ResourceCatalog.build(
             resource_spec=spec, product_catalog=self._product_catalog
@@ -45,9 +56,25 @@ class RemoteResourceFactory:
         return cat
 
     def register_dict(self, spec_dict: dict) -> ResourceCatalog:
+        """Register a resource specification from a raw dict.
+
+        Args:
+            spec_dict: Dictionary matching :class:`ResourceSpec` schema.
+
+        Returns:
+            The newly built :class:`ResourceCatalog`.
+        """
         return self.register(ResourceSpec(**spec_dict))
 
     def get(self, center_id: str) -> ResourceCatalog:
+        """Retrieve a resource catalog by center identifier.
+
+        Args:
+            center_id: Data center identifier.
+
+        Returns:
+            The matching :class:`ResourceCatalog`.
+        """
         return self._catalogs[center_id]
 
     @property
@@ -68,7 +95,16 @@ class RemoteResourceFactory:
 
     @staticmethod
     def match_pinned_query(found: Product, incoming: Product) -> Optional[Product]:
-        """Check if a found query matches an incoming product based on pinned parameters."""
+        """Check if a found query matches an incoming product based on pinned parameters.
+
+        Args:
+            found: Product from the resource catalog.
+            incoming: Product being searched for.
+
+        Returns:
+            The *incoming* product with matched values filled in,
+            or ``None`` if pinned parameters conflict.
+        """
         found_params = {
             p.name: p.value for p in found.parameters if p.value is not None
         }
@@ -88,7 +124,18 @@ class RemoteResourceFactory:
         return incoming
 
     def source_product(self, product: Product, resource_id: str) -> List[ResourceQuery]:
-        """Resolve a product into all matching ResourceQuerys for a specific remote resource."""
+        """Resolve a product into all matching ResourceQueries for a remote resource.
+
+        Args:
+            product: Product to resolve.
+            resource_id: Remote resource identifier.
+
+        Returns:
+            A list of :class:`ResourceQuery` objects.
+
+        Raises:
+            KeyError: If *resource_id* or *product.name* is not found.
+        """
         cat = self._catalogs.get(resource_id)
         if cat is None:
             raise KeyError(
@@ -124,7 +171,19 @@ class RemoteResourceFactory:
     def sink_product(
         self, product: Product, resource_id: str, date: datetime
     ) -> ResourceQuery:
-        """Resolve the remote directory/filename for uploading *product* to *resource_id*."""
+        """Resolve the remote directory/filename for uploading *product*.
+
+        Args:
+            product: Product to upload.
+            resource_id: Remote resource identifier.
+            date: Target date for computed fields.
+
+        Returns:
+            A :class:`ResourceQuery` with resolved paths.
+
+        Raises:
+            KeyError: If no matching entry exists.
+        """
         queries = self.source_product(product, resource_id)
         if not queries:
             raise KeyError(

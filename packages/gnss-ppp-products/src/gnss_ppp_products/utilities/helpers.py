@@ -1,4 +1,15 @@
-"""Shared helper functions and sentinel types."""
+"""Author: Franklyn Dunbar
+
+Shared helper functions and sentinel types.
+
+Contains low-level utilities used across the package:
+
+* :func:`hash_file` — SHA-256 file hashing.
+* :func:`_ensure_datetime` — date/datetime normalisation to UTC.
+* :class:`_PassthroughDict` — dict that preserves ``{key}`` for missing keys.
+* :func:`_listify` — coerce scalars to single-element lists.
+* :func:`expand_dict_combinations` — Cartesian product of dict values.
+"""
 
 import datetime
 import hashlib
@@ -7,7 +18,14 @@ from pathlib import Path
 
 
 def hash_file(path: Path) -> str:
-    """Return the SHA-256 hex digest of a file."""
+    """Return the SHA-256 hex digest of a file.
+
+    Args:
+        path: Filesystem path to the file to hash.
+
+    Returns:
+        A string in the form ``sha256:<hex_digest>``.
+    """
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1 << 16), b""):
@@ -16,7 +34,15 @@ def hash_file(path: Path) -> str:
 
 
 def _ensure_datetime(date: datetime.date | datetime.datetime) -> datetime.datetime:
-    """Coerce a date to a timezone-aware datetime (UTC)."""
+    """Coerce a date to a timezone-aware ``datetime`` (UTC).
+
+    Args:
+        date: A :class:`~datetime.date` or :class:`~datetime.datetime`.
+            Naive datetimes are tagged as UTC.
+
+    Returns:
+        A timezone-aware :class:`~datetime.datetime` in UTC.
+    """
     if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
         return datetime.datetime(
             date.year, date.month, date.day, tzinfo=datetime.timezone.utc
@@ -27,24 +53,43 @@ def _ensure_datetime(date: datetime.date | datetime.datetime) -> datetime.dateti
 
 
 class _PassthroughDict(dict):
-    """Returns '{key}' for any key not in the dict, so unresolved placeholders survive."""
+    """Dict subclass that returns ``'{key}'`` for missing keys.
+
+    Used with :meth:`str.format_map` so that unresolved placeholders
+    survive template expansion rather than raising :class:`KeyError`.
+    """
 
     def __missing__(self, key):
         return f"{{{key}}}"
 
 
 def _listify(v) -> list[str]:
-    """Convert None or a single string to a list; pass through lists unchanged."""
+    """Convert ``None`` or a single string to a list.
+
+    Args:
+        v: ``None``, a single string, or an existing list.
+
+    Returns:
+        A (possibly empty) ``list[str]``.
+    """
     if v is None:
         return []
     return [v] if isinstance(v, str) else list(v)
 
 
 def expand_dict_combinations(d: dict[str, list[str]]) -> list[dict[str, str]]:
-    """Cartesian product of dict values.
+    """Compute the Cartesian product of dict values.
 
-    >>> expand_dict_combinations({"A": ["1","2"], "B": ["x","y"]})
-    [{"A":"1","B":"x"}, {"A":"1","B":"y"}, {"A":"2","B":"x"}, {"A":"2","B":"y"}]
+    Args:
+        d: Mapping from parameter names to lists of candidate values.
+
+    Returns:
+        A list of dicts, one per combination, with a single value per key.
+
+    Example::
+
+        >>> expand_dict_combinations({"A": ["1","2"], "B": ["x","y"]})
+        [{"A":"1","B":"x"}, {"A":"1","B":"y"}, {"A":"2","B":"x"}, {"A":"2","B":"y"}]
     """
     keys = list(d.keys())
     vals = [d[k] for k in keys]

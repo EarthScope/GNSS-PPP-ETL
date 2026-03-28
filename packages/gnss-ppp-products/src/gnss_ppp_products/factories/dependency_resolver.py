@@ -1,4 +1,5 @@
-"""
+"""Author: Franklyn Dunbar
+
 Dependency resolver — resolve a DependencySpec via QueryFactory.
 
 Two-phase resolution:
@@ -55,7 +56,15 @@ logger = logging.getLogger(__name__)
 
 
 def _get_param_value(rq: ResourceQuery, param_name: str) -> str:
-    """Extract a parameter value from a ResourceQuery's product."""
+    """Extract a parameter value from a ResourceQuery's product.
+
+    Args:
+        rq: The query to inspect.
+        param_name: Parameter name to extract.
+
+    Returns:
+        The parameter value, or ``""`` if not found.
+    """
     for p in rq.product.parameters:
         if p.name == param_name and p.value is not None:
             return p.value
@@ -63,7 +72,14 @@ def _get_param_value(rq: ResourceQuery, param_name: str) -> str:
 
 
 def _build_remote_url(rq: ResourceQuery) -> str:
-    """Construct a full remote URL from a ResourceQuery."""
+    """Construct a full remote URL from a ResourceQuery.
+
+    Args:
+        rq: The query to build a URL for.
+
+    Returns:
+        Fully qualified URL string.
+    """
     protocol = (rq.server.protocol or "").lower()
     hostname = rq.server.hostname
     directory = rq.directory.value or rq.directory.pattern
@@ -77,7 +93,14 @@ def _build_remote_url(rq: ResourceQuery) -> str:
 
 
 def _file_pattern(rq: ResourceQuery) -> str:
-    """Return the filename regex pattern from a ResourceQuery."""
+    """Return the filename regex pattern from a ResourceQuery.
+
+    Args:
+        rq: The query to inspect.
+
+    Returns:
+        The filename pattern string, or ``""``.
+    """
     if rq.product.filename:
         return rq.product.filename.value or rq.product.filename.pattern
     return ""
@@ -86,17 +109,11 @@ def _file_pattern(rq: ResourceQuery) -> str:
 class DependencyResolver:
     """Resolve a :class:`DependencySpec` using :class:`QueryFactory`.
 
-    Parameters
-    ----------
-    dep_spec
-        The dependency specification to resolve.
-    base_dir
-        Root directory for local product storage.
-    query_factory
-        A :class:`QueryFactory` wired to the desired centres.
-    fetcher
-        Optional :class:`ResourceFetcher` for remote search/download.
-        When *None*, only local resolution is attempted.
+    Args:
+        dep_spec: The dependency specification to resolve.
+        query_factory: A :class:`QueryFactory` wired to the desired centres.
+        product_environment: The product environment for classification.
+        fetcher: A :class:`ResourceFetcher` for remote search/download.
     """
 
     def __init__(
@@ -120,21 +137,17 @@ class DependencyResolver:
     ) -> Tuple[DependencyResolution, Optional[Path]]:
         """Resolve every dependency in the spec for *date*.
 
-        Parameters
-        ----------
-        date
-            Target date (timezone-aware datetime).
-        download
-            If *True* and a remote match is found, download it.
-        """
-        """
-        steps:
-        1. Check for existing dependency lockfile for this spec/date/station. If found, validate each lock product and add valid ones to results, removing them from the to_resolve list.
-        2. For each remaining dependency in to_resolve, call _resolve_one in parallel
-        3. Aggregate results into a DependencyResolution and return.
-        
-        
-        
+        Checks for an existing lockfile first, then resolves remaining
+        dependencies in parallel using a :class:`ThreadPoolExecutor`.
+
+        Args:
+            date: Target date (timezone-aware datetime).
+            local_sink_id: Local resource identifier for storing results.
+            station: Optional station identifier for lockfile scoping.
+            version: Lockfile version (default ``'0'``).
+
+        Returns:
+            A tuple of (:class:`DependencyResolution`, lockfile path).
         """
         results: List[ResolvedDependency] = []
         lockfiles: List[LockProduct] = []
@@ -231,7 +244,17 @@ class DependencyResolver:
         date: datetime.datetime,
         local_sink_id: str,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
-        """Resolve a single dependency."""
+        """Resolve a single dependency.
+
+        Args:
+            dep: The dependency to resolve.
+            date: Target date.
+            local_sink_id: Local resource identifier.
+
+        Returns:
+            A tuple of (resolved dependency, lock product) or
+            (resolved-as-missing, ``None``).
+        """
         try:
             queries = self._qf.get(
                 date,
@@ -319,7 +342,14 @@ class DependencyResolver:
                         return resolved, lock_file
 
     def _expand_fetch_results(self, fetched: List[FetchResult]) -> List[ResourceQuery]:
-        """Expand FetchResults into ResourceQueries with filename values filled in."""
+        """Expand FetchResults into ResourceQueries with filename values filled in.
+
+        Args:
+            fetched: List of fetch results from :meth:`ResourceFetcher.search`.
+
+        Returns:
+            Expanded list of :class:`ResourceQuery` objects.
+        """
         expanded: List[ResourceQuery] = []
         for fq in fetched:
             if fq.error:
@@ -347,7 +377,14 @@ class DependencyResolver:
         self,
         queries: List[ResourceQuery],
     ) -> List[ResourceQuery]:
-        """Sort queries according to the preference cascade."""
+        """Sort queries according to the preference cascade.
+
+        Args:
+            queries: ResourceQuery objects to sort.
+
+        Returns:
+            Sorted list of queries.
+        """
         if not self.dep_spec.preferences:
             return queries
 
@@ -367,7 +404,14 @@ class DependencyResolver:
         return queries
 
     def _sort_by_protocol(self, queries: List[ResourceQuery]) -> List[ResourceQuery]:
-        """Sort queries by server protocol, preferring local/file over remote."""
+        """Sort queries by server protocol, preferring local/file over remote.
+
+        Args:
+            queries: ResourceQuery objects to sort.
+
+        Returns:
+            Sorted list of queries.
+        """
         protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
         return sorted(
             queries,
@@ -379,7 +423,17 @@ class DependencyResolver:
         )
 
     def _update_parameters(self, resource_query: ResourceQuery) -> ResourceQuery:
-        """Update a ResourceQuery's parameters by re-interpolating its directory and filename patterns."""
+        """Update a ResourceQuery's parameters by re-interpolating patterns.
+
+        Uses :func:`infer_from_regex` and :meth:`ProductEnvironment.classify`
+        to fill in parameter values from the matched filename.
+
+        Args:
+            resource_query: The query to update.
+
+        Returns:
+            A deep copy of the query with updated parameters.
+        """
         updated = resource_query.model_copy(deep=True)
         updated_params: List[Parameter] = infer_from_regex(
             regex=updated.product.filename.pattern,  # type: ignore
@@ -410,6 +464,20 @@ class DependencyResolver:
         date: datetime.datetime,
         alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
+        """Download and resolve a remote dependency.
+
+        Args:
+            rq: The resolved query with filename value.
+            dep: The dependency being resolved.
+            local_sink_id: Target local resource identifier.
+            local_resource_factory: Factory for local sink paths.
+            date: Target date.
+            alternative_urls: Alternative download URLs for the lockfile.
+
+        Returns:
+            A tuple of (resolved dependency, lock product) on success,
+            or ``(None, None)`` on failure.
+        """
 
         assert rq.product.filename.value is not None, (
             "Remote resolution requires filename to be filled in"
@@ -449,6 +517,19 @@ class DependencyResolver:
         date: datetime.datetime,
         alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
+        """Resolve a local dependency, optionally copying to the sink.
+
+        Args:
+            rq: The resolved query with filename value.
+            dep: The dependency being resolved.
+            local_sink_id: Target local resource identifier.
+            local_resource_factory: Factory for local sink paths.
+            date: Target date.
+            alternative_urls: Alternative download URLs for the lockfile.
+
+        Returns:
+            A tuple of (resolved dependency, lock product).
+        """
 
         source_directory = Path(rq.server.hostname) / rq.directory.value
         assert source_directory.exists() and source_directory.is_dir(), (
@@ -504,7 +585,16 @@ class DependencyResolver:
         status: str,
         lock_file: LockProduct,
     ) -> ResolvedDependency:
-        """Build a :class:`ResolvedDependency` from a ResourceQuery."""
+        """Build a :class:`ResolvedDependency` from a lock product.
+
+        Args:
+            dep: The dependency definition.
+            status: Resolution status (``'local'``, ``'downloaded'``, etc.).
+            lock_file: The lock product with path and URL info.
+
+        Returns:
+            A :class:`ResolvedDependency` instance.
+        """
 
         return ResolvedDependency(
             spec=dep.spec,

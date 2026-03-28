@@ -1,3 +1,12 @@
+"""Author: Franklyn Dunbar
+
+FTP / FTPS directory adapter and helper functions.
+
+Provides both standalone functions (``ftp_can_connect``, ``ftp_list_directory``,
+``ftp_download_file``) and a :class:`FTPAdapter` that implements the
+:class:`DirectoryAdapter` protocol.
+"""
+
 import logging
 import re
 from contextlib import contextmanager
@@ -69,7 +78,16 @@ def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
 
 
 def ftp_can_connect(ftpserver: str, timeout: int = 10, use_tls: bool = False) -> bool:
-    """Return True if an FTP login succeeds on *ftpserver*."""
+    """Return ``True`` if an FTP login succeeds on *ftpserver*.
+
+    Args:
+        ftpserver: FTP server address.
+        timeout: Connection timeout in seconds.
+        use_tls: If ``True``, only attempt FTPS.
+
+    Returns:
+        ``True`` on successful login, ``False`` otherwise.
+    """
     try:
         with _ftp_connect(ftpserver, timeout=timeout, use_tls=use_tls):
             logger.info(f"Successfully connected to {ftpserver}")
@@ -84,14 +102,17 @@ def ftp_list_directory(
     timeout: int = 60,
     use_tls: bool = False,
 ) -> list[str]:
-    """
-    Connect to *ftpserver*, change to *directory*, and return the file listing.
+    """Connect to *ftpserver*, ``CWD`` to *directory*, and return the file listing.
 
-    If *use_tls* is ``True``, only tries TLS.  Otherwise tries plain FTP
-    first and retries with TLS on failure.
+    Args:
+        ftpserver: FTP server address.
+        directory: Remote directory path.
+        timeout: Connection timeout in seconds.
+        use_tls: If ``True``, only attempt FTPS.
 
-    Returns an empty list on any connection or command error so the caller
-    can decide how to handle the failure.
+    Returns:
+        A list of filenames, or an empty list on any connection or
+        command error.
     """
     try:
         with _ftp_connect(ftpserver, timeout=timeout, use_tls=use_tls) as ftp:
@@ -112,15 +133,22 @@ def ftp_download_file(
     timeout: int = 180,
     use_tls: bool = False,
 ) -> Optional[Path]:
-    """
-    Download *filename* from *ftpserver*/*directory* to *dest_path*.
+    """Download *filename* from *ftpserver*/*directory* to *dest_path*.
 
-    Parent directories are created automatically.  Returns the path to the
-    downloaded file on success (file exists and is non-empty), *None* on any
-    failure (partial download is deleted before returning).
+    Parent directories are created automatically.  Partial downloads are
+    deleted before returning.
 
-    If *use_tls* is ``False``, tries plain FTP first and automatically
-    retries with TLS on failure.
+    Args:
+        ftpserver: FTP server address.
+        directory: Remote directory path.
+        filename: Name of the file to retrieve.
+        dest_path: Local destination path.
+        timeout: Connection timeout in seconds.
+        use_tls: If ``True``, only attempt FTPS.
+
+    Returns:
+        The path to the downloaded file on success (file exists and is
+        non-empty), or ``None`` on any failure.
     """
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -145,8 +173,14 @@ def ftp_find_best_match_in_listing(
     dir_listing: list[str],
     file_regex: str,
 ) -> Generator[str, None, None]:
-    """
-    Yield entries from *dir_listing* that match *file_regex*.
+    """Yield entries from *dir_listing* that match *file_regex*.
+
+    Args:
+        dir_listing: List of filenames from a directory listing.
+        file_regex: Regular expression to match against entries.
+
+    Yields:
+        Filenames that match *file_regex*.
     """
     pattern = re.compile(file_regex)
     for entry in dir_listing:
@@ -160,6 +194,17 @@ def ftp_protocol(
     filename: str,
     use_tls: bool = False,
 ) -> List[str]:
+    """List, filter, and return matching filenames on an FTP server.
+
+    Args:
+        ftpserver: FTP server address.
+        directory: Remote directory path.
+        filename: Regex pattern for matching filenames.
+        use_tls: If ``True``, only attempt FTPS.
+
+    Returns:
+        Matching filenames, or an empty list on error.
+    """
     try:
         listing = ftp_list_directory(ftpserver, directory, use_tls=use_tls)
     except Exception as e:
@@ -179,7 +224,12 @@ def ftp_protocol(
 
 
 class FTPAdapter:
-    """DirectoryAdapter for FTP/FTPS servers."""
+    """DirectoryAdapter for FTP/FTPS servers.
+
+    Args:
+        timeout: Default timeout in seconds for FTP operations.
+        use_tls: If ``True``, only attempt FTPS connections.
+    """
 
     def __init__(self, *, timeout: int = 60, use_tls: bool = False) -> None:
         self._timeout = timeout

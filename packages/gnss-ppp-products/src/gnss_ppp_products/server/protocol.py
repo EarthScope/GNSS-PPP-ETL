@@ -1,4 +1,7 @@
-"""Protocol adapter interface for directory listing and file download."""
+"""Author: Franklyn Dunbar
+
+Protocol adapter interface for directory listing and file download.
+"""
 
 from __future__ import annotations
 

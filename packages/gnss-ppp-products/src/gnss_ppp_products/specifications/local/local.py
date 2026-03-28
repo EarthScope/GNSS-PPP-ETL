@@ -1,4 +1,7 @@
-"""Pure Pydantic models for local storage specifications."""
+"""Author: Franklyn Dunbar
+
+Pure Pydantic models for local storage specifications.
+"""
 
 from __future__ import annotations
 
@@ -40,6 +43,12 @@ class LocalResourceSpec(BaseModel):
 
         Accepts either a top-level ``local:`` wrapper or a flat file
         whose top-level key is ``collections:``.
+
+        Args:
+            path: Path to the YAML file.
+
+        Returns:
+            A :class:`LocalResourceSpec` instance.
         """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
@@ -54,6 +63,12 @@ class LocalResourceSpec(BaseModel):
 
         Later specs override collections with the same name.  Items
         within identically-named collections are combined (union).
+
+        Args:
+            specs: Sequence of specs to merge.
+
+        Returns:
+            A new :class:`LocalResourceSpec` with combined collections.
         """
         merged_collections: Dict[str, LocalCollection] = {}
         name = "_".join(spec.name for spec in specs)

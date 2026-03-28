@@ -1,4 +1,7 @@
-"""Local filesystem directory adapter."""
+"""Author: Franklyn Dunbar
+
+Local filesystem directory adapter.
+"""
 
 from __future__ import annotations
 

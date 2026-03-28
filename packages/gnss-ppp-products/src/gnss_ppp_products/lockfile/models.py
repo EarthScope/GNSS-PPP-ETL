@@ -1,4 +1,13 @@
-"""Pydantic models for lockfile entries and dependency lockfiles."""
+"""
+Author: Franklyn Dunbar
+
+Pydantic models for lockfile entries and dependency lockfiles.
+
+Defines the data structures that represent a single resolved product
+(:class:`LockProduct`) and a collection of resolved products for one
+processing day (:class:`DependencyLockFile`).  These models are
+serialized to JSON sidecar files on disk.
+"""
 
 import datetime
 from typing import List, Optional

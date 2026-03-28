@@ -1,4 +1,6 @@
-"""Configs — YAML file paths for the bundled config data.
+"""Author: Franklyn Dunbar
+
+Configs — YAML file paths for the bundled config data.
 
 Use :class:`~gnss_ppp_products.factories.ProductEnvironment` to wire
 these configs into live catalogs and factories.

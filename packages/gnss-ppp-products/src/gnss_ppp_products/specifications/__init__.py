@@ -1,4 +1,5 @@
-"""
+"""Author: Franklyn Dunbar
+
 Specifications — Layer 1: Pydantic models and resolution logic for GNSS product specs.
 
 Subpackages

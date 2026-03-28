@@ -1,3 +1,5 @@
+"""Author: Franklyn Dunbar"""
+
 from .parameter import (
     DerivationMethod,
     Parameter,

@@ -1,4 +1,7 @@
-"""ProductSpec and ProductCatalog — resolve product specs against FormatCatalog."""
+"""Author: Franklyn Dunbar
+
+ProductSpec and ProductCatalog — resolve product specs against FormatCatalog.
+"""
 
 import re
 from typing import List, Optional
@@ -30,7 +33,15 @@ class ProductSpec(BaseModel):
     )
 
     def materialize(self, format_catalog: FormatCatalog) -> Product:
-        """Materialize against a FormatCatalog to produce a fully-merged Product."""
+        """Materialize against a FormatCatalog to produce a fully-merged Product.
+
+        Args:
+            format_catalog: Resolved format catalog.
+
+        Returns:
+            A :class:`Product` with format-level parameters overlaid by
+            product-spec overrides.
+        """
         format_spec: Product = (
             format_catalog.formats[self.format]
             .versions[self.version]
@@ -105,7 +116,16 @@ class ProductSpecCatalog(BaseModel):
         return cls(products=result)
 
     def merge(self, other: "ProductSpecCatalog") -> "ProductSpecCatalog":
-        """Merge another catalog into this one. Raise a warning if there are duplicate product names."""
+        """Merge another catalog into this one.
+
+        Duplicate entries are overwritten by *other* with a warning.
+
+        Args:
+            other: Catalog to merge.
+
+        Returns:
+            A new :class:`ProductSpecCatalog` with combined entries.
+        """
         merged = self.products.copy()
         for name, product in other.products.items():
             for version_name, variant_cat in product.versions.items():
@@ -137,7 +157,15 @@ class ProductCatalog(Catalog):
     def build(
         cls, product_spec_catalog: ProductSpecCatalog, format_catalog: FormatCatalog
     ) -> "ProductCatalog":
-        """Build concrete Products from abstract product specs and a FormatCatalog."""
+        """Build concrete Products from abstract product specs and a FormatCatalog.
+
+        Args:
+            product_spec_catalog: Raw product spec definitions.
+            format_catalog: Resolved format catalog.
+
+        Returns:
+            A :class:`ProductCatalog` with all products materialized.
+        """
         products = {}
 
         for product_name, product_spec_cat in product_spec_catalog.products.items():
@@ -157,7 +185,16 @@ class ProductCatalog(Catalog):
         return cls(products=products)
 
     def merge(self, other: "ProductCatalog") -> "ProductCatalog":
-        """Merge another catalog into this one. Raise a warning if there are duplicate product names."""
+        """Merge another catalog into this one.
+
+        Duplicate entries are overwritten by *other* with a warning.
+
+        Args:
+            other: Catalog to merge.
+
+        Returns:
+            A new :class:`ProductCatalog` with combined entries.
+        """
         merged = self.products.copy()
         for name, product in other.products.items():
             for version_name, variant_cat in product.versions.items():

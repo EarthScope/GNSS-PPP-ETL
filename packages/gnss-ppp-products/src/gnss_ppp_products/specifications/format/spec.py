@@ -1,4 +1,7 @@
-"""Pure Pydantic models for format specifications."""
+"""Author: Franklyn Dunbar
+
+Pure Pydantic models for format specifications.
+"""
 
 from __future__ import annotations
 
@@ -40,7 +43,11 @@ class FormatVersionSpec(BaseModel):
         return out
 
     def get_field_defaults(self) -> Dict[str, str]:
-        """Return ``{name: default_pattern}`` for fields with a default."""
+        """Return ``{name: default_pattern}`` for fields with a default.
+
+        Returns:
+            Mapping of field names to their default patterns.
+        """
         defaults: Dict[str, str] = {}
         for name, field_def in self.metadata.items():
             if field_def is not None and field_def.default is not None:
@@ -56,7 +63,14 @@ class FormatSpec(BaseModel):
     compression: List[str] = Field(default_factory=list)
 
     def get_compression(self, version: str) -> List[str]:
-        """Return compression for *version*, falling back to format-level."""
+        """Return compression extensions for *version*, falling back to format-level.
+
+        Args:
+            version: Format version identifier.
+
+        Returns:
+            List of compression extension strings.
+        """
         ver = self.versions.get(version)
         if ver and ver.compression:
             return ver.compression
@@ -70,7 +84,14 @@ class FormatSpecCollection(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "FormatSpecCollection":
-        """Load from a YAML file, extracting the ``formats:`` section."""
+        """Load from a YAML file, extracting the ``formats:`` section.
+
+        Args:
+            path: Path to the YAML file.
+
+        Returns:
+            A :class:`FormatSpecCollection` instance.
+        """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
         return cls.model_validate({"formats": raw.get("formats", {})})

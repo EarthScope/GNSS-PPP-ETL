@@ -1,10 +1,12 @@
-"""
+"""Author: Franklyn Dunbar
+
 ProductEnvironment — builds the full catalog chain and remote resource factory.
 
 Loads parameter, format, product, and resource specification YAMLs, then
-builds derived catalogs (ParameterCatalog → FormatCatalog → ProductCatalog →
-RemoteResourceFactory).  Also provides ``classify()`` for parsing product
-filenames back into structured metadata.
+builds derived catalogs (``ParameterCatalog`` → ``FormatCatalog`` →
+``ProductCatalog`` → ``RemoteResourceFactory``).  Also provides
+:meth:`~ProductEnvironment.classify` for parsing product filenames back
+into structured metadata.
 """
 
 from pathlib import Path
@@ -52,7 +54,15 @@ def _merged_parameter_catalog(
     base: ParameterCatalog,
     product_params: List[Parameter],
 ) -> ParameterCatalog:
-    """Merge product-specific parameter patterns into the global catalog."""
+    """Merge product-specific parameter patterns into the global catalog.
+
+    Args:
+        base: The global :class:`ParameterCatalog`.
+        product_params: Product-level parameter overrides.
+
+    Returns:
+        A new :class:`ParameterCatalog` with overrides applied.
+    """
     merged = {
         name: param.model_copy(deep=True) for name, param in base.parameters.items()
     }
@@ -73,7 +83,19 @@ def _build_match_table(
     product_catalog: ProductCatalog,
     parameter_catalog: ParameterCatalog,
 ) -> list[_MatchEntry]:
-    """Precompile a regex match table sorted by template specificity (longest first)."""
+    """Pre-compile a regex match table sorted by template specificity.
+
+    Longer filename templates are checked first so that more specific
+    patterns take precedence over generic ones during classification.
+
+    Args:
+        product_spec_catalog: The raw product spec definitions.
+        product_catalog: The resolved product catalog.
+        parameter_catalog: The global parameter catalog.
+
+    Returns:
+        A list of :class:`_MatchEntry` tuples sorted longest-first.
+    """
     entries: list[_MatchEntry] = []
     for prod_name, ver_cat in product_catalog.products.items():
         for ver_name, var_cat in ver_cat.versions.items():
@@ -117,11 +139,11 @@ class ProductEnvironment:
     """Unified container for the specification / factory layer.
 
     Incrementally loads YAML specs via ``add_*()`` methods, then calls
-    ``build()`` to derive the full catalog chain:
+    :meth:`build` to derive the full catalog chain::
 
         ParameterCatalog → FormatCatalog → ProductCatalog → RemoteResourceFactory
 
-    After building, ``classify(filename)`` parses a product filename into
+    After building, :meth:`classify` parses a product filename into
     structured metadata (product name, format, version, variant, parameters).
     """
 
@@ -139,6 +161,12 @@ class ProductEnvironment:
         self._remote_resource_factory: Optional[RemoteResourceFactory] = None
 
     def add_parameter_spec(self, path: Path | str, id: str = "default") -> None:
+        """Load and register a parameter specification YAML file.
+
+        Args:
+            path: Filesystem path to the YAML file.
+            id: Unique identifier for this spec (default ``'default'``).
+        """
         path = Path(path)
         assert path.exists(), f"Parameter spec file not found: {path}"
         assert path.is_file(), f"Parameter spec path must be a file: {path}"
@@ -151,6 +179,12 @@ class ProductEnvironment:
         )
 
     def add_format_spec(self, path: Path | str, id: str = "default") -> None:
+        """Load and register a format specification YAML file.
+
+        Args:
+            path: Filesystem path to the YAML file.
+            id: Unique identifier for this spec (default ``'default'``).
+        """
         path = Path(path)
         assert path.exists(), f"Format spec file not found: {path}"
         assert path.is_file(), f"Format spec path must be a file: {path}"
@@ -162,6 +196,12 @@ class ProductEnvironment:
         self._format_specs[id] = LoadedSpecs(filename=path, built=format_spec_catalog)
 
     def add_product_spec(self, path: Path | str, id: str = "default") -> None:
+        """Load and register a product specification YAML file.
+
+        Args:
+            path: Filesystem path to the YAML file.
+            id: Unique identifier for this spec (default ``'default'``).
+        """
         path = Path(path)
         assert path.exists(), f"Product spec file not found: {path}"
         assert path.is_file(), f"Product spec path must be a file: {path}"
@@ -176,6 +216,11 @@ class ProductEnvironment:
             self._product_spec_catalog = self._product_spec_catalog.merge(product_spec)
 
     def add_resource_spec(self, path: Path | str) -> None:
+        """Load and register a remote resource specification YAML file.
+
+        Args:
+            path: Filesystem path to the YAML file.
+        """
         path = Path(path)
         assert path.exists(), f"Resource spec file not found: {path}"
         assert path.is_file(), f"Resource spec path must be a file: {path}"
@@ -251,6 +296,12 @@ class ProductEnvironment:
         self._remote_resource_factory = factory
 
     def build(self) -> None:
+        """Build the full catalog chain from loaded specs.
+
+        Must be called after all ``add_*()`` methods.  Builds:
+        ``ParameterCatalog`` → ``FormatCatalog`` → ``ProductCatalog`` →
+        ``RemoteResourceFactory``.
+        """
         self._build_parameter_catalog()
         self._build_format_catalog()
         self._build_product_catalog()
@@ -263,21 +314,16 @@ class ProductEnvironment:
     ) -> Optional[Dict[str, str]]:
         """Parse a product filename and return its metadata.
 
-        Parameters
-        ----------
-        filename
-            A product filename, optionally including a directory path
-            and/or compression extension.
-        parameters
-            Optional hard constraints.  Products whose fixed parameters
-            conflict with a supplied value are skipped, and extracted
-            values that conflict also cause the candidate to be skipped.
+        Args:
+            filename: A product filename, optionally including a directory
+                path and/or compression extension.
+            parameters: Optional hard constraints.  Products whose fixed
+                parameters conflict with a supplied value are skipped.
 
-        Returns
-        -------
-        dict or None
-            ``{"product", "format", "version", "variant", "parameters": {...}}``
-            on match, or ``None`` if no product template matches.
+        Returns:
+            A dict with keys ``product``, ``format``, ``version``,
+            ``variant``, and ``parameters`` on match, or ``None`` if
+            no product template matches.
         """
         name = Path(filename).name
         constraints = {
