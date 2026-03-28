@@ -138,9 +138,11 @@ class WorkSpace:
         )
         if alias:
             if alias in self._alias_map:
-                raise ValueError(
-                    f"Alias {alias!r} is already in use for spec {self._alias_map[alias]!r}."
-                )
+                alias_mapped_spec = self._alias_map[alias]
+                if alias_mapped_spec != spec_to_register.name:
+                    raise ValueError(
+                        f"Alias {alias!r} is already in use for spec {self._alias_map[alias]!r}."
+                    )
             self._alias_map[alias] = spec_to_register.name
 
         item_to_dir: Dict[str, str] = {}

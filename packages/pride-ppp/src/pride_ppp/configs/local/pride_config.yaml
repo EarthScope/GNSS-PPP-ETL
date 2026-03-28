@@ -9,7 +9,7 @@ collections:
   # Precise products — core PPP inputs
   # ---------------------------------------------------------------------------
   products:
-    directory: "{YYYY}/products/common"
+    directory: "{YYYY}/product/common"
     temporal: daily
     description: "Precise orbit, clock, ERP, bias, and attitude products"
     items:

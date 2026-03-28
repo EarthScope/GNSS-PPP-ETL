@@ -149,3 +149,5 @@ class PrideCLIConfig(BaseModel):
             command.extend(["--config", str(self.pride_configfile_path)])
 
         command.append(str(local_file_path))
+
+        return command

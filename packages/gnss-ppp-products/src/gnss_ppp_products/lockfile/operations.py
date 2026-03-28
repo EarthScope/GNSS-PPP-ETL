@@ -17,7 +17,8 @@ Provides pure-function helpers for the lockfile lifecycle:
 import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
-
+import logging
+from venv import logger
 from gnss_ppp_products.lockfile.models import (
     DependencyLockFile,
     LockProduct,
@@ -25,6 +26,7 @@ from gnss_ppp_products.lockfile.models import (
 )
 from gnss_ppp_products.utilities.helpers import hash_file as _hash_file
 
+logger  = logging.getLogger(__name__)
 
 def validate_lock_product(product: LockProduct) -> bool:
     """Check that a lock-product's sink file exists and its hash matches.
@@ -38,6 +40,7 @@ def validate_lock_product(product: LockProduct) -> bool:
     """
     sink_path = Path(product.sink)
     if not sink_path.exists():
+        logger.warning(f"Lock product validation failed: sink file does not exist: {sink_path}")
         return False
     if product.hash:
         actual_hash = _hash_file(sink_path)

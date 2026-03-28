@@ -167,7 +167,7 @@ class DependencyResolver:
 
         if dep_lock_file:
             logger.info(
-                f"Found existing lockfile for {self.dep_spec.name} on {date.date()}: {dep_lock_file}"
+                f"Found existing lockfile for {self.dep_spec.name} on {date.date()}: {dep_lock_file_path}"
             )
             for lock_product in dep_lock_file.products:
                 dep_spec = next(
@@ -197,9 +197,21 @@ class DependencyResolver:
                     )
                     results.append(resolved)
                 else:
+                
                     logger.warning(
                         f"Invalid lock product in lockfile {dep_lock_file_path}: \n{lock_product}. Will attempt to re-resolve."
                     )
+                    # Delete the invalid lock product from the lockfile to avoid reusing it in future runs
+                    dep_lock_file.products = [
+                        lp for lp in dep_lock_file.products if lp.name != lock_product.name
+                    ]
+                    write_dependency_lockfile(
+                        lockfile=dep_lock_file, directory=dep_lock_file_path.parent, update=True
+                    )
+                    try:
+                        get_lock_product_path(Path(lock_product.sink)).unlink(missing_ok=True)
+                    except Exception as e:
+                        pass
 
         else:
             dep_lock_file = DependencyLockFile(

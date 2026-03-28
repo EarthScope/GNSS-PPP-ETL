@@ -39,6 +39,7 @@ def rinex_to_kin(
     pridedir: Path,
     site="SIT1",
     pride_cli_config: PrideCLIConfig = None,
+    override: bool = False,
 ) -> Tuple[Path, Path]:
     """Generate kinematic and residual files from a RINEX file.
 
@@ -102,32 +103,33 @@ def rinex_to_kin(
     kin_file = None
     res_file = None
 
-    # Step 2: Determine if processing is needed
-    logger.info(f"Determining if processing is needed for RINEX file {source}")
+    if not override:
+        # Step 2: Determine if processing is needed
+        logger.info(f"Determining if processing is needed for RINEX file {source}")
 
-    # Case 1: kin file already in writedir
-    if validate_kin_file(kin_file_new) and not pride_cli_config.override:
-        logger.info(f"Kin file {kin_file_new} already exists, skipping processing")
-        kin_file = kin_file_new
-        if res_file_new.exists():
-            logger.info(f"Res file {res_file_new} already exists, skipping processing")
-            res_file = res_file_new
-        else:
-            logger.warning(f"Res file {res_file_new} not found")
-        return kin_file, res_file
+        # Case 1: kin file already in writedir
+        if validate_kin_file(kin_file_new) and not pride_cli_config.override:
+            logger.info(f"Kin file {kin_file_new} already exists, skipping processing")
+            kin_file = kin_file_new
+            if res_file_new.exists():
+                logger.info(f"Res file {res_file_new} already exists, skipping processing")
+                res_file = res_file_new
+            else:
+                logger.warning(f"Res file {res_file_new} not found")
+            return kin_file, res_file
 
-    # Case 2: kin file in pridedir but not writedir
-    if validate_kin_file(kin_file_path) and not pride_cli_config.override:
-        shutil.move(src=kin_file_path, dst=kin_file_new)
-        kin_file = kin_file_new
-        logger.info(f"Kin file {kin_file} already exists, moved to {kin_file_new}")
-        if res_file_path.exists():
-            shutil.move(src=res_file_path, dst=res_file_new)
-            res_file = res_file_new
-            logger.info(f"Res file {res_file} already exists, moved to {res_file_new}")
-        else:
-            logger.warning(f"Res file {res_file_path} not found")
-        return kin_file, res_file
+        # Case 2: kin file in pridedir but not writedir
+        if validate_kin_file(kin_file_path) and not pride_cli_config.override:
+            shutil.move(src=kin_file_path, dst=kin_file_new)
+            kin_file = kin_file_new
+            logger.info(f"Kin file {kin_file} already exists, moved to {kin_file_new}")
+            if res_file_path.exists():
+                shutil.move(src=res_file_path, dst=res_file_new)
+                res_file = res_file_new
+                logger.info(f"Res file {res_file} already exists, moved to {res_file_new}")
+            else:
+                logger.warning(f"Res file {res_file_path} not found")
+            return kin_file, res_file
 
     # Case 3: run pdp3
     pdp_command = pride_cli_config.generate_pdp_command(
