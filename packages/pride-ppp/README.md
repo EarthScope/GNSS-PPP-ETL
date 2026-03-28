@@ -1,21 +1,63 @@
-# `pride-ppp`: The PRIDE-PPPAR Kinematic Processing Engine
+# pride-ppp
 
-Alright, you've stumbled into the `pride-ppp` package, and let me tell you, this is where the serious work of Kinematic Precise Point Positioning with Ambiguity Resolution (PPP-AR) gets done, using the PRIDE-PPPAR engine. While the `gnss-ppp-products` package handles the general grunt work of fetching and managing GNSS data, this `pride-ppp` package is the specialized bit of kit that actually takes that data and churns out high-precision positioning solutions.
+PRIDE-PPPAR integration for kinematic Precise Point Positioning with
+Ambiguity Resolution (PPP-AR). Wraps the `pdp3` binary in a concurrent-safe
+Python pipeline that resolves GNSS products, runs processing, and returns
+structured results with lazy DataFrame access.
 
-Think of it as the engine room for our kinematic PPP operations. It integrates with the robust data provision from `gnss-ppp-products` to perform the complex calculations necessary for those accurate position fixes.
+## Installation
 
-### What's Under the Bonnet Here? (`src/pride_ppp/`)
+```bash
+uv add pride-ppp
+# or
+pip install pride-ppp
+```
 
-Diving into the `src/pride_ppp/` directory, you'll find the core components that make this engine tick:
+> **Prerequisite:** The `pdp3` binary from
+> [PRIDE-PPPAR](https://pride.whu.edu.cn/pppar/) must be on `$PATH`.
 
-*   **`configs/`**: This is where we keep the specific configurations that guide the PRIDE-PPPAR engine. You've seen `centers/pride_table_config.yaml`, which points to static tables crucial for PRIDE's operations. Expect to find other specialized configuration bits here that tailor the engine's behavior.
-*   **`defaults/`**: Just what it says on the tin – default settings and parameters for the PRIDE-PPPAR processing. If something isn't explicitly configured, this is where it gets its marching orders.
-*   **`cli.py`**: This provides the command-line interface for interacting with the PRIDE-PPPAR engine. It's how you'd typically tell the system to kick off a processing run or query its status.
-*   **`config.py`**: Handles the loading, parsing, and management of all the configuration files relevant to the `pride-ppp` package. It ensures the engine knows its settings before it starts working.
-*   **`output.py`**: Once the PRIDE-PPPAR engine has done its magic, this module takes care of formatting and presenting the results in a sensible and readable manner. Because what's the use of brilliant results if you can't understand 'em, eh?
-*   **`products.py`**: This module likely contains specialized logic for handling and preparing GNSS products specifically for the PRIDE-PPPAR engine. It acts as the interface between the raw products fetched by `gnss-ppp-products` and the requirements of the PPP-AR algorithms.
-*   **`rinex.py`**: Given the importance of RINEX data in GNSS, this module probably focuses on any specific parsing, validation, or manipulation of RINEX files that are unique to the PRIDE-PPPAR workflow.
-*   **`runner.py`**: This is the orchestrator of the entire PRIDE-PPPAR processing chain. It takes the configuration, gathers the products, calls the necessary algorithms, and manages the flow from raw data to final positioning solution. It's the gaffer of the whole operation.
-*   **`config_template`**: A handy template or example structure for creating new configuration files specific to `pride-ppp`.
+## Quick start
 
-In short, the `pride-ppp` package is the specialized tool that brings all the collected GNSS data to life, performing the complex kinematic PPP-AR computations. It relies heavily on the data management provided by `gnss-ppp-products` and adds its own layer of configuration, processing logic, and output handling to deliver those precise positioning results. Treat it with the respect it deserves; it's a finely tuned engine!
+```python
+from pride_ppp import PrideProcessor
+
+processor = PrideProcessor(
+    rinex_files=["SITE00USA_R_20250010000_01D_30S_MO.rnx"],
+    center="whu",
+)
+results = processor.process()
+
+for r in results:
+    if r.success:
+        print(r.kin_df.head())       # kinematic positions
+        print(r.res_df.head())       # residuals
+```
+
+## API overview
+
+| Symbol | Module | Role |
+|---|---|---|
+| `PrideProcessor` | `processor` | Concurrent-safe RINEX → position pipeline |
+| `ProcessingResult` | `processor` | Per-file outcome with lazy `.kin_df` / `.res_df` |
+| `PrideCLIConfig` | `cli` | Typed pdp3 command-line flag builder |
+| `PRIDEPPPFileConfig` | `config` | PRIDE config-file I/O (read/write) |
+| `SatelliteProducts` | `config` | Product path resolution for pdp3 |
+| `PridePPP` | `output` | Pydantic model for `.kin` file records |
+| `validate_kin_file` | `output` | Check `.kin` output integrity |
+| `kin_to_kin_position_df` | `output` | `.kin` → position DataFrame |
+| `get_wrms_from_res` | `output` | Weighted RMS from residual files |
+| `merge_broadcast_files` | `rinex` | Combine multi-hour broadcast RINEX |
+| `rinex_get_time_range` | `rinex` | Extract observation time span |
+
+## Architecture
+
+`pride-ppp` delegates all product discovery and fetching to the sibling
+[gnss-ppp-products](../gnss-ppp-products/) package. Internally it follows a
+simple three-stage flow:
+
+1. **Configure** — build `PrideCLIConfig` + `PRIDEPPPFileConfig` from user
+   inputs and bundled defaults (`defaults/`, `config_files/`).
+2. **Resolve** — use `gnss-ppp-products` to discover, download, and
+   decompress required orbit / clock / bias / ERP / table files.
+3. **Execute** — invoke `pdp3` in an isolated temp directory; parse
+   `.kin` / `.res` outputs into `ProcessingResult`.

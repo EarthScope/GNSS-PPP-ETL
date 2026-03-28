@@ -236,11 +236,13 @@ class FTPAdapter:
         self._use_tls = use_tls
 
     def can_connect(self, hostname: str) -> bool:
+        """Test FTP/FTPS connectivity to *hostname*."""
         return ftp_can_connect(
             hostname, timeout=min(self._timeout, 10), use_tls=self._use_tls
         )
 
     def list_directory(self, hostname: str, directory: str) -> List[str]:
+        """List filenames in a remote FTP directory."""
         return ftp_list_directory(
             hostname, directory, timeout=self._timeout, use_tls=self._use_tls
         )
@@ -248,6 +250,7 @@ class FTPAdapter:
     def download_file(
         self, hostname: str, directory: str, filename: str, dest_path: Path
     ) -> Optional[Path]:
+        """Download a file from an FTP server to *dest_path*."""
         return ftp_download_file(
             hostname,
             directory,

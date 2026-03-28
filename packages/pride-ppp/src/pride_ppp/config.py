@@ -164,6 +164,8 @@ pride_default_satellites: Dict[str, int] = {
 
 
 class ObservationConfig(BaseModel):
+    """Observation section of the pdp3 config file."""
+
     table_directory: str
     frequency_combination: str = "Default"
     interval: str = "Default"
@@ -174,6 +176,8 @@ class ObservationConfig(BaseModel):
 
 
 class SatelliteProducts(BaseModel):
+    """Satellite product paths for the pdp3 config file."""
+
     product_directory: Optional[str] = Field(
         default="Default",
         description="Directory for satellite products",
@@ -217,6 +221,7 @@ class SatelliteProducts(BaseModel):
         mode="before",
     )
     def override_patternmatch(cls, value: str, field) -> str:
+        """Set default file extension when value is ``'Default'``."""
         if value != "Default":
             return value
         match field.field_name:
@@ -235,6 +240,8 @@ class SatelliteProducts(BaseModel):
 
 
 class DataProcessingStrategies(BaseModel):
+    """Data processing strategy defaults for the pdp3 config file."""
+
     strict_editing: str = "Default"
     rck_model: str = "Default"
     ztd_model: str = "Default"
@@ -245,6 +252,8 @@ class DataProcessingStrategies(BaseModel):
 
 
 class AmbiguityFixingOptions(BaseModel):
+    """Ambiguity resolution parameters for the pdp3 config file."""
+
     ambiguity_co_var: str = "Default"
     ambiguity_duration: int = 600
     cutoff_elevation: int = 15
@@ -259,6 +268,8 @@ class AmbiguityFixingOptions(BaseModel):
 
 
 class SatelliteList(BaseModel):
+    """List of active GNSS satellites and their PRN variances."""
+
     satellites: Dict[str, int] = Field(
         default_factory=lambda: pride_default_satellites,
         description=(
@@ -269,6 +280,8 @@ class SatelliteList(BaseModel):
 
 
 class StationUsed(BaseModel):
+    """Station configuration entry in the pdp3 config file."""
+
     name: str = Field(default="xxxx", description="Station name")
     tp: str = Field(default="X", description="TP value")
     map: str = Field(default="XXX", description="MAP value")
@@ -286,6 +299,8 @@ class StationUsed(BaseModel):
 
 
 class PRIDEPPPFileConfig(BaseModel):
+    """Top-level pdp3 config_file model with read/write support."""
+
     observation: ObservationConfig = Field(
         description="Observation configuration for the PRIDE PPP processing.",
     )

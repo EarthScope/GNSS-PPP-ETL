@@ -14,11 +14,15 @@ from pydantic import BaseModel, Field
 
 
 class DerivationMethod(str, Enum):
+    """How a parameter value is obtained."""
+
     ENUM = "enum"
     COMPUTED = "computed"
 
 
 class Parameter(BaseModel):
+    """A single metadata parameter with optional regex pattern and compute function."""
+
     name: str = Field(..., description="The name of the parameter.")
     value: Optional[str] = Field(None, description="The value of the parameter.")
     pattern: Optional[str] = Field(

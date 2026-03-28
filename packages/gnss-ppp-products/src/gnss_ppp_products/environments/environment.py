@@ -131,6 +131,8 @@ def _build_match_table(
 
 
 class LoadedSpecs(BaseModel):
+    """Record of a loaded specification file and its parsed result."""
+
     filename: Path | str
     built: Any
 

@@ -53,10 +53,6 @@ def _date_to_doy(date: datetime.datetime) -> str:
     return str(doy)
 
 
-def _date_to_yyyymmdd(date: datetime.datetime) -> str:
-    return date.strftime("%Y%m%d")
-
-
 # ------------------------------------------------------------------
 # Computed field functions
 # ------------------------------------------------------------------

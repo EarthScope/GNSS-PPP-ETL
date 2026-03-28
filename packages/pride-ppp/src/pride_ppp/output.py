@@ -54,6 +54,7 @@ class PridePPP(BaseModel):
 
     @model_validator(mode="before")
     def validate_time(cls, values):
+        """Coerce pdop to float before full validation."""
         values["pdop"] = float(values.get("pdop", 0.0))
         return values
 

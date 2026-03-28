@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field
 
 
 class Constellations(str, Enum):
+    """GNSS constellation identifiers for pdp3 ``--system`` flag."""
+
     GPS = "G"
     GLONASS = "R"
     GALILEO = "E"
@@ -23,18 +25,22 @@ class Constellations(str, Enum):
 
     @classmethod
     def print_options(cls):
+        """Print available constellation codes to stdout."""
         print("System options are:")
         for option in cls:
             print(f"{option.value} for {option.name}")
 
 
 class Tides(str, Enum):
+    """Tidal correction identifiers for pdp3 ``--tides`` flag."""
+
     SOLID = "S"
     OCEAN = "O"
     POLAR = "P"
 
     @classmethod
     def print_options(cls):
+        """Print available tide correction codes to stdout."""
         print("Tide options are:")
         for option in cls:
             print(f"{option.value} for {option.name}")

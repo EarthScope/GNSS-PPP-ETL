@@ -89,6 +89,7 @@ class ProcessingResult:
 
     @property
     def success(self) -> bool:
+        """``True`` if pdp3 produced a valid .kin output file."""
         return self.kin_path is not None and self.kin_path.exists()
 
     def positions(self) -> Optional[pd.DataFrame]:

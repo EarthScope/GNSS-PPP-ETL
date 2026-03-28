@@ -94,20 +94,6 @@ def _build_remote_url(rq: ResourceQuery) -> str:
     return f"{protocol}://{hostname}{sep}{directory}{trail}{filename}"
 
 
-def _file_pattern(rq: ResourceQuery) -> str:
-    """Return the filename regex pattern from a ResourceQuery.
-
-    Args:
-        rq: The query to inspect.
-
-    Returns:
-        The filename pattern string, or ``""``.
-    """
-    if rq.product.filename:
-        return rq.product.filename.value or rq.product.filename.pattern
-    return ""
-
-
 class DependencyResolver:
     """Resolve a :class:`DependencySpec` using :class:`QueryFactory`.
 

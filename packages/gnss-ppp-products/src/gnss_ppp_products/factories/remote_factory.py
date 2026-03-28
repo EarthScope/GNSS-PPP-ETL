@@ -79,18 +79,22 @@ class RemoteResourceFactory:
 
     @property
     def resource_ids(self) -> List[str]:
+        """Identifiers for all registered resource centers."""
         return list(self._catalogs.keys())
 
     @property
     def centers(self) -> List[str]:
+        """Alias for :attr:`resource_ids`."""
         return self.resource_ids
 
     @property
     def catalogs(self) -> List[ResourceCatalog]:
+        """All registered resource catalogs."""
         return list(self._catalogs.values())
 
     @property
     def all_queries(self) -> List[ResourceQuery]:
+        """Flattened list of every query across all registered centers."""
         return [q for cat in self._catalogs.values() for q in cat.queries]
 
     @staticmethod

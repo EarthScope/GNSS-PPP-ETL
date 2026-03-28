@@ -69,10 +69,12 @@ class DiscoveryReport(BaseModel):
 
     @property
     def products(self) -> List[str]:
+        """Sorted list of unique product names in this report."""
         return sorted(set(e.product for e in self.entries))
 
     @property
     def centers(self) -> List[str]:
+        """Sorted list of unique center identifiers in this report."""
         return sorted(set(e.center for e in self.entries if e.center))
 
     def filter(
@@ -108,10 +110,3 @@ class MissingProductError(Exception):
             else f"Missing required products: {products}"
         )
         super().__init__(msg)
-
-
-# Deferred import to avoid circular dependency
-def _resolve_lockfile_forward_ref() -> None:
-    from gnss_ppp_products.specifications.dependencies.lockfile import ProductLockfile
-
-    Resolution.model_rebuild()

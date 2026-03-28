@@ -37,10 +37,12 @@ class FetchResult:
 
     @property
     def found(self) -> bool:
+        """``True`` if at least one filename matched the query pattern."""
         return len(self.matched_filenames) > 0
 
     @property
     def downloaded(self) -> bool:
+        """``True`` if the file was successfully downloaded to *download_dest*."""
         return self.download_dest is not None and self.download_dest.exists()
 
 
@@ -193,26 +195,6 @@ class ResourceFetcher:
             return [f for f in listing if rx.search(f)]
         except re.error:
             return [f for f in listing if file_pattern in f]
-
-    # -- Value resolution ------------------------------------------
-
-    @staticmethod
-    def _resolve_values(
-        query: ResourceQuery, directory: str, matched_filename: str
-    ) -> None:
-        """Populate ``.value`` on the query's directory and filename ProductPaths.
-
-        Args:
-            query: The query to update in place.
-            directory: Resolved directory string.
-            matched_filename: The discovered filename.
-        """
-        if isinstance(query.directory, ProductPath):
-            query.directory.value = directory
-        if query.product.filename is not None and isinstance(
-            query.product.filename, ProductPath
-        ):
-            query.product.filename.value = matched_filename
 
     # -- Helpers ---------------------------------------------------
 

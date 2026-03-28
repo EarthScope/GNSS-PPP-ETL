@@ -16,9 +16,11 @@ class LocalAdapter:
     """DirectoryAdapter for local filesystem paths."""
 
     def can_connect(self, hostname: str) -> bool:
+        """Return ``True`` if *hostname* is an existing local directory."""
         return Path(hostname).exists()
 
     def list_directory(self, hostname: str, directory: str) -> List[str]:
+        """List filenames in a local directory."""
         d = Path(hostname) / directory
         if not d.exists():
             return []
@@ -27,5 +29,6 @@ class LocalAdapter:
     def download_file(
         self, hostname: str, directory: str, filename: str, dest_path: Path
     ) -> bool:
+        """No-op — local files do not require downloading."""
         # Local files don't need downloading
         return False

@@ -171,9 +171,11 @@ class HTTPAdapter:
         self._timeout = timeout
 
     def can_connect(self, hostname: str) -> bool:
+        """Test HTTP/HTTPS connectivity to *hostname*."""
         return http_can_connect(hostname, timeout=min(self._timeout, 10))
 
     def list_directory(self, hostname: str, directory: str) -> List[str]:
+        """List filenames from an HTTP directory listing page."""
         html = http_list_directory(hostname, directory)
         if html is None:
             return []
@@ -182,6 +184,7 @@ class HTTPAdapter:
     def download_file(
         self, hostname: str, directory: str, filename: str, dest_path: Path
     ) -> Optional[Path]:
+        """Download a file from an HTTP server to *dest_path*."""
         result = http_get_file(
             hostname,
             directory,

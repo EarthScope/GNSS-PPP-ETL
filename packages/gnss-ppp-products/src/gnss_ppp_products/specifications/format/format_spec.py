@@ -58,6 +58,8 @@ class FormatSpec(BaseModel):
 
 
 class FormatSpecCatalog(BaseModel):
+    """Collection of raw format specifications loaded from YAML."""
+
     formats: dict[str, VersionCatalog[FormatSpec]]
 
     @classmethod

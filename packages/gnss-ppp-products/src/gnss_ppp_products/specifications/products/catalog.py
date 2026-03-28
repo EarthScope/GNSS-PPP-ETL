@@ -72,6 +72,8 @@ class ProductSpec(BaseModel):
 
 
 class ProductSpecCatalog(BaseModel):
+    """Collection of raw product specifications loaded from YAML."""
+
     products: dict[str, VersionCatalog[ProductSpec]]
 
     @classmethod
