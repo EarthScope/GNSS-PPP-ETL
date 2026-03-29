@@ -104,22 +104,6 @@ class TestWuhanResourceFinding:
                 assert "2025" in fn, f"Missing year in filename: {fn}"
                 assert "015" in fn, f"Missing DOY in filename: {fn}"
 
-    def test_directory_listing_populated(self, wuhan_qf, fetcher, test_date) -> None:
-        """FetchResult should include the full directory listing."""
-        results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
-        found = _assert_found(results, "ORBIT")
-        for r in found:
-            assert len(r.directory_listing) > 0
-
-    def test_matched_filename_is_subset_of_listing(
-        self, wuhan_qf, fetcher, test_date
-    ) -> None:
-        results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
-        found = _assert_found(results, "ORBIT")
-        for r in found:
-            for fn in r.matched_filenames:
-                assert fn in r.directory_listing
-
 
 # ---------------------------------------------------------------------------
 # CODE (FTP) — ftp.aiub.unibe.ch

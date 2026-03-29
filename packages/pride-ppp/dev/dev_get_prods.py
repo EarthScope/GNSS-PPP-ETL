@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+import time
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -21,7 +22,15 @@ processor = PrideProcessor(
     cli_config=PrideCLIConfig(),
 )
 
+start_time = time.time()
 rinex_files = list(output_dir.glob("*.25o"))
 for rinex_file in rinex_files:
     result = processor.process(rinex_file, site="NCC1")
     print(f"{rinex_file.name}: success={result.success}, kin={result.kin_path}")
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+elapsed_hours = elapsed_time / 3600
+elapsed_minutes = (elapsed_time % 3600) / 60
+
+print(f"Processed {len(rinex_files)} files in {elapsed_hours:.2f} hours ({elapsed_minutes:.2f} minutes).")

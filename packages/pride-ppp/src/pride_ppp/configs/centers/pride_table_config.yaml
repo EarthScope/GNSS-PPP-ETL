@@ -2,7 +2,7 @@
 # ====================================
 #
 # Static table files shipped with the PRIDE-PPPAR software, served
-# from the PrideLab GitHub repository's raw content endpoint.
+# via the fsspec GithubFileSystem (uses the GitHub Contents API).
 #
 # Source: https://github.com/PrideLab/PRIDE-PPPAR/tree/master/table
 
@@ -16,11 +16,11 @@ website: https://github.com/PrideLab/PRIDE-PPPAR
 
 servers:
   - id: pride_github
-    name: GitHub Raw Content
-    hostname: "https://raw.githubusercontent.com"
-    protocol: https
+    name: GitHub Repository
+    hostname: "github://PrideLab:PRIDE-PPPAR@master"
+    protocol: github
     auth_required: false
-    description: GitHub raw content CDN for the PRIDE-PPPAR repository
+    description: PrideLab/PRIDE-PPPAR repository via GitHub Contents API
 
 products:
   # ── Static table files (PRIDE-specific) ─────────────────────────
@@ -30,7 +30,7 @@ products:
     available: true
     description: Satellite name/identifier lookup table
     parameters: []
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   - id: pride_ocean_tide
     product_name: OCEAN_TIDE_FES2004
@@ -38,7 +38,7 @@ products:
     available: true
     description: FES2004 ocean tide model coefficients
     parameters: []
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   - id: pride_ocean_load_green
     product_name: OCEAN_LOAD_GREEN
@@ -46,7 +46,7 @@ products:
     available: true
     description: Green's function coefficients for ocean tidal loading
     parameters: []
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   - id: pride_gpt3_grid
     product_name: GPT3_GRID
@@ -54,7 +54,7 @@ products:
     available: true
     description: GPT3 global pressure and temperature model grid
     parameters: []
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   - id: pride_ocean_load
     product_name: OCEAN_LOAD_PROGRAM
@@ -62,7 +62,7 @@ products:
     available: true
     description: Pre-computed ocean loading parameters
     parameters: []
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   # ── Static table files (base products) ──────────────────────────
   - id: pride_leap_sec
@@ -71,7 +71,7 @@ products:
     available: true
     description: IERS leap seconds file
     parameters: []
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   - id: pride_sat_params
     product_name: SAT_PARAMS
@@ -79,7 +79,7 @@ products:
     available: true
     description: Satellite metadata parameters table
     parameters: []
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   # ── Antenna calibrations (ANTEX archive) ────────────────────────
   - id: pride_atx_igs14
@@ -91,7 +91,7 @@ products:
     parameters:
       - {name: REFFRAME, value: igs14}
       - {name: GPSWEEK, value: "2247"}
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   - id: pride_atx_igs20
     product_name: ATTATX
@@ -102,7 +102,7 @@ products:
     parameters:
       - {name: REFFRAME, value: igs20}
       - {name: GPSWEEK, value: "2317"}
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   - id: pride_atx_igsR3
     product_name: ATTATX
@@ -113,7 +113,7 @@ products:
     parameters:
       - {name: REFFRAME, value: igsR3}
       - {name: GPSWEEK, value: "2135"}
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}
 
   # ── Orography grid ─────────────────────────────────────────────
   - id: pride_orography_1x1
@@ -123,4 +123,4 @@ products:
     description: Ellipsoidal terrain height grid (1x1)
     parameters:
       - {name: RESOLUTION, value: "1x1"}
-    directory: {pattern: "PrideLab/PRIDE-PPPAR/master/table/"}
+    directory: {pattern: "table/"}

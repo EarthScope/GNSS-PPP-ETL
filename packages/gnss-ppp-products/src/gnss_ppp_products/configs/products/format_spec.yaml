@@ -229,7 +229,7 @@ VIENNA_MAPPING_FUNCTIONS:
           variant: orography
           parameters:
             - name: RESOLUTION
-              pattern: "\\b(2\\.5x2|1x1|5x5)\\b"
+              pattern: "(2\\.5x2|1x1|5x5)"
           filename: "orography_ell_{RESOLUTION}"
 
 LEO_L1B:

@@ -203,6 +203,8 @@ class PrideProcessor:
         # Build private WorkSpace, registered once
         self._workspace = self._build_workspace()
 
+        self._qf = QueryFactory(product_environment=self._env, workspace=self._workspace)
+        self._fetcher = ResourceFetcher(max_connections=10)
     # ------------------------------------------------------------------ #
     # Private construction helpers
     # ------------------------------------------------------------------ #
@@ -252,13 +254,12 @@ class PrideProcessor:
         local_sink_id: str = "pride",
         station: Optional[str] = None,
     ) -> DependencyResolution:
-        qf = QueryFactory(product_environment=self._env, workspace=self._workspace)
-        fetcher = ResourceFetcher(max_connections=10)
+
         resolver = DependencyResolver(
             dep_spec=self._dep_spec,
             product_environment=self._env,
-            query_factory=qf,
-            fetcher=fetcher,
+            query_factory=self._qf,
+            fetcher=self._fetcher,
         )
         resolution, _ = resolver.resolve(
             date=date, local_sink_id=local_sink_id, station=station,
