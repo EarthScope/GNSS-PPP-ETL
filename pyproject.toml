@@ -4,11 +4,15 @@ version = "0.1.0"
 requires-python = ">=3.10,<3.15"
 dependencies = [
     "gnss-product-management>=0.1.0",
+    "pride-ppp>=0.1.0",
     "ruff>=0.15.8",
 ]
 
 [tool.uv.sources]
 gnss-product-management = { workspace = true }
+gnss-management-specs = { workspace = true }
+pride-ppp = { workspace = true }
+
 
 [tool.uv.workspace]
 members = ["packages/*"]
