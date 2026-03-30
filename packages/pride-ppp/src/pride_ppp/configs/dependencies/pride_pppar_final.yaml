@@ -18,6 +18,7 @@ preferences:
     sorting: [WUM, COD, GFZ, ESA]
     description: >
       Prefer Wuhan, then CODE, GFZ, ESA analysis centres.
+
   - parameter: TTT
     sorting: [FIN]
     description: >
@@ -25,22 +26,32 @@ preferences:
 
 dependencies:
   - spec: ORBIT
+    constraints:
+      TTT: FIN
     required: true
     description: Precise satellite orbits (SP3)
 
   - spec: CLOCK
+    constraints:
+      TTT: FIN
     required: true
     description: Precise satellite clocks (CLK)
 
   - spec: ERP
+    constraints:
+      TTT: FIN
     required: true
     description: Earth rotation parameters
 
   - spec: BIA
+    constraints:
+      TTT: FIN
     required: true
     description: Observable-specific signal biases
 
   - spec: ATTOBX
+    constraints:
+      TTT: FIN
     required: true
     description: Satellite attitude quaternions (OBX)
 
