@@ -7,6 +7,15 @@ structured results with lazy DataFrame access.
 
 ## Installation
 
+**From the monorepo (development):**
+
+```bash
+# From the repository root — uv resolves workspace dependencies automatically
+uv sync
+```
+
+**Standalone:**
+
 ```bash
 uv add pride-ppp
 # or

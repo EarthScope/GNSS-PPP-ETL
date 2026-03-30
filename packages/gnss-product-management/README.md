@@ -11,6 +11,15 @@ Specification-driven discovery, resolution, and download of GNSS Precise Point P
 
 ## Installation
 
+**From the monorepo (development):**
+
+```bash
+# From the repository root — uv resolves workspace dependencies automatically
+uv sync
+```
+
+**Standalone:**
+
 ```bash
 uv add gnss-product-management
 # or
