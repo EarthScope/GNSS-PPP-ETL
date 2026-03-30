@@ -680,12 +680,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "gnss-product-management" },
+    { name = "pride-ppp" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "gnss-product-management", editable = "packages/gnss-product-management" },
+    { name = "pride-ppp", editable = "packages/pride-ppp" },
     { name = "ruff", specifier = ">=0.15.8" },
 ]
 

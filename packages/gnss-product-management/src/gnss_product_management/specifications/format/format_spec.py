@@ -134,7 +134,7 @@ class FormatCatalog(Catalog):
                     variants[variant_name] = product
                 versions[version_name] = VariantCatalog(variants=variants)
             formats[format_name] = VersionCatalog(versions=versions)
-        return cls(formats=formats)
+        return cls(formats={k: v.model_dump() for k, v in formats.items()})
 
     def merge(self, other: "FormatCatalog") -> "FormatCatalog":
         """Merge another catalog into this one.
@@ -166,4 +166,4 @@ class FormatCatalog(Catalog):
                             variants={}
                         )
                     merged[name].versions[version_name].variants[variant_name] = product
-        return FormatCatalog(formats=merged)
+        return FormatCatalog(formats={k: v.model_dump() for k, v in merged.items()})

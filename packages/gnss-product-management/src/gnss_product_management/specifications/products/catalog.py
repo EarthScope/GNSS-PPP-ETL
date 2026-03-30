@@ -151,7 +151,7 @@ class ProductSpecCatalog(BaseModel):
                             variants={}
                         )
                     merged[name].versions[version_name].variants[variant_name] = prod
-        return ProductSpecCatalog(products=merged)
+        return ProductSpecCatalog(products={k: v.model_dump() for k, v in merged.items()})
 
 
 class ProductCatalog(Catalog):
@@ -192,7 +192,7 @@ class ProductCatalog(Catalog):
                 versions[version_name] = VariantCatalog(variants=variants)
             products[product_name] = VersionCatalog(versions=versions)
 
-        return cls(products=products)
+        return cls(products={k: v.model_dump() for k, v in products.items()})
 
     def merge(self, other: "ProductCatalog") -> "ProductCatalog":
         """Merge another catalog into this one.
@@ -224,4 +224,4 @@ class ProductCatalog(Catalog):
                             variants={}
                         )
                     merged[name].versions[version_name].variants[variant_name] = prod
-        return ProductCatalog(products=merged)
+        return ProductCatalog(products={k: v.model_dump() for k, v in merged.items()})
