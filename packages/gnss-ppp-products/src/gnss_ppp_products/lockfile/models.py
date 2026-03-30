@@ -52,12 +52,10 @@ class DependencyLockFile(BaseModel):
     """Top-level lockfile: a fully-resolved, reproducible product manifest.
 
     The lockfile is date-scoped — one lockfile per processing day.
+    Identity key: ``(task, date, version)`` where *version* is the
+    ``gnss-ppp-products`` package version.
     """
 
-    station: str = Field(
-        ...,
-        description="Name of the station this lockfile corresponds to, e.g. 'ALIC'.",
-    )
     date: str = Field(
         ...,
         description="Processing date this lockfile corresponds to, in YYYY-MM-DD format.",
@@ -71,7 +69,8 @@ class DependencyLockFile(BaseModel):
         description="Name of the processing task this lockfile corresponds to, e.g. 'PPP'.",
     )
     version: str = Field(
-        "0", description="Version of the lockfile format, for future compatibility."
+        ...,
+        description="gnss-ppp-products package version used to generate this lockfile.",
     )
     requires_date: bool = Field(
         True,

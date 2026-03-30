@@ -43,14 +43,13 @@ from gnss_ppp_products.environments import WorkSpace
 from gnss_ppp_products.lockfile import (
     LockProduct,
     DependencyLockFile,
+    LockfileManager,
     validate_lock_product,
     build_lock_product,
     get_lock_product_path,
     get_lock_product,
     write_lock_product,
-    get_dependency_lockfile_name,
-    get_dependency_lockfile,
-    write_dependency_lockfile,
+    get_package_version,
 )
 from gnss_ppp_products.utilities.helpers import decompress_gzip
 
@@ -120,110 +119,73 @@ class DependencyResolver:
         self,
         date: datetime.datetime,
         local_sink_id: str,
-        station: Optional[str] = None,
-        version: Optional[str] = "0",
     ) -> Tuple[DependencyResolution, Optional[Path]]:
         """Resolve every dependency in the spec for *date*.
 
-        Checks for an existing lockfile first, then resolves remaining
-        dependencies in parallel using a :class:`ThreadPoolExecutor`.
+        Fast path: if a lockfile already exists for
+        ``(package, task, date, version)`` skip resolution entirely.
+
+        Otherwise resolves remaining dependencies in parallel using a
+        :class:`ThreadPoolExecutor`, then auto-generates an aggregate
+        lockfile from the per-file sidecars.
 
         Args:
             date: Target date (timezone-aware datetime).
             local_sink_id: Local resource identifier for storing results.
-            station: Optional station identifier for lockfile scoping.
-            version: Lockfile version (default ``'0'``).
 
         Returns:
             A tuple of (:class:`DependencyResolution`, lockfile path).
         """
-        results: List[ResolvedDependency] = []
-        lockfiles: List[LockProduct] = []
-        to_resolve = self.dep_spec.dependencies
+        version = get_package_version()
+        lockfile_dir = self._qf._local.lockfile_dir(local_sink_id)
+        manager = LockfileManager(lockfile_dir)
 
-        dep_lockfile_info: Tuple[Optional[DependencyLockFile], Optional[Path]] = (
-            get_dependency_lockfile(
-                directory=self._qf._local.lockfile_dir(local_sink_id),
-                station=station,
+        # --- Fast path: skip if lockfile exists ----------------------
+        existing = manager.load(
+            package=self.dep_spec.package,
+            task=self.dep_spec.task,
+            date=date,
+            version=version,
+        )
+        if existing is not None:
+            lf_path = manager.lockfile_path(
                 package=self.dep_spec.package,
                 task=self.dep_spec.task,
-                version=version,
                 date=date,
+                version=version,
             )
-        )
-        dep_lock_file, dep_lock_file_path = dep_lockfile_info
-
-        if dep_lock_file:
             logger.info(
-                f"Found existing lockfile for {self.dep_spec.name} on {date.date()}: {dep_lock_file_path}"
+                "Lockfile already exists for %s on %s — skipping resolution: %s",
+                self.dep_spec.name,
+                date.date(),
+                lf_path,
             )
-            for lock_product in dep_lock_file.products:
-                dep_spec = next(
-                    (
-                        d
-                        for d in self.dep_spec.dependencies
-                        if d.spec == lock_product.name
-                    ),
+            results = []
+            for lp in existing.products:
+                dep = next(
+                    (d for d in self.dep_spec.dependencies if d.spec == lp.name),
                     None,
                 )
-                original_sink = lock_product.sink
-                if dep_spec and validate_lock_product(lock_product):
-                    # Remove this product from the to_resolve list since it's already resolved in the lockfile
-                    to_resolve = [
-                        dep for dep in to_resolve if dep.spec != lock_product.name
-                    ]
-
-                    # If validation updated the sink (e.g. .gz → decompressed),
-                    # persist the change so future runs don't re-validate.
-                    if lock_product.sink != original_sink:
-                        write_dependency_lockfile(
-                            lockfile=dep_lock_file,
-                            directory=dep_lock_file_path.parent,
-                            update=True,
-                        )
-
-                    resolved = ResolvedDependency(
-                        spec=lock_product.name,
-                        required=dep_spec.required,
+                results.append(
+                    ResolvedDependency(
+                        spec=lp.name,
+                        required=dep.required if dep else True,
                         status="local",
-                        remote_url=lock_product.url,
-                        local_path=Path(lock_product.sink),
-                        hash=lock_product.hash,
-                        size=lock_product.size,
-                        description=dep_spec.description,
-                        lockfile=lock_product,
+                        remote_url=lp.url,
+                        local_path=Path(lp.sink),
                     )
-                    results.append(resolved)
-                else:
-                    logger.warning(
-                        f"Invalid lock product in lockfile {dep_lock_file_path}: \n{lock_product}. Will attempt to re-resolve."
-                    )
-                    # Delete the invalid lock product from the lockfile to avoid reusing it in future runs
-                    dep_lock_file.products = [
-                        lp
-                        for lp in dep_lock_file.products
-                        if lp.name != lock_product.name
-                    ]
-                    write_dependency_lockfile(
-                        lockfile=dep_lock_file,
-                        directory=dep_lock_file_path.parent,
-                        update=True,
-                    )
-                    try:
-                        get_lock_product_path(Path(lock_product.sink)).unlink(
-                            missing_ok=True
-                        )
-                    except Exception as e:
-                        pass
-
-        else:
-            dep_lock_file = DependencyLockFile(
-                station=station or "",
-                package=self.dep_spec.package,
-                task=self.dep_spec.task,
-                date=date.strftime("%Y-%m-%d"),
-                products=[],
+                )
+            resolution = DependencyResolution(
+                spec_name=self.dep_spec.name, resolved=results
             )
+            logger.info(resolution.summary())
+            return resolution, lf_path
+
+        # --- Full resolution path ------------------------------------
+        results: List[ResolvedDependency] = []
+        lockfiles: List[LockProduct] = []
+        to_resolve = list(self.dep_spec.dependencies)
+
         partial_resolve_one = partial(
             self._resolve_one,
             date=date,
@@ -235,21 +197,35 @@ class DependencyResolver:
                 if not future:
                     continue
                 resolved, lock_file = future.result()
-                if resolved and lock_file:
+                if resolved:
                     results.append(resolved)
+                if lock_file:
                     lockfiles.append(lock_file)
 
+        # Auto-generate aggregate from collected sidecars
         if lockfiles:
-            dep_lock_file.products.extend(lockfiles)
-            write_dependency_lockfile(
-                lockfile=dep_lock_file, directory=dep_lock_file_path.parent, update=True
+            aggregate = manager.build_aggregate(
+                products=lockfiles,
+                package=self.dep_spec.package,
+                task=self.dep_spec.task,
+                date=date,
+                version=version,
             )
+            lf_path = manager.save(aggregate)
+        else:
+            lf_path = manager.lockfile_path(
+                package=self.dep_spec.package,
+                task=self.dep_spec.task,
+                date=date,
+                version=version,
+            )
+
         resolution = DependencyResolution(
             spec_name=self.dep_spec.name,
             resolved=results,
         )
         logger.info(resolution.summary())
-        return resolution, dep_lock_file_path
+        return resolution, lf_path
 
     # ---- internal helpers ------------------------------------------
 

@@ -10,7 +10,7 @@ logging.basicConfig(
     format="%(levelname)-8s %(name)s — %(message)s",
 )
 
-from pride_ppp import PrideProcessor, PrideCLIConfig
+from pride_ppp import PrideProcessor, ProcessingMode, PrideCLIConfig
 
 pride_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/SFGMain/Pride")
 output_dir = Path(
@@ -22,6 +22,7 @@ if __name__ == "__main__":
         pride_dir=pride_dir,
         output_dir=output_dir,
         cli_config=PrideCLIConfig(),
+        mode=ProcessingMode.FINAL,
     )
 
     rinex_files = list(output_dir.glob("*.25o"))

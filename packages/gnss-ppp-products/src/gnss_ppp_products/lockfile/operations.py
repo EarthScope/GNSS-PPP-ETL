@@ -15,7 +15,9 @@ Provides pure-function helpers for the lockfile lifecycle:
 """
 
 import datetime
+import enum
 import json
+from importlib.metadata import version as _get_package_version
 from pathlib import Path
 from typing import List, Optional, Tuple
 import logging
@@ -29,7 +31,25 @@ from gnss_ppp_products.utilities.helpers import hash_file as _hash_file
 logger = logging.getLogger(__name__)
 
 
-def validate_lock_product(product: LockProduct) -> bool:
+def get_package_version() -> str:
+    """Return the installed gnss-ppp-products version."""
+    try:
+        return _get_package_version("gnss-ppp-products")
+    except Exception:
+        return "0.0.0-dev"
+
+
+class HashMismatchMode(enum.Enum):
+    """How to handle hash mismatches during lockfile validation."""
+
+    WARN = "warn"
+    STRICT = "strict"
+
+
+def validate_lock_product(
+    product: LockProduct,
+    mode: HashMismatchMode = HashMismatchMode.WARN,
+) -> bool:
     """Check that a lock-product's sink file exists and its hash matches.
 
     Also accepts the decompressed version of a ``.gz`` sink
@@ -37,11 +57,14 @@ def validate_lock_product(product: LockProduct) -> bool:
 
     Args:
         product: The lock-product entry to validate.
+        mode: How to handle hash mismatches.
+            ``WARN`` logs a warning but returns ``True``.
+            ``STRICT`` returns ``False`` so the caller can re-download.
 
     Returns:
         ``True`` if the sink file (or its decompressed counterpart)
         exists and (when a hash is recorded) the file's current
-        SHA-256 matches the stored hash.
+        SHA-256 matches the stored hash (or mode is WARN).
     """
     sink_path = Path(product.sink)
 
@@ -63,7 +86,18 @@ def validate_lock_product(product: LockProduct) -> bool:
     if product.hash:
         actual_hash = _hash_file(sink_path)
         if actual_hash != product.hash:
-            return False
+            if mode == HashMismatchMode.STRICT:
+                logger.warning(
+                    f"Hash mismatch for {sink_path} (strict mode): "
+                    f"expected {product.hash}, got {actual_hash}"
+                )
+                return False
+            else:
+                logger.warning(
+                    f"Hash mismatch for {sink_path} (warn mode): "
+                    f"expected {product.hash}, got {actual_hash}. "
+                    f"Continuing with existing file."
+                )
     return True
 
 
@@ -169,30 +203,33 @@ def write_lock_product(lock_product: LockProduct) -> Path:
 
 
 def get_dependency_lockfile_name(
-    station: Optional[str],
     package: str,
     task: str,
     date: str | datetime.datetime,
-    version: str = "0",
+    version: str | None = None,
 ) -> str:
     """Derive the canonical filename for a dependency lockfile.
 
-    The filename encodes station, package, task, year, day-of-year,
-    and version so that each processing day gets its own file.
+    The filename encodes package, task, year, day-of-year, and version
+    so that each processing day gets its own file.  Station is **not**
+    part of the identity.
 
     Args:
-        station: Station identifier (e.g. ``'ALIC'``), or ``None``.
         package: Processing package name (e.g. ``'PRIDE'``).
         task: Processing task name (e.g. ``'PPP'``).
         date: Processing date as a ``datetime`` or ``'YYYY-MM-DD'`` string.
-        version: Lockfile format version (default ``'0'``).
+        version: gnss-ppp-products package version.  Defaults to the
+            installed version.
 
     Returns:
-        A filename string like ``ALIC_PRIDE_PPP_2024_015_0_lock.json``.
+        A filename string like ``PRIDE_PPP_2025_015_0.1.0_lock.json``.
 
     Raises:
         ValueError: If *date* cannot be parsed.
     """
+    if version is None:
+        version = get_package_version()
+
     if isinstance(date, str):
         try:
             date = datetime.datetime.strptime(date, "%Y-%m-%d")
@@ -212,28 +249,26 @@ def get_dependency_lockfile_name(
         ) from e
 
     return (
-        "_".join([station or "", package, task, str(YYYY), str(DOY).zfill(3), version])
-        + "_lock.json"
+        "_".join([package, task, str(YYYY), str(DOY).zfill(3), version]) + "_lock.json"
     )
 
 
 def get_dependency_lockfile(
     directory: Path,
-    station: Optional[str],
     package: str,
     task: str,
-    version: str = "0",
-    date: Optional[datetime.datetime | str] = None,
+    date: datetime.datetime | str,
+    version: str | None = None,
 ) -> Tuple[Optional[DependencyLockFile], Optional[Path]]:
     """Read a :class:`DependencyLockFile` from *directory*.
 
     Args:
         directory: Folder containing lockfile JSON files.
-        station: Station identifier (e.g. ``'ALIC'``).
         package: Processing package name.
         task: Processing task name.
-        version: Lockfile format version.
         date: Processing date used to derive the filename.
+        version: gnss-ppp-products package version.  Defaults to
+            the installed version.
 
     Returns:
         A ``(lockfile, path)`` tuple.  If the file does not exist,
@@ -241,15 +276,13 @@ def get_dependency_lockfile(
         the caller knows where to write a new one.
     """
     lockfile_name = get_dependency_lockfile_name(
-        station=station, package=package, task=task, version=version, date=date
+        package=package, task=task, version=version, date=date
     )
     lockfile_path = directory / lockfile_name
     if not lockfile_path.exists():
         return None, lockfile_path
 
-    with open(lockfile_path, "r") as f:
-        dep_lockfile_data = f.read()
-
+    dep_lockfile_data = lockfile_path.read_text(encoding="utf-8")
     return DependencyLockFile.model_validate_json(dep_lockfile_data), lockfile_path
 
 
@@ -274,12 +307,16 @@ def write_dependency_lockfile(
             is ``False``.
     """
     lockfile_name = get_dependency_lockfile_name(
-        lockfile.station, lockfile.package, lockfile.task, date=lockfile.date
+        package=lockfile.package,
+        task=lockfile.task,
+        date=lockfile.date,
+        version=lockfile.version,
     )
     lockfile_path = directory / lockfile_name
     if lockfile_path.exists() and not update:
         raise FileExistsError(
             f"Lockfile already exists: {lockfile_path}, consider incrementing the version."
         )
+    directory.mkdir(parents=True, exist_ok=True)
     lockfile_path.write_text(lockfile.model_dump_json(indent=2), encoding="utf-8")
     return lockfile_path

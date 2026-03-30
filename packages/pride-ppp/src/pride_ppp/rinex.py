@@ -14,6 +14,22 @@ logger = logging.getLogger(__name__)
 
 
 def _header_get_time(line: str) -> datetime:
+    """Parse a timestamp from a RINEX header line containing ``GPS``.
+
+    Expects the format produced by the ``TIME OF FIRST OBS`` /
+    ``TIME OF LAST OBS`` header records::
+
+        2025     1    15     0     0    0.0000000     GPS
+
+    Everything before ``GPS`` is split on whitespace and interpreted as
+    ``YYYY MM DD HH MI SS.sss``.
+
+    Args:
+        line: A single RINEX header line.
+
+    Returns:
+        Parsed UTC datetime (fractional seconds truncated to integer).
+    """
     time_values = line.split("GPS")[0].strip().split()
     return datetime(
         year=int(time_values[0]),
@@ -26,7 +42,18 @@ def _header_get_time(line: str) -> datetime:
 
 
 def epoch_get_time(line: str) -> datetime:
-    """Extract the epoch time from a RINEX observation line."""
+    """Extract the epoch timestamp from a RINEX 2 observation record.
+
+    Assumes a 2-digit year (added to 2000).  The line is whitespace-split
+    and the first six tokens are interpreted as
+    ``YY MM DD HH MI SS.sss``.
+
+    Args:
+        line: A single RINEX observation epoch line.
+
+    Returns:
+        Parsed UTC datetime.
+    """
     date_line = line.strip().split()
     return datetime(
         year=2000 + int(date_line[0]),

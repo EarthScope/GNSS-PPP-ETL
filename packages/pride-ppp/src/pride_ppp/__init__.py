@@ -8,6 +8,20 @@ with lazy DataFrame access for kinematic positions and residuals.
 
 Lower-level utilities (CLI config, config-file I/O, output parsing, RINEX
 helpers) are re-exported for advanced use cases.
+
+Example
+-------
+>>> from pathlib import Path
+>>> from pride_ppp import PrideProcessor, ProcessingMode
+>>>
+>>> proc = PrideProcessor(
+...     pride_dir=Path("/data/pride"),
+...     output_dir=Path("/data/output"),
+...     mode=ProcessingMode.FINAL,
+... )
+>>> result = proc.process(Path("/data/rinex/NCC12540.25o"))
+>>> if result.success:
+...     df = result.positions()
 """
 
 from .cli import PrideCLIConfig
@@ -20,12 +34,13 @@ from .output import (
     read_kin_data,
     validate_kin_file,
 )
-from .processor import PrideProcessor, ProcessingResult
+from .processor import PrideProcessor, ProcessingMode, ProcessingResult
 from .rinex import merge_broadcast_files, rinex_get_time_range
 
 __all__ = [
     # Primary API
     "PrideProcessor",
+    "ProcessingMode",
     "ProcessingResult",
     # CLI / config
     "PrideCLIConfig",

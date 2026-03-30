@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field, field_validator
 
 # ---------------------------------------------------------------------------
 # Default satellite table (all active GNSS PRNs, variance = 1)
+# Keys follow the format "{constellation}{PRN:02d}", e.g. "G01" for GPS PRN 1.
+# Values are PRN variance weights used by pdp3 (1 = nominal, higher = down-weighted).
 # ---------------------------------------------------------------------------
 pride_default_satellites: Dict[str, int] = {
     "G01": 1,
@@ -164,7 +166,23 @@ pride_default_satellites: Dict[str, int] = {
 
 
 class ObservationConfig(BaseModel):
-    """Observation section of the pdp3 config file."""
+    """Observation section of the pdp3 config file.
+
+    Attributes
+    ----------
+    table_directory : str
+        Path to the directory containing ANTEX, leap-second, and
+        satellite metadata tables required by pdp3.
+    frequency_combination : str
+        Frequency combination string (e.g. ``"Default"``).
+    interval : str
+        Processing interval in seconds, or ``"Default"`` for auto.
+    time_window : float
+        Observation time window tolerance in seconds.
+    session_time : datetime | str
+        Session time template.  When a string, pdp3 substitutes
+        date/time placeholders at runtime.
+    """
 
     table_directory: str
     frequency_combination: str = "Default"
@@ -176,7 +194,29 @@ class ObservationConfig(BaseModel):
 
 
 class SatelliteProducts(BaseModel):
-    """Satellite product paths for the pdp3 config file."""
+    """Satellite product file paths for the pdp3 config file.
+
+    Each field holds the filename (not full path) of a specific GNSS
+    product.  ``product_directory`` is the common parent directory.
+    When set to ``"Default"``, pdp3 resolves the file automatically.
+
+    Attributes
+    ----------
+    product_directory : str, optional
+        Directory containing all satellite product files.
+    satellite_orbit : str, optional
+        SP3 precise orbit filename (must end in ``.SP3``).
+    satellite_clock : str, optional
+        CLK precise clock filename (must end in ``.CLK``).
+    erp : str, optional
+        Earth rotation parameters filename (must end in ``.ERP``).
+    quaternions : str, optional
+        Satellite attitude quaternions filename (must end in ``.OBX``).
+    code_phase_bias : str, optional
+        Observable-specific signal bias filename (must end in ``.BIA``).
+    leo_quaternions : str, optional
+        LEO satellite quaternions filename.
+    """
 
     product_directory: Optional[str] = Field(
         default="Default",
@@ -240,7 +280,28 @@ class SatelliteProducts(BaseModel):
 
 
 class DataProcessingStrategies(BaseModel):
-    """Data processing strategy defaults for the pdp3 config file."""
+    """Data processing strategy defaults for the pdp3 config file.
+
+    Attributes
+    ----------
+    strict_editing : str
+        ``"YES"``/``"NO"``/``"Default"``.  Set to ``"NO"`` for
+        high-dynamic data with poor quality.
+    rck_model : str
+        Receiver clock model: ``"WNO"`` (white noise) or ``"STO"``
+        (random walk).
+    ztd_model : str
+        Zenith troposphere delay model: ``"PWC:60"`` (piece-wise
+        constant, 60 min) or ``"STO"`` (random walk).
+    htg_model : str
+        Horizontal troposphere gradient model: ``"PWC"``/``"STO"``/``"NON"``.
+    iono_2nd : str
+        ``"YES"`` to correct 2nd-order ionospheric delays.
+    tides : str
+        Tidal corrections to apply (e.g. ``"SOLID/OCEAN/POLE"``).
+    multipath : str
+        ``"YES"``/``"NO"`` — enable multipath correction model.
+    """
 
     strict_editing: str = "Default"
     rck_model: str = "Default"
@@ -252,7 +313,30 @@ class DataProcessingStrategies(BaseModel):
 
 
 class AmbiguityFixingOptions(BaseModel):
-    """Ambiguity resolution parameters for the pdp3 config file."""
+    """Ambiguity resolution parameters for the pdp3 config file.
+
+    Attributes
+    ----------
+    ambiguity_co_var : str
+        ``"YES"`` to use LAMBDA method for ambiguity fixing.
+    ambiguity_duration : int
+        Minimum time duration in seconds for a resolvable ambiguity.
+    cutoff_elevation : int
+        Cutoff mean elevation angle (degrees) for eligible ambiguities.
+    pco_on_wide_lane : str
+        ``"YES"``/``"NO"`` — apply PCO corrections on Melbourne-Wübbena.
+    widelane_decision : List[float]
+        ``[deviation, sigma, threshold]`` in cycles for wide-lane ambiguities.
+    narrowlane_decision : List[float]
+        ``[deviation, sigma, threshold]`` in cycles for narrow-lane ambiguities.
+    critical_search : List[float]
+        ``[max_exclude, min_reserve, fixed_float, ratio_threshold]``.
+    truncate_at_midnight : str
+        ``"YES"`` to truncate ambiguities at midnight (avoids day-boundary
+        discontinuities).
+    verbose_output : str
+        ``"YES"``/``"NO"`` — output detailed ambiguity resolution info.
+    """
 
     ambiguity_co_var: str = "Default"
     ambiguity_duration: int = 600
@@ -280,7 +364,44 @@ class SatelliteList(BaseModel):
 
 
 class StationUsed(BaseModel):
-    """Station configuration entry in the pdp3 config file."""
+    """Station configuration entry in the pdp3 config file.
+
+    Each field corresponds to a column in the ``+Station used`` block
+    of the PRIDE-PPPAR config_file.  Default values are placeholder
+    tokens that pdp3 replaces at runtime.
+
+    Attributes
+    ----------
+    name : str
+        4-character station identifier.
+    tp : str
+        Positioning mode (``S`` static, ``P`` piece-wise, ``K`` kinematic,
+        ``F`` fixed).
+    map : str
+        Mapping function code (``NIE``, ``GMF``, ``VM1``, ``VM3``).
+    clkm : int
+        Receiver clock model noise in mm.
+    podm : str
+        Position/orbit determination mode.
+    ev : str
+        Elevation-dependent weighting strategy.
+    ztdm : float
+        Zenith troposphere delay model noise in m.
+    htgm : float
+        Horizontal troposphere gradient model noise in m.
+    ragm : float
+        Receiver antenna geocenter model noise in m.
+    phsc : float
+        Phase screen model noise in cycles.
+    polns : str
+        Pole / nutation series identifier.
+    poxem : float
+        A priori coordinate sigma in X/East direction (m).
+    poynm : float
+        A priori coordinate sigma in Y/North direction (m).
+    pozhm : float
+        A priori coordinate sigma in Z/Height direction (m).
+    """
 
     name: str = Field(default="xxxx", description="Station name")
     tp: str = Field(default="X", description="TP value")
@@ -299,7 +420,32 @@ class StationUsed(BaseModel):
 
 
 class PRIDEPPPFileConfig(BaseModel):
-    """Top-level pdp3 config_file model with read/write support."""
+    """Top-level pdp3 ``config_file`` model with read/write support.
+
+    Mirrors every section of the PRIDE-PPPAR 3 config template.  Instances
+    can be serialised to disk via ``write_config_file`` and deserialised
+    with ``read_config_file`` or ``load_default``.
+
+    Attributes
+    ----------
+    observation : ObservationConfig
+        Observation-related settings (table dir, interval, time window).
+    satellite_products : SatelliteProducts
+        Paths to resolved GNSS product files (SP3, CLK, ERP, …).
+    processing : DataProcessingStrategies
+        Processing strategy flags (clock model, tides, troposphere).
+    ambiguity : AmbiguityFixingOptions
+        Ambiguity resolution thresholds and decision criteria.
+    satellites : SatelliteList
+        Active satellite PRNs and their variance weights.
+    station_used : List[StationUsed]
+        Per-station processing parameters.
+
+    Example
+    -------
+    >>> cfg = PRIDEPPPFileConfig.load_default()
+    >>> cfg.write_config_file("/tmp/config_file")
+    """
 
     observation: ObservationConfig = Field(
         description="Observation configuration for the PRIDE PPP processing.",
@@ -329,7 +475,13 @@ class PRIDEPPPFileConfig(BaseModel):
     # ------------------------------------------------------------------
 
     def write_config_file(self, filepath: str | Path):
-        """Write the PRIDE PPP configuration to a file."""
+        """Write the PRIDE PPP configuration to a file.
+
+        Parameters
+        ----------
+        filepath : str | Path
+            Destination path.  Parent directories are created if needed.
+        """
         if isinstance(filepath, str):
             filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -470,7 +622,18 @@ class PRIDEPPPFileConfig(BaseModel):
 
     @classmethod
     def read_config_file(cls, file_path: str) -> "PRIDEPPPFileConfig":
-        """Reads a PRIDE PPP configuration file."""
+        """Parse a PRIDE PPP ``config_file`` from disk.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to an existing PRIDE-PPPAR config file.
+
+        Returns
+        -------
+        PRIDEPPPFileConfig
+            Populated config model.
+        """
         with open(file_path, "r") as file:
             text = file.read()
 
@@ -623,7 +786,21 @@ class PRIDEPPPFileConfig(BaseModel):
 
     @classmethod
     def load_default(cls) -> "PRIDEPPPFileConfig":
-        """Loads a default PRIDE PPP configuration with predefined values."""
+        """Load the default ``config_template`` shipped with PRIDE-PPPAR.
+
+        Searches ``~/.PRIDE_PPPAR_BIN/config_template`` first, then falls
+        back to ``/opt/PRIDE-PPPAR/.PRIDE_PPPAR_BIN/config_template``.
+
+        Returns
+        -------
+        PRIDEPPPFileConfig
+            Config populated from the template.
+
+        Raises
+        ------
+        FileNotFoundError
+            If neither installation path exists.
+        """
         pdp_home = Path.home() / ".PRIDE_PPPAR_BIN"
         if not pdp_home.exists():
             pdp_home = Path("/opt/PRIDE-PPPAR/.PRIDE_PPPAR_BIN")

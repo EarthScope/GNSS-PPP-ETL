@@ -15,11 +15,18 @@ Models:
     :class:`LockProduct`, :class:`LockProductAlternative`,
     :class:`DependencyLockFile`
 
+Manager:
+    :class:`LockfileManager`
+
 Operations:
     :func:`validate_lock_product`, :func:`build_lock_product`,
     :func:`get_lock_product_path`, :func:`get_lock_product`,
     :func:`write_lock_product`, :func:`get_dependency_lockfile_name`,
-    :func:`get_dependency_lockfile`, :func:`write_dependency_lockfile`
+    :func:`get_dependency_lockfile`, :func:`write_dependency_lockfile`,
+    :func:`get_package_version`
+
+Enums:
+    :class:`HashMismatchMode`
 """
 
 from gnss_ppp_products.lockfile.models import (
@@ -28,6 +35,7 @@ from gnss_ppp_products.lockfile.models import (
     DependencyLockFile,
 )
 from gnss_ppp_products.lockfile.operations import (
+    HashMismatchMode,
     validate_lock_product,
     build_lock_product,
     get_lock_product_path,
@@ -36,13 +44,19 @@ from gnss_ppp_products.lockfile.operations import (
     get_dependency_lockfile_name,
     get_dependency_lockfile,
     write_dependency_lockfile,
+    get_package_version,
 )
+from gnss_ppp_products.lockfile.manager import LockfileManager
 
 __all__ = [
     # models
     "LockProduct",
     "LockProductAlternative",
     "DependencyLockFile",
+    # manager
+    "LockfileManager",
+    # enums
+    "HashMismatchMode",
     # operations
     "validate_lock_product",
     "build_lock_product",
@@ -52,4 +66,5 @@ __all__ = [
     "get_dependency_lockfile_name",
     "get_dependency_lockfile",
     "write_dependency_lockfile",
+    "get_package_version",
 ]

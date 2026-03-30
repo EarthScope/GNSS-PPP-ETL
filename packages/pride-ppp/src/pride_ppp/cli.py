@@ -103,6 +103,14 @@ class PrideCLIConfig(BaseModel):
     )
 
     def __post_init__(self):
+        """Validate ``system`` and ``tides`` characters against allowed enums.
+
+        Raises
+        ------
+        ValueError
+            If *system* contains a character not in ``Constellations`` or
+            *tides* contains a character not in ``Tides``.
+        """
         system = self.system.upper()
         for char in system:
             if char not in Constellations._value2member_map_:
@@ -116,7 +124,30 @@ class PrideCLIConfig(BaseModel):
                 raise ValueError(f"Invalid tide character: {char}")
 
     def generate_pdp_command(self, site: str, local_file_path: str) -> List[str]:
-        """Generate the ``pdp3`` command for the given parameters."""
+        """Generate the ``pdp3`` command-line argument list.
+
+        Builds the full argument vector by comparing each config field
+        against its default value and only emitting flags that differ.
+
+        Parameters
+        ----------
+        site : str
+            4-character station identifier (e.g. ``"NCC1"``).
+        local_file_path : str
+            Path to the RINEX observation file.
+
+        Returns
+        -------
+        List[str]
+            Argument list suitable for ``subprocess.run()``.
+
+        Example
+        -------
+        >>> cfg = PrideCLIConfig(cutoff_elevation=10)
+        >>> cmd = cfg.generate_pdp_command("NCC1", "/data/NCC12540.25o")
+        >>> cmd[:5]
+        ['pdp3', '-m', 'K', '-i', '1']
+        """
         if self.local_pdp3_path:
             if "pdp3" in self.local_pdp3_path:
                 command = [self.local_pdp3_path]

@@ -17,6 +17,10 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 
 logger = logging.getLogger(__name__)
 
+#: Column-index → field-name mapping for PRIDE-PPPAR ``.kin`` output lines.
+#: The pdp3 binary writes fixed-width records; this dict maps positional
+#: token indices (after whitespace-split) to the corresponding field names
+#: used by ``PridePPP``.
 PRIDE_PPP_LOG_INDEX = {
     0: "modified_julian_date",
     1: "second_of_day",
@@ -32,7 +36,36 @@ PRIDE_PPP_LOG_INDEX = {
 
 
 class PridePPP(BaseModel):
-    """Data class for PPP GNSS kinematic position output.
+    """Single-epoch kinematic position record from a pdp3 ``.kin`` file.
+
+    Each instance represents one line of output.  Coordinates are in a
+    local East/North/Up frame (metres) plus geodetic lat/lon/height.
+
+    Attributes
+    ----------
+    modified_julian_date : float
+        Modified Julian Date of the epoch (≥ 0).
+    second_of_day : float
+        Seconds elapsed since midnight UTC (0–86 400).
+    east : float
+        East displacement in metres (local ENU frame).
+    north : float
+        North displacement in metres (local ENU frame).
+    up : float
+        Up displacement in metres (local ENU frame).
+    latitude : float
+        Geodetic latitude in decimal degrees (−90–90).
+    longitude : float
+        Geodetic longitude in decimal degrees (0–360, east-positive).
+    height : float
+        Ellipsoidal height in metres (−101–100, relative to ref).
+    number_of_satellites : int
+        Number of satellites used in the solution.
+    pdop : float
+        Position Dilution of Precision.
+    time : datetime, optional
+        UTC timestamp derived from ``modified_julian_date`` and
+        ``second_of_day`` (populated automatically by a validator).
 
     Docs: https://github.com/PrideLab/PRIDE-PPPAR
     """
@@ -54,13 +87,23 @@ class PridePPP(BaseModel):
 
     @model_validator(mode="before")
     def validate_time(cls, values):
-        """Coerce pdop to float before full validation."""
+        """Coerce ``pdop`` to float before full field validation.
+
+        Some ``.kin`` files encode PDOP as an integer string.  This
+        pre-validator ensures it is always a float so the ``ge``/``le``
+        constraints pass.
+        """
         values["pdop"] = float(values.get("pdop", 0.0))
         return values
 
     @model_validator(mode="after")
     def populate_time(cls, values):
-        """Convert from modified julian date and seconds of day to standard datetime format."""
+        """Derive UTC ``time`` from MJD and second-of-day.
+
+        Converts ``modified_julian_date`` + ``second_of_day`` to a full
+        Julian Date, then to a Python ``datetime`` via the ``julian``
+        library.
+        """
         julian_date = (
             values.modified_julian_date + (values.second_of_day / 86400) + 2400000.5
         )
@@ -169,16 +212,22 @@ def get_wrms_from_res(res_path):
 
 
 def plot_kin_results_wrms(kin_df, title=None, save_as=None):
-    """Plot kinematic results with WRMS.
+    """Plot kinematic results with WRMS in a 6-panel figure.
+
+    Subplots (top → bottom): Latitude, Longitude, Height,
+    Nsat (red = ≤ 4), PDOP on log scale (red = ≥ 5), WRMS (mm).
+
+    Expects DataFrame columns: ``Latitude``, ``Longitude``, ``Height``,
+    ``Nsat``, ``PDOP``, ``wrms``.
 
     Parameters
     ----------
     kin_df : pd.DataFrame
-        The kinematic data.
+        Output from ``read_kin_data`` merged with WRMS residuals.
     title : str, optional
-        The title of the plot, by default None.
+        RINEX filename or label used in the figure title.
     save_as : str, optional
-        The path to save the plot to, by default None.
+        If provided, save the figure to this path.
     """
     import matplotlib.pyplot as plt
 
@@ -311,17 +360,22 @@ def kin_to_kin_position_df(source: str | Path) -> Union[pd.DataFrame, None]:
 
 
 def read_kin_data(kin_path):
-    """Read a kin file and return a DataFrame.
+    """Read a ``.kin`` file into a DataFrame using fixed-width column specs.
+
+    The column widths match the pdp3 output format (PRIDE-PPPAR 3).
+    The resulting DataFrame is indexed by UTC timestamps derived from
+    MJD + seconds-of-day.
 
     Parameters
     ----------
     kin_path : str
-        The path to the kin file.
+        Path to the ``.kin`` file.
 
     Returns
     -------
     pd.DataFrame
-        A DataFrame with the kin data.
+        Columns: Mjd, Sod, *, X, Y, Z, Latitude, Longitude, Height,
+        Nsat, G, R, E, C2, C3, J, PDOP.  Indexed by datetime.
     """
     with open(kin_path, "r") as kin_file:
         for i, line in enumerate(kin_file):
