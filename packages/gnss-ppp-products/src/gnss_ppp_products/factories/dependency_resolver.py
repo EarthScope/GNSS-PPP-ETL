@@ -96,6 +96,9 @@ def _build_remote_url(rq: ResourceQuery) -> str:
 class DependencyResolver:
     """Resolve a :class:`DependencySpec` using :class:`QueryFactory`.
 
+    Attributes:
+        dep_spec: The dependency specification to resolve.
+
     Args:
         dep_spec: The dependency specification to resolve.
         query_factory: A :class:`QueryFactory` wired to the desired centres.
@@ -110,6 +113,14 @@ class DependencyResolver:
         product_environment: ProductEnvironment,
         fetcher: ResourceFetcher,
     ) -> None:
+        """Initialise the resolver.
+
+        Args:
+            dep_spec: The dependency specification to resolve.
+            query_factory: Query factory wired to the desired centres.
+            product_environment: Environment for product classification.
+            fetcher: Fetcher for remote search/download.
+        """
         self.dep_spec = dep_spec
         self._qf: QueryFactory = query_factory
         self._fetcher = fetcher

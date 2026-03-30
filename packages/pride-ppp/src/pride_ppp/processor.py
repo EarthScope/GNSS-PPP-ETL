@@ -10,11 +10,10 @@ from __future__ import annotations
 import datetime
 import enum
 import logging
-from multiprocessing import Process
 import re
 import shutil
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from itertools import groupby
 from pathlib import Path
@@ -591,8 +590,8 @@ class PrideProcessor:
 
             # pdp3 writes outputs as e.g. "kin_2025254_ncc1" (no extension).
             # Search recursively in the working dir to find them.
-            kin_files = list(working_dir.rglob(f"kin_*_{site.lower()}"))
-            res_files = list(working_dir.rglob(f"res_*_{site.lower()}"))
+            kin_files = list(Path(tmpdir).rglob(f"kin_*_{site.lower()}"))
+            res_files = list(Path(tmpdir).rglob(f"res_*_{site.lower()}"))
 
             kin_out: Optional[Path] = None
             res_out: Optional[Path] = None
@@ -944,7 +943,7 @@ class PrideProcessor:
                     stderr=stderr,
                 )
         else:
-            with ProcessPoolExecutor(max_workers=max_workers) as pool:
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 future_to_idx = {
                     pool.submit(
                         self._run_pdp3,

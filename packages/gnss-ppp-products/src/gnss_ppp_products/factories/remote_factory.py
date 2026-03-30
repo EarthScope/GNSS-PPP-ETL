@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 class RemoteResourceFactory:
     """Registry of remote data centers and their resolved catalogs.
 
+    Attributes:
+        _product_catalog: Product catalog for resolving product templates.
+        _parameter_catalog: Parameter catalog for interpolation.
+
     Usage::
 
         remote = RemoteResourceFactory(product_catalog)
@@ -34,6 +38,12 @@ class RemoteResourceFactory:
     def __init__(
         self, product_catalog: ProductCatalog, parameter_catalog: ParameterCatalog
     ) -> None:
+        """Initialise with a product and parameter catalog.
+
+        Args:
+            product_catalog: Catalog of known product types.
+            parameter_catalog: Catalog of parameter definitions.
+        """
         self._product_catalog = product_catalog
         self._parameter_catalog = parameter_catalog
         self._catalogs: Dict[str, ResourceCatalog] = {}

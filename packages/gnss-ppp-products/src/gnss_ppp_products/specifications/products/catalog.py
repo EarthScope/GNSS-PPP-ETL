@@ -72,7 +72,11 @@ class ProductSpec(BaseModel):
 
 
 class ProductSpecCatalog(BaseModel):
-    """Collection of raw product specifications loaded from YAML."""
+    """Collection of raw product specifications loaded from YAML.
+
+    Attributes:
+        products: Mapping of product name to version/variant spec hierarchy.
+    """
 
     products: dict[str, VersionCatalog[ProductSpec]]
 
@@ -151,7 +155,11 @@ class ProductSpecCatalog(BaseModel):
 
 
 class ProductCatalog(Catalog):
-    """Resolved product catalog — maps product names to VersionCatalog[VariantCatalog[Product]]."""
+    """Resolved product catalog — maps product names to VersionCatalog[VariantCatalog[Product]].
+
+    Attributes:
+        products: Mapping of product name to version/variant product hierarchy.
+    """
 
     products: dict[str, VersionCatalog[Product]]
 

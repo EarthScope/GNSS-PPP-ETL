@@ -30,15 +30,24 @@ logger = logging.getLogger(__name__)
 class LockfileManager:
     """Facade for dependency lockfile lifecycle.
 
+    Attributes:
+        _dir: Directory where aggregate lockfiles are stored.
+
     Args:
         lockfile_dir: Directory where aggregate lockfiles are stored.
     """
 
     def __init__(self, lockfile_dir: Path) -> None:
+        """Initialise the manager.
+
+        Args:
+            lockfile_dir: Directory for aggregate lockfile storage.
+        """
         self._dir = lockfile_dir
 
     @property
     def lockfile_dir(self) -> Path:
+        """The directory where aggregate lockfiles are stored."""
         return self._dir
 
     # ------------------------------------------------------------------ #
@@ -52,7 +61,14 @@ class LockfileManager:
         date: datetime.datetime,
         version: str | None = None,
     ) -> bool:
-        """Check if a lockfile exists for the given identity."""
+        """Check if a lockfile exists for the given identity.
+
+        Args:
+            package: Package name.
+            task: Task name.
+            date: Processing date.
+            version: Optional package version.
+        """
         name = get_dependency_lockfile_name(
             package=package, task=task, date=date, version=version
         )
@@ -65,7 +81,14 @@ class LockfileManager:
         date: datetime.datetime,
         version: str | None = None,
     ) -> Optional[DependencyLockFile]:
-        """Load an existing lockfile, or ``None``."""
+        """Load an existing lockfile, or ``None``.
+
+        Args:
+            package: Package name.
+            task: Task name.
+            date: Processing date.
+            version: Optional package version.
+        """
         name = get_dependency_lockfile_name(
             package=package, task=task, date=date, version=version
         )
@@ -81,7 +104,14 @@ class LockfileManager:
         date: datetime.datetime,
         version: str | None = None,
     ) -> Path:
-        """Return the expected path for a lockfile (may not exist yet)."""
+        """Return the expected path for a lockfile (may not exist yet).
+
+        Args:
+            package: Package name.
+            task: Task name.
+            date: Processing date.
+            version: Optional package version.
+        """
         name = get_dependency_lockfile_name(
             package=package, task=task, date=date, version=version
         )
@@ -211,7 +241,14 @@ class LockfileManager:
         date: datetime.datetime,
         version: str | None = None,
     ) -> str:
-        """Canonical filename (no station)."""
+        """Return the canonical lockfile filename for the given identity.
+
+        Args:
+            package: Package name.
+            task: Task name.
+            date: Processing date.
+            version: Optional package version.
+        """
         return get_dependency_lockfile_name(
             package=package, task=task, date=date, version=version
         )

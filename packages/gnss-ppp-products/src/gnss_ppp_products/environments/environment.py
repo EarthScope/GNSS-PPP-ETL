@@ -41,6 +41,12 @@ from gnss_ppp_products.specifications.local.local import LocalResourceSpec
 
 
 class _MatchEntry(NamedTuple):
+    """Pre-compiled regex entry for filename classification.
+
+    Sorted by template length (longest first) so that more specific
+    patterns take precedence during :meth:`ProductEnvironment.classify`.
+    """
+
     template_len: int
     compiled_regex: re.Pattern
     product_name: str
@@ -147,9 +153,16 @@ class ProductEnvironment:
 
     After building, :meth:`classify` parses a product filename into
     structured metadata (product name, format, version, variant, parameters).
+
+    Attributes:
+        _parameter_catalog: Built parameter catalog (available after :meth:`build`).
+        _format_catalog: Built format catalog (available after :meth:`build`).
+        _product_catalog: Built product catalog (available after :meth:`build`).
+        _remote_resource_factory: Built remote factory (available after :meth:`build`).
     """
 
     def __init__(self) -> None:
+        """Initialise an empty environment with no specs loaded."""
 
         self._parameter_specs: Dict[str, LoadedSpecs] = {}
         self._format_specs: Dict[str, LoadedSpecs] = {}
@@ -235,6 +248,7 @@ class ProductEnvironment:
         self._resource_specs[id] = LoadedSpecs(filename=path, built=resource_spec)
 
     def _build_parameter_catalog(self) -> None:
+        """Build the merged :class:`ParameterCatalog` from loaded specs."""
         for id, spec in self._parameter_specs.items():
             if self._parameter_catalog is None:
                 self._parameter_catalog = ParameterCatalog.from_yaml(spec.filename)
@@ -244,6 +258,7 @@ class ProductEnvironment:
         register_computed_fields(self._parameter_catalog)
 
     def _build_format_catalog(self) -> None:
+        """Build the :class:`FormatCatalog` from loaded format specs."""
         assert self._parameter_catalog is not None, (
             "Parameter catalog must be built before building format catalog"
         )
@@ -258,6 +273,7 @@ class ProductEnvironment:
                 self._format_catalog = self._format_catalog.merge(format_catalog_new)
 
     def _build_product_catalog(self) -> None:
+        """Build the :class:`ProductCatalog` and classification match table."""
         assert self._format_catalog is not None, (
             "Format catalog must be built before building product catalog"
         )
@@ -283,6 +299,7 @@ class ProductEnvironment:
         )
 
     def _build_remote_resource_factory(self) -> None:
+        """Build the :class:`RemoteResourceFactory` from loaded resource specs."""
         assert self._product_catalog is not None, (
             "Product catalog must be built before building remote resource factory"
         )

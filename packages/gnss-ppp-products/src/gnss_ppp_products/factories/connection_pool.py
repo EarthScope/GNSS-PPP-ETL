@@ -18,9 +18,21 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionPool:
-    """Thread-safe pool of fsspec filesystem instances for a single host."""
+    """Thread-safe pool of fsspec filesystem instances for a single host.
+
+    Attributes:
+        hostname: Server address (URL or local path).
+        protocol: Inferred protocol (``'ftp'``, ``'http'``, ``'file'``, etc.).
+        max_connections: Maximum number of concurrent connections.
+    """
 
     def __init__(self, hostname: str, max_connections: int = 4):
+        """Initialise a connection pool for *hostname*.
+
+        Args:
+            hostname: Server address or local path.
+            max_connections: Maximum number of concurrent connections.
+        """
         self.hostname = hostname
         self.protocol = fsspec.utils.get_protocol(hostname) or "file"
         self.max_connections = max_connections
@@ -147,9 +159,18 @@ class ConnectionPool:
 
 
 class ConnectionPoolFactory:
-    """Manage per-host connection pools with a shared directory listing cache."""
+    """Manage per-host connection pools with a shared directory listing cache.
+
+    Attributes:
+        max_connections: Default maximum connections per host.
+    """
 
     def __init__(self, max_connections: int = 4):
+        """Initialise the factory.
+
+        Args:
+            max_connections: Default maximum connections per host pool.
+        """
         self.max_connections = max_connections
         self._pools: Dict[str, ConnectionPool] = {}
         self._factory_lock = threading.Lock()

@@ -60,7 +60,16 @@ def _merge_parameters(
 
 
 class ResourceCatalog(Catalog):
-    """Resolves a ResourceSpec against a ProductCatalog into queryable products."""
+    """Resolves a ResourceSpec against a ProductCatalog into queryable products.
+
+    Attributes:
+        id: Center identifier.
+        name: Display name.
+        description: Human-readable description.
+        website: Center website URL.
+        servers: Server endpoints for this center.
+        queries: Expanded :class:`ResourceQuery` objects.
+    """
 
     id: str
     name: str

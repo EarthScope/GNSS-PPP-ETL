@@ -101,6 +101,12 @@ class MissingProductError(Exception):
     """Raised when a required product cannot be found during resolve()."""
 
     def __init__(self, missing: List[str], task: str = ""):
+        """Initialise with the list of missing product names.
+
+        Args:
+            missing: Product names that could not be found.
+            task: Optional task identifier for the error message.
+        """
         self.missing = missing
         self.task = task
         products = ", ".join(missing)

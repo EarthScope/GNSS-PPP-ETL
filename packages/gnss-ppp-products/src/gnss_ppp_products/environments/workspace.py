@@ -59,6 +59,11 @@ class WorkSpace:
     ``Server(protocol='file')`` so that local resources can be queried with the
     same ``ResourceQuery`` interface used for remote servers.
 
+    Attributes:
+        _registered_specs: Mapping of spec names to registered resources.
+        _alias_map: Mapping of aliases to canonical spec names.
+        _resource_specs: Loaded but not-yet-registered spec objects.
+
     Usage::
 
         ws = WorkSpace()
@@ -67,6 +72,7 @@ class WorkSpace:
     """
 
     def __init__(self):
+        """Initialise an empty workspace with no specs loaded."""
 
         self._registered_specs: Dict[str, RegisteredLocalResource] = {}
         self._alias_map: Dict[str, str] = {}  # alias → spec name

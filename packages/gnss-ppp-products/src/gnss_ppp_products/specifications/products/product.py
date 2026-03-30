@@ -182,12 +182,20 @@ T = TypeVar("T")
 
 
 class VariantCatalog(BaseModel, Generic[T]):
-    """Collection of named variants."""
+    """Collection of named variants for a single version.
+
+    Attributes:
+        variants: Mapping of variant name to product instance.
+    """
 
     variants: dict[str, T]
 
 
 class VersionCatalog(BaseModel, Generic[T]):
-    """Collection of named versions, each containing variants."""
+    """Collection of named versions, each containing variants.
+
+    Attributes:
+        versions: Mapping of version name to :class:`VariantCatalog`.
+    """
 
     versions: dict[str, VariantCatalog[T]]

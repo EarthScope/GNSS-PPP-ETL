@@ -55,6 +55,9 @@ class ParameterCatalog:
 
     Replaces ``MetadataCatalog``.  Compatible with
     :func:`~gnss_ppp_products.utilities.metadata_funcs.register_computed_fields`.
+
+    Attributes:
+        parameters: Mapping of parameter names to :class:`Parameter` objects.
     """
 
     def __init__(self, parameters: List[Parameter]):
@@ -73,9 +76,11 @@ class ParameterCatalog:
         return self.parameters.get(name, default)
 
     def __contains__(self, item):
+        """Check whether a parameter name is registered."""
         return item in self.parameters
 
     def __getitem__(self, key):
+        """Retrieve a parameter by name, raising ``KeyError`` if absent."""
         return self.parameters[key]
 
     # -- registration (compatible with register_computed_fields) -----

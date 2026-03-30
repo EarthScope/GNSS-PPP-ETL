@@ -25,6 +25,9 @@ class FormatRegistry(BaseModel):
     """Read-only registry of reusable format definitions.
 
     Loaded from the ``formats:`` key of the product spec YAML.
+
+    Attributes:
+        formats: Mapping of format name to :class:`FormatSpec`.
     """
 
     formats: Dict[str, FormatSpec] = Field(default_factory=dict)

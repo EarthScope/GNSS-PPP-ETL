@@ -32,6 +32,10 @@ class QueryFactory:
     and ``ParameterCatalog`` for fallback regex patterns and computed
     date-field resolution.
 
+    Attributes:
+        _env: The product environment backing this factory.
+        _workspace: Workspace with registered local resources.
+
     Usage::
 
         qf = QueryFactory(
@@ -53,6 +57,13 @@ class QueryFactory:
         product_environment: ProductEnvironment,
         workspace: WorkSpace,
     ):
+        """Initialise the query factory.
+
+        Args:
+            product_environment: Built :class:`ProductEnvironment` with
+                catalogs and remote factory ready.
+            workspace: :class:`WorkSpace` with registered local resources.
+        """
         self._env = product_environment
         self._workspace = workspace
         self._remote = self._env._remote_resource_factory

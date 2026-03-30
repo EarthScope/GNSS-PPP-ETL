@@ -15,7 +15,15 @@ import yaml
 
 
 class Server(BaseModel):
-    """A remote or local server endpoint."""
+    """A remote or local server endpoint.
+
+    Attributes:
+        id: Unique identifier for the server.
+        hostname: Server hostname or URL.
+        protocol: Protocol (``'ftp'``, ``'http'``, ``'https'``, etc.).
+        auth_required: Whether authentication is needed.
+        description: Human-readable server description.
+    """
 
     id: str
     hostname: str
@@ -25,7 +33,20 @@ class Server(BaseModel):
 
 
 class ResourceProductSpec(BaseModel):
-    """A product offering within a resource/center — maps a catalog product to a server with parameter overrides."""
+    """A product offering within a resource/center.
+
+    Maps a catalog product to a server with parameter overrides.
+
+    Attributes:
+        id: Unique identifier for the product offering.
+        server_id: Server that hosts this product.
+        available: Whether the product is currently available.
+        product_name: Catalog product name (e.g. ``'ORBIT'``).
+        product_version: Version filter(s) or ``None`` for all.
+        description: Human-readable description.
+        parameters: Parameter overrides (values pinned by this center).
+        directory: Directory template for this product.
+    """
 
     id: str
     server_id: str
@@ -38,7 +59,16 @@ class ResourceProductSpec(BaseModel):
 
 
 class ResourceSpec(BaseModel):
-    """Root resource specification for a data center."""
+    """Root resource specification for a data center.
+
+    Attributes:
+        id: Unique center identifier.
+        name: Display name for the center.
+        description: Human-readable description.
+        website: Center website URL.
+        servers: Server endpoints for this center.
+        products: Product offerings hosted by this center.
+    """
 
     id: str
     name: str
@@ -63,7 +93,13 @@ class ResourceSpec(BaseModel):
 
 
 class ResourceQuery(BaseModel):
-    """A single concrete query target — one combination of parameter values."""
+    """A single concrete query target — one combination of parameter values.
+
+    Attributes:
+        product: The product being queried.
+        server: The server endpoint to query.
+        directory: Directory path template for the product.
+    """
 
     product: Product
     server: Server

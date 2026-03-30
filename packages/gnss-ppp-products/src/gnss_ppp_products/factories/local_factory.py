@@ -38,6 +38,10 @@ class LocalResourceFactory:
     product type, using the collection's directory template and the catalog's
     filename pattern.
 
+    Attributes:
+        _workspace: The workspace providing registered local specs.
+        _product_environment: The product environment with built catalogs.
+
     Usage::
 
         spec = LocalResourceSpec.from_yaml("local_config.yaml")
@@ -49,6 +53,12 @@ class LocalResourceFactory:
         workspace: WorkSpace,
         product_environment: ProductEnvironment,
     ) -> None:
+        """Initialise from a workspace and product environment.
+
+        Args:
+            workspace: Workspace with registered local resource specs.
+            product_environment: Built product environment with catalogs.
+        """
 
         self._workspace = workspace
         self._product_environment = product_environment
@@ -132,6 +142,17 @@ class LocalResourceFactory:
             self._alias_map[alias] = name
 
     def _get_registered_spec(self, name_or_alias: str) -> RegisteredLocalResource:
+        """Look up a registered local resource by name or alias.
+
+        Args:
+            name_or_alias: Resource name or alias.
+
+        Returns:
+            The registered local resource.
+
+        Raises:
+            KeyError: If *name_or_alias* is not found.
+        """
         if name_or_alias in self._alias_map:
             name_or_alias = self._alias_map[name_or_alias]
         registered_spec = self._registered_specs.get(name_or_alias)

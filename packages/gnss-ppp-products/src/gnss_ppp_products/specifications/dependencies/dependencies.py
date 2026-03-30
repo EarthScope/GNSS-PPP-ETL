@@ -74,7 +74,12 @@ class ResolvedDependency(BaseModel):
 
 @dataclass
 class DependencyResolution:
-    """Aggregated resolution result for all dependencies."""
+    """Aggregated resolution result for all dependencies in a spec.
+
+    Attributes:
+        spec_name: Name of the dependency specification.
+        resolved: List of :class:`ResolvedDependency` results.
+    """
 
     spec_name: str
     resolved: List[ResolvedDependency] = field(default_factory=list)

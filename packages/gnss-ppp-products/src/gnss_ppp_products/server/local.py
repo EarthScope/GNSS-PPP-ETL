@@ -13,7 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class LocalAdapter:
-    """DirectoryAdapter for local filesystem paths."""
+    """DirectoryAdapter for local filesystem paths.
+
+    Implements the :class:`DirectoryAdapter` protocol using :mod:`pathlib`
+    so that local directories can be listed with the same interface
+    used for FTP and HTTP servers.
+    """
 
     def can_connect(self, hostname: str) -> bool:
         """Return ``True`` if *hostname* is an existing local directory."""

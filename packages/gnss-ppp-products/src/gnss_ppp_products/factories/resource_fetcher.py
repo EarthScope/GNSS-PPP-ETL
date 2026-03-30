@@ -53,6 +53,9 @@ class ResourceFetcher:
     ``product.filename.pattern`` against the listing, and populates
     ``directory.value`` and ``filename.value`` on the query.
 
+    Attributes:
+        _connection_pool_factory: Factory managing per-host connection pools.
+
     Usage::
 
         queries = qf.get(date=..., product=..., parameters=...)
@@ -69,6 +72,11 @@ class ResourceFetcher:
         *,
         max_connections: int = 4,
     ) -> None:
+        """Initialise the fetcher.
+
+        Args:
+            max_connections: Maximum connections per host pool.
+        """
         self._connection_pool_factory = ConnectionPoolFactory(
             max_connections=max_connections
         )

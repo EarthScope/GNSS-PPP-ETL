@@ -103,7 +103,11 @@ class FormatSpecCatalog(BaseModel):
 
 
 class FormatCatalog(Catalog):
-    """Resolved format catalog — maps format names to VersionCatalog[VariantCatalog[Product]]."""
+    """Resolved format catalog — maps format names to VersionCatalog[VariantCatalog[Product]].
+
+    Attributes:
+        formats: Mapping of format name to version/variant product hierarchy.
+    """
 
     formats: dict[str, VersionCatalog[Product]]
 
