@@ -189,9 +189,7 @@ class PrideProcessor:
     ) -> None:
         self._pride_dir = Path(pride_dir)
         self._output_dir = Path(output_dir)
-        self._pride_install_dir = (
-            Path(pride_install_dir) if pride_install_dir else None
-        )
+        self._pride_install_dir = Path(pride_install_dir) if pride_install_dir else None
         self._cli_config = cli_config if cli_config is not None else PrideCLIConfig()
 
         # Build private ProductEnvironment (immutable after .build())
@@ -203,8 +201,11 @@ class PrideProcessor:
         # Build private WorkSpace, registered once
         self._workspace = self._build_workspace()
 
-        self._qf = QueryFactory(product_environment=self._env, workspace=self._workspace)
+        self._qf = QueryFactory(
+            product_environment=self._env, workspace=self._workspace
+        )
         self._fetcher = ResourceFetcher(max_connections=10)
+
     # ------------------------------------------------------------------ #
     # Private construction helpers
     # ------------------------------------------------------------------ #
@@ -262,14 +263,18 @@ class PrideProcessor:
             fetcher=self._fetcher,
         )
         resolution, _ = resolver.resolve(
-            date=date, local_sink_id=local_sink_id, station=station,
+            date=date,
+            local_sink_id=local_sink_id,
+            station=station,
         )
         return resolution
 
     # ------------------------------------------------------------------ #
     # Subprocess execution
     # ------------------------------------------------------------------ #
-    def _build_pdp_command(self, rinex: Path, site: str, config_path: Path) -> List[str]:
+    def _build_pdp_command(
+        self, rinex: Path, site: str, config_path: Path
+    ) -> List[str]:
         cli = PrideCLIConfig(
             **{
                 **self._cli_config.model_dump(),
@@ -280,7 +285,6 @@ class PrideProcessor:
 
     @staticmethod
     def _run_pdp3(
-  
         command: List[str],
         site: str,
         pride_dir: Path,
@@ -290,9 +294,7 @@ class PrideProcessor:
         if not shutil.which("pdp3"):
             raise FileNotFoundError("pdp3 binary not found in PATH")
 
-        tmpdir = Path(
-            tempfile.mkdtemp(prefix="pride_", dir=str(pride_dir))
-        )
+        tmpdir = Path(tempfile.mkdtemp(prefix="pride_", dir=str(pride_dir)))
         try:
             result = subprocess.run(
                 command,
@@ -336,23 +338,26 @@ class PrideProcessor:
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
-    def _build_kin_res_paths(self,date:datetime.datetime,site:str,output_dir:Path) -> tuple[Optional[Path], Optional[Path]]:
+    def _build_kin_res_paths(
+        self, date: datetime.datetime, site: str, output_dir: Path
+    ) -> tuple[Optional[Path], Optional[Path]]:
         doy = date.timetuple().tm_yday
         kin_name = f"kin_{date.year}{doy:03d}_{site.lower()}.kin"
         res_name = f"res_{date.year}{doy:03d}_{site.lower()}.res"
         kin_path = output_dir / kin_name
         res_path = output_dir / res_name
         return kin_path, res_path
-    
-    def _validate_kinfile(self,kin_path:Path,override:bool=False) -> bool:
+
+    def _validate_kinfile(self, kin_path: Path, override: bool = False) -> bool:
         if not override:
             if not kin_path.exists():
                 return False
             # check if the kinfile has parsable positions and a valid WRMS value in the .res file
-            kin_df:Optional[pd.DataFrame]= kin_to_kin_position_df(kin_path)
+            kin_df: Optional[pd.DataFrame] = kin_to_kin_position_df(kin_path)
             if kin_df and not kin_df.empty:
                 return True
         return False
+
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
@@ -385,12 +390,16 @@ class PrideProcessor:
         # Determine date
         if date is None:
             ts_start, _ = rinex_get_time_range(rinex)
-            start_date = ts_start.date() if isinstance(ts_start, datetime.datetime) else ts_start
+            start_date = (
+                ts_start.date() if isinstance(ts_start, datetime.datetime) else ts_start
+            )
         else:
             start_date = date if isinstance(date, datetime.date) else date.date()
 
         target_dt = datetime.datetime(
-            start_date.year, start_date.month, start_date.day,
+            start_date.year,
+            start_date.month,
+            start_date.day,
             tzinfo=datetime.timezone.utc,
         )
         # Resolve products
@@ -399,9 +408,15 @@ class PrideProcessor:
         logger.info(resolution.summary())
 
         # Check for existing output
-        kin_file, res_file = self._build_kin_res_paths(date=target_dt, site=site, output_dir=self._output_dir)
+        kin_file, res_file = self._build_kin_res_paths(
+            date=target_dt, site=site, output_dir=self._output_dir
+        )
         if self._validate_kinfile(kin_file, override=override):
-            logger.info("Valid output already exists for %s on %s, skipping pdp3 run", site, start_date)
+            logger.info(
+                "Valid output already exists for %s on %s, skipping pdp3 run",
+                site,
+                start_date,
+            )
             return ProcessingResult(
                 rinex_path=rinex,
                 site=site,
@@ -423,12 +438,17 @@ class PrideProcessor:
             tempfile.mkdtemp(prefix="pride_cfg_", dir=str(self._pride_dir))
         )
         try:
-            config_path = _write_config(sat_products, table_dir, config_dir / "config_file")
-            command = self._build_pdp_command(rinex=rinex, site=site, config_path=config_path)
+            config_path = _write_config(
+                sat_products, table_dir, config_dir / "config_file"
+            )
+            command = self._build_pdp_command(
+                rinex=rinex, site=site, config_path=config_path
+            )
 
             # Run pdp3
             kin_path, res_path, returncode, stderr = self._run_pdp3(
-                command=command, site=site,
+                command=command,
+                site=site,
             )
         finally:
             shutil.rmtree(config_dir, ignore_errors=True)
@@ -484,7 +504,9 @@ class PrideProcessor:
         resolutions: Dict[datetime.date, DependencyResolution] = {}
         for date_key, group in groupby(jobs_sorted, key=lambda j: j[2]):
             target_dt = datetime.datetime(
-                date_key.year, date_key.month, date_key.day,
+                date_key.year,
+                date_key.month,
+                date_key.day,
                 tzinfo=datetime.timezone.utc,
             )
             logger.info("Resolving products for %s", date_key)
@@ -502,7 +524,9 @@ class PrideProcessor:
             )
             config_dirs[date_key] = cfg_dir
             config_paths[date_key] = _write_config(
-                sat_products, table_dir, cfg_dir / "config_file",
+                sat_products,
+                table_dir,
+                cfg_dir / "config_file",
             )
 
         try:
@@ -512,10 +536,14 @@ class PrideProcessor:
 
             for i, (rinex, site, d) in enumerate(jobs):
                 kin_file, res_file = self._build_kin_res_paths(
-                    date=d, site=site, output_dir=self._output_dir,
+                    date=d,
+                    site=site,
+                    output_dir=self._output_dir,
                 )
                 if self._validate_kinfile(kin_file, override=override):
-                    logger.info("Valid output already exists for %s on %s, skipping", site, d)
+                    logger.info(
+                        "Valid output already exists for %s on %s, skipping", site, d
+                    )
                     results[i] = ProcessingResult(
                         rinex_path=rinex,
                         site=site,
@@ -528,7 +556,9 @@ class PrideProcessor:
                     continue
 
                 command = self._build_pdp_command(
-                    rinex=rinex, site=site, config_path=config_paths[d],
+                    rinex=rinex,
+                    site=site,
+                    config_path=config_paths[d],
                 )
                 pending.append((i, command, site))
 
@@ -536,20 +566,33 @@ class PrideProcessor:
             if max_workers <= 1:
                 for idx, command, site in pending:
                     kin_path, res_path, rc, stderr = self._run_pdp3(
-                        command=command, site=site,pride_dir=self._pride_dir,output_dir=self._output_dir
+                        command=command,
+                        site=site,
+                        pride_dir=self._pride_dir,
+                        output_dir=self._output_dir,
                     )
                     rinex, site, d = jobs[idx]
                     results[idx] = ProcessingResult(
-                        rinex_path=rinex, site=site, date=d,
-                        kin_path=kin_path, res_path=res_path,
+                        rinex_path=rinex,
+                        site=site,
+                        date=d,
+                        kin_path=kin_path,
+                        res_path=res_path,
                         config_path=config_paths[d],
                         resolution=resolutions[d],
-                        returncode=rc, stderr=stderr,
+                        returncode=rc,
+                        stderr=stderr,
                     )
             else:
                 with ProcessPoolExecutor(max_workers=max_workers) as pool:
                     future_to_idx = {
-                        pool.submit(self._run_pdp3, command=cmd, site=site,pride_dir=self._pride_dir,output_dir=self._output_dir): idx
+                        pool.submit(
+                            self._run_pdp3,
+                            command=cmd,
+                            site=site,
+                            pride_dir=self._pride_dir,
+                            output_dir=self._output_dir,
+                        ): idx
                         for idx, cmd, site in pending
                     }
                     for future in as_completed(future_to_idx):
@@ -557,11 +600,15 @@ class PrideProcessor:
                         kin_path, res_path, rc, stderr = future.result()
                         rinex, site, d = jobs[idx]
                         results[idx] = ProcessingResult(
-                            rinex_path=rinex, site=site, date=d,
-                            kin_path=kin_path, res_path=res_path,
+                            rinex_path=rinex,
+                            site=site,
+                            date=d,
+                            kin_path=kin_path,
+                            res_path=res_path,
                             config_path=config_paths[d],
                             resolution=resolutions[d],
-                            returncode=rc, stderr=stderr,
+                            returncode=rc,
+                            stderr=stderr,
                         )
         finally:
             for cfg_dir in config_dirs.values():

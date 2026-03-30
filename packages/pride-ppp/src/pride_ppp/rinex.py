@@ -147,10 +147,7 @@ def _write_brdn(file: Path, prefix: str, fm: IO) -> None:
                     num2 = float(line[22:41])
                     num3 = float(line[41:60])
                     num4 = float(line[60:79])
-                    fm.write(
-                        f"    {num1:.12e} {num2:.12e}"
-                        f" {num3:.12e} {num4:.12e}\n"
-                    )
+                    fm.write(f"    {num1:.12e} {num2:.12e} {num3:.12e} {num4:.12e}\n")
 
                 line = lines[i + 7].replace("D", "e")
                 num1 = float(line[3:22])
@@ -169,9 +166,7 @@ def _write_brdn(file: Path, prefix: str, fm: IO) -> None:
                     fm.write(lines[i])
                 i += 1
         except Exception as e:
-            logger.error(
-                "Error at line %d of file %s: %s", i, file, e
-            )
+            logger.error("Error at line %d of file %s: %s", i, file, e)
             break
 
 
@@ -217,10 +212,7 @@ def _write_brdg(file: Path, prefix: str, fm: IO) -> None:
                     num2 = float(line[22:41])
                     num3 = float(line[41:60])
                     num4 = float(line[60:79])
-                    fm.write(
-                        f"    {num1: .12e}{num2: .12e}"
-                        f"{num3: .12e}{num4: .12e}\n"
-                    )
+                    fm.write(f"    {num1: .12e}{num2: .12e}{num3: .12e}{num4: .12e}\n")
                 i += 4
                 if i >= len(lines):
                     break
@@ -229,9 +221,7 @@ def _write_brdg(file: Path, prefix: str, fm: IO) -> None:
                     in_header = False
                 i += 1
         except Exception as e:
-            logger.error(
-                "Error at line %d of file %s: %s", i, file, e
-            )
+            logger.error("Error at line %d of file %s: %s", i, file, e)
             break
 
 

@@ -28,6 +28,7 @@ from gnss_ppp_products.utilities.helpers import hash_file as _hash_file
 
 logger = logging.getLogger(__name__)
 
+
 def validate_lock_product(product: LockProduct) -> bool:
     """Check that a lock-product's sink file exists and its hash matches.
 
@@ -55,7 +56,9 @@ def validate_lock_product(product: LockProduct) -> bool:
             return True
 
     if not sink_path.exists():
-        logger.warning(f"Lock product validation failed: sink file does not exist: {sink_path}")
+        logger.warning(
+            f"Lock product validation failed: sink file does not exist: {sink_path}"
+        )
         return False
     if product.hash:
         actual_hash = _hash_file(sink_path)
@@ -246,7 +249,7 @@ def get_dependency_lockfile(
 
     with open(lockfile_path, "r") as f:
         dep_lockfile_data = f.read()
-  
+
     return DependencyLockFile.model_validate_json(dep_lockfile_data), lockfile_path
 
 

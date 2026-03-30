@@ -273,7 +273,9 @@ class ResourceFetcher:
         if destination_path.suffix == ".gz":
             decompressed_path = destination_path.with_suffix("")
             if decompressed_path.exists() and decompressed_path.stat().st_size > 0:
-                logger.info(f"Skipping download, decompressed file already exists: {decompressed_path}")
+                logger.info(
+                    f"Skipping download, decompressed file already exists: {decompressed_path}"
+                )
                 return decompressed_path
 
         # Skip download if the file already exists and is non-empty
@@ -300,6 +302,8 @@ class ResourceFetcher:
             decompressed = decompress_gzip(result)
             if decompressed is not None:
                 return decompressed
-            logger.warning(f"Decompression failed for {result}, returning compressed file")
+            logger.warning(
+                f"Decompression failed for {result}, returning compressed file"
+            )
 
         return result

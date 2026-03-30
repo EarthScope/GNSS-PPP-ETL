@@ -33,4 +33,6 @@ if __name__ == "__main__":
     elapsed_hours = elapsed_time / 3600
     elapsed_minutes = (elapsed_time % 3600) / 60
 
-    print(f"Processed {len(rinex_files)} files in {elapsed_hours:.2f} hours ({elapsed_minutes:.2f} minutes).")
+    print(
+        f"Processed {len(rinex_files)} files in {elapsed_hours:.2f} hours ({elapsed_minutes:.2f} minutes)."
+    )
