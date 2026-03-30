@@ -15,6 +15,7 @@ Provides pure-function helpers for the lockfile lifecycle:
 """
 
 import datetime
+import json
 from pathlib import Path
 from typing import List, Optional, Tuple
 import logging
@@ -243,7 +244,9 @@ def get_dependency_lockfile(
     if not lockfile_path.exists():
         return None, lockfile_path
 
-    dep_lockfile_data = lockfile_path.read_text(encoding="utf-8")
+    with open(lockfile_path, "r") as f:
+        dep_lockfile_data = f.read()
+  
     return DependencyLockFile.model_validate_json(dep_lockfile_data), lockfile_path
 
 

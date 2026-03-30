@@ -13,7 +13,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from itertools import groupby
 from pathlib import Path
@@ -269,27 +269,29 @@ class PrideProcessor:
     # ------------------------------------------------------------------ #
     # Subprocess execution
     # ------------------------------------------------------------------ #
-
-    def _run_pdp3(
-        self,
-        rinex: Path,
-        site: str,
-        config_path: Path,
-    ) -> tuple[Optional[Path], Optional[Path], int, str]:
-        """Run pdp3 in an isolated temp dir. Returns (kin, res, returncode, stderr)."""
-        if not shutil.which("pdp3") and self._cli_config.local_pdp3_path is None:
-            raise FileNotFoundError("pdp3 binary not found in PATH")
-
+    def _build_pdp_command(self, rinex: Path, site: str, config_path: Path) -> List[str]:
         cli = PrideCLIConfig(
             **{
                 **self._cli_config.model_dump(),
                 "pride_configfile_path": config_path,
             }
         )
-        command = cli.generate_pdp_command(site=site, local_file_path=str(rinex))
+        return cli.generate_pdp_command(site=site, local_file_path=str(rinex))
+
+    @staticmethod
+    def _run_pdp3(
+  
+        command: List[str],
+        site: str,
+        pride_dir: Path,
+        output_dir: Path,
+    ) -> tuple[Optional[Path], Optional[Path], int, str]:
+        """Run pdp3 in an isolated temp dir. Returns (kin, res, returncode, stderr)."""
+        if not shutil.which("pdp3"):
+            raise FileNotFoundError("pdp3 binary not found in PATH")
 
         tmpdir = Path(
-            tempfile.mkdtemp(prefix="pride_", dir=str(self._pride_dir))
+            tempfile.mkdtemp(prefix="pride_", dir=str(pride_dir))
         )
         try:
             result = subprocess.run(
@@ -313,18 +315,18 @@ class PrideProcessor:
             kin_out: Optional[Path] = None
             res_out: Optional[Path] = None
 
-            self._output_dir.mkdir(parents=True, exist_ok=True)
+            output_dir.mkdir(parents=True, exist_ok=True)
 
             if kin_files:
                 src = kin_files[0]
-                dst = self._output_dir / (src.name + ".kin")
+                dst = output_dir / (src.name + ".kin")
                 shutil.move(str(src), str(dst))
                 kin_out = dst
                 logger.info("Generated kin file %s", dst)
 
             if res_files:
                 src = res_files[0]
-                dst = self._output_dir / (src.name + ".res")
+                dst = output_dir / (src.name + ".res")
                 shutil.move(str(src), str(dst))
                 res_out = dst
                 logger.info("Generated res file %s", dst)
@@ -334,6 +336,23 @@ class PrideProcessor:
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
+    def _build_kin_res_paths(self,date:datetime.datetime,site:str,output_dir:Path) -> tuple[Optional[Path], Optional[Path]]:
+        doy = date.timetuple().tm_yday
+        kin_name = f"kin_{date.year}{doy:03d}_{site.lower()}.kin"
+        res_name = f"res_{date.year}{doy:03d}_{site.lower()}.res"
+        kin_path = output_dir / kin_name
+        res_path = output_dir / res_name
+        return kin_path, res_path
+    
+    def _validate_kinfile(self,kin_path:Path,override:bool=False) -> bool:
+        if not override:
+            if not kin_path.exists():
+                return False
+            # check if the kinfile has parsable positions and a valid WRMS value in the .res file
+            kin_df:Optional[pd.DataFrame]= kin_to_kin_position_df(kin_path)
+            if kin_df and not kin_df.empty:
+                return True
+        return False
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
@@ -344,6 +363,7 @@ class PrideProcessor:
         *,
         site: Optional[str] = None,
         date: Optional[datetime.date] = None,
+        override: bool = False,
     ) -> ProcessingResult:
         """Process one RINEX file end-to-end.
 
@@ -373,31 +393,24 @@ class PrideProcessor:
             start_date.year, start_date.month, start_date.day,
             tzinfo=datetime.timezone.utc,
         )
-
-        # Check for existing output
-        doy = start_date.timetuple().tm_yday
-        kin_name = f"kin_{start_date.year}{doy:03d}_{site.lower()}.kin"
-        existing_kin = self._output_dir / kin_name
-        if existing_kin.exists():
-            res_name = f"res_{start_date.year}{doy:03d}_{site.lower()}.res"
-            existing_res = self._output_dir / res_name
-            logger.info("Output already exists: %s", existing_kin)
-            # Build a minimal resolution for the result
-            resolution = self._resolve(target_dt, station=site)
-            return ProcessingResult(
-                rinex_path=rinex,
-                site=site,
-                date=start_date,
-                kin_path=existing_kin,
-                res_path=existing_res if existing_res.exists() else None,
-                config_path=Path("(cached)"),
-                resolution=resolution,
-            )
-
         # Resolve products
         logger.info("Resolving products for %s (site=%s)", start_date, site)
         resolution = self._resolve(target_dt, station=site)
         logger.info(resolution.summary())
+
+        # Check for existing output
+        kin_file, res_file = self._build_kin_res_paths(date=target_dt, site=site, output_dir=self._output_dir)
+        if self._validate_kinfile(kin_file, override=override):
+            logger.info("Valid output already exists for %s on %s, skipping pdp3 run", site, start_date)
+            return ProcessingResult(
+                rinex_path=rinex,
+                site=site,
+                date=start_date,
+                kin_path=kin_file,
+                res_path=res_file if res_file and res_file.exists() else None,
+                config_path=Path("(cached)"),
+                resolution=resolution,
+            )
 
         if not resolution.all_required_fulfilled:
             missing = [r.spec for r in resolution.missing if r.required]
@@ -411,10 +424,11 @@ class PrideProcessor:
         )
         try:
             config_path = _write_config(sat_products, table_dir, config_dir / "config_file")
+            command = self._build_pdp_command(rinex=rinex, site=site, config_path=config_path)
 
             # Run pdp3
             kin_path, res_path, returncode, stderr = self._run_pdp3(
-                rinex=rinex, site=site, config_path=config_path,
+                command=command, site=site,
             )
         finally:
             shutil.rmtree(config_dir, ignore_errors=True)
@@ -437,8 +451,12 @@ class PrideProcessor:
         *,
         sites: Optional[Sequence[str]] = None,
         max_workers: int = 1,
+        override: bool = False,
     ) -> List[ProcessingResult]:
         """Process N RINEX files, grouping by date to share product resolution.
+
+        Product resolution and config generation happen in the main thread.
+        Only the pdp3 subprocess calls are dispatched to a worker pool.
 
         Args:
             rinex_files: Paths to RINEX observation files.
@@ -476,75 +494,77 @@ class PrideProcessor:
         # Pre-build per-date config files in temp dirs
         config_dirs: Dict[datetime.date, Path] = {}
         config_paths: Dict[datetime.date, Path] = {}
+        for date_key, resolution in resolutions.items():
+            sat_products, _ = _resolution_to_satellite_products(resolution)
+            table_dir = _resolution_to_table_dir(resolution)
+            cfg_dir = Path(
+                tempfile.mkdtemp(prefix="pride_cfg_", dir=str(self._pride_dir))
+            )
+            config_dirs[date_key] = cfg_dir
+            config_paths[date_key] = _write_config(
+                sat_products, table_dir, cfg_dir / "config_file",
+            )
+
         try:
-            for date_key, resolution in resolutions.items():
-                sat_products, _ = _resolution_to_satellite_products(resolution)
-                table_dir = _resolution_to_table_dir(resolution)
-                cfg_dir = Path(
-                    tempfile.mkdtemp(prefix="pride_cfg_", dir=str(self._pride_dir))
-                )
-                config_dirs[date_key] = cfg_dir
-                config_paths[date_key] = _write_config(
-                    sat_products, table_dir, cfg_dir / "config_file",
-                )
+            # Prepare commands; skip jobs with valid existing output
+            pending: List[tuple[int, List[str], str]] = []  # (job_idx, command, site)
+            results: List[Optional[ProcessingResult]] = [None] * len(jobs)
 
-            # Run pdp3 for each job
-            def _run_one(job: tuple[Path, str, datetime.date]) -> ProcessingResult:
-                rinex, site, d = job
-                resolution = resolutions[d]
-                config_path = config_paths[d]
-
-                # Check for existing output
-                doy = d.timetuple().tm_yday
-                kin_name = f"kin_{d.year}{doy:03d}_{site.lower()}.kin"
-                existing_kin = self._output_dir / kin_name
-                if existing_kin.exists():
-                    res_name = f"res_{d.year}{doy:03d}_{site.lower()}.res"
-                    existing_res = self._output_dir / res_name
-                    return ProcessingResult(
+            for i, (rinex, site, d) in enumerate(jobs):
+                kin_file, res_file = self._build_kin_res_paths(
+                    date=d, site=site, output_dir=self._output_dir,
+                )
+                if self._validate_kinfile(kin_file, override=override):
+                    logger.info("Valid output already exists for %s on %s, skipping", site, d)
+                    results[i] = ProcessingResult(
                         rinex_path=rinex,
                         site=site,
                         date=d,
-                        kin_path=existing_kin,
-                        res_path=existing_res if existing_res.exists() else None,
-                        config_path=config_path,
-                        resolution=resolution,
+                        kin_path=kin_file,
+                        res_path=res_file if res_file and res_file.exists() else None,
+                        config_path=config_paths[d],
+                        resolution=resolutions[d],
                     )
+                    continue
 
-                kin_path, res_path, rc, stderr = self._run_pdp3(
-                    rinex=rinex, site=site, config_path=config_path,
+                command = self._build_pdp_command(
+                    rinex=rinex, site=site, config_path=config_paths[d],
                 )
-                return ProcessingResult(
-                    rinex_path=rinex,
-                    site=site,
-                    date=d,
-                    kin_path=kin_path,
-                    res_path=res_path,
-                    config_path=config_path,
-                    resolution=resolution,
-                    returncode=rc,
-                    stderr=stderr,
-                )
+                pending.append((i, command, site))
 
-            results: List[ProcessingResult] = []
+            # Run pdp3 subprocesses — only this part is parallelized
             if max_workers <= 1:
-                results = [_run_one(job) for job in jobs]
-            else:
-                with ThreadPoolExecutor(max_workers=max_workers) as pool:
-                    future_to_job = {pool.submit(_run_one, job): job for job in jobs}
-                    for future in as_completed(future_to_job):
-                        results.append(future.result())
-                # Preserve original order
-                job_order = {id(job): i for i, job in enumerate(jobs)}
-                results.sort(
-                    key=lambda r: next(
-                        job_order[id(j)]
-                        for j in jobs
-                        if j[0] == r.rinex_path and j[1] == r.site
+                for idx, command, site in pending:
+                    kin_path, res_path, rc, stderr = self._run_pdp3(
+                        command=command, site=site,pride_dir=self._pride_dir,output_dir=self._output_dir
                     )
-                )
+                    rinex, site, d = jobs[idx]
+                    results[idx] = ProcessingResult(
+                        rinex_path=rinex, site=site, date=d,
+                        kin_path=kin_path, res_path=res_path,
+                        config_path=config_paths[d],
+                        resolution=resolutions[d],
+                        returncode=rc, stderr=stderr,
+                    )
+            else:
+                with ProcessPoolExecutor(max_workers=max_workers) as pool:
+                    future_to_idx = {
+                        pool.submit(self._run_pdp3, command=cmd, site=site,pride_dir=self._pride_dir,output_dir=self._output_dir): idx
+                        for idx, cmd, site in pending
+                    }
+                    for future in as_completed(future_to_idx):
+                        idx = future_to_idx[future]
+                        kin_path, res_path, rc, stderr = future.result()
+                        rinex, site, d = jobs[idx]
+                        results[idx] = ProcessingResult(
+                            rinex_path=rinex, site=site, date=d,
+                            kin_path=kin_path, res_path=res_path,
+                            config_path=config_paths[d],
+                            resolution=resolutions[d],
+                            returncode=rc, stderr=stderr,
+                        )
         finally:
             for cfg_dir in config_dirs.values():
                 shutil.rmtree(cfg_dir, ignore_errors=True)
 
-        return results
+        return [r for r in results if r is not None]
