@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from itertools import groupby
 from pathlib import Path
-from typing import Dict, List, Literal, LiteralString, Optional, Sequence, Union
+from typing import Dict, Iterator, List, Literal, LiteralString, Optional, Sequence, Union
 import tempfile
 import pandas as pd
 
@@ -68,7 +68,6 @@ class ProcessingMode(enum.Enum):
 
     * ``DEFAULT`` — cascades through FIN → RAP → ULT (best available).
     * ``FINAL``   — only accepts final (FIN) products.
-    * ``RAPID``   — only accepts rapid (RAP) products.
     """
 
     DEFAULT = "default"
@@ -806,7 +805,7 @@ class PrideProcessor:
         sites: Optional[Sequence[str]] = None,
         max_workers: int = 1,
         override: bool = False,
-    ) -> List[ProcessingResult]:
+    ) -> Iterator[ProcessingResult]:
         """Process multiple RINEX files, sharing product resolution per date.
 
         This is the preferred entry point when processing many files.
@@ -834,10 +833,11 @@ class PrideProcessor:
                          ``1`` means fully sequential execution.
             override: Re-run pdp3 even when valid output already exists.
 
-        Returns:
-            One ``ProcessingResult`` per input file, in the same order.
-            Results for skipped (cached) files have ``returncode == 0``
-            and ``config_path`` set to the shared date config.
+        Yields:
+            A ``ProcessingResult`` for each file as it completes.
+            Cached results are yielded first, then pdp3 results in
+            completion order.  Wrap in ``list()`` if you need all
+            results at once.
 
         Raises:
             ValueError: If *sites* length does not match *rinex_files*.
@@ -890,7 +890,6 @@ class PrideProcessor:
 
         # --- Step 4: Build commands, skip cached results -------------------------
         pending: List[tuple[int, List[str], str, datetime.date]] = []
-        results: List[Optional[ProcessingResult]] = [None] * len(jobs)
 
         for i, (rinex, site, d) in enumerate(jobs):
             kin_file, res_file = self._build_kin_res_paths(
@@ -902,7 +901,7 @@ class PrideProcessor:
                 logger.info(
                     "Valid output already exists for %s on %s, skipping", site, d
                 )
-                results[i] = ProcessingResult(
+                yield ProcessingResult(
                     rinex_path=rinex,
                     site=site,
                     date=d,
@@ -931,7 +930,7 @@ class PrideProcessor:
                     output_dir=self._output_dir,
                 )
                 rinex, site, d = jobs[idx]
-                results[idx] = ProcessingResult(
+                yield ProcessingResult(
                     rinex_path=rinex,
                     site=site,
                     date=d,
@@ -957,7 +956,7 @@ class PrideProcessor:
                     idx = future_to_idx[future]
                     kin_path, res_path, rc, stderr = future.result()
                     rinex, site, d = jobs[idx]
-                    results[idx] = ProcessingResult(
+                    yield ProcessingResult(
                         rinex_path=rinex,
                         site=site,
                         date=d,
@@ -968,5 +967,3 @@ class PrideProcessor:
                         returncode=rc,
                         stderr=stderr,
                     )
-
-        return [r for r in results if r is not None]
