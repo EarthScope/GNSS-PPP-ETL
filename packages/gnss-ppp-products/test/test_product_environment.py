@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from gnss_ppp_products.factories import ProductEnvironment
-from gnss_ppp_products.configs import (
+from gnss_management_specs.configs import (
     META_SPEC_YAML,
     FORMAT_SPEC_YAML,
     PRODUCT_SPEC_YAML,

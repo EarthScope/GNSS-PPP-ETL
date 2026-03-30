@@ -28,7 +28,7 @@ from gnss_ppp_products import (
     ResourceFetcher,
     WorkSpace,
 )
-from gnss_ppp_products.configs import (
+from gnss_management_specs.configs import (
     CENTERS_RESOURCE_DIR,
     FORMAT_SPEC_YAML,
     LOCAL_SPEC_DIR,

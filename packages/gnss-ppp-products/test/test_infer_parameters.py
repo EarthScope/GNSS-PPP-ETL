@@ -18,11 +18,7 @@ from gnss_ppp_products.specifications.products.product import (
 
 
 # ── Paths ──────────────────────────────────────────────────────────
-_CONFIGS_DIR = (
-    Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "configs"
-)
-META_SPEC_YAML = _CONFIGS_DIR / "meta" / "meta_spec.yaml"
-PRODUCT_SPEC_YAML = _CONFIGS_DIR / "products" / "product_spec.yaml"
+from gnss_management_specs.configs import META_SPEC_YAML, PRODUCT_SPEC_YAML
 
 
 # ── Fixtures ───────────────────────────────────────────────────────

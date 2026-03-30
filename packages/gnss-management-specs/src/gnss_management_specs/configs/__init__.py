@@ -2,8 +2,8 @@
 
 Configs — YAML file paths for the bundled config data.
 
-Use :class:`~gnss_ppp_products.factories.ProductEnvironment` to wire
-these configs into live catalogs and factories.
+Provides absolute ``Path`` constants that point at the YAML specification
+files shipped inside this package.
 """
 
 from pathlib import Path
@@ -24,8 +24,6 @@ CENTERS_RESOURCE_DIR = _CONFIGS_DIR / "centers"
 DEPENDENCY_SPEC_DIR = _CONFIGS_DIR / "dependencies"
 # Path to the format specification YAML.
 FORMAT_SPEC_YAML = _CONFIGS_DIR / "products" / "format_spec.yaml"
-# Path to the PRIDE-PPPAR dependency spec.
-PRIDE_PPPAR_SPEC = _CONFIGS_DIR / "dependencies" / "pride_pppar.yaml"
 __all__ = [
     "META_SPEC_YAML",
     "PRODUCT_SPEC_YAML",
@@ -34,5 +32,4 @@ __all__ = [
     "CENTERS_RESOURCE_DIR",
     "DEPENDENCY_SPEC_DIR",
     "FORMAT_SPEC_YAML",
-    "PRIDE_PPPAR_SPEC",
 ]

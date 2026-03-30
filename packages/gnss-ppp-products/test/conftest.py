@@ -24,15 +24,16 @@ from gnss_ppp_products.specifications.format.format_spec import FormatSpecCatalo
 from gnss_ppp_products.specifications.products.catalog import ProductSpecCatalog
 
 # ── Paths to YAML config files ────────────────────────────────────
-_CONFIGS_DIR = (
-    Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "configs"
+from gnss_management_specs.configs import (
+    META_SPEC_YAML,
+    FORMAT_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
+    LOCAL_SPEC_DIR,
+    CENTERS_RESOURCE_DIR,
 )
-META_SPEC_YAML = _CONFIGS_DIR / "meta" / "meta_spec.yaml"
-FORMAT_SPEC_YAML = _CONFIGS_DIR / "products" / "format_spec.yaml"
-PRODUCT_SPEC_YAML = _CONFIGS_DIR / "products" / "product_spec.yaml"
-LOCAL_CONFIGS = list((_CONFIGS_DIR / "local").glob("*.yaml"))
-CENTERS_DIR = _CONFIGS_DIR / "centers"
-DEP_SPECS = list((_CONFIGS_DIR / "dependencies").glob("*.yaml"))
+
+LOCAL_CONFIGS = list(Path(LOCAL_SPEC_DIR).glob("*.yaml"))
+CENTERS_DIR = CENTERS_RESOURCE_DIR
 
 
 # ── Load specs from YAML configs via specification layer ──────────

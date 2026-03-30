@@ -37,10 +37,10 @@ from gnss_ppp_products.lockfile import (
 
 # ── Paths ──────────────────────────────────────────────────────────
 
-_CONFIGS_DIR = (
-    Path(__file__).resolve().parent.parent / "src" / "gnss_ppp_products" / "configs"
-)
-PRIDE_PPPAR_SPEC = _CONFIGS_DIR / "dependencies" / "pride_pppar.yaml"
+from gnss_management_specs.configs import LOCAL_SPEC_DIR
+
+_TEST_RESOURCES = Path(__file__).resolve().parent / "resources"
+PRIDE_PPPAR_SPEC = _TEST_RESOURCES / "pride_pppar.yaml"
 
 
 # ── Fixtures ───────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ def resolver(multi_env, workspace, dep_spec, tmp_path_factory) -> DependencyReso
     """DependencyResolver wired to the multi-centre environment."""
     base = tmp_path_factory.mktemp("resolve_test")
     ws = WorkSpace()
-    for path in (_CONFIGS_DIR / "local").glob("*.yaml"):
+    for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
         ws.add_resource_spec(path)
     ws.register_spec(base_dir=base, spec_ids=["local_config"])
     qf = QueryFactory(product_environment=multi_env, workspace=ws)

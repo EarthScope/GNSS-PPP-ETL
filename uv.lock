@@ -16,6 +16,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "gnss-management-specs",
     "gnss-ppp-etl",
     "gnss-ppp-products",
     "pride-ppp",
@@ -669,6 +670,11 @@ wheels = [
 ]
 
 [[package]]
+name = "gnss-management-specs"
+version = "0.1.0"
+source = { editable = "packages/gnss-management-specs" }
+
+[[package]]
 name = "gnss-ppp-etl"
 version = "0.1.0"
 source = { virtual = "." }
@@ -690,6 +696,7 @@ source = { editable = "packages/gnss-ppp-products" }
 dependencies = [
     { name = "aiohttp" },
     { name = "fsspec" },
+    { name = "gnss-management-specs" },
     { name = "julian" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -705,6 +712,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.3" },
     { name = "fsspec", specifier = ">=2024.0" },
+    { name = "gnss-management-specs", editable = "packages/gnss-management-specs" },
     { name = "julian", specifier = ">=0.14" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -1470,6 +1478,7 @@ name = "pride-ppp"
 version = "0.1.0"
 source = { editable = "packages/pride-ppp" }
 dependencies = [
+    { name = "gnss-management-specs" },
     { name = "gnss-ppp-products" },
     { name = "julian" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -1489,6 +1498,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "gnss-management-specs", editable = "packages/gnss-management-specs" },
     { name = "gnss-ppp-products", editable = "packages/gnss-ppp-products" },
     { name = "julian", specifier = ">=0.14" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.0" },

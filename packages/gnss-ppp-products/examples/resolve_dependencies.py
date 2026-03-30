@@ -1,9 +1,9 @@
-"""Resolve and download all PRIDE-PPPAR dependencies for a date.
+"""Resolve and download all dependencies for a date.
 
 Demonstrates the full dependency resolution pipeline: builds a
-DependencyResolver from the bundled PRIDE-PPPAR dependency spec,
-registers a local workspace directory, and resolves all required
-products (orbits, clocks, biases, ERP, ionosphere, etc.).
+DependencyResolver from a dependency spec YAML, registers a local
+workspace directory, and resolves all required products (orbits,
+clocks, biases, ERP, ionosphere, etc.).
 
 Products already present on disk are detected automatically via
 lockfiles; missing products are downloaded from remote servers.
@@ -12,11 +12,8 @@ lockfiles; missing products are downloaded from remote servers.
 import datetime
 from pathlib import Path
 from gnss_ppp_products import QueryFactory, ResourceFetcher, DependencyResolver
-from gnss_ppp_products.defaults import (
-    DefaultProductEnvironment,
-    DefaultWorkSpace,
-    Pride_PPP_task,
-)
+from gnss_ppp_products.defaults import DefaultProductEnvironment, DefaultWorkSpace
+from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 
 # --- 1. Configure local storage -----------------------------------------
 # Register a local directory tree where products will be stored.
@@ -27,7 +24,7 @@ workspace.register_spec(base_dir=base_dir, spec_ids=["local_config"], alias="loc
 
 # --- 2. Build the resolver -----------------------------------------------
 env = DefaultProductEnvironment
-dep_spec = Pride_PPP_task  # bundled PRIDE-PPPAR dependency spec
+dep_spec = DependencySpec.from_yaml("path/to/your/dependency_spec.yaml")
 
 qf = QueryFactory(product_environment=env, workspace=workspace)
 fetcher = ResourceFetcher(max_connections=4)

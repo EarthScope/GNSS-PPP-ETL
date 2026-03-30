@@ -105,20 +105,22 @@ for r in results:
         print(r.query.server.hostname, r.matched_filenames)
 ```
 
-### Resolve & download all PRIDE-PPPAR dependencies
+### Resolve & download all dependencies
 
 ```python
 from datetime import datetime, timezone
 from pathlib import Path
 from gnss_ppp_products import QueryFactory, ResourceFetcher, DependencyResolver
-from gnss_ppp_products.defaults import DefaultProductEnvironment, DefaultWorkSpace, Pride_PPP_task
+from gnss_ppp_products.defaults import DefaultProductEnvironment, DefaultWorkSpace
+from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 
 workspace = DefaultWorkSpace
 workspace.register_spec(base_dir=Path("/data/gnss-products"), spec_ids=["local_config"], alias="local")
 
+dep_spec = DependencySpec.from_yaml("path/to/your/dependency_spec.yaml")
 qf = QueryFactory(product_environment=DefaultProductEnvironment, workspace=workspace)
 resolver = DependencyResolver(
-    dep_spec=Pride_PPP_task,
+    dep_spec=dep_spec,
     product_environment=DefaultProductEnvironment,
     query_factory=qf,
     fetcher=ResourceFetcher(),

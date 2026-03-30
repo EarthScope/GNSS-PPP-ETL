@@ -15,8 +15,8 @@ from gnss_ppp_products.specifications.dependencies.dependencies import Dependenc
 from gnss_ppp_products.defaults import (
     DefaultProductEnvironment,
     DefaultWorkSpace,
-    Pride_PPP_task,
 )
+from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
 
 
 env = DefaultProductEnvironment
@@ -31,7 +31,14 @@ workspace.register_spec(base_dir=base_dir, spec_ids=["local_config"], alias="loc
 workspace.register_spec(base_dir=pride_dir, spec_ids=["pride_config"], alias="pride")
 
 
-dep_spec = Pride_PPP_task
+dep_spec = DependencySpec.from_yaml(
+    Path(__file__).resolve().parent.parent
+    / "src"
+    / "gnss_ppp_products"
+    / "configs"
+    / "dependencies"
+    / "pride_pppar.yaml"
+)  # TODO: update path to pride-ppp dependency spec
 
 qf = QueryFactory(
     product_environment=env,

@@ -2,7 +2,7 @@
 
 This `dependencies/` directory is where we lay out the shopping lists for specific GNSS processing tasks or software engines. Rather than asking for individual products one by one, we define a *dependency specification* here that bundles all the necessary GNSS products and static tables required for a particular job.
 
-Each YAML file in this folder (like `pride_pppar.yaml`) outlines:
+Each YAML file in this folder outlines:
 
 *   **`name` and `description`**: What this dependency specification is for.
 *   **`package` and `task`**: Which broader package or task this specification belongs to.
