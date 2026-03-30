@@ -330,7 +330,7 @@ class PrideProcessor:
         output_dir: Path,
         *,
         pride_install_dir: Optional[Path] = None,
-        cli_config: Optional[PrideCLIConfig] = None,
+        cli_config: Optional[PrideCLIConfig] = PrideCLIConfig(),
         mode: Union[
             ProcessingMode, Literal["FINAL", "DEFAULT"]
         ] = ProcessingMode.DEFAULT,

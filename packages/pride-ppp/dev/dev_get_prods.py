@@ -21,7 +21,6 @@ if __name__ == "__main__":
     processor = PrideProcessor(
         pride_dir=pride_dir,
         output_dir=output_dir,
-        cli_config=PrideCLIConfig(),
         mode=ProcessingMode.FINAL,
     )
 

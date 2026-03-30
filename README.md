@@ -180,7 +180,7 @@ GNSS-PPP-ETL/
 │           ├── config.py           # PRIDE config-file I/O
 │           ├── output.py           # .kin/.res parsing
 │           └── rinex.py            # RINEX utilities
-└── table/                          # Static tables (leap.sec, sat_parameters)
+
 ```
 
 ## Requirements

@@ -86,16 +86,7 @@ class PrideCLIConfig(BaseModel):
     interval: Optional[float] = None
     high_ion: Optional[bool] = None
     tides: str = "SOP"
-    local_pdp3_path: Optional[str] = Field(
-        None,
-        title="Local Path to pdp3 Binary",
-        description="Path to the local pdp3 binary. If not provided, the system PATH will be used.",
-    )
-    override: bool = False
-    override_products_download: bool = Field(
-        False,
-        title="Flag to Override Existing Products Download",
-    )
+
     pride_configfile_path: Optional[Path] = Field(
         None,
         title="Path to Pride Config File",
@@ -148,13 +139,8 @@ class PrideCLIConfig(BaseModel):
         >>> cmd[:5]
         ['pdp3', '-m', 'K', '-i', '1']
         """
-        if self.local_pdp3_path:
-            if "pdp3" in self.local_pdp3_path:
-                command = [self.local_pdp3_path]
-            else:
-                command = [os.path.join(self.local_pdp3_path, "pdp3")]
-        else:
-            command = ["pdp3"]
+
+        command = ["pdp3"]
 
         command.extend(["-m", "K"])
         command.extend(["-i", str(self.sample_frequency)])
