@@ -3,14 +3,13 @@
 import logging
 from pathlib import Path
 import time
-from typing import override
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(levelname)-8s %(name)s — %(message)s",
 )
 
-from pride_ppp import PrideProcessor, ProcessingMode, PrideCLIConfig
+from pride_ppp import PrideProcessor, ProcessingMode
 
 pride_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/SFGMain/Pride")
 output_dir = Path(

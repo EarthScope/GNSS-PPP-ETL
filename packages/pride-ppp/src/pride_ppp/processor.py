@@ -21,7 +21,7 @@ from typing import Dict, List, Literal, LiteralString, Optional, Sequence, Union
 import tempfile
 import pandas as pd
 
-from gnss_ppp_products import (
+from gnss_product_management import (
     DependencyResolver,
     ProductEnvironment,
     QueryFactory,
@@ -35,7 +35,7 @@ from gnss_management_specs.configs import (
     META_SPEC_YAML,
     PRODUCT_SPEC_YAML,
 )
-from gnss_ppp_products.specifications.dependencies.dependencies import (
+from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
 )

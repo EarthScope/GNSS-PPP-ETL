@@ -3,12 +3,12 @@ name = "gnss-ppp-etl"
 version = "0.1.0"
 requires-python = ">=3.10,<3.15"
 dependencies = [
-    "gnss-ppp-products>=0.1.0",
+    "gnss-product-management>=0.1.0",
     "ruff>=0.15.8",
 ]
 
 [tool.uv.sources]
-gnss-ppp-products = { workspace = true }
+gnss-product-management = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/*"]

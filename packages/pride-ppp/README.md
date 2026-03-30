@@ -54,12 +54,12 @@ See [examples/](examples/) for more (single file, batch processing).
 ## Architecture
 
 `pride-ppp` delegates all product discovery and fetching to the sibling
-[gnss-ppp-products](../gnss-ppp-products/) package. Internally it follows a
+[gnss-product-management](../gnss-product-management/) package. Internally it follows a
 simple three-stage flow:
 
 1. **Configure** — build `PrideCLIConfig` + `PRIDEPPPFileConfig` from user
    inputs and bundled defaults (`defaults/`, `config_files/`).
-2. **Resolve** — use `gnss-ppp-products` to discover, download, and
+2. **Resolve** — use `gnss-product-management` to discover, download, and
    decompress required orbit / clock / bias / ERP / table files.
 3. **Execute** — invoke `pdp3` in an isolated temp directory; parse
    `.kin` / `.res` outputs into `ProcessingResult`.

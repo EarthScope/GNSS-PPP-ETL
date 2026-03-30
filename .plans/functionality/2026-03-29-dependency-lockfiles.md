@@ -20,7 +20,7 @@ Lockfiles record the exact resolved products (URLs, hashes, sizes, local paths) 
 A lockfile is uniquely identified by `(task, date, version)`:
 - **task**: from `DependencySpec.task` (e.g. `PPP`)
 - **date**: processing date (datetime → `YYYY_DOY`)
-- **version**: `gnss-ppp-products` package version via `importlib.metadata.version()`
+- **version**: `gnss-product-management` package version via `importlib.metadata.version()`
 
 Station is **not** part of the identity — lockfiles are station-independent.
 

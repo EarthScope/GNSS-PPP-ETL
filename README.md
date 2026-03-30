@@ -29,10 +29,10 @@ containing two packages:
 
 | Package | Purpose |
 |---|---|
-| [`gnss-ppp-products`](packages/gnss-ppp-products/) | YAML-driven product discovery, query expansion, dependency resolution, and download from IGS analysis centers |
+| [`gnss-product-management`](packages/gnss-product-management/) | YAML-driven product discovery, query expansion, dependency resolution, and download from IGS analysis centers |
 | [`pride-ppp`](packages/pride-ppp/) | Concurrent-safe PRIDE-PPPAR integration — RINEX in, kinematic positions out |
 
-### gnss-ppp-products
+### gnss-product-management
 
 The core library. Bundles YAML specifications for products, file-naming
 formats, center server layouts, and local storage trees. A five-layer
@@ -42,7 +42,7 @@ requires only a new YAML file.
 
 ### pride-ppp
 
-A processing facade built on top of `gnss-ppp-products`. Resolves all
+A processing facade built on top of `gnss-product-management`. Resolves all
 dependencies for a PRIDE-PPPAR run, writes the `pdp3` config file, executes
 the binary in an isolated temp directory, and returns structured
 `ProcessingResult` objects with lazy DataFrame access to `.kin` positions and
@@ -92,8 +92,8 @@ uv sync --all-packages
 
 ```python
 from datetime import datetime, timezone
-from gnss_ppp_products import QueryFactory, ResourceFetcher
-from gnss_ppp_products.defaults import DefaultProductEnvironment, DefaultWorkSpace
+from gnss_product_management import QueryFactory, ResourceFetcher
+from gnss_product_management.defaults import DefaultProductEnvironment, DefaultWorkSpace
 
 qf = QueryFactory(product_environment=DefaultProductEnvironment, workspace=DefaultWorkSpace)
 queries = qf.get(date=datetime(2025, 1, 2, tzinfo=timezone.utc), product={"name": "ORBIT"})
@@ -110,9 +110,9 @@ for r in results:
 ```python
 from datetime import datetime, timezone
 from pathlib import Path
-from gnss_ppp_products import QueryFactory, ResourceFetcher, DependencyResolver
-from gnss_ppp_products.defaults import DefaultProductEnvironment, DefaultWorkSpace
-from gnss_ppp_products.specifications.dependencies.dependencies import DependencySpec
+from gnss_product_management import QueryFactory, ResourceFetcher, DependencyResolver
+from gnss_product_management.defaults import DefaultProductEnvironment, DefaultWorkSpace
+from gnss_product_management.specifications.dependencies.dependencies import DependencySpec
 
 workspace = DefaultWorkSpace
 workspace.register_spec(base_dir=Path("/data/gnss-products"), spec_ids=["local_config"], alias="local")
@@ -154,9 +154,9 @@ Runnable scripts in each package's `examples/` directory:
 
 | Package | Script | Description |
 |---|---|---|
-| gnss-ppp-products | [search_products.py](packages/gnss-ppp-products/examples/search_products.py) | Search all centers for a product type on a given date |
-| gnss-ppp-products | [resolve_dependencies.py](packages/gnss-ppp-products/examples/resolve_dependencies.py) | Resolve and download all PRIDE-PPPAR dependencies |
-| gnss-ppp-products | [download_from_center.py](packages/gnss-ppp-products/examples/download_from_center.py) | Download a specific product from a single center |
+| gnss-product-management | [search_products.py](packages/gnss-product-management/examples/search_products.py) | Search all centers for a product type on a given date |
+| gnss-product-management | [resolve_dependencies.py](packages/gnss-product-management/examples/resolve_dependencies.py) | Resolve and download all PRIDE-PPPAR dependencies |
+| gnss-product-management | [download_from_center.py](packages/gnss-product-management/examples/download_from_center.py) | Download a specific product from a single center |
 | pride-ppp | [process_rinex.py](packages/pride-ppp/examples/process_rinex.py) | Process one RINEX file end-to-end |
 | pride-ppp | [batch_process.py](packages/pride-ppp/examples/batch_process.py) | Batch-process multiple RINEX files |
 
@@ -166,8 +166,8 @@ Runnable scripts in each package's `examples/` directory:
 GNSS-PPP-ETL/
 ├── pyproject.toml                  # Workspace root
 ├── packages/
-│   ├── gnss-ppp-products/          # Product discovery & download
-│   │   ├── src/gnss_ppp_products/
+│   ├── gnss-product-management/          # Product discovery & download
+│   │   ├── src/gnss_product_management/
 │   │   │   ├── configs/            # Bundled YAML specs (centers, products, formats)
 │   │   │   ├── environments/       # ProductEnvironment, WorkSpace
 │   │   │   ├── factories/          # QueryFactory, ResourceFetcher, DependencyResolver

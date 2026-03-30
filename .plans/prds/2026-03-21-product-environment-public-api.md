@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-The `gnss-ppp-products` package has a fully built internal layer — catalogs, query factories, resource fetchers, dependency resolvers, local/remote factories — but no stable public interface for callers. Pipeline developers (e.g. `pride-ppp`) and researchers writing one-off scripts must reach into internals, wire up multiple factories, and manage query construction manually. There is no single entry point that encapsulates the five core operations every caller needs: find a product, download it, classify a filename, resolve task dependencies, and discover what's available.
+The `gnss-product-management` package has a fully built internal layer — catalogs, query factories, resource fetchers, dependency resolvers, local/remote factories — but no stable public interface for callers. Pipeline developers (e.g. `pride-ppp`) and researchers writing one-off scripts must reach into internals, wire up multiple factories, and manage query construction manually. There is no single entry point that encapsulates the five core operations every caller needs: find a product, download it, classify a filename, resolve task dependencies, and discover what's available.
 
 ## Solution
 
@@ -19,8 +19,8 @@ Split the public surface into two concepts:
 
 ```python
 from datetime import date
-from gnss_ppp_products import ProductEnvironment
-from gnss_ppp_products.pipelines import FindPipeline, ResolvePipeline
+from gnss_product_management import ProductEnvironment
+from gnss_product_management.pipelines import FindPipeline, ResolvePipeline
 
 env = ProductEnvironment(workspace="/data/pride-2025")
 
