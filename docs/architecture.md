@@ -1,6 +1,6 @@
 # gnss-product-management: Layers & Abstractions
 
-> Architecture blueprint for `packages/gnss-product-management/src/gnss_product_management/`
+> Architecture blueprint for [`packages/gnss-product-management/src/gnss_product_management/`](../packages/gnss-product-management/src/gnss_product_management/)
 
 ---
 
@@ -268,30 +268,6 @@ Orchestration modules coordinate between catalogs and I/O adapters. They **do no
 
 ### Key Rule
 All user code should interact through `ProductEnvironment`. Internal layer details (catalogs, specs, factories) are implementation concerns.
-
----
-
-## Identified Inconsistencies (Current State)
-
-All 6 inconsistencies have been resolved:
-
-### 1. ~~LocalResourceFactory lives in specifications/~~ ✅ RESOLVED
-Moved to `factories/local_factory.py`. Backward-compat re-export in `specifications/local/__init__.py`.
-
-### 2. ~~DependencyResolver lives in specifications/~~ ✅ RESOLVED
-Moved to `factories/dependency_resolver.py`. Uses direct module imports to avoid circular deps.
-
-### 3. ~~FormatCatalog uses `__init__` instead of `@classmethod resolve()`~~ ✅ RESOLVED
-Refactored to `FormatCatalog.resolve(format_spec_catalog, parameter_catalog)`.
-
-### 4. ~~ResourceCatalog mixes Layer 1 + Layer 2 in one file~~ ✅ RESOLVED
-Extracted `ResourceCatalog` + helpers into `specifications/remote/resource_catalog.py`. `resource.py` now contains only Layer 1 models.
-
-### 5. ~~QueryFactory helper models duplicate specification-layer concepts~~ ✅ RESOLVED
-Both sets of dead code removed: `AxisAlias`/`SortPreference`/`QueryProfile` from `query_factory.py`, and `AxisDef`/`ExtraAxisDef`/`ProductQueryProfile` from `specifications/queries/query.py` (file deleted). Neither was used in production code.
-
-### 6. ~~Protocol adapters lack a common interface~~ ✅ RESOLVED
-`DirectoryAdapter` Protocol defined in `server/protocol.py`. Concrete adapters: `FTPAdapter` (ftp.py), `HTTPAdapter` (http.py), `LocalAdapter` (local.py). `ResourceFetcher` now uses an adapter registry instead of if/elif dispatch.
 
 ---
 

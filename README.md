@@ -49,6 +49,16 @@ the binary in an isolated temp directory, and returns structured
 `ProcessingResult` objects with lazy DataFrame access to `.kin` positions and
 `.res` residuals.
 
+## Documentation
+
+See [`docs/INDEX.md`](docs/INDEX.md) for a full table of contents. Key docs:
+
+| Document | Description |
+|---|---|
+| [Architecture](docs/architecture.md) | Five-layer design of `gnss-product-management` |
+| [PPP Products](docs/ppp-products.md) | GNSS product naming conventions and file formats |
+| [Config Reference](docs/config-reference.md) | Guide to the YAML configuration system |
+
 ## Supported products
 
 Product types currently defined in the bundled specifications:

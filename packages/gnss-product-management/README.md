@@ -49,7 +49,7 @@ See [examples/](examples/) for more (dependency resolution, single-center downlo
 
 ## Architecture
 
-The package is organized in five layers (see [.blueprint/layers-and-abstractions.md](.blueprint/layers-and-abstractions.md) for full details):
+The package is organized in five layers (see [docs/architecture.md](../../docs/architecture.md) for full details):
 
 ```
 Layer 4 — Interface       ProductEnvironment (unified entry point)
