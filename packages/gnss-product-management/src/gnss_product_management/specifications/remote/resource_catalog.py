@@ -6,7 +6,6 @@ ResourceCatalog — resolve a ResourceSpec against a ProductCatalog into queryab
 from itertools import product as iterproduct
 from typing import List, Optional
 
-from pydantic import BaseModel
 
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import Parameter

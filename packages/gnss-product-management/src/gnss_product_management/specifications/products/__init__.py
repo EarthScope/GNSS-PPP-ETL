@@ -1,11 +1,11 @@
 """Author: Franklyn Dunbar"""
 
 from .product import (
-    Product,
-    ProductPath,
-    VariantCatalog,
-    VersionCatalog,
-    infer_from_regex,
+    Product as Product,
+    ProductPath as ProductPath,
+    VariantCatalog as VariantCatalog,
+    VersionCatalog as VersionCatalog,
+    infer_from_regex as infer_from_regex,
 )
 
 # ProductCatalog, ProductSpecCatalog live in catalog.py

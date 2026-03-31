@@ -18,18 +18,14 @@ import pytest
 
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
-    ParameterCatalog,
 )
-from gnss_product_management.specifications.products.product import Product, ProductPath
+from gnss_product_management.specifications.products.product import ProductPath
 from gnss_product_management.specifications.products.catalog import (
     ProductCatalog,
-    ProductSpecCatalog,
 )
 from gnss_product_management.specifications.format.format_spec import (
     FormatCatalog,
-    FormatSpecCatalog,
 )
-from gnss_product_management.specifications.remote.resource import ResourceQuery, Server
 from gnss_product_management.utilities.metadata_funcs import register_computed_fields
 
 from conftest import (

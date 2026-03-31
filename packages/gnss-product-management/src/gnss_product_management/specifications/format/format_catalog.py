@@ -5,11 +5,9 @@ Format registry — loads and indexes raw format specifications from YAML.
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
-from typing import Dict, List, Union
+from typing import Dict
 
-import yaml
 from pydantic import BaseModel, Field
 
 from gnss_product_management.specifications.format.spec import (
@@ -95,7 +93,6 @@ class FormatRegistry(BaseModel):
             ValueError: If a file template placeholder has no
                 corresponding metadata field.
         """
-        resolved_versions = {}
         format_spec_collection: Dict[str, FormatSpec] = format_spec.formats
         format_spec_collection_resolved: Dict[str, FormatSpec] = {}
 

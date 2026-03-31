@@ -1,6 +1,11 @@
 """Author: Franklyn Dunbar"""
 
-from .spec import FormatFieldDef, FormatVersionSpec, FormatSpec, FormatSpecCollection
+from .spec import (
+    FormatFieldDef as FormatFieldDef,
+    FormatVersionSpec as FormatVersionSpec,
+    FormatSpec as FormatSpec,
+    FormatSpecCollection as FormatSpecCollection,
+)
 
 # FormatCatalog, FormatSpecCatalog live in format_spec.py
 # Import directly: from gnss_product_management.specifications.format.format_spec import FormatCatalog

@@ -4,9 +4,9 @@ Server, ResourceSpec, ResourceQuery — remote resource models (Layer 1).
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.products.product import Product, ProductPath
@@ -111,7 +111,6 @@ class ResourceQuery(BaseModel):
         Returns:
             ``self``, mutated in place.
         """
-        to_keep = [p for p in self.product.parameters if p.value is None]
         to_update = {p.name: p for p in self.product.parameters if p.value is not None}
         format_dict = _PassthroughDict({k: p.value for k, p in to_update.items()})
 

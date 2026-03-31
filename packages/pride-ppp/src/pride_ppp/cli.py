@@ -4,7 +4,6 @@ PRIDE PPP-AR CLI configuration.
 Builds the ``pdp3`` command line from processing parameters.
 """
 
-import os
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional

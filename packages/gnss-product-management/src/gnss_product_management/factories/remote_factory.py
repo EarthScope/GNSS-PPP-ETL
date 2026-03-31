@@ -7,16 +7,18 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-import re
 from typing import Dict, List, Optional
 
-from gnss_product_management.specifications.products.product import Product, ProductPath
+from gnss_product_management.specifications.products.product import Product
+from gnss_product_management.specifications.products.catalog import ProductCatalog
+from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from gnss_product_management.specifications.remote.resource import (
     ResourceQuery,
     ResourceSpec,
-    Server,
 )
-from gnss_product_management.specifications.remote.resource_catalog import ResourceCatalog
+from gnss_product_management.specifications.remote.resource_catalog import (
+    ResourceCatalog,
+)
 
 logger = logging.getLogger(__name__)
 

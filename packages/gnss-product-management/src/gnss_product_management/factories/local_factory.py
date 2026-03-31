@@ -9,7 +9,7 @@ import datetime
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from gnss_product_management.environments import ProductEnvironment
 from gnss_product_management.environments import (
@@ -19,13 +19,12 @@ from gnss_product_management.environments import (
 )
 
 from gnss_product_management.specifications.local.local import LocalResourceSpec
-from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from gnss_product_management.specifications.products.product import Product, ProductPath
 from gnss_product_management.specifications.remote.resource import ResourceQuery, Server
 from gnss_product_management.utilities.helpers import _ensure_datetime
 
 if TYPE_CHECKING:
-    from gnss_product_management.specifications.products.catalog import ProductCatalog
+    pass
 
 logger = logging.getLogger(__name__)
 

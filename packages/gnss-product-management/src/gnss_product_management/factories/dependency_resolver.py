@@ -16,13 +16,11 @@ from __future__ import annotations
 from collections import defaultdict
 import datetime
 import logging
-import re
 from pathlib import Path
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-import threading
 
 from gnss_product_management.environments import ProductEnvironment
 from gnss_product_management.specifications.remote.resource import ResourceQuery
@@ -31,22 +29,21 @@ from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
     ResolvedDependency,
-    SearchPreference,
 )
 from gnss_product_management.factories.query_factory import QueryFactory
-from gnss_product_management.factories.resource_fetcher import ResourceFetcher, FetchResult
+from gnss_product_management.factories.resource_fetcher import (
+    ResourceFetcher,
+    FetchResult,
+)
 from gnss_product_management.specifications.products.product import (
-    ProductPath,
     infer_from_regex,
 )
-from gnss_product_management.environments import WorkSpace
+from gnss_product_management.specifications.parameters.parameter import Parameter
+from gnss_product_management.factories.local_factory import LocalResourceFactory
 from gnss_product_management.lockfile import (
     LockProduct,
-    DependencyLockFile,
     LockfileManager,
-    validate_lock_product,
     build_lock_product,
-    get_lock_product_path,
     get_lock_product,
     write_lock_product,
     get_package_version,

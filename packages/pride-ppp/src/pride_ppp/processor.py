@@ -14,10 +14,10 @@ import re
 import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import groupby
 from pathlib import Path
-from typing import Dict, Iterator, List, Literal, LiteralString, Optional, Sequence, Union
+from typing import Dict, Iterator, List, Literal, Optional, Sequence, Union
 import tempfile
 import pandas as pd
 
