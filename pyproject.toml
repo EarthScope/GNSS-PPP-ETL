@@ -9,8 +9,8 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-gnss-product-management = { workspace = true }
 gnss-management-specs = { workspace = true }
+gnss-product-management = { workspace = true }
 pride-ppp = { workspace = true }
 
 

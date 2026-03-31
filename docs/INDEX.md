@@ -24,8 +24,7 @@ Master table of contents for the GNSS-PPP-ETL repository.
 
 | Package | README | Description |
 |---|---|---|
-| `gnss-product-management` | [README](../packages/gnss-product-management/README.md) | Core library — YAML-driven product discovery, query expansion, dependency resolution |
-| `gnss-management-specs` | [src](../packages/gnss-management-specs/) | Bundled YAML specifications (no standalone README) |
+| `gnss-product-management` | [README](../packages/gnss-product-management/README.md) | Core library — YAML-driven product discovery, query expansion, dependency resolution (includes bundled YAML specs) |
 | `pride-ppp` | [README](../packages/pride-ppp/README.md) | PRIDE-PPPAR integration — RINEX in, kinematic positions out |
 
 ## Inline source READMEs

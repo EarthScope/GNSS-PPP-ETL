@@ -4,8 +4,8 @@ requires-python = ">=3.10,<3.15"
 dynamic = ["version"]
 dependencies = [
     "aiohttp>=3.13.3",
-    "gnss-management-specs",
     "fsspec>=2024.0",
+    "gnss-management-specs",
     "julian>=0.14",
     "pydantic>=2.0",
     "pyyaml>=6.0",

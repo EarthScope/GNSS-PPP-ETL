@@ -1,4 +1,3 @@
-![Architecture diagram](image.png)
 # GNSS-PPP-ETL
 
 Automated retrieval and management of [IGS](https://igs.org/) analysis center

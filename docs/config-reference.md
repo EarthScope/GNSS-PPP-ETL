@@ -1,10 +1,10 @@
 # YAML Configuration Reference
 
 The GNSS product management system is driven entirely by YAML configuration
-files bundled in [`gnss-management-specs`](../packages/gnss-management-specs/).
+files bundled in the [`gnss-product-management`](../packages/gnss-product-management/) package.
 This document describes every configuration directory and what each controls.
 
-> Source path: `packages/gnss-management-specs/src/gnss_management_specs/configs/`
+> Source path: `packages/gnss-product-management/src/gnss_product_management/configs/`
 
 ---
 

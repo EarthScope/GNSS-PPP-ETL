@@ -15,13 +15,14 @@ cd GNSS-PPP-ETL
 uv sync
 ```
 
-This installs all three workspace packages in editable mode along with their dependencies.
+This installs both workspace packages in editable mode along with their dependencies.
 
 ## Installing individual packages
 
 ### gnss-product-management
 
 GNSS product discovery, query expansion, dependency resolution, and download.
+Includes bundled YAML specifications for centers, products, formats, and local storage.
 
 ```bash
 uv add gnss-product-management
@@ -49,23 +50,11 @@ uv add "pride-ppp[plot]"
 pip install "pride-ppp[plot]"
 ```
 
-### gnss-management-specs
-
-Bundled YAML specification files (centers, products, formats, local storage). Installed automatically as a dependency of the other two packages.
-
-```bash
-uv add gnss-management-specs
-# or
-pip install gnss-management-specs
-```
-
 ## Package dependency graph
 
 ```
 pride-ppp
-├── gnss-product-management
-│   └── gnss-management-specs
-└── gnss-management-specs
+└── gnss-product-management
 ```
 
 ## Running tests
@@ -80,7 +69,7 @@ uv run pytest test/ -m "not integration" -q
 
 ```python
 from gnss_product_management import QueryFactory, ResourceFetcher
-from gnss_management_specs.configs import PRODUCT_SPEC_YAML
+from gnss_product_management.configs import PRODUCT_SPEC_YAML
 
 print(PRODUCT_SPEC_YAML)  # path to bundled product spec
 ```
