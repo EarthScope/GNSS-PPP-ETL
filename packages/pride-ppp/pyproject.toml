@@ -1,6 +1,6 @@
 [project]
 name = "pride-ppp"
-version = "0.1.0"
+dynamic = ["version"]
 requires-python = ">=3.10,<3.15"
 dependencies = [
     "gnss-management-specs",
@@ -19,8 +19,12 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { root = "../.." }
 
 [tool.uv.sources]
 gnss-management-specs = { workspace = true }

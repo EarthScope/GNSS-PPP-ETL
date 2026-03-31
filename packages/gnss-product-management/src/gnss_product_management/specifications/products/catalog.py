@@ -88,7 +88,6 @@ class ProductSpecCatalog(BaseModel):
         ``name`` from dict keys and converting ``formats`` lists into version/variant dicts.
         """
         import yaml
-        from pathlib import Path
 
         with open(path, "r") as f:
             data = yaml.safe_load(f)
@@ -151,7 +150,9 @@ class ProductSpecCatalog(BaseModel):
                             variants={}
                         )
                     merged[name].versions[version_name].variants[variant_name] = prod
-        return ProductSpecCatalog(products={k: v.model_dump() for k, v in merged.items()})
+        return ProductSpecCatalog(
+            products={k: v.model_dump() for k, v in merged.items()}
+        )
 
 
 class ProductCatalog(Catalog):

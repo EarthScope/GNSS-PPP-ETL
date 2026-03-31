@@ -10,7 +10,6 @@ from typing import Dict, List, Optional
 from gnss_product_management.environments import ProductEnvironment
 from gnss_product_management.factories.local_factory import LocalResourceFactory
 from gnss_product_management.environments import WorkSpace
-from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from gnss_product_management.specifications.products.product import (
     Product,
     ProductPath,
@@ -18,7 +17,6 @@ from gnss_product_management.specifications.products.product import (
     VersionCatalog,
 )
 from gnss_product_management.specifications.remote.resource import ResourceQuery
-from gnss_product_management.factories.resource_factory import ResourceFactory
 from gnss_product_management.utilities.helpers import _listify, expand_dict_combinations
 
 logger = logging.getLogger(__name__)

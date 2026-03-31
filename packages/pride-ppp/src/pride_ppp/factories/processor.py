@@ -14,10 +14,10 @@ import re
 import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import groupby
 from pathlib import Path
-from typing import Dict, Iterator, List, Literal, LiteralString, Optional, Sequence, Union
+from typing import Dict, Iterator, List, Literal, Optional, Sequence, Union
 import tempfile
 import pandas as pd
 
@@ -40,9 +40,9 @@ from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
 )
 
-from .cli import PrideCLIConfig
-from .config import PRIDEPPPFileConfig, SatelliteProducts
-from .defaults import (
+from ..specifications.cli import PrideCLIConfig
+from ..specifications.config import PRIDEPPPFileConfig, SatelliteProducts
+from ..defaults import (
     PRIDE_CENTERS_DIR,
     PRIDE_DIR_SPEC,
     PRIDE_INSTALL_SPEC,

@@ -16,7 +16,6 @@ Provides pure-function helpers for the lockfile lifecycle:
 
 import datetime
 import enum
-import json
 from importlib.metadata import version as _get_package_version
 from pathlib import Path
 from typing import List, Optional, Tuple

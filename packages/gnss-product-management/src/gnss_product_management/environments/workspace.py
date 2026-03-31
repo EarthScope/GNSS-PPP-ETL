@@ -9,10 +9,10 @@ same :class:`ResourceQuery` interface used for remote servers.
 
 from pathlib import Path
 
-from typing import Any, Dict, Optional, List
+from typing import Dict, Optional, List
 
 
-from gnss_product_management.specifications.remote.resource import ResourceSpec, Server
+from gnss_product_management.specifications.remote.resource import Server
 from pydantic import BaseModel
 
 from gnss_product_management.specifications.local.local import LocalResourceSpec

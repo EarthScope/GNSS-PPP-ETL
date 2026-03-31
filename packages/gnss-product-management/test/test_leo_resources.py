@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import pytest
 
-from gnss_product_management.factories import ResourceFetcher, FetchResult
-
 
 pytestmark = [
     pytest.mark.integration,

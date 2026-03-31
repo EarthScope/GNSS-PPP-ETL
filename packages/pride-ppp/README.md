@@ -72,3 +72,4 @@ simple three-stage flow:
    decompress required orbit / clock / bias / ERP / table files.
 3. **Execute** — invoke `pdp3` in an isolated temp directory; parse
    `.kin` / `.res` outputs into `ProcessingResult`.
+

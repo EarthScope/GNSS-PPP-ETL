@@ -9,29 +9,21 @@ PRIDE-PPPAR dependency spec.
 
 from __future__ import annotations
 
-import datetime
-import json
 from pathlib import Path
 
 import pytest
 
 from gnss_product_management.factories import (
-    ProductEnvironment,
     WorkSpace,
     QueryFactory,
     ResourceFetcher,
 )
 from gnss_product_management.specifications.dependencies.dependencies import (
-    DependencyResolution,
     DependencySpec,
     ResolvedDependency,
 )
 from gnss_product_management.factories.dependency_resolver import (
     DependencyResolver,
-)
-from gnss_product_management.lockfile import (
-    DependencyLockFile as ProductLockfile,
-    LockProduct,
 )
 
 

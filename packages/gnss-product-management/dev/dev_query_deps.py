@@ -1,22 +1,20 @@
 import datetime
 from pathlib import Path
 import time
-import logging
 
 # logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
-from gnss_product_management.environments import ProductEnvironment
-from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.query_factory import QueryFactory
 from gnss_product_management.factories.resource_fetcher import ResourceFetcher
 from gnss_product_management.factories.dependency_resolver import DependencyResolver
-from gnss_product_management.specifications.dependencies.dependencies import DependencySpec
+from gnss_product_management.specifications.dependencies.dependencies import (
+    DependencySpec,
+)
 
 from gnss_product_management.defaults import (
     DefaultProductEnvironment,
     DefaultWorkSpace,
 )
-from gnss_product_management.specifications.dependencies.dependencies import DependencySpec
 
 
 env = DefaultProductEnvironment
@@ -52,7 +50,6 @@ dep_res = DependencyResolver(
     query_factory=qf,
     fetcher=fetcher,
 )
-from gnss_product_management.lockfile import DependencyLockFile
 
 station = "TEST"
 years = [2023, 2024, 2025]

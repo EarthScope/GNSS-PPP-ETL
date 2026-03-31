@@ -13,11 +13,10 @@ All tests in this module are marked ``integration`` (hit real servers).
 from __future__ import annotations
 
 import datetime
-import re
 
 import pytest
 
-from gnss_product_management.factories import ResourceFetcher, FetchResult
+from gnss_product_management.factories import ResourceFetcher
 from gnss_product_management.specifications.products.product import ProductPath
 
 

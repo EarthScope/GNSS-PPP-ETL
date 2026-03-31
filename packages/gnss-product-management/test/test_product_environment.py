@@ -148,7 +148,9 @@ class TestClassify:
         assert result["parameters"]["AAA"] == "WUM"
 
     def test_classify_with_constraint_parameters(self, env):
-        from gnss_product_management.specifications.parameters.parameter import Parameter
+        from gnss_product_management.specifications.parameters.parameter import (
+            Parameter,
+        )
 
         params = [Parameter(name="CNT", value="ORB")]
         result = env.classify(
@@ -158,7 +160,9 @@ class TestClassify:
         assert result["product"] == "ORBIT"
 
     def test_classify_conflicting_parameters_returns_none(self, env):
-        from gnss_product_management.specifications.parameters.parameter import Parameter
+        from gnss_product_management.specifications.parameters.parameter import (
+            Parameter,
+        )
 
         params = [Parameter(name="CNT", value="CLK")]
         result = env.classify(

@@ -5,11 +5,13 @@ Public return types and exceptions for the ProductEnvironment API.
 
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from pydantic import BaseModel, Field, PrivateAttr
+
+if TYPE_CHECKING:
+    from gnss_product_management.lockfile import ProductLockfile
 
 
 class FoundResource(BaseModel):

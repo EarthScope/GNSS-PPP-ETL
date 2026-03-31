@@ -4,7 +4,11 @@ Default singleton instances for the GNSS PPP product environment.
 
 Constructs pre-configured :data:`DefaultProductEnvironment` and
 :data:`DefaultWorkSpace` from the bundled YAML specifications
-shipped with the package.
+shipped with the ``gnss-management-specs`` package.
+
+Users who need a different spec set should build their own
+:class:`ProductEnvironment` via its ``add_*`` methods rather than
+importing these defaults.
 """
 
 from pathlib import Path

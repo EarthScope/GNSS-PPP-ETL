@@ -1,6 +1,5 @@
 """Tests for infer_from_regex — reverse-parsing filenames via FormatRegistry."""
 
-from pathlib import Path
 from typing import List
 
 import pytest

@@ -15,7 +15,7 @@ from typing import Any, Dict, NamedTuple, Optional, List
 import re
 
 
-from gnss_product_management.specifications.remote.resource import ResourceSpec, Server
+from gnss_product_management.specifications.remote.resource import ResourceSpec
 from pydantic import BaseModel
 
 
@@ -33,11 +33,8 @@ from gnss_product_management.specifications.products.catalog import (
 )
 from gnss_product_management.factories.remote_factory import (
     RemoteResourceFactory,
-    ResourceSpec,
 )
 from gnss_product_management.utilities.metadata_funcs import register_computed_fields
-
-from gnss_product_management.specifications.local.local import LocalResourceSpec
 
 
 class _MatchEntry(NamedTuple):

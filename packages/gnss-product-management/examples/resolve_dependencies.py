@@ -13,7 +13,9 @@ import datetime
 from pathlib import Path
 from gnss_product_management import QueryFactory, ResourceFetcher, DependencyResolver
 from gnss_product_management.defaults import DefaultProductEnvironment, DefaultWorkSpace
-from gnss_product_management.specifications.dependencies.dependencies import DependencySpec
+from gnss_product_management.specifications.dependencies.dependencies import (
+    DependencySpec,
+)
 
 # --- 1. Configure local storage -----------------------------------------
 # Register a local directory tree where products will be stored.
