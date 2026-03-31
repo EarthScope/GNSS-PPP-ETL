@@ -24,18 +24,18 @@ Example
 ...     df = result.positions()
 """
 
-from .cli import PrideCLIConfig
-from .config import PRIDEPPPFileConfig, SatelliteProducts
-from .output import (
-    PridePPP,
+from .specifications.cli import PrideCLIConfig
+from .specifications.config import PRIDEPPPFileConfig, SatelliteProducts
+from .specifications.output import PridePPP
+from .factories.output import (
     get_wrms_from_res,
     kin_to_kin_position_df,
     plot_kin_results_wrms,
     read_kin_data,
     validate_kin_file,
 )
-from .processor import PrideProcessor, ProcessingMode, ProcessingResult
-from .rinex import merge_broadcast_files, rinex_get_time_range
+from .factories.processor import PrideProcessor, ProcessingMode, ProcessingResult
+from .factories.rinex import merge_broadcast_files, rinex_get_time_range
 
 __all__ = [
     # Primary API

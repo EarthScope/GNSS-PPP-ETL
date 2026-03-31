@@ -40,9 +40,9 @@ from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
 )
 
-from .cli import PrideCLIConfig
-from .config import PRIDEPPPFileConfig, SatelliteProducts
-from .defaults import (
+from ..specifications.cli import PrideCLIConfig
+from ..specifications.config import PRIDEPPPFileConfig, SatelliteProducts
+from ..defaults import (
     PRIDE_CENTERS_DIR,
     PRIDE_DIR_SPEC,
     PRIDE_INSTALL_SPEC,
