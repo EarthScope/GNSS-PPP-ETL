@@ -25,20 +25,30 @@ single call.
 ## Packages
 
 This is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/)
-containing two packages:
+containing three packages:
 
 | Package | Purpose |
 |---|---|
+| [`gnss-management-specs`](packages/gnss-management-specs/) | Pluggable YAML specification data for GNSS products, centers, formats, and storage layouts |
 | [`gnss-product-management`](packages/gnss-product-management/) | YAML-driven product discovery, query expansion, dependency resolution, and download from IGS analysis centers |
 | [`pride-ppp`](packages/pride-ppp/) | Concurrent-safe PRIDE-PPPAR integration — RINEX in, kinematic positions out |
 
+### gnss-management-specs
+
+A data-only package shipping the bundled YAML specifications that describe
+GNSS product catalogs, analysis center endpoints, file-naming formats,
+dependency graphs, and local storage layouts. Separated from the core library
+so that future specification sets (e.g. ocean-acoustic, seismic) can be added
+as independent packages without modifying `gnss-product-management`.
+
 ### gnss-product-management
 
-The core library. Bundles YAML specifications for products, file-naming
-formats, center server layouts, and local storage trees. A five-layer
-architecture (Configuration → Specification → Catalog → Orchestration →
-Interface) keeps concerns separated so adding a new center or product type
-requires only a new YAML file.
+The core library. A five-layer architecture (Configuration → Specification →
+Catalog → Orchestration → Interface) keeps concerns separated so adding a new
+center or product type requires only a new YAML file. The `defaults` module
+wires the bundled `gnss-management-specs` into pre-built singletons
+(`DefaultProductEnvironment`, `DefaultWorkSpace`); users who need a different
+spec set can build their own `ProductEnvironment` via its `add_*` methods.
 
 ### pride-ppp
 
@@ -174,25 +184,34 @@ Runnable scripts in each package's `examples/` directory:
 
 ```
 GNSS-PPP-ETL/
-├── pyproject.toml                  # Workspace root
+├── pyproject.toml                        # Workspace root
+├── docs/                                 # Architecture & reference docs
 ├── packages/
+│   ├── gnss-management-specs/            # Pluggable YAML specification data
+│   │   └── src/gnss_management_specs/
+│   │       └── configs/                  # YAML specs (centers, products, formats, etc.)
+│   │           ├── centers/              # Analysis center endpoint definitions
+│   │           ├── dependencies/         # Dependency graph specs
+│   │           ├── local/                # Local storage layout specs
+│   │           ├── meta/                 # Parameter & metadata specs
+│   │           ├── products/             # Product catalog specs
+│   │           └── query/                # Query template specs
 │   ├── gnss-product-management/          # Product discovery & download
 │   │   ├── src/gnss_product_management/
-│   │   │   ├── configs/            # Bundled YAML specs (centers, products, formats)
+│   │   │   ├── defaults/           # Wires gnss-management-specs into singletons
 │   │   │   ├── environments/       # ProductEnvironment, WorkSpace
 │   │   │   ├── factories/          # QueryFactory, ResourceFetcher, DependencyResolver
 │   │   │   ├── specifications/     # Pydantic models (Parameter, FormatSpec, ProductSpec)
 │   │   │   ├── server/             # FTP, HTTP, local filesystem adapters
 │   │   │   └── utilities/          # Date math, decompression, naming helpers
 │   │   └── test/
-│   └── pride-ppp/                  # PRIDE-PPPAR integration
+│   └── pride-ppp/                        # PRIDE-PPPAR integration
 │       └── src/pride_ppp/
-│           ├── processor.py        # PrideProcessor — main entry point
-│           ├── cli.py              # pdp3 command-line builder
-│           ├── config.py           # PRIDE config-file I/O
-│           ├── output.py           # .kin/.res parsing
-│           └── rinex.py            # RINEX utilities
-
+│           ├── processor.py              # PrideProcessor — main entry point
+│           ├── cli.py                    # pdp3 command-line builder
+│           ├── config.py                 # PRIDE config-file I/O
+│           ├── output.py                 # .kin/.res parsing
+│           └── rinex.py                  # RINEX utilities
 ```
 
 ## Requirements
