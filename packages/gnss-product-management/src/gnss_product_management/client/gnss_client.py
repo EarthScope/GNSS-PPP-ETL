@@ -8,18 +8,23 @@ from __future__ import annotations
 import datetime
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from gnss_product_management.client.search_result import SearchResult
-from gnss_product_management.environments import ProductEnvironment, WorkSpace
-from gnss_product_management.factories.query_factory import QueryFactory
-from gnss_product_management.factories.resource_fetcher import ResourceFetcher
-from gnss_product_management.factories.dependency_resolver import DependencyResolver
+
+# Keep spec types at module level — they live in specifications/dependencies
+# which has no transitive dependency on factories or environments.
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
     SearchPreference,
 )
+
+# All factory/environment types are imported lazily (inside methods) to avoid a
+# circular import: environments → specifications.local → factories → environments.
+if TYPE_CHECKING:
+    from gnss_product_management.environments import ProductEnvironment, WorkSpace
+    from gnss_product_management.factories.resource_fetcher import ResourceFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +65,9 @@ class GNSSClient:
         *,
         max_connections: int = 4,
     ) -> None:
+        from gnss_product_management.factories.query_factory import QueryFactory
+        from gnss_product_management.factories.resource_fetcher import ResourceFetcher
+
         self._env = env
         self._qf = QueryFactory(product_environment=env, workspace=workspace)
         self._fetcher = ResourceFetcher(max_connections=max_connections)
@@ -92,6 +100,7 @@ class GNSSClient:
         """
         from gnss_management_specs.configs import LOCAL_SPEC_DIR
         from gnss_product_management.defaults import DefaultProductEnvironment
+        from gnss_product_management.environments import WorkSpace
 
         workspace = WorkSpace()
         for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
@@ -155,21 +164,30 @@ class GNSSClient:
         )
 
         fetch_results = self._fetcher.search(queries)
-        expanded = ResourceFetcher.expand_results(fetch_results, env=self._env)
+        expanded = self._fetcher.expand_results(fetch_results, env=self._env)
         if preferences:
-            expanded = ResourceFetcher.sort_by_preferences(expanded, preferences)
-        ranked = ResourceFetcher.sort_by_protocol(expanded)
+            expanded = self._fetcher.sort_by_preferences(expanded, preferences)
+        ranked = self._fetcher.sort_by_protocol(expanded)
 
+        # Build SearchResult list, deduplicating by (hostname, filename) so that
+        # the same file matched via multiple query paths appears only once.
         results: List[SearchResult] = []
+        seen: Dict[Tuple[str, str], bool] = {}
         for rq in ranked:
+            hostname = rq.server.hostname
+            filename = rq.product.filename.value if rq.product.filename else ""  # type: ignore[union-attr]
+            key = (hostname, filename)
+            if key in seen:
+                continue
+            seen[key] = True
             params = {
                 p.name: p.value for p in rq.product.parameters if p.value is not None
             }
             r = SearchResult(
-                hostname=rq.server.hostname,
+                hostname=hostname,
                 protocol=rq.server.protocol or "",
                 directory=rq.directory.value or rq.directory.pattern,  # type: ignore[union-attr]
-                filename=rq.product.filename.value if rq.product.filename else "",  # type: ignore[union-attr]
+                filename=filename,
                 parameters=params,
             )
             r._query = rq
@@ -183,29 +201,30 @@ class GNSSClient:
         *,
         sink_id: str,
         date: datetime.datetime,
-        limit: int = 1,
     ) -> List[Path]:
         """Download product candidates to the local sink.
+
+        Pass a pre-sliced list to limit how many files are fetched, e.g.
+        ``client.download(results[:1], ...)``.
 
         Args:
             results: Ranked :class:`SearchResult` list from :meth:`search`.
             sink_id: Local resource identifier (alias registered in the
                 workspace, e.g. ``"local"``).
             date: Target date — used to resolve the destination directory.
-            limit: Maximum number of files to download (default ``1``).
 
         Returns:
             Paths to successfully downloaded (and decompressed) files.
         """
         paths: List[Path] = []
-        for r in results[:limit]:
+        for r in results:
             if r._query is None:
                 logger.warning("SearchResult has no internal query; skipping.")
                 continue
             path = self._fetcher.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
-                local_factory=self._qf._local,
+                local_factory=self._qf.local_factory,
                 date=date,
             )
             if path is not None:
@@ -219,7 +238,7 @@ class GNSSClient:
         date: datetime.datetime,
         *,
         sink_id: str,
-    ) -> tuple:
+    ) -> Tuple[DependencyResolution, Optional[Path]]:
         """Resolve all dependencies in a spec for the given date.
 
         Accepts a :class:`DependencySpec` object or a path to a YAML file.
@@ -236,6 +255,10 @@ class GNSSClient:
         Returns:
             A ``(DependencyResolution, lockfile_path)`` tuple.
         """
+        from gnss_product_management.factories.dependency_resolver import (
+            DependencyResolver,
+        )
+
         if isinstance(dep_spec, (str, Path)):
             dep_spec = DependencySpec.from_yaml(dep_spec)
 

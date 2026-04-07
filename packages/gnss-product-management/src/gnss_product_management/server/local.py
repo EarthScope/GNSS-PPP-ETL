@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,6 @@ class LocalAdapter:
 
     def download_file(
         self, hostname: str, directory: str, filename: str, dest_path: Path
-    ) -> bool:
+    ) -> Optional[Path]:
         """No-op — local files do not require downloading."""
-        # Local files don't need downloading
-        return False
+        return None

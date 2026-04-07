@@ -237,8 +237,11 @@ class ConnectionPoolFactory:
             return [Path(p).name for p in raw]
 
         def _cache(listing: List[str]) -> List[str]:
-            with self._listing_cache_lock:
-                self._listing_cache[cache_key] = listing
+            # Only cache non-empty results — a transient failure (empty list)
+            # should not poison the cache for the lifetime of the session.
+            if listing:
+                with self._listing_cache_lock:
+                    self._listing_cache[cache_key] = listing
             return listing
 
         try:
@@ -247,25 +250,25 @@ class ConnectionPoolFactory:
                     return _cache(_ls(conn))
                 except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
                     if pool.protocol == "file":
-                        # Local dir doesn't exist — cache the miss silently.
-                        return _cache([])
+                        # Local dir doesn't exist — not a transient failure, no retry.
+                        return []
                     logger.debug(f"Stale connection for {hostname}, reconnecting: {e}")
                     fresh = pool.replace_connection(conn)
                     if fresh is None:
-                        return _cache([])
+                        return []
                     try:
                         return _cache(_ls(fresh))
                     except Exception as e2:
                         logger.error(
                             f"Retry failed listing {directory} on {hostname}: {e2}"
                         )
-                        return _cache([])
+                        return []
                 except Exception as e:
                     logger.error(f"Error listing {directory} on {hostname}: {e}")
-                    return _cache([])
+                    return []
         except ConnectionError:
             # Pool failed to initialise (e.g. FTP host unreachable).
-            return _cache([])
+            return []
 
     def download_file(
         self, hostname: str, remote_path: str, target_dir: str

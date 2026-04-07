@@ -15,6 +15,10 @@ import fsspec
 
 import fsspec.utils
 from gnss_product_management.environments import ProductEnvironment
+from gnss_product_management.server.protocol import DirectoryAdapter
+from gnss_product_management.server.ftp import FTPAdapter
+from gnss_product_management.server.http import HTTPAdapter
+from gnss_product_management.server.local import LocalAdapter
 from gnss_product_management.specifications.dependencies.dependencies import (
     SearchPreference,
 )
@@ -25,7 +29,6 @@ from gnss_product_management.specifications.products.product import (
 )
 from gnss_product_management.specifications.remote.resource import ResourceQuery
 from gnss_product_management.factories.local_factory import LocalResourceFactory
-from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
 from gnss_product_management.utilities.helpers import decompress_gzip
 
 logger = logging.getLogger(__name__)
@@ -77,8 +80,8 @@ class ResourceFetcher:
     ``product.filename.pattern`` against the listing, and populates
     ``directory.value`` and ``filename.value`` on the query.
 
-    Attributes:
-        _connection_pool_factory: Factory managing per-host connection pools.
+    Protocol routing is handled via :class:`DirectoryAdapter` implementations.
+    Pass a custom *adapter* to override all protocols (useful for testing).
 
     Usage::
 
@@ -95,15 +98,37 @@ class ResourceFetcher:
         self,
         *,
         max_connections: int = 4,
+        adapter: Optional[DirectoryAdapter] = None,
     ) -> None:
         """Initialise the fetcher.
 
         Args:
-            max_connections: Maximum connections per host pool.
+            max_connections: Maximum connections per host pool.  Unused when
+                a custom *adapter* is provided.
+            adapter: Optional :class:`DirectoryAdapter` that handles all
+                protocols.  When ``None`` (default), protocol-specific
+                adapters (:class:`FTPAdapter`, :class:`HTTPAdapter`,
+                :class:`LocalAdapter`) are built automatically.
         """
-        self._connection_pool_factory = ConnectionPoolFactory(
-            max_connections=max_connections
-        )
+        if adapter is not None:
+            self._adapters: Dict[str, DirectoryAdapter] = {
+                p: adapter for p in ("ftp", "ftps", "http", "https", "file", "")
+            }
+        else:
+            ftp = FTPAdapter(timeout=60)
+            self._adapters = {
+                "ftp": ftp,
+                "ftps": ftp,
+                "http": HTTPAdapter(),
+                "https": HTTPAdapter(),
+                "file": LocalAdapter(),
+                "": LocalAdapter(),
+            }
+
+    def _adapter_for(self, hostname: str) -> DirectoryAdapter:
+        """Return the adapter for the protocol inferred from *hostname*."""
+        protocol = (fsspec.utils.get_protocol(hostname) or "").lower()
+        return self._adapters.get(protocol, self._adapters[""])
 
     # -- Public API ------------------------------------------------
 
@@ -121,24 +146,6 @@ class ResourceFetcher:
             A list of :class:`FetchResult` per query.
         """
         groups, rejected = self._group_queries(queries)
-
-        # Ensure connection pools exist for every hostname we'll contact.
-        for hostname, _ in groups:
-            try:
-                self._connection_pool_factory.add_connection(hostname)
-            except Exception as e:
-                logger.error(f"Failed to create connection pool for {hostname}: {e}")
-                # Mark all queries for this host as rejected.
-                for key in list(groups.keys()):
-                    if key[0] == hostname:
-                        for q, _ in groups[key]:
-                            rejected.append(
-                                FetchResult(
-                                    query=q,
-                                    error=f"Connection pool creation failed for {hostname}: {e}",
-                                )
-                            )
-                        del groups[key]
 
         # List each unique directory in parallel.
         dir_keys = list(groups.keys())
@@ -215,7 +222,7 @@ class ResourceFetcher:
         """
         hostname, directory = key
         try:
-            return self._connection_pool_factory.list_directory(hostname, directory)
+            return self._adapter_for(hostname).list_directory(hostname, directory)
         except Exception as e:
             logger.error(f"Listing failed for {hostname}/{directory}: {e}")
             return []
@@ -466,18 +473,24 @@ class ResourceFetcher:
             logger.info(f"Skipping download, file already exists: {destination_path}")
             return destination_path
 
+        assert query.directory.value is not None, (
+            "download_one requires a resolved directory"
+        )  # type: ignore[union-attr]
+        assert (
+            query.product.filename is not None
+            and query.product.filename.value is not None
+        ), "download_one requires a resolved filename"
+        directory: str = query.directory.value  # type: ignore[union-attr]
+        filename: str = query.product.filename.value
         try:
-            result = self._connection_pool_factory.download_file(
+            result = self._adapter_for(hostname).download_file(
                 hostname=hostname,
-                remote_path=str(
-                    Path(query.directory.value) / query.product.filename.value
-                ),  # type: ignore[union-attr]
-                target_dir=destination_dir,
+                directory=directory,
+                filename=filename,
+                dest_path=destination_path,
             )
         except Exception as e:
-            logger.error(
-                f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}"
-            )
+            logger.error(f"Download failed for {hostname}/{directory}/{filename}: {e}")
             return None
 
         # Decompress gzip files after download

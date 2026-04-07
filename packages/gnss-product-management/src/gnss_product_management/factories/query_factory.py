@@ -8,8 +8,8 @@ import logging
 from typing import Dict, List, Optional
 
 from gnss_product_management.environments import ProductEnvironment
-from gnss_product_management.factories.local_factory import LocalResourceFactory
 from gnss_product_management.environments import WorkSpace
+from gnss_product_management.factories.local_factory import LocalResourceFactory
 from gnss_product_management.specifications.products.product import (
     Product,
     ProductPath,
@@ -37,10 +37,8 @@ class QueryFactory:
     Usage::
 
         qf = QueryFactory(
-            remote_factory=remote,
-            local_factory=local,
-            product_catalog=PRODUCT_CATALOG,
-            parameter_catalog=PARAMETER_CATALOG,
+            product_environment=env,
+            workspace=workspace,
         )
 
         results = qf.get(
@@ -54,6 +52,7 @@ class QueryFactory:
         self,
         product_environment: ProductEnvironment,
         workspace: WorkSpace,
+        local_factory: Optional[LocalResourceFactory] = None,
     ):
         """Initialise the query factory.
 
@@ -61,16 +60,24 @@ class QueryFactory:
             product_environment: Built :class:`ProductEnvironment` with
                 catalogs and remote factory ready.
             workspace: :class:`WorkSpace` with registered local resources.
+            local_factory: Optional pre-built :class:`LocalResourceFactory`.
+                Constructed from *product_environment* and *workspace* when
+                not provided.
         """
         self._env = product_environment
         self._workspace = workspace
         self._remote = self._env._remote_resource_factory
         self._products = self._env._product_catalog
         self._params = self._env._parameter_catalog
-        self._local = LocalResourceFactory(
+        self._local = local_factory or LocalResourceFactory(
             workspace=self._workspace,
             product_environment=self._env,
         )
+
+    @property
+    def local_factory(self) -> LocalResourceFactory:
+        """The :class:`LocalResourceFactory` used by this query factory."""
+        return self._local
 
     def get(
         self,
@@ -133,18 +140,19 @@ class QueryFactory:
                     raise ValueError(
                         f"Variant {variant!r} not found for product {product_name_query!r} version {version!r}"
                     )
-                product_templates.append(variant_cat.variants[variant])
+                # Deep-copy here so catalog objects are never mutated.
+                product_templates.append(
+                    variant_cat.variants[variant].model_copy(deep=True)
+                )
 
         # 2. Resolve date fields via ParameterCatalog
         for template in product_templates:
-            update_date_params = self._params.resolve_params(template.parameters, date)
-            template.parameters = update_date_params
+            template.parameters = self._params.resolve_params(template.parameters, date)
 
         # 3. Narrow parameter ranges by query constraints
         product_templates_1: List[Product] = []
         for name, values in parameters.items():
             parameters[name] = _listify(values)
-        parameter_combinations = expand_dict_combinations(parameters)
 
         if parameters:
             parameter_combinations = expand_dict_combinations(parameters)
@@ -167,15 +175,15 @@ class QueryFactory:
                     product_templates_1.append(updated)
         else:
             product_templates_1 = product_templates
+
         # 5.1 Local resources
         for template in product_templates_1:
             for resource_id in self._local.resource_ids:
                 if local_resources and resource_id not in local_resources:
                     continue
-                to_update = template.model_copy(deep=True)
                 try:
                     resolved_queries: List[ResourceQuery] = self._local.source_product(
-                        to_update, resource_id
+                        template.model_copy(deep=True), resource_id
                     )
                 except KeyError:
                     continue
@@ -191,11 +199,9 @@ class QueryFactory:
             for center_id in self._remote.resource_ids:
                 if remote_resources and center_id.upper() in remote_resources:
                     continue
-
-                to_update = template.model_copy(deep=True)
                 try:
-                    resolved_queries: List[ResourceQuery] = self._remote.source_product(
-                        to_update, center_id
+                    resolved_queries = self._remote.source_product(
+                        template.model_copy(deep=True), center_id
                     )
                 except KeyError:
                     continue
