@@ -35,10 +35,6 @@ from gnss_product_management.factories.resource_fetcher import (
     ResourceFetcher,
     FetchResult,
 )
-from gnss_product_management.specifications.products.product import (
-    infer_from_regex,
-)
-from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.factories.local_factory import LocalResourceFactory
 from gnss_product_management.lockfile import (
     LockProduct,
@@ -51,22 +47,6 @@ from gnss_product_management.lockfile import (
 from gnss_product_management.utilities.helpers import decompress_gzip
 
 logger = logging.getLogger(__name__)
-
-
-def _get_param_value(rq: ResourceQuery, param_name: str) -> str:
-    """Extract a parameter value from a ResourceQuery's product.
-
-    Args:
-        rq: The query to inspect.
-        param_name: Parameter name to extract.
-
-    Returns:
-        The parameter value, or ``""`` if not found.
-    """
-    for p in rq.product.parameters:
-        if p.name == param_name and p.value is not None:
-            return p.value
-    return ""
 
 
 def _build_remote_url(rq: ResourceQuery) -> str:
@@ -279,7 +259,7 @@ class DependencyResolver:
                 status="missing",
             ), None
 
-        queries = self._sort_by_preferences(queries)
+        queries = self._fetcher.sort_by_preferences(queries, self.dep_spec.preferences)
 
         # Fetch the queries.
         logger.info(
@@ -296,18 +276,20 @@ class DependencyResolver:
         logger.info(f"Fetched {len(fetched_queries)} queries for dependency {dep.spec}")
 
         # Expand the fetched queries into a list of resource queries.
-        expanded_queries: List[ResourceQuery] = self._expand_fetch_results(
-            fetched_queries
+        expanded_queries: List[ResourceQuery] = self._fetcher.expand_results(
+            fetched_queries, self._product_environment
         )
 
-        expanded_queries = self._sort_by_preferences(expanded_queries)
+        expanded_queries = self._fetcher.sort_by_preferences(
+            expanded_queries, self.dep_spec.preferences
+        )
         filename_groups = defaultdict(list)
         for rq in expanded_queries:
-            filename_groups[rq.product.filename.value].append(rq)
+            filename_groups[rq.product.filename.value].append(rq)  # type: ignore[union-attr]
 
         # sort by server protocol
         for key, group in filename_groups.items():
-            filename_groups[key] = self._sort_by_protocol(group)
+            filename_groups[key] = self._fetcher.sort_by_protocol(group)
 
         for rq_index in expanded_queries:
             remote_urls = [
@@ -339,121 +321,6 @@ class DependencyResolver:
                     )
                     if resolved is not None:
                         return resolved, lock_file
-
-    def _expand_fetch_results(self, fetched: List[FetchResult]) -> List[ResourceQuery]:
-        """Expand FetchResults into ResourceQueries with filename values filled in.
-
-        Args:
-            fetched: List of fetch results from :meth:`ResourceFetcher.search`.
-
-        Returns:
-            Expanded list of :class:`ResourceQuery` objects.
-        """
-        expanded: List[ResourceQuery] = []
-        for fq in fetched:
-            if fq.error:
-                continue
-            assert fq.query.directory.value is not None, (
-                "Fetched query must have directory value filled in"
-            )
-            assert fq.query.product.filename is not None, (
-                "Fetched query must have filename value filled in"
-            )  # type: ignore
-            if not fq.matched_filenames:
-                logger.info(
-                    f"No matches found for query {fq.query.product.filename.pattern}"
-                )
-                continue
-            for filename in fq.matched_filenames:
-                # Create a new ResourceQuery with the filename value filled in.
-                rq = fq.query.model_copy(deep=True)
-                rq.product.filename.value = filename
-                rq = self._update_parameters(rq)
-                expanded.append(rq)
-        return expanded
-
-    def _sort_by_preferences(
-        self,
-        queries: List[ResourceQuery],
-    ) -> List[ResourceQuery]:
-        """Sort queries according to the preference cascade.
-
-        Args:
-            queries: ResourceQuery objects to sort.
-
-        Returns:
-            Sorted list of queries.
-        """
-        if not self.dep_spec.preferences:
-            return queries
-
-        for pref in reversed(self.dep_spec.preferences):
-            param_name = pref.parameter
-            sorting = [v.upper() for v in pref.sorting]
-
-            def _key(rq: ResourceQuery, _pn=param_name, _s=sorting) -> int:
-                try:
-                    val = _get_param_value(rq, _pn).upper()
-                    return _s.index(val)
-                except (ValueError, TypeError):
-                    return len(_s)
-
-            queries = sorted(queries, key=_key)
-
-        return queries
-
-    def _sort_by_protocol(self, queries: List[ResourceQuery]) -> List[ResourceQuery]:
-        """Sort queries by server protocol, preferring local/file over remote.
-
-        Args:
-            queries: ResourceQuery objects to sort.
-
-        Returns:
-            Sorted list of queries.
-        """
-        protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
-        return sorted(
-            queries,
-            key=lambda rq: (
-                protocol_sort_order.index((rq.server.protocol or "").upper())
-                if (rq.server.protocol or "").upper() in protocol_sort_order
-                else len(protocol_sort_order)
-            ),
-        )
-
-    def _update_parameters(self, resource_query: ResourceQuery) -> ResourceQuery:
-        """Update a ResourceQuery's parameters by re-interpolating patterns.
-
-        Uses :func:`infer_from_regex` and :meth:`ProductEnvironment.classify`
-        to fill in parameter values from the matched filename.
-
-        Args:
-            resource_query: The query to update.
-
-        Returns:
-            A deep copy of the query with updated parameters.
-        """
-        updated = resource_query.model_copy(deep=True)
-        updated_params: List[Parameter] = infer_from_regex(
-            regex=updated.product.filename.pattern,  # type: ignore
-            filename=updated.product.filename.value,  # type: ignore
-            parameters=updated.product.parameters,
-        )
-        updated.product.parameters = updated_params
-        classification_results = self._product_environment.classify(
-            filename=updated.product.filename.value,
-            parameters=updated.product.parameters,
-        )
-        if classification_results:
-            class_parameters: Dict[str, str] = classification_results.get(
-                "parameters", {}
-            )  # TODO make the classification results more structured so we don't have to do this stringly-typed dance
-            if updated.product.parameters is not None:
-                for p in updated.product.parameters:
-                    if p.name in class_parameters and p.value is None:
-                        p.value = class_parameters[p.name]
-
-        return updated
 
     def _resolve_remote(
         self,

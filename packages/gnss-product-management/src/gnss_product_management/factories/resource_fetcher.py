@@ -14,7 +14,15 @@ from typing import Dict, List, Optional, Tuple
 import fsspec
 
 import fsspec.utils
-from gnss_product_management.specifications.products.product import ProductPath
+from gnss_product_management.environments import ProductEnvironment
+from gnss_product_management.specifications.dependencies.dependencies import (
+    SearchPreference,
+)
+from gnss_product_management.specifications.parameters.parameter import Parameter
+from gnss_product_management.specifications.products.product import (
+    ProductPath,
+    infer_from_regex,
+)
 from gnss_product_management.specifications.remote.resource import ResourceQuery
 from gnss_product_management.factories.local_factory import LocalResourceFactory
 from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
@@ -24,6 +32,22 @@ logger = logging.getLogger(__name__)
 
 # Type alias for (hostname, directory) grouping key
 _DirKey = Tuple[str, str]
+
+
+def _get_param_value(rq: ResourceQuery, param_name: str) -> str:
+    """Extract a parameter value from a ResourceQuery's product.
+
+    Args:
+        rq: The query to inspect.
+        param_name: Parameter name to extract.
+
+    Returns:
+        The parameter value, or ``""`` if not found.
+    """
+    for p in rq.product.parameters:
+        if p.name == param_name and p.value is not None:
+            return p.value
+    return ""
 
 
 @dataclass
@@ -100,7 +124,21 @@ class ResourceFetcher:
 
         # Ensure connection pools exist for every hostname we'll contact.
         for hostname, _ in groups:
-            self._connection_pool_factory.add_connection(hostname)
+            try:
+                self._connection_pool_factory.add_connection(hostname)
+            except Exception as e:
+                logger.error(f"Failed to create connection pool for {hostname}: {e}")
+                # Mark all queries for this host as rejected.
+                for key in list(groups.keys()):
+                    if key[0] == hostname:
+                        for q, _ in groups[key]:
+                            rejected.append(
+                                FetchResult(
+                                    query=q,
+                                    error=f"Connection pool creation failed for {hostname}: {e}",
+                                )
+                            )
+                        del groups[key]
 
         # List each unique directory in parallel.
         dir_keys = list(groups.keys())
@@ -118,7 +156,6 @@ class ResourceFetcher:
                     results.append(FetchResult(query=query, matched_filenames=matches))
                 else:
                     results.append(FetchResult(query=query, error="No matches found"))
-
         return results
 
     # -- Grouping --------------------------------------------------
@@ -241,6 +278,144 @@ class ResourceFetcher:
         if isinstance(fn, str):
             return fn
         return None
+
+    # -- Result expansion and sorting ------------------------------
+
+    @staticmethod
+    def expand_results(
+        fetched: List[FetchResult],
+        env: Optional[ProductEnvironment] = None,
+    ) -> List[ResourceQuery]:
+        """Expand FetchResults into ResourceQueries with filename values filled in.
+
+        Each matched filename from a :class:`FetchResult` becomes its own
+        :class:`ResourceQuery` with ``filename.value`` set and parameters
+        back-filled from the filename via regex inference.
+
+        Args:
+            fetched: List of fetch results from :meth:`search`.
+            env: Optional product environment for parameter classification.
+
+        Returns:
+            Expanded list of :class:`ResourceQuery` objects.
+        """
+        expanded: List[ResourceQuery] = []
+        for fq in fetched:
+            if fq.error:
+                continue
+            assert fq.query.directory.value is not None, (
+                "Fetched query must have directory value filled in"
+            )
+            assert fq.query.product.filename is not None, (
+                "Fetched query must have filename value filled in"
+            )
+            if not fq.matched_filenames:
+                logger.info(
+                    f"No matches found for query {fq.query.product.filename.pattern}"
+                )
+                continue
+            for filename in fq.matched_filenames:
+                rq = fq.query.model_copy(deep=True)
+                rq.product.filename.value = filename  # type: ignore[union-attr]
+                rq = ResourceFetcher._update_parameters(rq, env)
+                expanded.append(rq)
+        return expanded
+
+    @staticmethod
+    def sort_by_protocol(queries: List[ResourceQuery]) -> List[ResourceQuery]:
+        """Sort queries by server protocol, preferring local/file over remote.
+
+        Order: FILE > LOCAL > FTP > FTPS > HTTP > HTTPS > unknown.
+
+        Args:
+            queries: ResourceQuery objects to sort.
+
+        Returns:
+            Sorted list of queries.
+        """
+        protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
+        return sorted(
+            queries,
+            key=lambda rq: (
+                protocol_sort_order.index((rq.server.protocol or "").upper())
+                if (rq.server.protocol or "").upper() in protocol_sort_order
+                else len(protocol_sort_order)
+            ),
+        )
+
+    @staticmethod
+    def sort_by_preferences(
+        queries: List[ResourceQuery],
+        preferences: List[SearchPreference],
+    ) -> List[ResourceQuery]:
+        """Sort queries according to a preference cascade.
+
+        Each :class:`SearchPreference` specifies a parameter name and an
+        ordered list of preferred values.  Preferences are applied in
+        reverse order so that the first entry in *preferences* is the most
+        significant sort key.
+
+        Args:
+            queries: ResourceQuery objects to sort.
+            preferences: Ordered preference cascade to apply.
+
+        Returns:
+            Sorted list of queries.
+        """
+        for pref in reversed(preferences):
+            param_name = pref.parameter
+            sorting = [v.upper() for v in pref.sorting]
+
+            def _key(rq: ResourceQuery, _pn=param_name, _s=sorting) -> int:
+                try:
+                    val = _get_param_value(rq, _pn).upper()
+                    return _s.index(val)
+                except (ValueError, TypeError):
+                    return len(_s)
+
+            queries = sorted(queries, key=_key)
+
+        return queries
+
+    @staticmethod
+    def _update_parameters(
+        resource_query: ResourceQuery,
+        env: Optional[ProductEnvironment] = None,
+    ) -> ResourceQuery:
+        """Back-fill parameters on a ResourceQuery from its matched filename.
+
+        Uses :func:`infer_from_regex` to extract parameter values from the
+        filename pattern, then optionally calls
+        :meth:`ProductEnvironment.classify` for further classification.
+
+        Args:
+            resource_query: Query with ``filename.value`` already set.
+            env: Optional product environment for parameter classification.
+
+        Returns:
+            A deep copy of the query with updated parameters.
+        """
+        updated = resource_query.model_copy(deep=True)
+        updated_params: List[Parameter] = infer_from_regex(
+            regex=updated.product.filename.pattern,  # type: ignore
+            filename=updated.product.filename.value,  # type: ignore
+            parameters=updated.product.parameters,
+        )
+        updated.product.parameters = updated_params
+        if env is not None:
+            classification_results = env.classify(
+                filename=updated.product.filename.value,  # type: ignore[arg-type]
+                parameters=updated.product.parameters,
+            )
+            if classification_results:
+                class_parameters: Dict[str, str] = classification_results.get(  # type: ignore[union-attr]
+                    "parameters", {}
+                )  # TODO: make classify() return a structured type
+                if updated.product.parameters is not None:
+                    for p in updated.product.parameters:
+                        if p.name in class_parameters and p.value is None:
+                            p.value = class_parameters[p.name]
+        return updated
 
     def download_one(
         self,

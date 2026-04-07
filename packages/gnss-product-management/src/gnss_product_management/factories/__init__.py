@@ -10,6 +10,9 @@ from gnss_product_management.factories.resource_fetcher import (
     ResourceFetcher,
     FetchResult,
 )
+from gnss_product_management.specifications.dependencies.dependencies import (
+    SearchPreference,
+)
 from gnss_product_management.environments import ProductEnvironment
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.dependency_resolver import DependencyResolver
@@ -25,4 +28,5 @@ __all__ = [
     "ResourceFetcher",
     "FetchResult",
     "DependencyLockFile",
+    "SearchPreference",
 ]
