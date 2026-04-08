@@ -188,36 +188,6 @@ def ftp_find_best_match_in_listing(
             yield entry
 
 
-def ftp_protocol(
-    ftpserver: str,
-    directory: str,
-    filename: str,
-    use_tls: bool = False,
-) -> List[str]:
-    """List, filter, and return matching filenames on an FTP server.
-
-    Args:
-        ftpserver: FTP server address.
-        directory: Remote directory path.
-        filename: Regex pattern for matching filenames.
-        use_tls: If ``True``, only attempt FTPS.
-
-    Returns:
-        Matching filenames, or an empty list on error.
-    """
-    try:
-        listing = ftp_list_directory(ftpserver, directory, use_tls=use_tls)
-    except Exception as e:
-        logger.error(f"Error listing FTP directory {ftpserver}/{directory}: {e}")
-        return []
-    matches = list(ftp_find_best_match_in_listing(listing, filename))
-    if not matches:
-        logger.warning(
-            f"No matches found for {filename} in FTP directory {ftpserver}/{directory}"
-        )
-    return matches
-
-
 # ---------------------------------------------------------------------------
 # DirectoryAdapter implementation
 # ---------------------------------------------------------------------------

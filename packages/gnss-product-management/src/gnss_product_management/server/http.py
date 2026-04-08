@@ -93,32 +93,6 @@ def http_list_directory(server: str, directory: str) -> Optional[str]:
         return None
 
 
-def http_protocol(
-    httpserver: str,
-    directory: str,
-    filequery: str,
-) -> List[str]:
-    """List remote files matching *filequery* via HTTP directory listing.
-
-    Args:
-        httpserver: Base URL of the HTTP server.
-        directory: Directory path on the server.
-        filequery: Regex pattern to match filenames.
-
-    Returns:
-        A list of matching filenames.
-    """
-    out = []
-    listing: Optional[str] = http_list_directory(server=httpserver, directory=directory)
-    if listing is None:
-        return out
-    for filename in extract_filenames_from_html(listing):
-        if re.match(filequery, filename):
-            logger.info(f"Match for {filequery}: {filename}")
-            out.append(filename)
-    return out
-
-
 def http_get_file(
     httpserver: str,
     directory: str,

@@ -93,28 +93,6 @@ class PathTemplate(BaseModel):
                 i += 1
         return "".join(regex_parts)
 
-    def infer(
-        self, filename: str, parameter_catalog: ParameterCatalog
-    ) -> Optional[Dict[str, str]]:
-        """Extract parameter values from *filename* using the template pattern.
-
-        Args:
-            filename: Product filename to match.
-            parameter_catalog: Catalog supplying regex patterns.
-
-        Returns:
-            A ``{param_name: value}`` dict on match, or ``None``.
-        """
-        regex = self.to_regex(parameter_catalog)
-        m = re.fullmatch(regex, filename)
-        if m is None:
-            return None
-        return {k: v for k, v in m.groupdict().items() if v is not None}
-
-
-# Backward-compatible alias
-ProductPath = PathTemplate
-
 
 def infer_from_regex(
     regex: str,

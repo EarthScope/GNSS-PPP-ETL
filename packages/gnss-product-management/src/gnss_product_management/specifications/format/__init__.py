@@ -5,10 +5,21 @@ from .spec import (
     FormatVersionSpec as FormatVersionSpec,
     FormatSpec as FormatSpec,
     FormatSpecCollection as FormatSpecCollection,
+    FormatRegistry as FormatRegistry,
+)
+from .format_spec import (
+    FormatVariantSpec as FormatVariantSpec,
+    FormatSpecCatalog as FormatSpecCatalog,
+    FormatCatalog as FormatCatalog,
 )
 
-# FormatCatalog, FormatSpecCatalog live in format_spec.py
-# Import directly: from gnss_product_management.specifications.format.format_spec import FormatCatalog
-
-# FormatRegistry lives in format_catalog.py (read-only registry of raw format specs)
-# Import directly: from gnss_product_management.specifications.format.format_catalog import FormatRegistry
+__all__ = [
+    "FormatFieldDef",
+    "FormatVersionSpec",
+    "FormatSpec",
+    "FormatSpecCollection",
+    "FormatRegistry",
+    "FormatVariantSpec",
+    "FormatSpecCatalog",
+    "FormatCatalog",
+]

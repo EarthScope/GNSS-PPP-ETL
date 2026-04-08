@@ -12,7 +12,7 @@ from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.products.product import (
     Product,
-    ProductPath,
+    PathTemplate,
     VariantCatalog,
     VersionCatalog,
 )
@@ -63,7 +63,7 @@ class ProductSpec(BaseModel):
         update = {"name": self.name, "parameters": list(resolved_parameters.values())}
         # Product-level filename overrides the format filename
         if self.filename:
-            update["filename"] = ProductPath(pattern=self.filename)
+            update["filename"] = PathTemplate(pattern=self.filename)
 
         return format_spec.model_copy(
             update=update,

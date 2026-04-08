@@ -3,6 +3,7 @@ name = "gnss-ppp-etl"
 version = "0.1.0"
 requires-python = ">=3.10,<3.15"
 dependencies = [
+    "cloudpathlib>=0.23.0",
     "gnss-product-management>=0.1.0",
     "pride-ppp>=0.1.0",
     "ruff>=0.15.8",

@@ -7,8 +7,3 @@ from .local import (
 from gnss_product_management.factories.local_search_planner import (
     LocalSearchPlanner as LocalSearchPlanner,
 )
-
-# Backward-compatible alias
-from gnss_product_management.factories.local_factory import (
-    LocalResourceFactory as LocalResourceFactory,
-)

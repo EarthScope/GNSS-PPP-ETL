@@ -131,7 +131,3 @@ class SearchTarget(BaseModel):
         )
 
         return self
-
-
-# Backward-compatible alias
-ResourceQuery = SearchTarget

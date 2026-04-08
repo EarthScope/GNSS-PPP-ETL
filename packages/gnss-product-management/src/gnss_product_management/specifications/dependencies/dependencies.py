@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+# Path is kept for DependencySpec.from_yaml signature compatibility
+
 import yaml
 from pydantic import BaseModel, Field
 
@@ -65,7 +67,11 @@ class ResolvedDependency(BaseModel):
     required: bool
     status: str  # "local" | "downloaded" | "remote" | "missing"
 
-    local_path: Optional[Path] = None
+    # Stored as a URI string so it works for both local paths and cloud
+    # URIs (e.g. ``s3://bucket/path/file.sp3``).  Use
+    # ``gnss_product_management.utilities.paths.as_path(local_path)``
+    # to obtain a path object for filesystem operations.
+    local_path: Optional[str] = None
 
     # Lockfile fields — populated during resolution for later export
     remote_url: Optional[str] = None
@@ -98,11 +104,16 @@ class DependencyResolution:
         """``True`` if every required dependency has been resolved."""
         return all(r.status != "missing" for r in self.resolved if r.required)
 
-    def product_paths(self) -> Dict[str, Path]:
-        """Return a ``{spec: path}`` mapping for resolved local files.
+    def product_paths(self) -> Dict[str, str]:
+        """Return a ``{spec: uri}`` mapping for resolved local files.
+
+        Values are URI strings that work for both local paths and cloud
+        locations.  Pass them through
+        ``gnss_product_management.utilities.paths.as_path()`` to get a
+        path object suitable for filesystem operations.
 
         Returns:
-            Dict mapping spec names to their local paths.
+            Dict mapping spec names to their local-path or cloud URIs.
         """
         return {r.spec: r.local_path for r in self.resolved if r.local_path is not None}
 

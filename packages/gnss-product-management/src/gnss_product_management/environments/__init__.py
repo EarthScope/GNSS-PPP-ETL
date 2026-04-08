@@ -10,10 +10,7 @@ Provides the two core configuration objects:
   to :class:`LocalResourceSpec` layouts.
 """
 
-from gnss_product_management.environments.environment import (
-    ProductRegistry,
-    ProductEnvironment,
-)
+from gnss_product_management.environments.environment import ProductRegistry
 from gnss_product_management.environments.workspace import (
     WorkSpace,
     RegisteredLocalResource,
@@ -22,7 +19,6 @@ from gnss_product_management.environments.workspace import (
 
 __all__ = [
     "ProductRegistry",
-    "ProductEnvironment",
     "WorkSpace",
     "RegisteredLocalResource",
     "paths_overlap",

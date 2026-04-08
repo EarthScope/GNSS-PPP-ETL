@@ -34,7 +34,7 @@ class SearchResult:
     filename: str
     parameters: Dict[str, str] = field(default_factory=dict)
     local_path: Optional[Path] = None
-    # Internal — holds the ResourceQuery for use by GNSSClient.download().
+    # Internal — holds the SearchTarget for use by GNSSClient.download().
     # Not part of the public interface.
     _query: Any = field(default=None, repr=False, compare=False, init=False)
 

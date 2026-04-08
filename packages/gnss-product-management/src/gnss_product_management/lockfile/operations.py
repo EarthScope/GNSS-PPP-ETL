@@ -7,11 +7,15 @@ Provides pure-function helpers for the lockfile lifecycle:
 
 * **Validate** — verify that a lock-product's sink file still exists
   and that its hash matches.
-* **Build** — construct a :class:`LockProduct` from a local file,
+* **Build** — construct a :class:`LockProduct` from a local or cloud file,
   computing its SHA-256 hash and byte size.
 * **Read / Write** — serialize and deserialize individual
   :class:`LockProduct` sidecar JSON files and date-scoped
   :class:`DependencyLockFile` manifests.
+
+All path arguments accept local :class:`~pathlib.Path` objects and cloud
+URIs / :class:`~cloudpathlib.CloudPath` objects interchangeably via
+:func:`~gnss_product_management.utilities.paths.as_path`.
 """
 
 import datetime
@@ -26,6 +30,7 @@ from gnss_product_management.lockfile.models import (
     LockProductAlternative,
 )
 from gnss_product_management.utilities.helpers import hash_file as _hash_file
+from gnss_product_management.utilities.paths import AnyPath, as_path
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +70,11 @@ def validate_lock_product(
         exists and (when a hash is recorded) the file's current
         SHA-256 matches the stored hash (or mode is WARN).
     """
-    sink_path = Path(product.sink)
+    sink_path = as_path(product.sink)
 
     # Accept the decompressed version when the .gz is gone
     if not sink_path.exists() and sink_path.suffix == ".gz":
-        decompressed = sink_path.with_suffix("")
+        decompressed = as_path(str(sink_path)[: -len(".gz")])
         if decompressed.exists():
             # Update the lock product to point to the decompressed file
             product.sink = str(decompressed)
@@ -101,19 +106,19 @@ def validate_lock_product(
 
 
 def build_lock_product(
-    sink: Path | str,
+    sink: AnyPath | str,
     url: str,
     name: str = "",
     description: str = "",
     alternative_urls: Optional[List[str]] = None,
 ) -> LockProduct:
-    """Build a :class:`LockProduct` from a local file.
+    """Build a :class:`LockProduct` from a local or cloud file.
 
     Computes the SHA-256 hash and byte size of *sink* and packages
     them into a new ``LockProduct`` model.
 
     Args:
-        sink: Path to the local file.
+        sink: Path or URI to the file (local or cloud).
         url: Primary remote URL the file was downloaded from.
         name: Human-readable product name (e.g. ``'ORBIT'``).
         description: Free-text description of the product.
@@ -123,9 +128,9 @@ def build_lock_product(
         A fully-populated :class:`LockProduct`.
 
     Raises:
-        FileNotFoundError: If *sink* does not exist on disk.
+        FileNotFoundError: If *sink* does not exist.
     """
-    sink_path = Path(sink)
+    sink_path = as_path(str(sink))
     if not sink_path.exists():
         raise FileNotFoundError(f"Sink path does not exist: {sink_path}")
     hash_value = _hash_file(sink_path)
@@ -143,30 +148,33 @@ def build_lock_product(
     )
 
 
-def get_lock_product_path(sink: Path | str) -> Path:
+def get_lock_product_path(sink: AnyPath | str) -> AnyPath:
     """Return the ``_lock.json`` sidecar path for a sink file.
 
+    Works for both local paths and cloud URIs — the sidecar is placed
+    alongside the data file in the same storage backend.
+
     Args:
-        sink: Path to the downloaded product file.
+        sink: Path or URI to the downloaded product file.
 
     Returns:
-        A :class:`Path` pointing to the companion lock JSON
+        A path (local or cloud) pointing to the companion lock JSON
         (``<sink>_lock.json``).
 
     Raises:
         FileNotFoundError: If *sink* does not exist.
     """
-    sink = Path(sink)
-    if not sink.exists():
-        raise FileNotFoundError(f"Sink path does not exist: {sink}")
-    return Path(str(sink) + "_lock.json")
+    sink_path = as_path(str(sink))
+    if not sink_path.exists():
+        raise FileNotFoundError(f"Sink path does not exist: {sink_path}")
+    return as_path(str(sink_path) + "_lock.json")
 
 
-def get_lock_product(sink: Path | str) -> Optional[LockProduct]:
+def get_lock_product(sink: AnyPath | str) -> Optional[LockProduct]:
     """Read the :class:`LockProduct` sidecar JSON for *sink*.
 
     Args:
-        sink: Path to the downloaded product file.
+        sink: Path or URI to the downloaded product file.
 
     Returns:
         The deserialized :class:`LockProduct`, or ``None`` if the
@@ -175,19 +183,19 @@ def get_lock_product(sink: Path | str) -> Optional[LockProduct]:
     lock_product_path = get_lock_product_path(sink)
     if not lock_product_path.exists():
         return None
-    with open(lock_product_path, "r") as f:
+    with lock_product_path.open("r") as f:
         lock_product_data = f.read()
     return LockProduct.model_validate_json(lock_product_data)
 
 
-def write_lock_product(lock_product: LockProduct) -> Path:
+def write_lock_product(lock_product: LockProduct) -> AnyPath:
     """Write a :class:`LockProduct` to its sidecar ``_lock.json`` file.
 
     Args:
         lock_product: The lock entry to persist.
 
     Returns:
-        Path to the written sidecar file.
+        Path (local or cloud) to the written sidecar file.
     """
     lock_product_path = get_lock_product_path(lock_product.sink)
     lock_product_path.write_text(
@@ -253,16 +261,16 @@ def get_dependency_lockfile_name(
 
 
 def get_dependency_lockfile(
-    directory: Path,
+    directory: AnyPath | str,
     package: str,
     task: str,
     date: datetime.datetime | str,
     version: str | None = None,
-) -> Tuple[Optional[DependencyLockFile], Optional[Path]]:
+) -> Tuple[Optional[DependencyLockFile], Optional[AnyPath]]:
     """Read a :class:`DependencyLockFile` from *directory*.
 
     Args:
-        directory: Folder containing lockfile JSON files.
+        directory: Folder (local or cloud) containing lockfile JSON files.
         package: Processing package name.
         task: Processing task name.
         date: Processing date used to derive the filename.
@@ -274,10 +282,11 @@ def get_dependency_lockfile(
         ``lockfile`` is ``None`` but ``path`` is still returned so
         the caller knows where to write a new one.
     """
+    dir_path = as_path(str(directory))
     lockfile_name = get_dependency_lockfile_name(
         package=package, task=task, version=version, date=date
     )
-    lockfile_path = directory / lockfile_name
+    lockfile_path = dir_path / lockfile_name
     if not lockfile_path.exists():
         return None, lockfile_path
 
@@ -287,35 +296,36 @@ def get_dependency_lockfile(
 
 def write_dependency_lockfile(
     lockfile: DependencyLockFile,
-    directory: Path,
+    directory: AnyPath | str,
     update: bool = False,
-) -> Path:
+) -> AnyPath:
     """Write a :class:`DependencyLockFile` to *directory*.
 
     Args:
         lockfile: The lockfile model to persist.
-        directory: Target directory on disk.
+        directory: Target directory (local path or cloud URI).
         update: If ``True``, overwrite an existing file.  Otherwise
             raise :class:`FileExistsError`.
 
     Returns:
-        Path to the written lockfile.
+        Path (local or cloud) to the written lockfile.
 
     Raises:
         FileExistsError: If the lockfile already exists and *update*
             is ``False``.
     """
+    dir_path = as_path(str(directory))
     lockfile_name = get_dependency_lockfile_name(
         package=lockfile.package,
         task=lockfile.task,
         date=lockfile.date,
         version=lockfile.version,
     )
-    lockfile_path = directory / lockfile_name
+    lockfile_path = dir_path / lockfile_name
     if lockfile_path.exists() and not update:
         raise FileExistsError(
             f"Lockfile already exists: {lockfile_path}, consider incrementing the version."
         )
-    directory.mkdir(parents=True, exist_ok=True)
+    dir_path.mkdir(parents=True, exist_ok=True)
     lockfile_path.write_text(lockfile.model_dump_json(indent=2), encoding="utf-8")
     return lockfile_path

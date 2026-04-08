@@ -1,5 +1,5 @@
 """
-Tests: Reference table products via QueryFactory.
+Tests: Reference table products via SearchPlanner.
 
 Products: LEAP_SEC, SAT_PARAMS
 Centers : Wuhan (FTP)
@@ -28,10 +28,10 @@ def _search_remote(qf, fetcher, date, product_name, parameters=None):
 
 
 def _assert_found(results, product_name, min_matches=1):
-    found = [r for r in results if r.found]
+    found = [r for r in results if r.product.filename and r.product.filename.value]
     assert len(found) >= min_matches, (
-        f"{product_name}: expected >= {min_matches} found, got {len(found)}. "
-        f"Errors: {[r.error for r in results if r.error]}"
+        f"{product_name}: expected >= {min_matches} found, got {len(found)} "
+        f"out of {len(results)} results."
     )
     return found
 
@@ -76,10 +76,10 @@ class TestReferenceTableProbe:
         results = _search_remote(wuhan_qf, fetcher, test_date, "LEAP_SEC")
         found = _assert_found(results, "LEAP_SEC")
         for r in found:
-            assert any("leap" in f.lower() for f in r.matched_filenames)
+            assert any("leap" in f.lower() for f in [r.product.filename.value])
 
     def test_sat_params_found(self, wuhan_qf, fetcher, test_date) -> None:
         results = _search_remote(wuhan_qf, fetcher, test_date, "SAT_PARAMS")
         found = _assert_found(results, "SAT_PARAMS")
         for r in found:
-            assert any("sat_param" in f.lower() for f in r.matched_filenames)
+            assert any("sat_param" in f.lower() for f in [r.product.filename.value])

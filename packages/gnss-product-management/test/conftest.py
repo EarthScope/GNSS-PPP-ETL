@@ -1,6 +1,6 @@
 """Shared test fixtures for the gnss-product-management test suite.
 
-Builds a ProductEnvironment + QueryFactory from the YAML spec files under
+Builds a ProductRegistry + SearchPlanner from the YAML spec files under
 configs/ and the center configs under configs/centers/.  These are reused
 across all test modules so the heavy catalog-construction work happens once
 per session.
@@ -13,12 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from gnss_product_management.factories import (
-    ProductEnvironment,
-    WorkSpace,
-    QueryFactory,
-    ResourceFetcher,
-)
+from gnss_product_management.environments import ProductRegistry, WorkSpace
+from gnss_product_management.factories import SearchPlanner, WormHole
 from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from gnss_product_management.specifications.format.format_spec import FormatSpecCatalog
 from gnss_product_management.specifications.products.catalog import ProductSpecCatalog
@@ -48,9 +44,9 @@ TEST_DATE = datetime.datetime(2025, 1, 15, tzinfo=datetime.timezone.utc)
 # ── Helpers ────────────────────────────────────────────────────────
 
 
-def _build_env(*center_yamls: str) -> ProductEnvironment:
-    """Build a ProductEnvironment wired to specific center config files."""
-    env = ProductEnvironment()
+def _build_env(*center_yamls: str) -> ProductRegistry:
+    """Build a ProductRegistry wired to specific center config files."""
+    env = ProductRegistry()
     env.add_parameter_spec(META_SPEC_YAML)
     env.add_format_spec(FORMAT_SPEC_YAML)
     env.add_product_spec(PRODUCT_SPEC_YAML)
@@ -79,22 +75,22 @@ def workspace(tmp_path_factory) -> WorkSpace:
 
 
 @pytest.fixture(scope="session")
-def wuhan_env() -> ProductEnvironment:
+def wuhan_env() -> ProductRegistry:
     return _build_env("wuhan_config.yaml")
 
 
 @pytest.fixture(scope="session")
-def cod_env() -> ProductEnvironment:
+def cod_env() -> ProductRegistry:
     return _build_env("cod_config.yaml")
 
 
 @pytest.fixture(scope="session")
-def cddis_env() -> ProductEnvironment:
+def cddis_env() -> ProductRegistry:
     return _build_env("cddis_config.yaml")
 
 
 @pytest.fixture(scope="session")
-def multi_env() -> ProductEnvironment:
+def multi_env() -> ProductRegistry:
     """Environment with all centers registered."""
     return _build_env(
         "wuhan_config.yaml",
@@ -107,53 +103,53 @@ def multi_env() -> ProductEnvironment:
 
 
 @pytest.fixture(scope="session")
-def igs_env() -> ProductEnvironment:
+def igs_env() -> ProductRegistry:
     return _build_env("igs_config.yaml")
 
 
 @pytest.fixture(scope="session")
-def vmf_env() -> ProductEnvironment:
+def vmf_env() -> ProductRegistry:
     return _build_env("vmf_config.yaml")
 
 
 @pytest.fixture(scope="session")
-def gfz_env() -> ProductEnvironment:
+def gfz_env() -> ProductRegistry:
     return _build_env("gfz_config.yaml")
 
 
 @pytest.fixture(scope="session")
-def wuhan_qf(wuhan_env, workspace) -> QueryFactory:
-    return QueryFactory(product_environment=wuhan_env, workspace=workspace)
+def wuhan_qf(wuhan_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=wuhan_env, workspace=workspace)
 
 
 @pytest.fixture(scope="session")
-def cod_qf(cod_env, workspace) -> QueryFactory:
-    return QueryFactory(product_environment=cod_env, workspace=workspace)
+def cod_qf(cod_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=cod_env, workspace=workspace)
 
 
 @pytest.fixture(scope="session")
-def cddis_qf(cddis_env, workspace) -> QueryFactory:
-    return QueryFactory(product_environment=cddis_env, workspace=workspace)
+def cddis_qf(cddis_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=cddis_env, workspace=workspace)
 
 
 @pytest.fixture(scope="session")
-def igs_qf(igs_env, workspace) -> QueryFactory:
-    return QueryFactory(product_environment=igs_env, workspace=workspace)
+def igs_qf(igs_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=igs_env, workspace=workspace)
 
 
 @pytest.fixture(scope="session")
-def vmf_qf(vmf_env, workspace) -> QueryFactory:
-    return QueryFactory(product_environment=vmf_env, workspace=workspace)
+def vmf_qf(vmf_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=vmf_env, workspace=workspace)
 
 
 @pytest.fixture(scope="session")
-def gfz_qf(gfz_env, workspace) -> QueryFactory:
-    return QueryFactory(product_environment=gfz_env, workspace=workspace)
+def gfz_qf(gfz_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=gfz_env, workspace=workspace)
 
 
 @pytest.fixture(scope="session")
-def fetcher() -> ResourceFetcher:
-    return ResourceFetcher()
+def fetcher() -> WormHole:
+    return WormHole()
 
 
 @pytest.fixture(scope="session")

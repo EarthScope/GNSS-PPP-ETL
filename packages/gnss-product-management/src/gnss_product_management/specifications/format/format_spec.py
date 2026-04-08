@@ -1,6 +1,6 @@
 """Author: Franklyn Dunbar
 
-Format specifications and FormatCatalog — resolves FormatSpec → Product.
+Format-variant specifications and FormatCatalog — resolves FormatVariantSpec → Product.
 """
 
 from pathlib import Path
@@ -16,14 +16,20 @@ from gnss_product_management.specifications.parameters.parameter import (
 )
 from gnss_product_management.specifications.products.product import (
     Product,
-    ProductPath,
+    PathTemplate,
     VariantCatalog,
     VersionCatalog,
 )
 
 
-class FormatSpec(BaseModel):
-    """A single file-format definition with parameter overrides and filename template."""
+class FormatVariantSpec(BaseModel):
+    """A single file-format variant binding: name × version × variant → parameters + filename.
+
+    This is a resolved "leaf" entry in the format spec YAML — it names
+    which format (e.g. ``RINEX``), which version (``"3"``), which variant
+    (``observation``), and lists the parameters and filename template that
+    together define a concrete file shape.
+    """
 
     name: str
     version: Optional[str] = None
@@ -53,14 +59,14 @@ class FormatSpec(BaseModel):
         return Product(
             name=self.name,
             parameters=list(resolved_parameters.values()),
-            filename=ProductPath(pattern=self.filename) if self.filename else None,
+            filename=PathTemplate(pattern=self.filename) if self.filename else None,
         )
 
 
 class FormatSpecCatalog(BaseModel):
-    """Collection of raw format specifications loaded from YAML."""
+    """Collection of raw format-variant specifications loaded from YAML."""
 
-    formats: dict[str, VersionCatalog[FormatSpec]]
+    formats: dict[str, VersionCatalog[FormatVariantSpec]]
 
     @classmethod
     def from_yaml(cls, path: Path) -> "FormatSpecCatalog":

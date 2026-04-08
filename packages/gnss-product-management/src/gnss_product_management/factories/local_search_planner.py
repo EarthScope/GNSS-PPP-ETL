@@ -25,6 +25,7 @@ from gnss_product_management.specifications.products.product import (
 )
 from gnss_product_management.specifications.remote.resource import SearchTarget, Server
 from gnss_product_management.utilities.helpers import _ensure_datetime
+from gnss_product_management.utilities.paths import AnyPath, as_path
 
 if TYPE_CHECKING:
     pass
@@ -96,9 +97,10 @@ class LocalSearchPlanner:
         if isinstance(spec, (Path, str)):
             spec = LocalResourceSpec.from_yaml(str(spec))
 
+        base_path = as_path(str(base_dir)) if base_dir else None
         server = Server(
             id=spec.name,
-            hostname=str(base_dir) if base_dir else spec.name,
+            hostname=str(base_path) if base_path else spec.name,
             protocol="file",
             auth_required=False,
             description=spec.description,
@@ -135,7 +137,7 @@ class LocalSearchPlanner:
 
         self._registered_specs[name] = RegisteredLocalResource(
             name=name,
-            base_dir=base_dir,
+            base_dir=str(as_path(str(base_dir))),
             spec=spec,
             item_to_dir=item_to_dir,
             server=server,
@@ -207,8 +209,13 @@ class LocalSearchPlanner:
     def lockfile_dir(
         self,
         resource_id: str,
-    ) -> Path:
+    ) -> AnyPath:
         """Return the dependency lockfile directory for a resource.
+
+        For local resources this is a subdirectory of the base directory.
+        For cloud resources (e.g. ``s3://bucket/prefix``) it is an
+        equivalent cloud path, enabling distributed workers to share
+        lockfile state via cloud storage.
 
         Args:
             resource_id: Local resource identifier.
@@ -217,8 +224,7 @@ class LocalSearchPlanner:
             Path to the lockfile directory (created if needed).
         """
         registered_spec = self._get_registered_spec(resource_id)
-        base_dir = registered_spec.base_dir
-        dep_lockfile_dir = base_dir / "dependency_lockfiles"
+        dep_lockfile_dir = registered_spec.base_path / "dependency_lockfiles"
         dep_lockfile_dir.mkdir(parents=True, exist_ok=True)
         return dep_lockfile_dir
 
@@ -261,15 +267,18 @@ class LocalSearchPlanner:
         self,
         query: SearchTarget,
         date: Optional[datetime.date] = None,
-    ) -> List[Path]:
-        """Search local disk for files matching a query.
+    ) -> List[AnyPath]:
+        """Search local or cloud storage for files matching a query.
+
+        Works identically for local :class:`~pathlib.Path` and cloud
+        :class:`~cloudpathlib.CloudPath` base directories.
 
         Args:
             query: SearchTarget with directory and filename patterns.
             date: Optional date for interpolating computed fields.
 
         Returns:
-            Sorted list of matching file paths.
+            Sorted list of matching paths (local or cloud).
 
         Raises:
             KeyError: If the query's server is not registered.
@@ -303,7 +312,7 @@ class LocalSearchPlanner:
                 file_pattern, date, computed_only=True
             )
 
-        search_dir = registered_spec.base_dir / Path(dir_pattern)
+        search_dir = registered_spec.base_path / dir_pattern
 
         if file_pattern:
             return sorted(

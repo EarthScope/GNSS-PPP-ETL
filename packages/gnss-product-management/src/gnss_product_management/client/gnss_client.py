@@ -23,8 +23,8 @@ from gnss_product_management.specifications.dependencies.dependencies import (
 # All factory/environment types are imported lazily (inside methods) to avoid a
 # circular import: environments → specifications.local → factories → environments.
 if TYPE_CHECKING:
-    from gnss_product_management.environments import ProductEnvironment, WorkSpace
-    from gnss_product_management.factories.resource_fetcher import ResourceFetcher
+    from gnss_product_management.environments import ProductRegistry, WorkSpace
+    from gnss_product_management.factories.remote_transport import WormHole
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class GNSSClient:
     """High-level client for searching and downloading GNSS products.
 
     ``GNSSClient`` is the single entry point for all product retrieval.
-    It wraps :class:`QueryFactory`, :class:`ResourceFetcher`, and
+    It wraps :class:`SearchPlanner`, :class:`WormHole`, and
     :class:`DependencyResolver` as internal implementation details.
 
     Use :meth:`from_defaults` to get started with the bundled specs::
@@ -52,7 +52,7 @@ class GNSSClient:
         resolution, lockfile = client.resolve_dependencies("spec.yaml", date, sink_id="local")
 
     Args:
-        env: Configured :class:`ProductEnvironment` with loaded product and
+        env: Configured :class:`ProductRegistry` with loaded product and
             center specs.
         workspace: :class:`WorkSpace` with registered local directories.
         max_connections: Maximum concurrent connections per host.
@@ -60,17 +60,17 @@ class GNSSClient:
 
     def __init__(
         self,
-        env: ProductEnvironment,
+        env: ProductRegistry,
         workspace: WorkSpace,
         *,
         max_connections: int = 4,
     ) -> None:
-        from gnss_product_management.factories.query_factory import QueryFactory
-        from gnss_product_management.factories.resource_fetcher import ResourceFetcher
+        from gnss_product_management.factories.search_planner import SearchPlanner
+        from gnss_product_management.factories.remote_transport import WormHole
 
         self._env = env
-        self._qf = QueryFactory(product_environment=env, workspace=workspace)
-        self._fetcher = ResourceFetcher(max_connections=max_connections)
+        self._qf = SearchPlanner(product_registry=env, workspace=workspace)
+        self._fetcher = WormHole(max_connections=max_connections, env=env)
 
     @classmethod
     def from_defaults(
@@ -185,6 +185,11 @@ class GNSSClient:
         if isinstance(product, str):
             product = {"name": product}
 
+        from gnss_product_management.factories.ranking import (
+            sort_by_preferences,
+            sort_by_protocol,
+        )
+
         queries = self._qf.get(
             date=date,
             product=product,
@@ -193,11 +198,10 @@ class GNSSClient:
             remote_resources=remote_resources,
         )
 
-        fetch_results = self._fetcher.search(queries)
-        expanded = self._fetcher.expand_results(fetch_results, env=self._env)
+        expanded = self._fetcher.search(queries)
         if preferences:
-            expanded = self._fetcher.sort_by_preferences(expanded, preferences)
-        ranked = self._fetcher.sort_by_protocol(expanded)
+            expanded = sort_by_preferences(expanded, preferences)
+        ranked = sort_by_protocol(expanded)
 
         # Build SearchResult list, deduplicating by (hostname, filename) so that
         # the same file matched via multiple query paths appears only once.
@@ -254,7 +258,7 @@ class GNSSClient:
             path = self._fetcher.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
-                local_factory=self._qf.local_factory,
+                local_factory=self._qf.local_planner,
                 date=date,
             )
             if path is not None:
@@ -296,6 +300,6 @@ class GNSSClient:
             dep_spec=dep_spec,
             query_factory=self._qf,
             product_environment=self._env,
-            fetcher=self._fetcher,
+            fetcher=self._fetcher,  # WormHole
         )
         return resolver.resolve(date=date, local_sink_id=sink_id)

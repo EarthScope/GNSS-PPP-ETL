@@ -11,8 +11,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 from gnss_product_management.client.search_result import SearchResult
-from gnss_product_management.factories.query_factory import QueryFactory
-from gnss_product_management.factories.resource_fetcher import ResourceFetcher
+from gnss_product_management.factories.search_planner import SearchPlanner
+from gnss_product_management.factories.remote_transport import WormHole
+from gnss_product_management.factories.ranking import (
+    sort_by_preferences,
+    sort_by_protocol,
+)
 from gnss_product_management.specifications.dependencies.dependencies import (
     SearchPreference,
 )
@@ -46,18 +50,18 @@ class ProductQuery:
         )
 
     Args:
-        fetcher: :class:`ResourceFetcher` used for directory listing and
+        fetcher: :class:`WormHole` used for directory listing and
             file download.
-        query_factory: :class:`QueryFactory` used to build
-            :class:`ResourceQuery` objects from product specs.
+        query_factory: :class:`SearchPlanner` used to build
+            :class:`SearchTarget` objects from product specs.
         product: Product name (e.g. ``"ORBIT"``) or dict with ``name``,
             and optionally ``version`` / ``variant``.
     """
 
     def __init__(
         self,
-        fetcher: ResourceFetcher,
-        query_factory: QueryFactory,
+        fetcher: WormHole,
+        query_factory: SearchPlanner,
         product: Union[str, dict],
     ) -> None:
         self._fetcher = fetcher
@@ -171,11 +175,10 @@ class ProductQuery:
             remote_resources=remote_ids,
         )
 
-        fetch_results = self._fetcher.search(queries)
-        expanded = self._fetcher.expand_results(fetch_results, env=self._qf._env)
+        expanded = self._fetcher.search(queries)
         if self._preferences:
-            expanded = self._fetcher.sort_by_preferences(expanded, self._preferences)
-        ranked = self._fetcher.sort_by_protocol(expanded)
+            expanded = sort_by_preferences(expanded, self._preferences)
+        ranked = sort_by_protocol(expanded)
 
         results: List[SearchResult] = []
         seen: Dict[Tuple[str, str], bool] = {}
@@ -237,7 +240,7 @@ class ProductQuery:
             path = self._fetcher.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
-                local_factory=self._qf.local_factory,
+                local_factory=self._qf.local_planner,
                 date=self._date,
             )
             if path is not None:
@@ -248,7 +251,7 @@ class ProductQuery:
     # -- Internal --------------------------------------------------
 
     def _resolve_sources(self) -> Tuple[Optional[List[str]], Optional[List[str]]]:
-        """Split source IDs into (local_ids, remote_ids) for QueryFactory.
+        """Split source IDs into (local_ids, remote_ids) for SearchPlanner.
 
         Returns:
             A ``(local_ids, remote_ids)`` tuple, each ``None`` when empty

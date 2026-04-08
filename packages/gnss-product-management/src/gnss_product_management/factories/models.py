@@ -1,6 +1,6 @@
 """Author: Franklyn Dunbar
 
-Public return types and exceptions for the ProductEnvironment API.
+Public return types and exceptions for the ProductRegistry API.
 """
 
 from __future__ import annotations
@@ -20,14 +20,22 @@ class FoundResource(BaseModel):
     product: str = Field(..., description="Product name (e.g. 'ORBIT', 'CLOCK').")
     source: str = Field(..., description="'local' or 'remote'.")
     uri: str = Field(..., description="Local file path or remote URL.")
-    center: str = Field("", description="Analysis center identifier (e.g. 'WUM').")
-    quality: str = Field("", description="Solution type (e.g. 'FIN', 'RAP', 'ULT').")
     parameters: Dict[str, str] = Field(
         default_factory=dict, description="All resolved parameter values."
     )
 
-    # Internal: original ResourceQuery, not serialized. Used by DownloadPipeline.
+    # Internal: original SearchTarget, not serialized. Used by DownloadPipeline.
     _query: Optional[object] = PrivateAttr(default=None)
+
+    @property
+    def center(self) -> str:
+        """Analysis center identifier (e.g. ``'WUM'``), or ``''`` if not applicable."""
+        return self.parameters.get("AAA", "")
+
+    @property
+    def quality(self) -> str:
+        """Solution quality/type (e.g. ``'FIN'``, ``'RAP'``), or ``''`` if not applicable."""
+        return self.parameters.get("TTT", "")
 
     @property
     def is_local(self) -> bool:

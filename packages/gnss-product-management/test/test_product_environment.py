@@ -1,10 +1,10 @@
-"""Tests for ProductEnvironment — construction, build, and classify."""
+"""Tests for ProductRegistry — construction, build, and classify."""
 
 from pathlib import Path
 
 import pytest
 
-from gnss_product_management.factories import ProductEnvironment
+from gnss_product_management.factories import ProductRegistry
 from gnss_management_specs.configs import (
     META_SPEC_YAML,
     FORMAT_SPEC_YAML,
@@ -18,8 +18,8 @@ from gnss_management_specs.configs import (
 
 @pytest.fixture(scope="module")
 def env():
-    """A fully built ProductEnvironment with all bundled specs."""
-    e = ProductEnvironment()
+    """A fully built ProductRegistry with all bundled specs."""
+    e = ProductRegistry()
     e.add_parameter_spec(META_SPEC_YAML)
     e.add_format_spec(FORMAT_SPEC_YAML)
     e.add_product_spec(PRODUCT_SPEC_YAML)
@@ -50,19 +50,19 @@ class TestIncrementalConstruction:
         assert env._remote_resource_factory is not None
 
     def test_duplicate_parameter_spec_raises(self):
-        e = ProductEnvironment()
+        e = ProductRegistry()
         e.add_parameter_spec(META_SPEC_YAML)
         with pytest.raises(AssertionError, match="already exists"):
             e.add_parameter_spec(META_SPEC_YAML)
 
     def test_duplicate_format_spec_raises(self):
-        e = ProductEnvironment()
+        e = ProductRegistry()
         e.add_format_spec(FORMAT_SPEC_YAML)
         with pytest.raises(AssertionError, match="already exists"):
             e.add_format_spec(FORMAT_SPEC_YAML)
 
     def test_nonexistent_spec_raises(self):
-        e = ProductEnvironment()
+        e = ProductRegistry()
         with pytest.raises(AssertionError, match="not found"):
             e.add_parameter_spec("/nonexistent/path.yaml")
 

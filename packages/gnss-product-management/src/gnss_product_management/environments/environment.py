@@ -373,7 +373,3 @@ class ProductRegistry:
             }
 
         return None
-
-
-# Backward-compatible alias
-ProductEnvironment = ProductRegistry

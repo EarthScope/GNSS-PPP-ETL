@@ -4,14 +4,16 @@ from typing import List
 
 import pytest
 
-from gnss_product_management.specifications.format.format_catalog import FormatRegistry
-from gnss_product_management.specifications.format.spec import FormatSpecCollection
+from gnss_product_management.specifications.format.spec import (
+    FormatRegistry,
+    FormatSpecCollection,
+)
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
     ParameterCatalog,
 )
 from gnss_product_management.specifications.products.product import (
-    ProductPath,
+    PathTemplate,
     infer_from_regex,
 )
 
@@ -43,7 +45,7 @@ def _build_regex_and_params(
 ) -> tuple[str, List[Parameter]]:
     """Build a derived regex and parameter list from a FormatCatalog entry.
 
-    Simulates what QueryFactory does: starts from the template, fills in
+    Simulates what SearchPlanner does: starts from the template, fills in
     *overrides* as concrete values and leaves the rest as their regex
     patterns, then derives to produce the final regex string.
 
@@ -57,7 +59,7 @@ def _build_regex_and_params(
             continue
         value = overrides.get(name, field.pattern)
         params.append(Parameter(name=name, value=value, pattern=field.pattern))
-    pp = ProductPath(pattern=template)
+    pp = PathTemplate(pattern=template)
     pp.derive(params)
     return pp.pattern, params
 

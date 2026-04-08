@@ -16,7 +16,7 @@ import pytest
 from gnss_product_management.factories import (
     WorkSpace,
     SearchPlanner,
-    RemoteTransport,
+    WormHole,
 )
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
@@ -53,7 +53,7 @@ def resolver(multi_env, workspace, dep_spec, tmp_path_factory) -> DependencyReso
         ws.add_resource_spec(path)
     ws.register_spec(base_dir=base, spec_ids=["local_config"])
     qf = SearchPlanner(product_registry=multi_env, workspace=ws)
-    fetcher = RemoteTransport(env=multi_env)
+    fetcher = WormHole(env=multi_env)
     return DependencyResolver(
         dep_spec,
         query_factory=qf,

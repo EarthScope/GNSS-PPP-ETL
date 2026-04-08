@@ -7,7 +7,7 @@ Constructs pre-configured :data:`DefaultProductEnvironment` and
 shipped with the ``gnss-management-specs`` package.
 
 Users who need a different spec set should build their own
-:class:`ProductEnvironment` via its ``add_*`` methods rather than
+:class:`ProductRegistry` via its ``add_*`` methods rather than
 importing these defaults.
 """
 
@@ -19,11 +19,11 @@ from gnss_management_specs.configs import (
     LOCAL_SPEC_DIR,
     CENTERS_RESOURCE_DIR,
 )
-from gnss_product_management.environments import ProductEnvironment
+from gnss_product_management.environments import ProductRegistry
 from gnss_product_management.environments import WorkSpace
 
 # Pre-built environment with all bundled parameter, format, product, and center specs.
-DefaultProductEnvironment = ProductEnvironment()
+DefaultProductEnvironment = ProductRegistry()
 DefaultProductEnvironment.add_parameter_spec(META_SPEC_YAML)
 DefaultProductEnvironment.add_format_spec(FORMAT_SPEC_YAML)
 DefaultProductEnvironment.add_product_spec(PRODUCT_SPEC_YAML)

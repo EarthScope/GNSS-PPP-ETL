@@ -9,7 +9,7 @@ from gnss_product_management.specifications.dependencies.dependencies import (  
     DependencySpec,
     DependencyResolution,
 )
-from gnss_product_management.environments import ProductEnvironment, WorkSpace  # noqa: F401
+from gnss_product_management.environments import ProductRegistry, WorkSpace  # noqa: F401
 from gnss_product_management.defaults import (  # noqa: F401
     DefaultProductEnvironment,
     DefaultWorkSpace,
@@ -19,14 +19,13 @@ from gnss_product_management.defaults import (  # noqa: F401
 # These are available for power users who need direct access to the pipeline.
 # Prefer GNSSClient for all standard use cases.
 from gnss_product_management.factories import (  # noqa: F401
-    # New names
     ProductRegistry,
     SearchPlanner,
-    RemoteTransport,
+    WormHole,
     DependencyResolver,
-    # Backward-compatible aliases
-    QueryFactory,
-    ResourceFetcher,
-    FetchResult,
     SearchPreference,
+    FindPipeline,
+    DownloadPipeline,
+    LockfileWriter,
+    ResolvePipeline,
 )

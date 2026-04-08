@@ -7,6 +7,11 @@ Provides a unified interface for checking, loading, saving, and
 sharing dependency lockfiles.  All callers (DependencyResolver,
 PrideProcessor, CLI) should go through :class:`LockfileManager`
 rather than calling operations functions directly.
+
+``lockfile_dir`` may be a local filesystem path or a cloud URI
+(``s3://bucket/prefix``).  All reads and writes are dispatched through
+:class:`~cloudpathlib.CloudPath` / :class:`~pathlib.Path` so the
+manager is storage-agnostic.
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from gnss_product_management.lockfile.operations import (
     get_package_version,
     validate_lock_product,
 )
+from gnss_product_management.utilities.paths import AnyPath, as_path
 
 logger = logging.getLogger(__name__)
 
@@ -34,19 +40,21 @@ class LockfileManager:
         _dir: Directory where aggregate lockfiles are stored.
 
     Args:
-        lockfile_dir: Directory where aggregate lockfiles are stored.
+        lockfile_dir: Directory for aggregate lockfile storage.  May be a
+            local :class:`~pathlib.Path`, a URI string, or a
+            :class:`~cloudpathlib.CloudPath` (e.g. ``s3://bucket/locks``).
     """
 
-    def __init__(self, lockfile_dir: Path) -> None:
+    def __init__(self, lockfile_dir: AnyPath | str) -> None:
         """Initialise the manager.
 
         Args:
             lockfile_dir: Directory for aggregate lockfile storage.
         """
-        self._dir = lockfile_dir
+        self._dir: AnyPath = as_path(str(lockfile_dir))
 
     @property
-    def lockfile_dir(self) -> Path:
+    def lockfile_dir(self) -> AnyPath:
         """The directory where aggregate lockfiles are stored."""
         return self._dir
 
@@ -103,7 +111,7 @@ class LockfileManager:
         task: str,
         date: datetime.datetime,
         version: str | None = None,
-    ) -> Path:
+    ) -> AnyPath:
         """Return the expected path for a lockfile (may not exist yet).
 
         Args:
@@ -121,11 +129,11 @@ class LockfileManager:
     # Write
     # ------------------------------------------------------------------ #
 
-    def save(self, lockfile: DependencyLockFile) -> Path:
+    def save(self, lockfile: DependencyLockFile) -> AnyPath:
         """Write (or overwrite) an aggregate lockfile.
 
         Returns:
-            Path to the written file.
+            Path (local or cloud) to the written file.
         """
         name = get_dependency_lockfile_name(
             package=lockfile.package,
@@ -184,7 +192,7 @@ class LockfileManager:
         task: str,
         date: datetime.datetime,
         version: str | None = None,
-    ) -> Path:
+    ) -> AnyPath:
         """Return the path to the aggregate lockfile for sharing.
 
         Raises:
@@ -197,10 +205,10 @@ class LockfileManager:
 
     def import_lockfile(
         self,
-        path: Path,
+        path: AnyPath | str,
         strict: bool = False,
     ) -> DependencyLockFile:
-        """Import a lockfile from another machine.
+        """Import a lockfile from another machine or cloud location.
 
         Validates each product's hash.  In warn mode (default),
         mismatches are logged but products are kept.  In strict
@@ -208,12 +216,13 @@ class LockfileManager:
         re-resolve them.
 
         Args:
-            path: Path to the lockfile JSON to import.
+            path: Path or URI to the lockfile JSON to import.
             strict: If ``True``, remove products with hash mismatches.
 
         Returns:
             The imported (and possibly pruned) lockfile.
         """
+        path = as_path(str(path))
         data = path.read_text(encoding="utf-8")
         lockfile = DependencyLockFile.model_validate_json(data)
 

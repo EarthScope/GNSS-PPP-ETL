@@ -4,7 +4,7 @@ Dependency resolver — resolve a DependencySpec via SearchPlanner.
 
 Two-phase resolution:
   1. **Local** — check ``base_dir`` for files already on disk.
-  2. **Remote** — use :class:`RemoteTransport` to search/download.
+  2. **Remote** — use :class:`WormHole` to search/download.
 
 Preferences are applied by sorting ``SearchTarget`` results according
 to the ``SearchPreference.parameter`` / ``sorting`` cascade defined in
@@ -17,7 +17,6 @@ from collections import defaultdict
 import datetime
 import logging
 from pathlib import Path
-
 from typing import Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -31,7 +30,7 @@ from gnss_product_management.specifications.dependencies.dependencies import (
     ResolvedDependency,
 )
 from gnss_product_management.factories.search_planner import SearchPlanner
-from gnss_product_management.factories.remote_transport import RemoteTransport
+from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.specifications.products.product import (
     infer_from_regex,
 )
@@ -46,6 +45,7 @@ from gnss_product_management.lockfile import (
     get_package_version,
 )
 from gnss_product_management.utilities.helpers import decompress_gzip
+from gnss_product_management.utilities.paths import AnyPath, as_path
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class DependencyResolver:
         dep_spec: The dependency specification to resolve.
         query_factory: A :class:`SearchPlanner` wired to the desired centres.
         product_environment: The product registry for classification.
-        fetcher: A :class:`RemoteTransport` for remote search/download.
+        fetcher: A :class:`WormHole` for remote search/download.
     """
 
     def __init__(
@@ -105,7 +105,7 @@ class DependencyResolver:
         dep_spec: DependencySpec,
         query_factory: SearchPlanner,
         product_environment: ProductRegistry,
-        fetcher: RemoteTransport,
+        fetcher: WormHole,
     ) -> None:
         """Initialise the resolver.
 
@@ -124,7 +124,7 @@ class DependencyResolver:
         self,
         date: datetime.datetime,
         local_sink_id: str,
-    ) -> Tuple[DependencyResolution, Optional[Path]]:
+    ) -> Tuple[DependencyResolution, Optional[AnyPath]]:
         """Resolve every dependency in the spec for *date*.
 
         Fast path: if a lockfile already exists for
@@ -177,7 +177,7 @@ class DependencyResolver:
                         required=dep.required if dep else True,
                         status="local",
                         remote_url=lp.url,
-                        local_path=Path(lp.sink),
+                        local_path=lp.sink,
                     )
                 )
             resolution = DependencyResolution(
@@ -498,7 +498,7 @@ class DependencyResolver:
             A tuple of (resolved dependency, lock product).
         """
 
-        source_directory = Path(rq.server.hostname) / rq.directory.value
+        source_directory = as_path(rq.server.hostname) / rq.directory.value
         assert source_directory.exists() and source_directory.is_dir(), (
             f"Local directory {source_directory} does not exist for query {rq}"
         )
@@ -511,20 +511,22 @@ class DependencyResolver:
 
         # Prefer an already-decompressed version on disk
         if source_path.suffix == ".gz":
-            decompressed = source_path.with_suffix("")
-            if decompressed.exists() and decompressed.stat().st_size > 0:
-                source_path = decompressed
-                filename = decompressed.name
+            decompressed_path = as_path(str(source_path)[: -len(".gz")])
+            if decompressed_path.exists() and decompressed_path.stat().st_size > 0:
+                source_path = decompressed_path
+                filename = source_path.name
 
         # If the file is not present in the local_sink resource, we can copy it there.
         sink_query = local_resource_factory.sink_product(
             rq.product, local_sink_id, date
         )
-        sink_directory = Path(sink_query.server.hostname) / sink_query.directory.value
+        sink_directory = (
+            as_path(sink_query.server.hostname) / sink_query.directory.value
+        )
         assert sink_directory is not None, "Sink product must have a directory value"
         if not sink_directory == source_directory:
             sink_directory.mkdir(parents=True, exist_ok=True)
-            # Copy the file to the sink directory
+            # Copy the file to the sink directory (works for local→local and cloud→cloud)
             dest_path = sink_directory / filename
             if not dest_path.exists():
                 dest_path.write_bytes(source_path.read_bytes())
@@ -533,8 +535,12 @@ class DependencyResolver:
                 )
             source_path = dest_path
 
-        # Decompress gzip files in the sink
-        if source_path.suffix == ".gz" and source_path.exists():
+        # Decompress gzip files in the sink (local only — cloud paths are not decompressed)
+        if (
+            isinstance(source_path, Path)
+            and source_path.suffix == ".gz"
+            and source_path.exists()
+        ):
             decompressed = decompress_gzip(source_path)
             if decompressed is not None:
                 source_path = decompressed
@@ -581,5 +587,5 @@ class DependencyResolver:
             required=dep.required,
             status=status,
             remote_url=lock_file.url,
-            local_path=Path(lock_file.sink),
+            local_path=lock_file.sink,
         )

@@ -70,6 +70,17 @@ class SearchPlanner:
             product_registry=self._env,
         )
 
+    @property
+    def local_planner(self) -> LocalSearchPlanner:
+        """The :class:`LocalSearchPlanner` used by this search planner."""
+        return self._local
+
+    # Backward-compatible alias
+    @property
+    def local_factory(self) -> LocalSearchPlanner:
+        """Deprecated alias for :attr:`local_planner`."""
+        return self._local
+
     def get(
         self,
         date: datetime.datetime,

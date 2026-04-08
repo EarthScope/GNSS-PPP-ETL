@@ -27,15 +27,16 @@ from gnss_product_management.specifications.format.spec import (
     FormatVersionSpec,
     FormatSpec,
     FormatSpecCollection,
+    FormatRegistry,
 )
 from gnss_product_management.specifications.format.format_spec import (
+    FormatVariantSpec,
     FormatCatalog,
     FormatSpecCatalog,
 )
 from gnss_product_management.specifications.products.product import (
     Product,
     PathTemplate,
-    ProductPath,
 )
 from gnss_product_management.specifications.products.catalog import (
     ProductCatalog,
@@ -45,7 +46,6 @@ from gnss_product_management.specifications.remote.resource import (
     Server,
     ResourceSpec,
     SearchTarget,
-    ResourceQuery,
 )
 from gnss_product_management.specifications.remote.resource_catalog import (
     ResourceCatalog,
@@ -78,19 +78,19 @@ __all__ = [
     "FormatVersionSpec",
     "FormatSpec",
     "FormatSpecCollection",
+    "FormatRegistry",
+    "FormatVariantSpec",
     "FormatCatalog",
     "FormatSpecCatalog",
     # products
     "Product",
     "PathTemplate",
-    "ProductPath",
     "ProductCatalog",
     "ProductSpecCatalog",
     # remote
     "Server",
     "ResourceSpec",
     "SearchTarget",
-    "ResourceQuery",
     "ResourceCatalog",
     # local
     "LocalCollection",

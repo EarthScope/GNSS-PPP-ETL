@@ -1,6 +1,6 @@
 """Author: Franklyn Dunbar
 
-RemoteTransport — protocol-agnostic file search and download.
+WormHole — protocol-agnostic file search and download.
 """
 
 import datetime
@@ -11,8 +11,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import fsspec
-
 import fsspec.utils
+from gnss_product_management.utilities.paths import AnyPath, as_path
 from gnss_product_management.specifications.products.product import PathTemplate
 from gnss_product_management.specifications.remote.resource import SearchTarget
 from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 _DirKey = Tuple[str, str]
 
 
-class RemoteTransport:
+class WormHole:
     """Search for files described by :class:`SearchTarget` objects.
 
     For each target, lists the remote (FTP/HTTP) or local directory, matches
@@ -39,7 +39,7 @@ class RemoteTransport:
     Usage::
 
         targets = sp.get(date=..., product=..., parameters=...)
-        transport = RemoteTransport()
+        transport = WormHole()
         results = transport.search(targets)
 
         for st in results:
@@ -269,7 +269,7 @@ class RemoteTransport:
         local_resource_id: str,
         local_factory: LocalSearchPlanner,
         date: datetime.datetime,
-    ) -> Optional[Path]:
+    ) -> Optional[AnyPath]:
         """Synchronously download matched files for one search target.
 
         Skips the download if the destination file already exists and
@@ -282,7 +282,7 @@ class RemoteTransport:
             date: Target date for computing sink directory.
 
         Returns:
-            Path to the downloaded file, or ``None`` on failure.
+            Path (local or cloud) to the downloaded file, or ``None`` on failure.
         """
 
         # TODO use fsspec ls to get file size in bytes, and skip download if size is zero.
@@ -292,7 +292,7 @@ class RemoteTransport:
             query.product, local_resource_id, date
         )
         destination_dir = (
-            Path(destination_resource.server.hostname)
+            as_path(destination_resource.server.hostname)
             / destination_resource.directory.value
         )  # type: ignore[union-attr]
         destination_dir.mkdir(parents=True, exist_ok=True)
