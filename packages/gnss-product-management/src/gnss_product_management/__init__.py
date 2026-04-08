@@ -4,7 +4,7 @@ GNSS PPP Products — specification-driven product discovery and resolution.
 """
 
 # -- Primary public API -------------------------------------------------------
-from gnss_product_management.client import GNSSClient, SearchResult  # noqa: F401
+from gnss_product_management.client import GNSSClient, ProductQuery, SearchResult  # noqa: F401
 from gnss_product_management.specifications.dependencies.dependencies import (  # noqa: F401
     DependencySpec,
     DependencyResolution,

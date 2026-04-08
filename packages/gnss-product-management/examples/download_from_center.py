@@ -10,10 +10,15 @@ base_dir = Path(
 client = GNSSClient.from_defaults(base_dir=base_dir)
 
 date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)
-results = client.search(date, product="CLOCK", parameters={"TTT": "FIN"})[0:1]
 
-print(f"Searching for COD CLOCK products on {date.date()}...\n")
-paths = client.download(results, sink_id="local", date=date)
+paths = (
+    client.query("CLOCK")
+    .on(date)
+    .where(TTT="FIN")
+    .sources("COD", "ESA", "IGS")
+    .prefer(TTT=["FIN", "RAP", "ULT"])
+    .download(sink_id="local", limit=1)
+)
 
 if paths:
     print(f"Downloaded to: {paths[0]}")

@@ -120,6 +120,36 @@ class GNSSClient:
             max_connections=max_connections,
         )
 
+    def query(self, product: Union[str, dict]) -> "ProductQuery":
+        """Return a fluent :class:`ProductQuery` builder for *product*.
+
+        This is the preferred entry point for building searches.  Chain
+        calls to narrow the query, then call :meth:`ProductQuery.search`
+        or :meth:`ProductQuery.download` to execute::
+
+            results = (
+                client.query("ORBIT")
+                .on(date)
+                .where(TTT="FIN")
+                .sources("COD", "ESA")
+                .search()
+            )
+
+        Args:
+            product: Product name (e.g. ``"ORBIT"``) or dict with ``name``,
+                and optionally ``version`` / ``variant``.
+
+        Returns:
+            A :class:`ProductQuery` bound to this client.
+        """
+        from gnss_product_management.client.product_query import ProductQuery
+
+        return ProductQuery(
+            fetcher=self._fetcher,
+            query_factory=self._qf,
+            product=product,
+        )
+
     def search(
         self,
         date: datetime.datetime,

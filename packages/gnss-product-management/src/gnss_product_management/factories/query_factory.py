@@ -79,6 +79,11 @@ class QueryFactory:
         """The :class:`LocalResourceFactory` used by this query factory."""
         return self._local
 
+    @property
+    def remote_resource_ids(self) -> List[str]:
+        """Return identifiers for all registered remote analysis centers."""
+        return list(self._remote.resource_ids)
+
     def get(
         self,
         date: datetime.datetime,
@@ -197,7 +202,9 @@ class QueryFactory:
         # 5.2 Remote resources
         for template in product_templates_1:
             for center_id in self._remote.resource_ids:
-                if remote_resources and center_id.upper() in remote_resources:
+                if remote_resources and center_id.upper() not in [
+                    r.upper() for r in remote_resources
+                ]:
                     continue
                 try:
                     resolved_queries = self._remote.source_product(
