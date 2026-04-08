@@ -15,8 +15,8 @@ import pytest
 
 from gnss_product_management.factories import (
     WorkSpace,
-    QueryFactory,
-    ResourceFetcher,
+    SearchPlanner,
+    RemoteTransport,
 )
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
@@ -52,8 +52,8 @@ def resolver(multi_env, workspace, dep_spec, tmp_path_factory) -> DependencyReso
     for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
         ws.add_resource_spec(path)
     ws.register_spec(base_dir=base, spec_ids=["local_config"])
-    qf = QueryFactory(product_environment=multi_env, workspace=ws)
-    fetcher = ResourceFetcher()
+    qf = SearchPlanner(product_registry=multi_env, workspace=ws)
+    fetcher = RemoteTransport(env=multi_env)
     return DependencyResolver(
         dep_spec,
         query_factory=qf,

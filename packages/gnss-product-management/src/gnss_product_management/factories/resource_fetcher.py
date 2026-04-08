@@ -1,36 +1,41 @@
 """Author: Franklyn Dunbar
 
-ResourceFetcher — protocol-agnostic file search and download.
+ResourceFetcher — backward-compatible wrapper around RemoteTransport.
+
+.. deprecated::
+    Import :class:`RemoteTransport` from
+    ``gnss_product_management.factories.remote_transport`` instead.
+
+This module also provides a :class:`FetchResult` shim so that existing
+code that iterates ``fetcher.search()`` results via ``r.found``,
+``r.matched_filenames``, ``r.query``, and ``r.error`` continues to work.
 """
+
+from __future__ import annotations
 
 import datetime
 import logging
-import re
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import fsspec
+from typing import List, Optional
 
-import fsspec.utils
-from gnss_product_management.specifications.products.product import ProductPath
-from gnss_product_management.specifications.remote.resource import ResourceQuery
-from gnss_product_management.factories.local_factory import LocalResourceFactory
-from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
-from gnss_product_management.utilities.helpers import decompress_gzip
+from gnss_product_management.factories.remote_transport import RemoteTransport
+from gnss_product_management.specifications.remote.resource import SearchTarget
+from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
 
 logger = logging.getLogger(__name__)
-
-# Type alias for (hostname, directory) grouping key
-_DirKey = Tuple[str, str]
 
 
 @dataclass
 class FetchResult:
-    """Outcome of searching one ResourceQuery against its server."""
+    """Shim that wraps a :class:`SearchTarget` with the old FetchResult API.
 
-    query: ResourceQuery
+    Provides ``found``, ``matched_filenames``, ``query``, and ``error``
+    attributes for backward compatibility with code written against the
+    old ``ResourceFetcher.search()`` return type.
+    """
+
+    query: SearchTarget
     matched_filenames: List[str] = field(default_factory=list)
     error: Optional[str] = None
     download_dest: Optional[Path] = None
@@ -46,213 +51,76 @@ class FetchResult:
         return self.download_dest is not None and self.download_dest.exists()
 
 
-class ResourceFetcher:
-    """Search for files described by ResourceQuery objects.
+class ResourceFetcher(RemoteTransport):
+    """Backward-compatible subclass of :class:`RemoteTransport`.
 
-    For each query, lists the remote (FTP/HTTP) or local directory, matches
-    ``product.filename.pattern`` against the listing, and populates
-    ``directory.value`` and ``filename.value`` on the query.
-
-    Attributes:
-        _connection_pool_factory: Factory managing per-host connection pools.
-
-    Usage::
-
-        queries = qf.get(date=..., product=..., parameters=...)
-        fetcher = ResourceFetcher()
-        results = fetcher.search(queries)
-
-        for r in results:
-            if r.found:
-                print(r.query.server.hostname, r.matched_filenames)
+    ``search()`` is overridden to return ``List[FetchResult]`` so that
+    existing call sites continue to work without modification.
     """
 
-    def __init__(
-        self,
-        *,
-        max_connections: int = 4,
-    ) -> None:
-        """Initialise the fetcher.
-
-        Args:
-            max_connections: Maximum connections per host pool.
-        """
-        self._connection_pool_factory = ConnectionPoolFactory(
-            max_connections=max_connections
-        )
-
-    # -- Public API ------------------------------------------------
-
-    def search(self, queries: List[ResourceQuery]) -> List[FetchResult]:
+    def search(self, queries: List[SearchTarget]) -> List[FetchResult]:  # type: ignore[override]
         """Search every query's server/directory for matching files.
 
-        Queries are grouped by ``(hostname, directory)`` so each unique
-        remote directory is listed exactly once.  Pattern matching for
-        every query in the group runs against the shared listing.
+        Returns a list of :class:`FetchResult` objects for backward
+        compatibility.  Each result groups all matched filenames for a
+        single query directory into one ``FetchResult``.
 
         Args:
-            queries: ResourceQuery objects to search.
+            queries: SearchTarget objects to search.
 
         Returns:
-            A list of :class:`FetchResult` per query.
+            A list of :class:`FetchResult` per unique (query, directory).
         """
-        groups, rejected = self._group_queries(queries)
+        from collections import defaultdict
 
-        # Ensure connection pools exist for every hostname we'll contact.
-        for hostname, _ in groups:
-            self._connection_pool_factory.add_connection(hostname)
+        # Use the parent implementation which returns List[SearchTarget]
+        expanded: List[SearchTarget] = super().search(queries)
 
-        # List each unique directory in parallel.
-        dir_keys = list(groups.keys())
-        with ThreadPoolExecutor(max_workers=min(len(dir_keys), 25)) as pool:
-            listings = dict(zip(dir_keys, pool.map(self._list_dir, dir_keys)))
+        # Group expanded targets back into FetchResult objects keyed by the
+        # original (server, directory, filename_pattern) so existing code that
+        # accesses r.matched_filenames still works as expected.
+        _key_map: dict = defaultdict(lambda: None)
+        result_map: dict = {}
 
-        # Match every query's file pattern against the pre-fetched listing.
-        results: List[FetchResult] = list(rejected)
-        for key, group_queries in groups.items():
-            listing = listings[key]
-            for query, file_pattern in group_queries:
-                query.directory.value = key[1]  # type: ignore[union-attr]
-                matches = self._match_files(listing, file_pattern)
-                if matches:
-                    results.append(FetchResult(query=query, matched_filenames=matches))
-                else:
-                    results.append(FetchResult(query=query, error="No matches found"))
-
-        return results
-
-    # -- Grouping --------------------------------------------------
-
-    def _group_queries(
-        self, queries: List[ResourceQuery]
-    ) -> Tuple[Dict[_DirKey, List[Tuple[ResourceQuery, str]]], List[FetchResult]]:
-        """Group queries by ``(hostname, directory)``.
-
-        Args:
-            queries: ResourceQuery objects to group.
-
-        Returns:
-            A tuple of (grouped queries, rejected FetchResults).
-            Grouped queries map each unique key to the queries and
-            file patterns for that directory. Rejected results are
-            for queries missing directory or pattern.
-        """
-        groups: Dict[_DirKey, List[Tuple[ResourceQuery, str]]] = defaultdict(list)
-        rejected: List[FetchResult] = []
-
-        for q in queries:
-            directory = self._get_directory(q)
-            file_pattern = self._get_file_pattern(q)
-            if not directory or not file_pattern:
-                rejected.append(
-                    FetchResult(
-                        query=q,
-                        error=f"Missing directory or file pattern: dir={directory!r}, pat={file_pattern!r}",
-                    )
-                )
+        for st in expanded:
+            if st.product.filename is None or st.product.filename.value is None:
                 continue
-            if fsspec.utils.get_protocol(q.server.hostname) == "file":
-                if not (Path(q.server.hostname) / directory).exists():
-                    rejected.append(
-                        FetchResult(
-                            query=q,
-                            error=f"Local directory does not exist: {q.server.hostname}",
-                        )
-                    )
-                    continue
-            key: _DirKey = (q.server.hostname, directory)
-            groups[key].append((q, file_pattern))
+            dir_val = st.directory.value or st.directory.pattern
+            pat = st.product.filename.pattern if st.product.filename else ""
+            key = (st.server.hostname, dir_val, pat)
+            if key not in result_map:
+                result_map[key] = FetchResult(
+                    query=st,
+                    matched_filenames=[],
+                )
+            result_map[key].matched_filenames.append(st.product.filename.value)
 
-        return groups, rejected
+        # Also include queries that had no matches (so callers see r.error)
+        # by rebuilding from the original queries list.
+        found_keys = set(result_map.keys())
+        for q in queries:
+            dir_val = q.directory.value or q.directory.pattern
+            pat = q.product.filename.pattern if q.product.filename else ""
+            key = (q.server.hostname, dir_val, pat)
+            if key not in found_keys:
+                result_map[key] = FetchResult(
+                    query=q,
+                    matched_filenames=[],
+                    error="No matches found",
+                )
 
-    # -- Directory listing -----------------------------------------
-
-    def _list_dir(self, key: _DirKey) -> List[str]:
-        """List a single ``(hostname, directory)`` pair.
-
-        Args:
-            key: A ``(hostname, directory)`` tuple.
-
-        Returns:
-            A list of filenames, or ``[]`` on failure.
-        """
-        hostname, directory = key
-        try:
-            return self._connection_pool_factory.list_directory(hostname, directory)
-        except Exception as e:
-            logger.error(f"Listing failed for {hostname}/{directory}: {e}")
-            return []
-
-    # -- Pattern matching ------------------------------------------
-
-    @staticmethod
-    def _match_files(listing: List[str], file_pattern: str) -> List[str]:
-        """Match filenames in a directory listing against a regex pattern.
-
-        Args:
-            listing: Filenames from a directory listing.
-            file_pattern: Regex pattern to match.
-
-        Returns:
-            Matching filenames (excluding ``.lock`` files).
-        """
-        # remove .lock files from listing before matching, since they are not actual resources
-        listing = [f for f in listing if not f.endswith(".lock")]
-        try:
-            rx = re.compile(file_pattern, re.IGNORECASE)
-            return [f for f in listing if rx.search(f)]
-        except re.error:
-            return [f for f in listing if file_pattern in f]
-
-    # -- Helpers ---------------------------------------------------
-
-    @staticmethod
-    def _get_directory(query: ResourceQuery) -> Optional[str]:
-        """Extract the resolved directory string from a query.
-
-        Args:
-            query: The query to inspect.
-
-        Returns:
-            The directory string, or ``None``.
-        """
-        d = query.directory
-        if isinstance(d, ProductPath):
-            return d.value or d.pattern
-        if isinstance(d, str):
-            return d
-        return None
-
-    @staticmethod
-    def _get_file_pattern(query: ResourceQuery) -> Optional[str]:
-        """Extract the file regex pattern from a query.
-
-        Args:
-            query: The query to inspect.
-
-        Returns:
-            The file pattern string, or ``None``.
-        """
-        if query.product.filename is None:
-            return None
-        fn = query.product.filename
-        if isinstance(fn, ProductPath):
-            return fn.pattern
-        if isinstance(fn, str):
-            return fn
-        return None
+        return list(result_map.values())
 
     def download_one(
         self,
-        query: ResourceQuery,
+        query: SearchTarget,
         local_resource_id: str,
-        local_factory: LocalResourceFactory,
+        local_factory: LocalSearchPlanner,
         date: datetime.datetime,
     ) -> Optional[Path]:
         """Synchronously download matched files for one query.
 
-        Skips the download if the destination file already exists and
-        is non-empty.
+        Delegates to :meth:`RemoteTransport.download_one`.
 
         Args:
             query: The resolved query with filename value.
@@ -263,55 +131,12 @@ class ResourceFetcher:
         Returns:
             Path to the downloaded file, or ``None`` on failure.
         """
-
-        # TODO use fsspec ls to get file size in bytes, and skip download if size is zero.
-        hostname = query.server.hostname
-
-        destination_resource = local_factory.sink_product(
-            query.product, local_resource_id, date
+        return super().download_one(
+            query=query,
+            local_resource_id=local_resource_id,
+            local_factory=local_factory,
+            date=date,
         )
-        destination_dir = (
-            Path(destination_resource.server.hostname)
-            / destination_resource.directory.value
-        )  # type: ignore[union-attr]
-        destination_dir.mkdir(parents=True, exist_ok=True)
-        destination_path = destination_dir / query.product.filename.value  # type: ignore[union-attr]
 
-        # Prefer an already-decompressed version on disk
-        if destination_path.suffix == ".gz":
-            decompressed_path = destination_path.with_suffix("")
-            if decompressed_path.exists() and decompressed_path.stat().st_size > 0:
-                logger.info(
-                    f"Skipping download, decompressed file already exists: {decompressed_path}"
-                )
-                return decompressed_path
 
-        # Skip download if the file already exists and is non-empty
-        if destination_path.exists() and destination_path.stat().st_size > 0:
-            logger.info(f"Skipping download, file already exists: {destination_path}")
-            return destination_path
-
-        try:
-            result = self._connection_pool_factory.download_file(
-                hostname=hostname,
-                remote_path=str(
-                    Path(query.directory.value) / query.product.filename.value
-                ),  # type: ignore[union-attr]
-                target_dir=destination_dir,
-            )
-        except Exception as e:
-            logger.error(
-                f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}"
-            )
-            return None
-
-        # Decompress gzip files after download
-        if result is not None and result.suffix == ".gz":
-            decompressed = decompress_gzip(result)
-            if decompressed is not None:
-                return decompressed
-            logger.warning(
-                f"Decompression failed for {result}, returning compressed file"
-            )
-
-        return result
+__all__ = ["ResourceFetcher", "FetchResult", "RemoteTransport"]

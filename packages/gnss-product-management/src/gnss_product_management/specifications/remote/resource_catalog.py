@@ -10,7 +10,7 @@ from typing import List, Optional
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.remote.resource import (
-    ResourceQuery,
+    SearchTarget,
     ResourceSpec,
     Server,
 )
@@ -67,7 +67,7 @@ class ResourceCatalog(Catalog):
         description: Human-readable description.
         website: Center website URL.
         servers: Server endpoints for this center.
-        queries: Expanded :class:`ResourceQuery` objects.
+        queries: Expanded :class:`SearchTarget` objects.
     """
 
     id: str
@@ -75,7 +75,7 @@ class ResourceCatalog(Catalog):
     description: Optional[str] = None
     website: Optional[str] = None
     servers: List[Server]
-    queries: List[ResourceQuery]
+    queries: List[SearchTarget]
 
     @classmethod
     def build(cls, resource_spec: ResourceSpec, product_catalog) -> "ResourceCatalog":
@@ -126,7 +126,7 @@ class ResourceCatalog(Catalog):
                             deep=True,
                         )
                         queries.append(
-                            ResourceQuery(
+                            SearchTarget(
                                 product=pinned_product,
                                 server=server,
                                 directory=rp_spec.directory,

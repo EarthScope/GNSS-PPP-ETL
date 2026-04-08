@@ -1,12 +1,12 @@
 """Author: Franklyn Dunbar
 
-Dependency resolver — resolve a DependencySpec via QueryFactory.
+Dependency resolver — resolve a DependencySpec via SearchPlanner.
 
 Two-phase resolution:
   1. **Local** — check ``base_dir`` for files already on disk.
-  2. **Remote** — use :class:`ResourceFetcher` to search/download.
+  2. **Remote** — use :class:`RemoteTransport` to search/download.
 
-Preferences are applied by sorting ``ResourceQuery`` results according
+Preferences are applied by sorting ``SearchTarget`` results according
 to the ``SearchPreference.parameter`` / ``sorting`` cascade defined in
 the dependency spec.
 """
@@ -22,24 +22,21 @@ from typing import Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
-from gnss_product_management.environments import ProductEnvironment
-from gnss_product_management.specifications.remote.resource import ResourceQuery
+from gnss_product_management.environments import ProductRegistry
+from gnss_product_management.specifications.remote.resource import SearchTarget
 from gnss_product_management.specifications.dependencies.dependencies import (
     Dependency,
     DependencyResolution,
     DependencySpec,
     ResolvedDependency,
 )
-from gnss_product_management.factories.query_factory import QueryFactory
-from gnss_product_management.factories.resource_fetcher import (
-    ResourceFetcher,
-    FetchResult,
-)
+from gnss_product_management.factories.search_planner import SearchPlanner
+from gnss_product_management.factories.remote_transport import RemoteTransport
 from gnss_product_management.specifications.products.product import (
     infer_from_regex,
 )
 from gnss_product_management.specifications.parameters.parameter import Parameter
-from gnss_product_management.factories.local_factory import LocalResourceFactory
+from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
 from gnss_product_management.lockfile import (
     LockProduct,
     LockfileManager,
@@ -53,11 +50,11 @@ from gnss_product_management.utilities.helpers import decompress_gzip
 logger = logging.getLogger(__name__)
 
 
-def _get_param_value(rq: ResourceQuery, param_name: str) -> str:
-    """Extract a parameter value from a ResourceQuery's product.
+def _get_param_value(rq: SearchTarget, param_name: str) -> str:
+    """Extract a parameter value from a SearchTarget's product.
 
     Args:
-        rq: The query to inspect.
+        rq: The target to inspect.
         param_name: Parameter name to extract.
 
     Returns:
@@ -69,11 +66,11 @@ def _get_param_value(rq: ResourceQuery, param_name: str) -> str:
     return ""
 
 
-def _build_remote_url(rq: ResourceQuery) -> str:
-    """Construct a full remote URL from a ResourceQuery.
+def _build_remote_url(rq: SearchTarget) -> str:
+    """Construct a full remote URL from a SearchTarget.
 
     Args:
-        rq: The query to build a URL for.
+        rq: The target to build a URL for.
 
     Returns:
         Fully qualified URL string.
@@ -91,35 +88,35 @@ def _build_remote_url(rq: ResourceQuery) -> str:
 
 
 class DependencyResolver:
-    """Resolve a :class:`DependencySpec` using :class:`QueryFactory`.
+    """Resolve a :class:`DependencySpec` using :class:`SearchPlanner`.
 
     Attributes:
         dep_spec: The dependency specification to resolve.
 
     Args:
         dep_spec: The dependency specification to resolve.
-        query_factory: A :class:`QueryFactory` wired to the desired centres.
-        product_environment: The product environment for classification.
-        fetcher: A :class:`ResourceFetcher` for remote search/download.
+        query_factory: A :class:`SearchPlanner` wired to the desired centres.
+        product_environment: The product registry for classification.
+        fetcher: A :class:`RemoteTransport` for remote search/download.
     """
 
     def __init__(
         self,
         dep_spec: DependencySpec,
-        query_factory: QueryFactory,
-        product_environment: ProductEnvironment,
-        fetcher: ResourceFetcher,
+        query_factory: SearchPlanner,
+        product_environment: ProductRegistry,
+        fetcher: RemoteTransport,
     ) -> None:
         """Initialise the resolver.
 
         Args:
             dep_spec: The dependency specification to resolve.
-            query_factory: Query factory wired to the desired centres.
-            product_environment: Environment for product classification.
-            fetcher: Fetcher for remote search/download.
+            query_factory: Search planner wired to the desired centres.
+            product_environment: Registry for product classification.
+            fetcher: Transport for remote search/download.
         """
         self.dep_spec = dep_spec
-        self._qf: QueryFactory = query_factory
+        self._qf: SearchPlanner = query_factory
         self._fetcher = fetcher
         self._product_environment = product_environment
 
@@ -281,35 +278,36 @@ class DependencyResolver:
 
         queries = self._sort_by_preferences(queries)
 
-        # Fetch the queries.
+        # Search using the transport — returns List[SearchTarget] with filename.value set.
         logger.info(
             f"Searching for {len(queries)} queries for dependency {dep.spec}..."
         )
-        fetched_queries: List[FetchResult] = self._fetcher.search(queries)
-        if not fetched_queries:
-            logger.warning(f"No fetch results for dependency {dep.spec}")
+        expanded_queries: List[SearchTarget] = self._fetcher.search(queries)
+        if not expanded_queries:
+            logger.warning(f"No search results for dependency {dep.spec}")
             return ResolvedDependency(
                 spec=dep.spec,
                 required=dep.required,
                 status="missing",
             ), None
-        logger.info(f"Fetched {len(fetched_queries)} queries for dependency {dep.spec}")
+        logger.info(f"Found {len(expanded_queries)} results for dependency {dep.spec}")
 
-        # Expand the fetched queries into a list of resource queries.
-        expanded_queries: List[ResourceQuery] = self._expand_fetch_results(
-            fetched_queries
-        )
+        # Update parameters from matched filenames.
+        expanded_queries = [self._update_parameters(rq) for rq in expanded_queries]
 
         expanded_queries = self._sort_by_preferences(expanded_queries)
         filename_groups = defaultdict(list)
         for rq in expanded_queries:
-            filename_groups[rq.product.filename.value].append(rq)
+            if rq.product.filename and rq.product.filename.value:
+                filename_groups[rq.product.filename.value].append(rq)
 
         # sort by server protocol
         for key, group in filename_groups.items():
             filename_groups[key] = self._sort_by_protocol(group)
 
         for rq_index in expanded_queries:
+            if not (rq_index.product.filename and rq_index.product.filename.value):
+                continue
             remote_urls = [
                 _build_remote_url(rq)
                 for rq in filename_groups[rq_index.product.filename.value]
@@ -340,49 +338,17 @@ class DependencyResolver:
                     if resolved is not None:
                         return resolved, lock_file
 
-    def _expand_fetch_results(self, fetched: List[FetchResult]) -> List[ResourceQuery]:
-        """Expand FetchResults into ResourceQueries with filename values filled in.
-
-        Args:
-            fetched: List of fetch results from :meth:`ResourceFetcher.search`.
-
-        Returns:
-            Expanded list of :class:`ResourceQuery` objects.
-        """
-        expanded: List[ResourceQuery] = []
-        for fq in fetched:
-            if fq.error:
-                continue
-            assert fq.query.directory.value is not None, (
-                "Fetched query must have directory value filled in"
-            )
-            assert fq.query.product.filename is not None, (
-                "Fetched query must have filename value filled in"
-            )  # type: ignore
-            if not fq.matched_filenames:
-                logger.info(
-                    f"No matches found for query {fq.query.product.filename.pattern}"
-                )
-                continue
-            for filename in fq.matched_filenames:
-                # Create a new ResourceQuery with the filename value filled in.
-                rq = fq.query.model_copy(deep=True)
-                rq.product.filename.value = filename
-                rq = self._update_parameters(rq)
-                expanded.append(rq)
-        return expanded
-
     def _sort_by_preferences(
         self,
-        queries: List[ResourceQuery],
-    ) -> List[ResourceQuery]:
+        queries: List[SearchTarget],
+    ) -> List[SearchTarget]:
         """Sort queries according to the preference cascade.
 
         Args:
-            queries: ResourceQuery objects to sort.
+            queries: SearchTarget objects to sort.
 
         Returns:
-            Sorted list of queries.
+            Sorted list of targets.
         """
         if not self.dep_spec.preferences:
             return queries
@@ -391,7 +357,7 @@ class DependencyResolver:
             param_name = pref.parameter
             sorting = [v.upper() for v in pref.sorting]
 
-            def _key(rq: ResourceQuery, _pn=param_name, _s=sorting) -> int:
+            def _key(rq: SearchTarget, _pn=param_name, _s=sorting) -> int:
                 try:
                     val = _get_param_value(rq, _pn).upper()
                     return _s.index(val)
@@ -402,14 +368,14 @@ class DependencyResolver:
 
         return queries
 
-    def _sort_by_protocol(self, queries: List[ResourceQuery]) -> List[ResourceQuery]:
+    def _sort_by_protocol(self, queries: List[SearchTarget]) -> List[SearchTarget]:
         """Sort queries by server protocol, preferring local/file over remote.
 
         Args:
-            queries: ResourceQuery objects to sort.
+            queries: SearchTarget objects to sort.
 
         Returns:
-            Sorted list of queries.
+            Sorted list of targets.
         """
         protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
         return sorted(
@@ -421,19 +387,21 @@ class DependencyResolver:
             ),
         )
 
-    def _update_parameters(self, resource_query: ResourceQuery) -> ResourceQuery:
-        """Update a ResourceQuery's parameters by re-interpolating patterns.
+    def _update_parameters(self, search_target: SearchTarget) -> SearchTarget:
+        """Update a SearchTarget's parameters by re-interpolating patterns.
 
-        Uses :func:`infer_from_regex` and :meth:`ProductEnvironment.classify`
+        Uses :func:`infer_from_regex` and :meth:`ProductRegistry.classify`
         to fill in parameter values from the matched filename.
 
         Args:
-            resource_query: The query to update.
+            search_target: The target to update.
 
         Returns:
-            A deep copy of the query with updated parameters.
+            A deep copy of the target with updated parameters.
         """
-        updated = resource_query.model_copy(deep=True)
+        updated = search_target.model_copy(deep=True)
+        if updated.product.filename is None:
+            return updated
         updated_params: List[Parameter] = infer_from_regex(
             regex=updated.product.filename.pattern,  # type: ignore
             filename=updated.product.filename.value,  # type: ignore
@@ -457,20 +425,20 @@ class DependencyResolver:
 
     def _resolve_remote(
         self,
-        rq: ResourceQuery,
+        rq: SearchTarget,
         dep: Dependency,
         local_sink_id: str,
-        local_resource_factory: LocalResourceFactory,
+        local_resource_factory: LocalSearchPlanner,
         date: datetime.datetime,
         alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
         """Download and resolve a remote dependency.
 
         Args:
-            rq: The resolved query with filename value.
+            rq: The resolved target with filename value.
             dep: The dependency being resolved.
             local_sink_id: Target local resource identifier.
-            local_resource_factory: Factory for local sink paths.
+            local_resource_factory: Planner for local sink paths.
             date: Target date.
             alternative_urls: Alternative download URLs for the lockfile.
 
@@ -483,7 +451,6 @@ class DependencyResolver:
             "Remote resolution requires filename to be filled in"
         )
 
-        # local_path = self._download_result(rq, dest_dir)
         local_path: Optional[Path] = self._fetcher.download_one(
             query=rq,
             local_resource_id=local_sink_id,
@@ -510,20 +477,20 @@ class DependencyResolver:
 
     def _resolve_local(
         self,
-        rq: ResourceQuery,
+        rq: SearchTarget,
         dep: Dependency,
         local_sink_id: str,
-        local_resource_factory: LocalResourceFactory,
+        local_resource_factory: LocalSearchPlanner,
         date: datetime.datetime,
         alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
         """Resolve a local dependency, optionally copying to the sink.
 
         Args:
-            rq: The resolved query with filename value.
+            rq: The resolved target with filename value.
             dep: The dependency being resolved.
             local_sink_id: Target local resource identifier.
-            local_resource_factory: Factory for local sink paths.
+            local_resource_factory: Planner for local sink paths.
             date: Target date.
             alternative_urls: Alternative download URLs for the lockfile.
 
