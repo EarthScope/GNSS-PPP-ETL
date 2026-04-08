@@ -13,7 +13,7 @@ from typing import List, Optional, Protocol, runtime_checkable
 class DirectoryAdapter(Protocol):
     """Uniform contract for listing remote/local directories and downloading files.
 
-    Implementations live in Layer 0 (``server/``).  The ``ResourceFetcher``
+    Implementations live in Layer 0 (``server/``).  The ``RemoteTransport``
     in Layer 3 consumes adapters through this interface.
     """
 

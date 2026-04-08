@@ -7,9 +7,9 @@ Subpackages
 - :mod:`.parameters`   — ``Parameter``, ``ParameterCatalog``
 - :mod:`.format`       — ``FormatFieldDef``, ``FormatVersionSpec``, ``FormatSpec``,
                          ``FormatCatalog``, ``FormatSpecCatalog``
-- :mod:`.products`     — ``Product``, ``ProductPath``, ``ProductCatalog``
+- :mod:`.products`     — ``Product``, ``PathTemplate``, ``ProductCatalog``
 - :mod:`.local`        — ``LocalCollection``, ``LocalResourceSpec``
-- :mod:`.remote`       — ``Server``, ``ResourceSpec``, ``ResourceQuery``,
+- :mod:`.remote`       — ``Server``, ``ResourceSpec``, ``SearchTarget``,
                          ``ResourceCatalog``
 - :mod:`.dependencies` — ``DependencySpec``, ``ResolvedDependency``
 
@@ -34,6 +34,7 @@ from gnss_product_management.specifications.format.format_spec import (
 )
 from gnss_product_management.specifications.products.product import (
     Product,
+    PathTemplate,
     ProductPath,
 )
 from gnss_product_management.specifications.products.catalog import (
@@ -43,6 +44,7 @@ from gnss_product_management.specifications.products.catalog import (
 from gnss_product_management.specifications.remote.resource import (
     Server,
     ResourceSpec,
+    SearchTarget,
     ResourceQuery,
 )
 from gnss_product_management.specifications.remote.resource_catalog import (
@@ -80,12 +82,14 @@ __all__ = [
     "FormatSpecCatalog",
     # products
     "Product",
+    "PathTemplate",
     "ProductPath",
     "ProductCatalog",
     "ProductSpecCatalog",
     # remote
     "Server",
     "ResourceSpec",
+    "SearchTarget",
     "ResourceQuery",
     "ResourceCatalog",
     # local

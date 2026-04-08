@@ -1,6 +1,6 @@
 """Author: Franklyn Dunbar
 
-Core product models — ProductPath, Product, and catalog hierarchies.
+Core product models — PathTemplate, Product, and catalog hierarchies.
 """
 
 import re
@@ -14,7 +14,7 @@ from gnss_product_management.specifications.parameters.parameter import (
 )
 
 
-class ProductPath(BaseModel):
+class PathTemplate(BaseModel):
     """A template pattern with ``{NAME}``-style placeholders, resolved via :meth:`derive`."""
 
     pattern: str = Field(
@@ -24,7 +24,7 @@ class ProductPath(BaseModel):
         None, description="The resolved value after derivation."
     )
     description: Optional[str] = Field(
-        None, description="A description of the product path."
+        None, description="A description of the path template."
     )
 
     def derive(self, parameters: List[Parameter]) -> None:
@@ -112,6 +112,10 @@ class ProductPath(BaseModel):
         return {k: v for k, v in m.groupdict().items() if v is not None}
 
 
+# Backward-compatible alias
+ProductPath = PathTemplate
+
+
 def infer_from_regex(
     regex: str,
     filename: str,
@@ -170,10 +174,10 @@ class Product(BaseModel):
     parameters: List[Parameter] = Field(
         ..., description="A list of parameters for the product."
     )
-    directory: Optional[ProductPath] = Field(
+    directory: Optional[PathTemplate] = Field(
         default=None, description="The directory where the product is located."
     )
-    filename: Optional[ProductPath] = Field(
+    filename: Optional[PathTemplate] = Field(
         default=None, description="The filename pattern for the product."
     )
 

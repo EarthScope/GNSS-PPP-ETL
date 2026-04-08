@@ -2,6 +2,7 @@
 
 from .product import (
     Product as Product,
+    PathTemplate as PathTemplate,
     ProductPath as ProductPath,
     VariantCatalog as VariantCatalog,
     VersionCatalog as VersionCatalog,

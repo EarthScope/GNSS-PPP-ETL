@@ -1,11 +1,11 @@
 """Author: Franklyn Dunbar
 
-ProductEnvironment — builds the full catalog chain and remote resource factory.
+ProductRegistry — builds the full catalog chain and remote search planner.
 
 Loads parameter, format, product, and resource specification YAMLs, then
 builds derived catalogs (``ParameterCatalog`` → ``FormatCatalog`` →
-``ProductCatalog`` → ``RemoteResourceFactory``).  Also provides
-:meth:`~ProductEnvironment.classify` for parsing product filenames back
+``ProductCatalog`` → ``RemoteSearchPlanner``).  Also provides
+:meth:`~ProductRegistry.classify` for parsing product filenames back
 into structured metadata.
 """
 
@@ -31,8 +31,8 @@ from gnss_product_management.specifications.products.catalog import (
     ProductCatalog,
     ProductSpecCatalog,
 )
-from gnss_product_management.factories.remote_factory import (
-    RemoteResourceFactory,
+from gnss_product_management.factories.remote_search_planner import (
+    RemoteSearchPlanner,
 )
 from gnss_product_management.utilities.metadata_funcs import register_computed_fields
 
@@ -41,7 +41,7 @@ class _MatchEntry(NamedTuple):
     """Pre-compiled regex entry for filename classification.
 
     Sorted by template length (longest first) so that more specific
-    patterns take precedence during :meth:`ProductEnvironment.classify`.
+    patterns take precedence during :meth:`ProductRegistry.classify`.
     """
 
     template_len: int
@@ -140,13 +140,13 @@ class LoadedSpecs(BaseModel):
     built: Any
 
 
-class ProductEnvironment:
+class ProductRegistry:
     """Unified container for the specification / factory layer.
 
     Incrementally loads YAML specs via ``add_*()`` methods, then calls
     :meth:`build` to derive the full catalog chain::
 
-        ParameterCatalog → FormatCatalog → ProductCatalog → RemoteResourceFactory
+        ParameterCatalog → FormatCatalog → ProductCatalog → RemoteSearchPlanner
 
     After building, :meth:`classify` parses a product filename into
     structured metadata (product name, format, version, variant, parameters).
@@ -155,11 +155,11 @@ class ProductEnvironment:
         _parameter_catalog: Built parameter catalog (available after :meth:`build`).
         _format_catalog: Built format catalog (available after :meth:`build`).
         _product_catalog: Built product catalog (available after :meth:`build`).
-        _remote_resource_factory: Built remote factory (available after :meth:`build`).
+        _remote_resource_factory: Built remote planner (available after :meth:`build`).
     """
 
     def __init__(self) -> None:
-        """Initialise an empty environment with no specs loaded."""
+        """Initialise an empty registry with no specs loaded."""
 
         self._parameter_specs: Dict[str, LoadedSpecs] = {}
         self._format_specs: Dict[str, LoadedSpecs] = {}
@@ -170,7 +170,7 @@ class ProductEnvironment:
         self._format_catalog: Optional[FormatCatalog] = None
         self._product_spec_catalog: Optional[ProductSpecCatalog] = None
         self._product_catalog: Optional[ProductCatalog] = None
-        self._remote_resource_factory: Optional[RemoteResourceFactory] = None
+        self._remote_resource_factory: Optional[RemoteSearchPlanner] = None
 
     def add_parameter_spec(self, path: Path | str, id: str = "default") -> None:
         """Load and register a parameter specification YAML file.
@@ -296,14 +296,14 @@ class ProductEnvironment:
         )
 
     def _build_remote_resource_factory(self) -> None:
-        """Build the :class:`RemoteResourceFactory` from loaded resource specs."""
+        """Build the :class:`RemoteSearchPlanner` from loaded resource specs."""
         assert self._product_catalog is not None, (
-            "Product catalog must be built before building remote resource factory"
+            "Product catalog must be built before building remote search planner"
         )
         assert self._parameter_catalog is not None, (
-            "Parameter catalog must be built before building remote resource factory"
+            "Parameter catalog must be built before building remote search planner"
         )
-        factory = RemoteResourceFactory(
+        factory = RemoteSearchPlanner(
             product_catalog=self._product_catalog,
             parameter_catalog=self._parameter_catalog,
         )
@@ -316,7 +316,7 @@ class ProductEnvironment:
 
         Must be called after all ``add_*()`` methods.  Builds:
         ``ParameterCatalog`` → ``FormatCatalog`` → ``ProductCatalog`` →
-        ``RemoteResourceFactory``.
+        ``RemoteSearchPlanner``.
         """
         self._build_parameter_catalog()
         self._build_format_catalog()
@@ -373,3 +373,7 @@ class ProductEnvironment:
             }
 
         return None
+
+
+# Backward-compatible alias
+ProductEnvironment = ProductRegistry
