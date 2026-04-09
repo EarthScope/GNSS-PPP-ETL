@@ -17,8 +17,8 @@ workspace.add_resource_spec(
     "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/packages/pride-ppp/src/pride_ppp/configs/local/pride_config.yaml"
 )
 
-base_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/GNSS-PPP")
-pride_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/SFGMain/Pride")
+base_dir = Path("/Users/franklyndunbar/Project/SeaFloorGeodesy/Data/GNSS-DATA/")
+pride_dir = Path("/Users/franklyndunbar/Project/SeaFloorGeodesy/Data/SFGMain2/Pride/")
 workspace.register_spec(base_dir=base_dir, spec_ids=["local_config"], alias="local")
 workspace.register_spec(base_dir=pride_dir, spec_ids=["pride_config"], alias="pride")
 
@@ -47,7 +47,7 @@ station = "TEST"
 years = [2023, 2024, 2025]
 months = [2, 5, 8]
 days = [3, 6, 9]
-days = [x + 2 for x in days]
+days = [x + 3 for x in days]
 dates = [
     datetime.datetime(y, m, d, tzinfo=datetime.timezone.utc)
     for y in years

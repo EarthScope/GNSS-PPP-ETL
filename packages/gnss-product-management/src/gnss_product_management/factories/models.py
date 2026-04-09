@@ -5,10 +5,14 @@ Public return types and exceptions for the ProductRegistry API.
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+
+from gnss_product_management.utilities.paths import AnyPath
 
 if TYPE_CHECKING:
     from gnss_product_management.lockfile import ProductLockfile
@@ -17,11 +21,19 @@ if TYPE_CHECKING:
 class FoundResource(BaseModel):
     """A discovered product resource — either a local file or a remote URI."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     product: str = Field(..., description="Product name (e.g. 'ORBIT', 'CLOCK').")
     source: str = Field(..., description="'local' or 'remote'.")
     uri: str = Field(..., description="Local file path or remote URL.")
     parameters: Dict[str, str] = Field(
         default_factory=dict, description="All resolved parameter values."
+    )
+    date: Optional[datetime.datetime] = Field(
+        default=None, description="Target date this resource was resolved for."
+    )
+    local_path: Optional[AnyPath] = Field(
+        default=None, description="Local filesystem path after a successful download."
     )
 
     # Internal: original SearchTarget, not serialized. Used by DownloadPipeline.
@@ -48,6 +60,33 @@ class FoundResource(BaseModel):
         if self.is_local:
             return Path(self.uri)
         return None
+
+    @property
+    def hostname(self) -> str:
+        """Server hostname, or ``''`` for local resources."""
+        return "" if self.is_local else (urlparse(self.uri).hostname or "")
+
+    @property
+    def protocol(self) -> str:
+        """Transport protocol (e.g. ``'ftp'``, ``'https'``, ``'file'``)."""
+        return "file" if self.is_local else (urlparse(self.uri).scheme or "")
+
+    @property
+    def directory(self) -> str:
+        """Parent directory of the resource file."""
+        raw = self.uri if self.is_local else urlparse(self.uri).path
+        return str(Path(raw).parent)
+
+    @property
+    def filename(self) -> str:
+        """Filename (basename) of the resource."""
+        raw = self.uri if self.is_local else urlparse(self.uri).path
+        return Path(raw).name
+
+    @property
+    def downloaded(self) -> bool:
+        """``True`` if the file has been downloaded and exists on disk."""
+        return self.local_path is not None and Path(self.local_path).exists()
 
 
 class Resolution(BaseModel):

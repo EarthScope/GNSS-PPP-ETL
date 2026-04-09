@@ -6,37 +6,29 @@ GNSSClient — high-level entry point for searching and downloading GNSS product
 from __future__ import annotations
 
 import datetime
+from itertools import groupby
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, cast
 
-from gnss_product_management.client.search_result import SearchResult
-from gnss_product_management.factories.search_planner import SearchPlanner
-from gnss_product_management.factories.remote_transport import WormHole
+from gnss_product_management.factories.models import FoundResource
+from gnss_product_management.factories.pipelines.download import DownloadPipeline
+from gnss_product_management.factories.pipelines.find import FindPipeline
+from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
 from gnss_management_specs.configs import LOCAL_SPEC_DIR
 from gnss_product_management.defaults import DefaultProductEnvironment
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.client.product_query import ProductQuery
-from gnss_product_management.factories.ranking import (
-    sort_by_preferences,
-    sort_by_protocol,
-)
-from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
 from gnss_product_management.utilities.paths import AnyPath
 
-# Keep spec types at module level — they live in specifications/dependencies
-# which has no transitive dependency on factories or environments.
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
     SearchPreference,
 )
 
-# All factory/environment types are imported lazily (inside methods) to avoid a
-# circular import: environments → specifications.local → factories → environments.
 if TYPE_CHECKING:
-    from gnss_product_management.environments import ProductRegistry, WorkSpace
-    from gnss_product_management.factories.remote_transport import WormHole
+    from gnss_product_management.environments import ProductRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +37,8 @@ class GNSSClient:
     """High-level client for searching and downloading GNSS products.
 
     ``GNSSClient`` is the single entry point for all product retrieval.
-    It wraps :class:`SearchPlanner`, :class:`WormHole`, and
-    :class:`DependencyResolver` as internal implementation details.
+    It wraps :class:`FindPipeline`, :class:`DownloadPipeline`, and
+    :class:`ResolvePipeline` as internal implementation details.
 
     Use :meth:`from_defaults` to get started with the bundled specs::
 
@@ -57,14 +49,14 @@ class GNSSClient:
         # Search and download
         client = GNSSClient.from_defaults(base_dir="/data/gnss")
         results = client.search(date, product="CLOCK", parameters={"TTT": "FIN"})
-        paths = client.download(results, sink_id="local", date=date)
+        paths = client.download(results, sink_id="local")
 
         # Full dependency resolution
         client = GNSSClient.from_defaults(base_dir="/data/gnss")
         resolution, lockfile = client.resolve_dependencies("spec.yaml", date, sink_id="local")
 
     Args:
-        env: Configured :class:`ProductRegistry` with loaded product and
+        product_registry: Configured :class:`ProductRegistry` with loaded product and
             center specs.
         workspace: :class:`WorkSpace` with registered local directories.
         max_connections: Maximum concurrent connections per host.
@@ -72,18 +64,21 @@ class GNSSClient:
 
     def __init__(
         self,
-        product_registry: ProductRegistry,
+        product_registry: "ProductRegistry",
         workspace: WorkSpace,
         *,
         max_connections: int = 4,
     ) -> None:
 
         self._product_registry = product_registry
-        self._search_planner = SearchPlanner(
-            product_registry=product_registry, workspace=workspace
+        self._finder = FindPipeline(
+            product_registry, workspace, max_connections=max_connections
         )
-        self._wormhole = WormHole(
-            max_connections=max_connections, product_registry=product_registry
+        self._downloader = DownloadPipeline(
+            product_registry,
+            workspace,
+            transport=self._finder.transport,
+            max_connections=max_connections,
         )
 
     @classmethod
@@ -152,9 +147,9 @@ class GNSSClient:
         Returns:
             A :class:`ProductQuery` bound to this client.
         """
-
         return ProductQuery(
-            wormhole=self._wormhole, search_planner=self._search_planner
+            wormhole=self._finder.transport,
+            search_planner=self._finder.planner,
         )
 
     def search(
@@ -166,12 +161,12 @@ class GNSSClient:
         preferences: Optional[List[SearchPreference]] = None,
         local_resources: Optional[List[str]] = None,
         remote_resources: Optional[List[str]] = None,
-    ) -> List[SearchResult]:
+    ) -> List[FoundResource]:
         """Search for products matching the given criteria.
 
-        Runs the full pipeline internally: build queries → list remote
-        directories → expand matches → infer parameters → rank by preference
-        and protocol.
+        Delegates to :class:`FindPipeline` internally: builds queries,
+        lists remote directories, expands matches, infers parameters,
+        and ranks by preference and protocol.
 
         Args:
             date: Target date (timezone-aware datetime).
@@ -185,56 +180,33 @@ class GNSSClient:
             remote_resources: Restrict to these remote center IDs.
 
         Returns:
-            Ranked list of :class:`SearchResult` objects, best first.
+            Ranked list of :class:`FoundResource` objects, best first.
             Local/file results precede remote ones; within each protocol
             tier results are ordered by *preferences*.
         """
-        if isinstance(product, str):
-            product = {"name": product}
-
-        queries = self._search_planner.get(
-            date=date,
-            product=product,
-            parameters=parameters,
-            local_resources=local_resources,
-            remote_resources=remote_resources,
+        product_name: str = (
+            product.get("name", "") if isinstance(product, dict) else product
         )
 
-        expanded = self._wormhole.search(queries)
-        if preferences:
-            expanded = sort_by_preferences(expanded, preferences)
-        ranked = sort_by_protocol(expanded)
-
-        # Build SearchResult list, deduplicating by (hostname, filename) so that
-        # the same file matched via multiple query paths appears only once.
-        results: List[SearchResult] = []
-        seen: Dict[Tuple[str, str], bool] = {}
-        for rq in ranked:
-            hostname = rq.server.hostname
-            filename = rq.product.filename.value if rq.product.filename else ""  # type: ignore[union-attr]
-            key = (hostname, filename)
-            if key in seen:
-                continue
-            seen[key] = True
-            params = {
-                p.name: p.value for p in rq.product.parameters if p.value is not None
-            }
-            r = SearchResult(
-                hostname=hostname,
-                protocol=rq.server.protocol or "",
-                directory=rq.directory.value or rq.directory.pattern,  # type: ignore[union-attr]
-                filename=filename,
-                parameters=params,
-                date=date,
-            )
-            r._query = rq
-            results.append(r)
-
-        return results
+        found = cast(
+            List[FoundResource],
+            self._finder.run(
+                date,
+                product_name,
+                filters=parameters,
+                preferences=preferences,
+                local_resources=local_resources,
+                centers=remote_resources,
+                all=True,
+            ),
+        )
+        for fr in found:
+            fr.date = date
+        return found
 
     def download(
         self,
-        results: List[SearchResult],
+        results: List[FoundResource],
         *,
         sink_id: str,
     ) -> List[Path]:
@@ -244,7 +216,7 @@ class GNSSClient:
         ``client.download(results[:1], sink_id="local")``.
 
         Args:
-            results: Ranked :class:`SearchResult` list from :meth:`search`
+            results: Ranked :class:`FoundResource` list from :meth:`search`
                 or :meth:`ProductQuery.search`.  Each result must carry a
                 ``date`` (set automatically by the query builders).
             sink_id: Local resource identifier (alias registered in the
@@ -253,24 +225,31 @@ class GNSSClient:
         Returns:
             Paths to successfully downloaded (and decompressed) files.
         """
-        paths: List[Path] = []
-        for r in results:
-            if r._query is None:
-                logger.warning("SearchResult has no internal query; skipping.")
-                continue
-            if r.date is None:
-                logger.warning("SearchResult has no date; skipping.")
-                continue
-            path = self._wormhole.download_one(
-                query=r._query,
-                local_resource_id=sink_id,
-                local_factory=self._search_planner,
-                date=r.date,
+        # by_date: Dict[datetime.datetime, List[FoundResource]] = {}
+        # for r in results:
+        #     if r.date is None:
+        #         logger.warning("FoundResource has no date; skipping.")
+        #         continue
+        #     by_date.setdefault(r.date, []).append(r)
+        by_date = {
+            k: list(v)
+            for k, v in groupby(
+                results,
+                key=lambda r: r.date if r.date is not None else datetime.datetime.min,
             )
-            if path is not None:
-                r.local_path = path
-                if isinstance(path, Path):
-                    paths.append(path)
+        }
+
+        paths: List[Path] = []
+        for date, date_results in by_date.items():
+            downloaded = cast(
+                List[Optional[Path]],
+                self._downloader.run(date_results, date, sink_id=sink_id),
+            )
+            for r, path in zip(date_results, downloaded):
+                if path is not None:
+                    r.local_path = path
+                    if isinstance(path, Path):
+                        paths.append(path)
         return paths
 
     def resolve_dependencies(
@@ -296,13 +275,12 @@ class GNSSClient:
         Returns:
             A ``(DependencyResolution, lockfile_path)`` tuple.
         """
-
         if isinstance(dep_spec, (str, Path)):
             dep_spec = DependencySpec.from_yaml(dep_spec)
 
         pipeline = ResolvePipeline(
             env=self._product_registry,
-            workspace=self._search_planner._workspace,
-            transport=self._wormhole,
+            workspace=self._finder.planner._workspace,
+            transport=self._finder.transport,
         )
         return pipeline.run(dep_spec, date, sink_id=sink_id)

@@ -288,7 +288,7 @@ class WormHole:
         # TODO use fsspec ls to get file size in bytes, and skip download if size is zero.
         hostname = query.server.hostname
 
-        destination_resource = local_factory._workspace.sink_product(
+        destination_resource = local_factory.sink_product(
             query.product, local_resource_id, date
         )
         destination_dir = (

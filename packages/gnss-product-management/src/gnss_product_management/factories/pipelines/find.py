@@ -62,6 +62,7 @@ class FindPipeline:
         product: str,
         *,
         centers: Optional[List[str]] = None,
+        local_resources: Optional[List[str]] = None,
         filters: Optional[Dict[str, str]] = None,
         preferences: Optional[List[SearchPreference]] = None,
         all: bool = False,
@@ -72,6 +73,7 @@ class FindPipeline:
             date: Target date (timezone-aware datetime).
             product: Product name (e.g. ``"ORBIT"``).
             centers: Restrict to these remote center IDs.
+            local_resources: Restrict to these local resource IDs.
             filters: Parameter constraints, e.g. ``{"TTT": "FIN"}``.
             preferences: Preference cascade for ranking results.
             all: If ``True``, return all results as a ranked list.
@@ -85,6 +87,7 @@ class FindPipeline:
             date=date,
             product={"name": product},
             parameters=filters,
+            local_resources=local_resources,
             remote_resources=centers,
         )
 

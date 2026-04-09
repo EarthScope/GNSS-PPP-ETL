@@ -8,9 +8,9 @@ import copy
 import datetime
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
-from gnss_product_management.client.search_result import SearchResult
+from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.search_planner import SearchPlanner
 from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.factories.ranking import (
@@ -209,11 +209,11 @@ class ProductQuery:
             expanded = sort_by_preferences(expanded, self._preferences)
         return sort_by_protocol(expanded)
 
-    def search(self) -> List[SearchResult]:
+    def search(self) -> List[FoundResource]:
         """Execute the query and return ranked results.
 
         Returns:
-            Ranked list of :class:`SearchResult` objects, best first.
+            Ranked list of :class:`FoundResource` objects, best first.
             Local/file results precede remote ones; within each protocol
             tier results are ordered by *preferences*.
 
@@ -239,7 +239,7 @@ class ProductQuery:
 
         ranked = self._ranked_targets()
 
-        results: List[SearchResult] = []
+        results: List[FoundResource] = []
         seen: Dict[Tuple[str, str], bool] = {}
         for rq in ranked:
             hostname = rq.server.hostname
@@ -253,11 +253,21 @@ class ProductQuery:
             params = {
                 p.name: p.value for p in rq.product.parameters if p.value is not None
             }
-            r = SearchResult(
-                hostname=hostname,
-                protocol=rq.server.protocol or "",
-                directory=rq.directory.value or rq.directory.pattern,  # type: ignore[union-attr]
-                filename=filename,
+            protocol = (rq.server.protocol or "").upper()
+            is_local = protocol in ("FILE", "LOCAL")
+            if is_local:
+                uri = str(
+                    Path(hostname)
+                    / (rq.directory.value or rq.directory.pattern)  # type: ignore[union-attr]
+                    / filename
+                )
+            else:
+                proto = (rq.server.protocol or "ftp").lower()
+                uri = f"{proto}://{hostname}/{rq.directory.value or rq.directory.pattern}/{filename}"  # type: ignore[union-attr]
+            r = FoundResource(
+                product=rq.product.name,
+                source="local" if is_local else "remote",
+                uri=uri,
                 parameters=params,
                 date=self._date,
             )
@@ -294,10 +304,10 @@ class ProductQuery:
         paths: List[Path] = []
         for r in results:
             if r._query is None:
-                logger.warning("SearchResult has no internal query; skipping.")
+                logger.warning("FoundResource has no internal query; skipping.")
                 continue
             path = self._wormhole.download_one(
-                query=r._query,
+                query=cast(SearchTarget, r._query),
                 local_resource_id=sink_id,
                 local_factory=self._search_planner._workspace,
                 date=self._date,
