@@ -54,11 +54,11 @@ class LockfileWriter:
         """
         products: List[LockProduct] = []
         for dep in resolution.fulfilled:
-            url = str(dep.local_path) if dep.local_path else ""
             products.append(
                 LockProduct(
                     name=dep.spec,
-                    url=url,
+                    url=dep.remote_url or "",
+                    sink=str(dep.local_path) if dep.local_path else "",
                     description=f"Resolved via {dep.status}",
                 )
             )

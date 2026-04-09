@@ -174,8 +174,12 @@ class WormHole:
         Returns:
             Matching filenames (excluding ``.lock`` files).
         """
-        # remove .lock files from listing before matching, since they are not actual resources
-        listing = [f for f in listing if not f.endswith(".lock")]
+        # remove lockfile sidecars and .lock files from listing before matching
+        listing = [
+            f
+            for f in listing
+            if not f.endswith(".lock") and not f.endswith("_lock.json")
+        ]
         try:
             rx = re.compile(file_pattern, re.IGNORECASE)
             return [f for f in listing if rx.search(f)]
