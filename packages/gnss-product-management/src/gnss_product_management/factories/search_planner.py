@@ -5,14 +5,9 @@ SearchPlanner — lazy narrowing query builder.
 
 import datetime
 import logging
-from turtle import st
 from typing import Dict, List, Optional, Union
 
 from gnss_product_management.environments import ProductRegistry
-from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
-from gnss_product_management.factories.remote_search_planner import (
-    RemoteSearchPlanner,
-)
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from gnss_product_management.specifications.products.catalog import ProductCatalog
@@ -31,7 +26,8 @@ logger = logging.getLogger(__name__)
 class SearchPlanner:
     """Lazy search planner — narrows parameter ranges, resolves on demand.
 
-    Uses ``RemoteSearchPlanner`` for remote registration,
+    Uses ``ProductRegistry`` for remote resource catalogs,
+    ``WorkSpace`` for local resource resolution,
     ``ProductCatalog`` (nested version→variant→Product hierarchy),
     and ``ParameterCatalog`` for fallback regex patterns and computed
     date-field resolution.
@@ -63,31 +59,25 @@ class SearchPlanner:
 
         Args:
             product_registry: Built :class:`ProductRegistry` with
-                catalogs and remote planner ready.
+                catalogs and remote resource catalogs ready.
             workspace: :class:`WorkSpace` with registered local resources.
         """
         self._env: ProductRegistry = product_registry
         self._workspace: WorkSpace = workspace
-        self._remote_search_planner: RemoteSearchPlanner = (
-            self._env._remote_search_planner
-        )
+        self._workspace.bind(product_registry)
         self._product_catalog: ProductCatalog = self._env._product_catalog
         self._parameter_catalog: ParameterCatalog = self._env._parameter_catalog
-        self._local_search_planner = LocalSearchPlanner(
-            workspace=self._workspace,
-            product_registry=self._env,
-        )
 
     @property
-    def local_planner(self) -> LocalSearchPlanner:
-        """The :class:`LocalSearchPlanner` used by this search planner."""
-        return self._local_search_planner
+    def local_planner(self) -> WorkSpace:
+        """The :class:`WorkSpace` used as the local search planner."""
+        return self._workspace
 
     # Backward-compatible alias
     @property
-    def local_factory(self) -> LocalSearchPlanner:
+    def local_factory(self) -> WorkSpace:
         """Deprecated alias for :attr:`local_planner`."""
-        return self._local_search_planner
+        return self._workspace
 
     def get(
         self,
@@ -191,7 +181,7 @@ class SearchPlanner:
         local_out = self.build_queries_from_planner(
             templates=product_templates_1,
             date=date,
-            query_planner=self._local_search_planner,
+            query_planner=self._workspace,
             resource_selection=local_resources,
         )
         out.extend(local_out)
@@ -200,7 +190,7 @@ class SearchPlanner:
         remote_out = self.build_queries_from_planner(
             templates=product_templates_1,
             date=date,
-            query_planner=self._remote_search_planner,
+            query_planner=self._env,
             resource_selection=remote_resources,
         )
         out.extend(remote_out)
@@ -219,17 +209,21 @@ class SearchPlanner:
     def build_queries_from_planner(
         templates: List[Product],
         date: datetime.datetime,
-        query_planner: Union[LocalSearchPlanner, RemoteSearchPlanner],
+        query_planner: Union[WorkSpace, ProductRegistry],
         resource_selection: Optional[List[str]] = None,
     ) -> List[SearchTarget]:
         """Build search queries from a given planner and resource selection.
 
         Args:
             templates: List of product templates to build queries from.
+            date: Target date for resolving computed directory fields.
+            query_planner: A :class:`WorkSpace` (local) or
+                :class:`ProductRegistry` (remote) with ``resource_ids``
+                and ``source_product`` interface.
             resource_selection: Optional list of resource IDs to restrict to.
-            query_planner: Optional planner to use for building queries. If not provided, defaults to local planner.
+
         Returns:
-            A list of :class:`SearchTarget` objects built from the planner and resource selection.
+            A list of :class:`SearchTarget` objects built from the planner.
         """
         out = []
         for template in templates:

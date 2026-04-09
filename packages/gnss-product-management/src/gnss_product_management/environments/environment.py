@@ -1,21 +1,28 @@
 """Author: Franklyn Dunbar
 
-ProductRegistry — builds the full catalog chain and remote search planner.
+ProductRegistry — builds the full catalog chain and manages remote resources.
 
 Loads parameter, format, product, and resource specification YAMLs, then
 builds derived catalogs (``ParameterCatalog`` → ``FormatCatalog`` →
-``ProductCatalog`` → ``RemoteSearchPlanner``).  Also provides
-:meth:`~ProductRegistry.classify` for parsing product filenames back
-into structured metadata.
+``ProductCatalog``).  Also registers remote :class:`ResourceCatalog` objects
+and provides :meth:`~ProductRegistry.classify` for parsing product filenames
+back into structured metadata.
 """
 
 from pathlib import Path
 
-from typing import Any, Dict, NamedTuple, Optional, List
+from typing import Any, Dict, List, NamedTuple, Optional
 import re
+from datetime import datetime
 
 
-from gnss_product_management.specifications.remote.resource import ResourceSpec
+from gnss_product_management.specifications.remote.resource import (
+    ResourceSpec,
+    SearchTarget,
+)
+from gnss_product_management.specifications.remote.resource_catalog import (
+    ResourceCatalog,
+)
 from pydantic import BaseModel
 
 
@@ -31,9 +38,7 @@ from gnss_product_management.specifications.products.catalog import (
     ProductCatalog,
     ProductSpecCatalog,
 )
-from gnss_product_management.factories.remote_search_planner import (
-    RemoteSearchPlanner,
-)
+from gnss_product_management.specifications.products.product import Product
 from gnss_product_management.utilities.metadata_funcs import register_computed_fields
 
 
@@ -146,7 +151,11 @@ class ProductRegistry:
     Incrementally loads YAML specs via ``add_*()`` methods, then calls
     :meth:`build` to derive the full catalog chain::
 
-        ParameterCatalog → FormatCatalog → ProductCatalog → RemoteSearchPlanner
+        ParameterCatalog → FormatCatalog → ProductCatalog
+
+    Remote resource specs loaded via :meth:`add_resource_spec` are built
+    into :class:`ResourceCatalog` objects that support :meth:`source_product`
+    and :meth:`sink_product` for remote query resolution.
 
     After building, :meth:`classify` parses a product filename into
     structured metadata (product name, format, version, variant, parameters).
@@ -155,7 +164,7 @@ class ProductRegistry:
         _parameter_catalog: Built parameter catalog (available after :meth:`build`).
         _format_catalog: Built format catalog (available after :meth:`build`).
         _product_catalog: Built product catalog (available after :meth:`build`).
-        _remote_search_planner: Built remote planner (available after :meth:`build`).
+        _catalogs: Built remote resource catalogs (available after :meth:`build`).
     """
 
     def __init__(self) -> None:
@@ -170,7 +179,7 @@ class ProductRegistry:
         self._format_catalog: Optional[FormatCatalog] = None
         self._product_spec_catalog: Optional[ProductSpecCatalog] = None
         self._product_catalog: Optional[ProductCatalog] = None
-        self._remote_search_planner: Optional[RemoteSearchPlanner] = None
+        self._catalogs: Dict[str, ResourceCatalog] = {}
 
     def add_parameter_spec(self, path: Path | str, id: str = "default") -> None:
         """Load and register a parameter specification YAML file.
@@ -295,33 +304,170 @@ class ProductRegistry:
             parameter_catalog=self._parameter_catalog,
         )
 
-    def _build_remote_resource_factory(self) -> None:
-        """Build the :class:`RemoteSearchPlanner` from loaded resource specs."""
+    def _build_remote_catalogs(self) -> None:
+        """Build :class:`ResourceCatalog` objects from loaded resource specs."""
         assert self._product_catalog is not None, (
-            "Product catalog must be built before building remote search planner"
-        )
-        assert self._parameter_catalog is not None, (
-            "Parameter catalog must be built before building remote search planner"
-        )
-        factory = RemoteSearchPlanner(
-            product_catalog=self._product_catalog,
-            parameter_catalog=self._parameter_catalog,
+            "Product catalog must be built before building remote catalogs"
         )
         for id, spec in self._resource_specs.items():
-            factory.register(spec.built)
-        self._remote_search_planner = factory
+            cat = ResourceCatalog.build(
+                resource_spec=spec.built, product_catalog=self._product_catalog
+            )
+            self._catalogs[cat.id] = cat
 
     def build(self) -> None:
         """Build the full catalog chain from loaded specs.
 
         Must be called after all ``add_*()`` methods.  Builds:
         ``ParameterCatalog`` → ``FormatCatalog`` → ``ProductCatalog`` →
-        ``RemoteSearchPlanner``.
+        remote :class:`ResourceCatalog` objects.
         """
         self._build_parameter_catalog()
         self._build_format_catalog()
         self._build_product_catalog()
-        self._build_remote_resource_factory()
+        self._build_remote_catalogs()
+
+    # ---- Remote resource query interface -----------------------------------
+
+    @property
+    def resource_ids(self) -> List[str]:
+        """Identifiers for all registered remote resource centers."""
+        return list(self._catalogs.keys())
+
+    @property
+    def centers(self) -> List[str]:
+        """Alias for :attr:`resource_ids`."""
+        return self.resource_ids
+
+    @property
+    def catalogs(self) -> List[ResourceCatalog]:
+        """All registered remote resource catalogs."""
+        return list(self._catalogs.values())
+
+    @property
+    def all_queries(self) -> List[SearchTarget]:
+        """Flattened list of every search target across all remote centers."""
+        return [q for cat in self._catalogs.values() for q in cat.queries]
+
+    def get(self, center_id: str) -> ResourceCatalog:
+        """Retrieve a remote resource catalog by center identifier.
+
+        Args:
+            center_id: Data center identifier.
+
+        Returns:
+            The matching :class:`ResourceCatalog`.
+        """
+        return self._catalogs[center_id]
+
+    @staticmethod
+    def match_pinned_query(found: Product, incoming: Product) -> Optional[Product]:
+        """Check if a found query matches an incoming product based on pinned parameters.
+
+        Args:
+            found: Product from the resource catalog.
+            incoming: Product being searched for.
+
+        Returns:
+            The *incoming* product with matched values filled in,
+            or ``None`` if pinned parameters conflict.
+        """
+        found_params = {
+            p.name: p.value for p in found.parameters if p.value is not None
+        }
+        incoming_params = {
+            p.name: p.value for p in incoming.parameters if p.value is not None
+        }
+        matching_keys = set(found_params.keys()) & set(incoming_params.keys())
+        for key in matching_keys:
+            found_val = found_params[key]
+            incoming_val = incoming_params[key]
+            if found_val != incoming_val:
+                return None
+
+        for p in incoming.parameters:
+            if p.value is None and p.name in found_params:
+                p.value = found_params.get(p.name)
+        return incoming
+
+    def source_product(self, product: Product, resource_id: str) -> List[SearchTarget]:
+        """Resolve a product into all matching SearchTargets for a remote resource.
+
+        Args:
+            product: Product to resolve.
+            resource_id: Remote resource identifier.
+
+        Returns:
+            A list of :class:`SearchTarget` objects.
+
+        Raises:
+            KeyError: If *resource_id* or *product.name* is not found.
+        """
+        cat = self._catalogs.get(resource_id)
+        if cat is None:
+            raise KeyError(
+                f"Resource {resource_id!r} not found in remote catalogs. "
+                f"Known resources: {list(self._catalogs.keys())}"
+            )
+        candidates = [q for q in cat.queries if q.product.name == product.name]
+        if not candidates:
+            raise KeyError(
+                f"Product {product.name!r} not found in resource {resource_id!r}. "
+                f"Known products: {set(q.product.name for q in cat.queries)}"
+            )
+
+        results: List[SearchTarget] = []
+        for query in candidates:
+            # Deep copy so we never mutate the catalog's original query
+            query = query.model_copy(deep=True)
+            incoming = product.model_copy(deep=True)
+
+            matched_product: Optional[Product] = self.match_pinned_query(
+                query.product, incoming
+            )
+            if matched_product is None:
+                continue
+
+            if query.product.filename:
+                query.product.filename.derive(incoming.parameters)
+            query.directory.derive(incoming.parameters)
+            results.append(query)
+
+        return results
+
+    def sink_product(
+        self, product: Product, resource_id: str, date: datetime
+    ) -> SearchTarget:
+        """Resolve the remote directory/filename for uploading *product*.
+
+        Args:
+            product: Product to upload.
+            resource_id: Remote resource identifier.
+            date: Target date for computed fields.
+
+        Returns:
+            A :class:`SearchTarget` with resolved paths.
+
+        Raises:
+            KeyError: If no matching entry exists.
+        """
+        assert self._parameter_catalog is not None, "Call build() before sink_product()"
+        queries = self.source_product(product, resource_id)
+        if not queries:
+            raise KeyError(
+                f"Product {product.name!r} has no matching entry in resource {resource_id!r}."
+            )
+        query = queries[0]
+        query.product = product
+
+        resolved_dir = self._parameter_catalog.interpolate(
+            query.directory.pattern, date, computed_only=True
+        )
+        query.directory.value = resolved_dir
+        query.product = product
+        return query
+
+    # ---- Filename classification --------------------------------------------
 
     def classify(
         self,

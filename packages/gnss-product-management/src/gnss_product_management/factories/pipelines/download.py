@@ -16,7 +16,6 @@ from typing import List, Optional, Union
 
 from gnss_product_management.environments import ProductRegistry
 from gnss_product_management.environments import WorkSpace
-from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.factories.search_planner import SearchPlanner

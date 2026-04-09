@@ -35,7 +35,7 @@ from gnss_product_management.specifications.products.product import (
     infer_from_regex,
 )
 from gnss_product_management.specifications.parameters.parameter import Parameter
-from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
+from gnss_product_management.environments import WorkSpace
 from gnss_product_management.lockfile import (
     LockProduct,
     LockfileManager,
@@ -428,7 +428,7 @@ class DependencyResolver:
         rq: SearchTarget,
         dep: Dependency,
         local_sink_id: str,
-        local_resource_factory: LocalSearchPlanner,
+        local_resource_factory: WorkSpace,
         date: datetime.datetime,
         alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
@@ -480,7 +480,7 @@ class DependencyResolver:
         rq: SearchTarget,
         dep: Dependency,
         local_sink_id: str,
-        local_resource_factory: LocalSearchPlanner,
+        local_resource_factory: WorkSpace,
         date: datetime.datetime,
         alternative_urls: Optional[List[str]] = None,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:

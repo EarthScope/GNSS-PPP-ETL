@@ -4,7 +4,6 @@ Factories — Layer 2: query construction, resource discovery, and file fetching
 """
 
 from gnss_product_management.factories.source_planner import SourcePlanner
-from gnss_product_management.factories.remote_search_planner import RemoteSearchPlanner
 from gnss_product_management.factories.search_planner import SearchPlanner
 from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.environments import ProductRegistry
@@ -26,7 +25,6 @@ __all__ = [
     "WorkSpace",
     "DependencyResolver",
     "SourcePlanner",
-    "RemoteSearchPlanner",
     "SearchPlanner",
     "WormHole",
     "DependencyLockFile",

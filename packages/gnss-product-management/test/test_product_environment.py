@@ -47,7 +47,7 @@ class TestIncrementalConstruction:
         assert env._format_catalog is not None
 
     def test_has_remote_resource_factory(self, env):
-        assert env._remote_resource_factory is not None
+        assert env._catalogs is not None
 
     def test_duplicate_parameter_spec_raises(self):
         e = ProductRegistry()

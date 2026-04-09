@@ -15,7 +15,7 @@ import fsspec.utils
 from gnss_product_management.utilities.paths import AnyPath, as_path
 from gnss_product_management.specifications.products.product import PathTemplate
 from gnss_product_management.specifications.remote.resource import SearchTarget
-from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
+from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
 from gnss_product_management.utilities.helpers import decompress_gzip
 
@@ -267,7 +267,7 @@ class WormHole:
         self,
         query: SearchTarget,
         local_resource_id: str,
-        local_factory: LocalSearchPlanner,
+        local_factory: WorkSpace,
         date: datetime.datetime,
     ) -> Optional[AnyPath]:
         """Synchronously download matched files for one search target.
