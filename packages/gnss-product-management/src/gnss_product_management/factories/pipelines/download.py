@@ -46,7 +46,7 @@ class DownloadPipeline:
         self._env = env
         self._planner = SearchPlanner(product_registry=env, workspace=workspace)
         self._transport = transport or WormHole(
-            max_connections=max_connections, env=env
+            max_connections=max_connections, product_registry=env
         )
 
     def run(

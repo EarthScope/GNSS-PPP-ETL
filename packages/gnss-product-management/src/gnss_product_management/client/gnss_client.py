@@ -73,15 +73,19 @@ class GNSSClient:
 
     def __init__(
         self,
-        env: ProductRegistry,
+        product_registry: ProductRegistry,
         workspace: WorkSpace,
         *,
         max_connections: int = 4,
     ) -> None:
 
-        self._env = env
-        self._qf = SearchPlanner(product_registry=env, workspace=workspace)
-        self._wormhole = WormHole(max_connections=max_connections, env=env)
+        self._product_registry = product_registry
+        self._search_planner = SearchPlanner(
+            product_registry=product_registry, workspace=workspace
+        )
+        self._wormhole = WormHole(
+            max_connections=max_connections, product_registry=product_registry
+        )
 
     @classmethod
     def from_defaults(
@@ -122,12 +126,12 @@ class GNSSClient:
             )
 
         return cls(
-            env=DefaultProductEnvironment,
+            product_registry=DefaultProductEnvironment,
             workspace=workspace,
             max_connections=max_connections,
         )
 
-    def query(self, product: Union[str, dict]) -> "ProductQuery":
+    def query(self, product: Union[str, dict] = None) -> "ProductQuery":
         """Return a fluent :class:`ProductQuery` builder for *product*.
 
         This is the preferred entry point for building searches.  Chain
@@ -151,9 +155,7 @@ class GNSSClient:
         """
 
         return ProductQuery(
-            fetcher=self._wormhole,
-            search_planner=self._qf,
-            product=product,
+            wormhole=self._wormhole, search_planner=self._search_planner
         )
 
     def search(
@@ -191,7 +193,7 @@ class GNSSClient:
         if isinstance(product, str):
             product = {"name": product}
 
-        queries = self._qf.get(
+        queries = self._search_planner.get(
             date=date,
             product=product,
             parameters=parameters,
@@ -259,7 +261,7 @@ class GNSSClient:
             path = self._wormhole.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
-                local_factory=self._qf.local_planner,
+                local_factory=self._search_planner.local_planner,
                 date=date,
             )
             if path is not None:
@@ -296,8 +298,8 @@ class GNSSClient:
 
         resolver = DependencyResolver(
             dep_spec=dep_spec,
-            query_factory=self._qf,
-            product_environment=self._env,
+            query_factory=self._search_planner,
+            product_environment=self._product_registry,
             fetcher=self._wormhole,  # WormHole
         )
         return resolver.resolve(date=date, local_sink_id=sink_id)

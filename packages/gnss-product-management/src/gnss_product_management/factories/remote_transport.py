@@ -50,19 +50,19 @@ class WormHole:
         self,
         *,
         max_connections: int = 4,
-        env=None,
+        product_registry=None,
     ) -> None:
         """Initialise the transport.
 
         Args:
             max_connections: Maximum connections per host pool.
-            env: Optional :class:`ProductRegistry` for parameter back-filling
+            product_registry: Optional :class:`ProductRegistry` for parameter back-filling
                 after a filename match.
         """
         self._connection_pool_factory = ConnectionPoolFactory(
             max_connections=max_connections
         )
-        self._env = env
+        self._product_registry = product_registry
 
     # -- Public API ------------------------------------------------
 
@@ -247,8 +247,8 @@ class WormHole:
         )
         updated.product.parameters = updated_params
 
-        if self._env is not None:
-            classification_results = self._env.classify(
+        if self._product_registry is not None:
+            classification_results = self._product_registry.classify(
                 filename=updated.product.filename.value,
                 parameters=updated.product.parameters,
             )

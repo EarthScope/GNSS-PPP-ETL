@@ -62,22 +62,9 @@ class SearchPlanner:
                 catalogs and remote resource catalogs ready.
             workspace: :class:`WorkSpace` with registered local resources.
         """
-        self._env: ProductRegistry = product_registry
+        self._product_registry: ProductRegistry = product_registry
         self._workspace: WorkSpace = workspace
         self._workspace.bind(product_registry)
-        self._product_catalog: ProductCatalog = self._env._product_catalog
-        self._parameter_catalog: ParameterCatalog = self._env._parameter_catalog
-
-    @property
-    def local_planner(self) -> WorkSpace:
-        """The :class:`WorkSpace` used as the local search planner."""
-        return self._workspace
-
-    # Backward-compatible alias
-    @property
-    def local_factory(self) -> WorkSpace:
-        """Deprecated alias for :attr:`local_planner`."""
-        return self._workspace
 
     def get(
         self,
@@ -117,7 +104,7 @@ class SearchPlanner:
         product_variant_query = _listify(product.get("variant"))
 
         product_version_catalog: Optional[VersionCatalog] = (
-            self._product_catalog.products.get(product_name_query)
+            self._product_registry._product_catalog.products.get(product_name_query)
         )
         if product_version_catalog is None:
             raise ValueError(
@@ -144,8 +131,10 @@ class SearchPlanner:
 
         # 2. Resolve date fields via ParameterCatalog
         for template in product_templates:
-            update_date_params = self._parameter_catalog.resolve_params(
-                template.parameters, date
+            update_date_params = (
+                self._product_registry._parameter_catalog.resolve_params(
+                    template.parameters, date
+                )
             )
             template.parameters = update_date_params
 
@@ -153,7 +142,6 @@ class SearchPlanner:
         product_templates_1: List[Product] = []
         for name, values in parameters.items():
             parameters[name] = _listify(values)
-        parameter_combinations = expand_dict_combinations(parameters)
 
         if parameters:
             parameter_combinations = expand_dict_combinations(parameters)
@@ -190,7 +178,7 @@ class SearchPlanner:
         remote_out = self.build_queries_from_planner(
             templates=product_templates_1,
             date=date,
-            query_planner=self._env,
+            query_planner=self._product_registry,
             resource_selection=remote_resources,
         )
         out.extend(remote_out)

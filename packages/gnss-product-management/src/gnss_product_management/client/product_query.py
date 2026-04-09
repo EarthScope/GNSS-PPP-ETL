@@ -4,7 +4,7 @@ ProductQuery — fluent builder for GNSS product search and download.
 """
 
 from __future__ import annotations
-
+import copy
 import datetime
 import logging
 from pathlib import Path
@@ -62,15 +62,28 @@ class ProductQuery:
         self,
         wormhole: WormHole,
         search_planner: SearchPlanner,
-        product: Union[str, dict],
     ) -> None:
         self._wormhole = wormhole
         self._search_planner = search_planner
-        self._product: dict = {"name": product} if isinstance(product, str) else product
+        self._product: Optional[dict] = None
         self._date: Optional[datetime.datetime] = None
         self._parameters: dict = {}
         self._source_ids: Optional[tuple] = None  # None = all sources
         self._preferences: List[SearchPreference] = []
+
+    def for_product(self, product: Union[str, dict]) -> "ProductQuery":
+        """Set the target product for the query.
+
+        Args:
+            product: Product name (e.g. ``"ORBIT"``) or dict with ``name``,
+                and optionally ``version`` / ``variant``.
+
+        Returns:
+            ``self`` for chaining.
+        """
+        clone = copy.copy(self)
+        clone._product = {"name": product} if isinstance(product, str) else product
+        return clone
 
     def on(self, date: datetime.datetime) -> "ProductQuery":
         """Set the target date for the query.
@@ -81,8 +94,9 @@ class ProductQuery:
         Returns:
             ``self`` for chaining.
         """
-        self._date = date
-        return self
+        clone = copy.copy(self)
+        clone._date = date
+        return clone
 
     def where(self, **parameters) -> "ProductQuery":
         """Constrain product parameters.
@@ -96,8 +110,9 @@ class ProductQuery:
         Returns:
             ``self`` for chaining.
         """
-        self._parameters.update(parameters)
-        return self
+        clone = copy.copy(self)
+        clone._parameters.update(parameters)
+        return clone
 
     def sources(self, *ids: str) -> "ProductQuery":
         """Restrict the search to specific local or remote sources.
@@ -124,8 +139,9 @@ class ProductQuery:
                 "sources() requires at least one resource ID. "
                 "Omit the call entirely to search all sources."
             )
-        self._source_ids = ids
-        return self
+        clone = copy.copy(self)
+        clone._source_ids = ids
+        return clone
 
     def prefer(self, **kwargs) -> "ProductQuery":
         """Define a preference cascade for ranking results.
@@ -143,13 +159,14 @@ class ProductQuery:
         Returns:
             ``self`` for chaining.
         """
+        clone = copy.copy(self)
         for param, sorting in kwargs.items():
             if isinstance(sorting, str):
                 sorting = [sorting]
-            self._preferences.append(
+            clone._preferences.append(
                 SearchPreference(parameter=param, sorting=list(sorting))
             )
-        return self
+        return clone
 
     def search(self) -> List[SearchResult]:
         """Execute the query and return ranked results.
@@ -162,9 +179,22 @@ class ProductQuery:
         Raises:
             ValueError: If :meth:`on` has not been called.
         """
+        if self._product is None:
+            raise ValueError("Call .for_product(product) before .search()")
+
         if self._date is None:
             raise ValueError("Call .on(date) before .search()")
 
+        logger.debug(
+            "Executing search for product=%s on date=%s with parameters=%s, sources=%s, preferences=%s",
+            self._product,
+            self._date,
+            self._parameters,
+            self._source_ids,
+            self._preferences,
+        )
+        logger.debug("Using search planner: %s", self._search_planner)
+        logger.debug("Using wormhole: %s", self._wormhole)
         local_ids, remote_ids = self._resolve_sources()
 
         queries = self._search_planner.get(
@@ -240,7 +270,7 @@ class ProductQuery:
             path = self._wormhole.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
-                local_factory=self._search_planner.local_planner,
+                local_factory=self._search_planner._workspace,
                 date=self._date,
             )
             if path is not None:
@@ -265,7 +295,7 @@ class ProductQuery:
 
         for sid in self._source_ids:
             try:
-                self._search_planner.local_factory._get_registered_spec(sid)
+                self._search_planner._workspace._get_registered_spec(sid)
                 local_ids.append(sid)
             except KeyError:
                 remote_ids.append(sid)

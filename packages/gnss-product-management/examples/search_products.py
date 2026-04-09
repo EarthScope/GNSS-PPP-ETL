@@ -8,10 +8,20 @@ client = GNSSClient.from_defaults(
 )
 
 date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)
-results = client.query("ORBIT").on(date).search()
+query_agent = client.query().on(date)
+
+orbit_search = query_agent.for_product("ORBIT").search()
 
 print(f"Search results for ORBIT on {date.date()}:\n")
-for r in results:
+for r in orbit_search:
     print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
 
-client.download(results[0:1], date=date, sink_id="local")
+clock_search = query_agent.for_product("CLOCK").search()
+print(f"\nSearch results for CLOCK on {date.date()}:\n")
+for r in clock_search:
+    print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
+
+bias_search = query_agent.for_product("BIAS").search()
+print(f"\nSearch results for BIAS on {date.date()}:\n")
+for r in bias_search:
+    print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
