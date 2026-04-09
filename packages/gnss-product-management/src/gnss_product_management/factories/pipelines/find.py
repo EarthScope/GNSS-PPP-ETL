@@ -48,10 +48,11 @@ class FindPipeline:
         workspace: WorkSpace,
         *,
         max_connections: int = 4,
+        transport: Optional[WormHole] = None,
     ) -> None:
         self._env = env
         self._planner = SearchPlanner(product_registry=env, workspace=workspace)
-        self._transport = WormHole(
+        self._transport = transport or WormHole(
             max_connections=max_connections, product_registry=env
         )
 

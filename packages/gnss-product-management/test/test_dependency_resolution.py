@@ -1,7 +1,7 @@
 """
 Tests: Full dependency resolution workflow.
 
-End-to-end: DependencySpec → DependencyResolver → DependencyResolution → lockfile.
+End-to-end: DependencySpec → ResolvePipeline → DependencyResolution → lockfile.
 
 Uses the multi-centre environment (Wuhan + CODE + CDDIS) with the
 PRIDE-PPPAR dependency spec.
@@ -13,17 +13,12 @@ from pathlib import Path
 
 import pytest
 
-from gnss_product_management.factories import (
-    WorkSpace,
-    SearchPlanner,
-    WormHole,
-)
+from gnss_product_management.environments import WorkSpace
+from gnss_product_management.factories.remote_transport import WormHole
+from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
     ResolvedDependency,
-)
-from gnss_product_management.factories.dependency_resolver import (
-    DependencyResolver,
 )
 
 
@@ -45,21 +40,14 @@ def dep_spec() -> DependencySpec:
 
 
 @pytest.fixture(scope="module")
-def resolver(multi_env, workspace, dep_spec, tmp_path_factory) -> DependencyResolver:
-    """DependencyResolver wired to the multi-centre environment."""
+def pipeline(multi_env, tmp_path_factory) -> ResolvePipeline:
+    """ResolvePipeline wired to the multi-centre environment."""
     base = tmp_path_factory.mktemp("resolve_test")
     ws = WorkSpace()
     for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
         ws.add_resource_spec(path)
     ws.register_spec(base_dir=base, spec_ids=["local_config"])
-    qf = SearchPlanner(product_registry=multi_env, workspace=ws)
-    fetcher = WormHole(product_registry=multi_env)
-    return DependencyResolver(
-        dep_spec,
-        query_factory=qf,
-        product_environment=multi_env,
-        fetcher=fetcher,
-    )
+    return ResolvePipeline(env=multi_env, workspace=ws)
 
 
 # ===================================================================
@@ -107,14 +95,13 @@ class TestDependencySpecLoading:
 
 
 # ===================================================================
-# Unit: Resolver construction (no network)
+# Unit: Pipeline construction (no network)
 # ===================================================================
 
 
-class TestResolverConstruction:
-    def test_resolver_builds(self, resolver) -> None:
-        assert resolver is not None
-        assert resolver.dep_spec.name == "pride-pppar"
+class TestPipelineConstruction:
+    def test_pipeline_builds(self, pipeline) -> None:
+        assert pipeline is not None
 
 
 # ===================================================================
@@ -126,12 +113,13 @@ class TestResolverWithFetcher:
     @pytest.mark.integration
     def test_resolve_finds_remote_products(
         self,
-        resolver,
+        pipeline,
+        dep_spec,
         test_date,
     ) -> None:
         """At least some products should be found remotely."""
-        resolution, lockfile_path = resolver.resolve(
-            test_date, local_sink_id="local_config"
+        resolution, lockfile_path = pipeline.run(
+            dep_spec, test_date, sink_id="local_config"
         )
         found = [r.status != "missing" for r in resolution.resolved]
 
@@ -143,25 +131,26 @@ class TestResolverWithFetcher:
     @pytest.mark.integration
     def test_resolve_populates_remote_url(
         self,
-        resolver,
+        pipeline,
+        dep_spec,
         test_date,
     ) -> None:
         """Found products should have a remote_url set."""
-        resolution, _ = resolver.resolve(test_date, local_sink_id="local_config")
+        resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         for r in resolution.resolved:
             if r.status != "missing":
                 assert r.remote_url, f"{r.spec} has empty remote_url"
 
     @pytest.mark.integration
-    def test_resolution_summary(self, resolver, test_date) -> None:
-        resolution, _ = resolver.resolve(test_date, local_sink_id="local_config")
+    def test_resolution_summary(self, pipeline, dep_spec, test_date) -> None:
+        resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         summary = resolution.summary()
         assert "pride-pppar" in summary
         assert "9 deps" in summary
 
     @pytest.mark.integration
-    def test_resolution_table(self, resolver, test_date) -> None:
-        resolution, _ = resolver.resolve(test_date, local_sink_id="local_config")
+    def test_resolution_table(self, pipeline, dep_spec, test_date) -> None:
+        resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         table = resolution.table()
         assert "ORBIT" in table
         assert "CLOCK" in table

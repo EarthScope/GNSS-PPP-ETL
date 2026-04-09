@@ -3,8 +3,9 @@
 DownloadPipeline — found resource → local path.
 
 Fetches remote :class:`FoundResource` objects to the local workspace
-using :class:`WormHole` and :class:`LocalSearchPlanner` for
-sink path resolution.
+using :class:`WormHole` and :class:`SearchPlanner` for sink path
+resolution.  Writes a per-file sidecar lockfile after every successful
+fetch (local or remote) so that callers can verify integrity later.
 """
 
 from __future__ import annotations
@@ -19,6 +20,11 @@ from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.factories.search_planner import SearchPlanner
+from gnss_product_management.lockfile.operations import (
+    build_lock_product,
+    get_lock_product,
+    write_lock_product,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +35,14 @@ class DownloadPipeline:
     Already-local resources return immediately with their existing path.
     Remote resources are downloaded via :class:`WormHole`.
 
+    A per-file sidecar ``<filename>_lock.json`` is written alongside
+    every successfully resolved file if one does not already exist.
+
     Args:
         env: The product registry with built catalogs.
         workspace: Workspace with registered local resources.
         max_connections: Maximum concurrent connections per host.
+        transport: Optional shared :class:`WormHole` instance.
     """
 
     def __init__(
@@ -86,7 +96,7 @@ class DownloadPipeline:
         date: datetime.datetime,
         sink_id: str,
     ) -> Optional[Path]:
-        """Download a single resource.
+        """Download a single resource and write its sidecar lockfile.
 
         Args:
             resource: The resource to download.
@@ -94,12 +104,17 @@ class DownloadPipeline:
             sink_id: Local resource alias.
 
         Returns:
-            Path to the downloaded file, or ``None`` on failure.
+            Path to the resolved file, or ``None`` on failure.
         """
         if resource.is_local:
             local_path = resource.path
             if local_path and local_path.exists():
                 logger.debug("Already local: %s", local_path)
+                if get_lock_product(local_path) is None:
+                    lock = build_lock_product(
+                        sink=local_path, url="", name=resource.product
+                    )
+                    write_lock_product(lock)
                 return local_path
 
         query = resource._query
@@ -107,9 +122,16 @@ class DownloadPipeline:
             logger.warning("FoundResource has no internal query; cannot download.")
             return None
 
-        return self._transport.download_one(
+        path = self._transport.download_one(
             query=query,
             local_resource_id=sink_id,
-            local_factory=self._planner.local_planner,
+            local_factory=self._planner._workspace,
             date=date,
         )
+        if path is not None:
+            if get_lock_product(path) is None:
+                lock = build_lock_product(
+                    sink=path, url=resource.uri, name=resource.product
+                )
+                write_lock_product(lock)
+        return path

@@ -21,9 +21,8 @@ from gnss_product_management.factories.ranking import (
     sort_by_preferences,
     sort_by_protocol,
 )
-from gnss_product_management.factories.dependency_resolver import (
-    DependencyResolver,
-)
+from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
+from gnss_product_management.utilities.paths import AnyPath
 
 # Keep spec types at module level — they live in specifications/dependencies
 # which has no transitive dependency on factories or environments.
@@ -280,7 +279,7 @@ class GNSSClient:
         date: datetime.datetime,
         *,
         sink_id: str,
-    ) -> Tuple[DependencyResolution, Optional[Path]]:
+    ) -> Tuple[DependencyResolution, Optional[AnyPath]]:
         """Resolve all dependencies in a spec for the given date.
 
         Accepts a :class:`DependencySpec` object or a path to a YAML file.
@@ -301,10 +300,9 @@ class GNSSClient:
         if isinstance(dep_spec, (str, Path)):
             dep_spec = DependencySpec.from_yaml(dep_spec)
 
-        resolver = DependencyResolver(
-            dep_spec=dep_spec,
-            query_factory=self._search_planner,
-            product_environment=self._product_registry,
-            fetcher=self._wormhole,  # WormHole
+        pipeline = ResolvePipeline(
+            env=self._product_registry,
+            workspace=self._search_planner._workspace,
+            transport=self._wormhole,
         )
-        return resolver.resolve(date=date, local_sink_id=sink_id)
+        return pipeline.run(dep_spec, date, sink_id=sink_id)

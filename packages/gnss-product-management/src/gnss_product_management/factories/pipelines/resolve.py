@@ -3,28 +3,39 @@
 ResolvePipeline — Find + Download + LockfileWriter in one call.
 
 High-level composition that resolves a :class:`DependencySpec` for a
-given date: finds remote resources, optionally downloads them, and
-persists the result as a lockfile.
+given date: finds resources, optionally downloads them, writes per-file
+sidecar lockfiles, and persists an aggregate lockfile.
+
+Fast path: if an aggregate lockfile already exists for
+``(package, task, date, version)`` the pipeline returns immediately
+without searching or downloading.
 """
 
 from __future__ import annotations
 
 import datetime
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from gnss_product_management.environments import ProductRegistry, WorkSpace
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.pipelines.find import FindPipeline
 from gnss_product_management.factories.pipelines.download import DownloadPipeline
 from gnss_product_management.factories.pipelines.lockfile_writer import LockfileWriter
+from gnss_product_management.factories.remote_transport import WormHole
+from gnss_product_management.lockfile.manager import LockfileManager
+from gnss_product_management.lockfile.operations import get_package_version
 from gnss_product_management.specifications.dependencies.dependencies import (
+    Dependency,
     DependencyResolution,
     DependencySpec,
     ResolvedDependency,
     SearchPreference,
 )
+from gnss_product_management.utilities.paths import AnyPath, as_path
 
 logger = logging.getLogger(__name__)
 
@@ -32,58 +43,138 @@ logger = logging.getLogger(__name__)
 class ResolvePipeline:
     """Find → Download → Lockfile for every dependency in a spec.
 
+    Uses :class:`FindPipeline`, :class:`DownloadPipeline`, and
+    :class:`LockfileWriter` internally.  All dependencies are resolved
+    in parallel via a :class:`~concurrent.futures.ThreadPoolExecutor`.
+
+    Fast path: if an aggregate lockfile already exists for the
+    ``(package, task, date, version)`` identity, returns immediately
+    without searching or downloading.
+
     Args:
         env: The product registry with built catalogs.
         workspace: Workspace with registered local resources.
-        lockfile_dir: Directory for lockfile storage.
         max_connections: Maximum concurrent connections per host.
-        package: Package name written into lockfiles.
+        transport: Optional shared :class:`WormHole` instance.  If
+            provided, the pipeline reuses it instead of creating a new
+            one — useful when :class:`GNSSClient` already holds a pool.
     """
 
     def __init__(
         self,
         env: ProductRegistry,
         workspace: WorkSpace,
-        lockfile_dir: Path,
         *,
         max_connections: int = 4,
-        package: str = "PRIDE",
+        transport: Optional[WormHole] = None,
     ) -> None:
-        self._finder = FindPipeline(env, workspace, max_connections=max_connections)
+        self._env = env
+        self._workspace = workspace
+        self._finder = FindPipeline(
+            env, workspace, max_connections=max_connections, transport=transport
+        )
         self._downloader = DownloadPipeline(
             env,
             workspace,
             transport=self._finder.transport,
             max_connections=max_connections,
         )
-        self._writer = LockfileWriter(lockfile_dir, package=package)
 
     def run(
         self,
         spec: DependencySpec,
         date: datetime.datetime,
         *,
+        sink_id: str = "local_config",
         centers: Optional[List[str]] = None,
         download: bool = True,
-        sink_id: str = "local_config",
-    ) -> Tuple[DependencyResolution, Optional[Path]]:
+    ) -> Tuple[DependencyResolution, Optional[AnyPath]]:
         """Resolve all dependencies in *spec* for *date*.
 
         Args:
             spec: The dependency specification.
-            date: Target date.
+            date: Target date (timezone-aware datetime).
+            sink_id: Local resource alias for download destination and
+                lockfile storage.
             centers: Restrict remote search to these center IDs.
-            download: If ``True``, download remote resources.
-            sink_id: Local resource alias for download destination.
+            download: If ``True`` (default), download remote resources.
 
         Returns:
-            A tuple of (:class:`DependencyResolution`, lockfile path or ``None``).
+            A tuple of (:class:`DependencyResolution`, lockfile path or
+            ``None`` if nothing was resolved).
         """
-        resolved: List[ResolvedDependency] = []
+        version = get_package_version()
+        lockfile_dir = self._workspace.lockfile_dir(sink_id)
+        manager = LockfileManager(lockfile_dir)
 
-        for dep in spec.dependencies:
-            preferences = dep.preferences if hasattr(dep, "preferences") else None
-            found = self._finder.run(
+        # --- Fast path: return immediately if aggregate lockfile exists -----
+        existing, lf_path = manager.load(
+            package=spec.package,
+            task=spec.task,
+            date=date,
+            version=version,
+        )
+        if existing is not None:
+            logger.info(
+                "Lockfile already exists for %s on %s — skipping resolution: %s",
+                spec.name,
+                date.date(),
+                lf_path,
+            )
+            resolution = self._resolution_from_lockfile(existing, spec)
+            logger.info(resolution.summary())
+            return resolution, lf_path
+
+        # --- Full resolution -------------------------------------------------
+        resolve_one = partial(
+            self._resolve_one,
+            date=date,
+            sink_id=sink_id,
+            preferences=spec.preferences,
+            centers=centers,
+            download=download,
+        )
+        with ThreadPoolExecutor(max_workers=15) as executor:
+            resolved = list(executor.map(resolve_one, spec.dependencies))
+
+        resolution = DependencyResolution(spec_name=spec.name, resolved=resolved)
+
+        lf_path: Optional[AnyPath] = None
+        if resolution.fulfilled:
+            writer = LockfileWriter(lockfile_dir, package=spec.package)
+            lf_path = writer.write(resolution, date)
+
+        logger.info(resolution.summary())
+        return resolution, lf_path
+
+    # -- Internal ------------------------------------------------------------
+
+    def _resolve_one(
+        self,
+        dep: Dependency,
+        *,
+        date: datetime.datetime,
+        sink_id: str,
+        preferences: List[SearchPreference],
+        centers: Optional[List[str]],
+        download: bool,
+    ) -> ResolvedDependency:
+        """Resolve a single dependency.
+
+        Args:
+            dep: The dependency to resolve.
+            date: Target date.
+            sink_id: Local resource alias.
+            preferences: Spec-level preference cascade.
+            centers: Remote center IDs to restrict to.
+            download: Whether to download remote resources.
+
+        Returns:
+            A :class:`ResolvedDependency` with the resolution result.
+        """
+        logger.debug("Attempting to resolve dependency %s on %s", dep.spec, date.date())
+        try:
+            found: Optional[FoundResource] = self._finder.run(
                 date,
                 dep.spec,
                 centers=centers,
@@ -91,47 +182,101 @@ class ResolvePipeline:
                 preferences=preferences,
                 all=False,
             )
+        except Exception as exc:
+            logger.debug("No candidates for %s: %s", dep.spec, exc)
+            return ResolvedDependency(
+                spec=dep.spec, required=dep.required, status="missing"
+            )
 
-            if found is None:
+        if found is None:
+            logger.warning("No search results for dependency %s", dep.spec)
+            return ResolvedDependency(
+                spec=dep.spec, required=dep.required, status="missing"
+            )
+
+        if found.is_local:
+            return ResolvedDependency(
+                spec=dep.spec,
+                required=dep.required,
+                status="local",
+                local_path=str(found.path),
+                remote_url="",
+            )
+
+        if not download:
+            return ResolvedDependency(
+                spec=dep.spec,
+                required=dep.required,
+                status="remote",
+                remote_url=found.uri,
+            )
+
+        path = self._downloader.run(found, date, sink_id=sink_id)
+        if path is None:
+            logger.warning("Download failed for dependency %s", dep.spec)
+            return ResolvedDependency(
+                spec=dep.spec, required=dep.required, status="missing"
+            )
+
+        logger.info("Downloaded %s → %s", dep.spec, path)
+        return ResolvedDependency(
+            spec=dep.spec,
+            required=dep.required,
+            status="downloaded",
+            local_path=str(path),
+            remote_url=found.uri,
+        )
+
+    def _resolution_from_lockfile(
+        self,
+        existing,
+        spec: DependencySpec,
+    ) -> DependencyResolution:
+        """Reconstruct a :class:`DependencyResolution` from an existing lockfile.
+
+        Iterates over every dependency in the spec (not just those in
+        the lockfile), marking any absent or file-missing entries as
+        ``'missing'``.
+
+        Args:
+            existing: The loaded :class:`DependencyLockFile`.
+            spec: The dependency specification.
+
+        Returns:
+            A :class:`DependencyResolution` with one entry per dependency.
+        """
+        locked = {lp.name: lp for lp in existing.products}
+        resolved: List[ResolvedDependency] = []
+        for dep in spec.dependencies:
+            lp = locked.get(dep.spec)
+            if lp is None:
                 resolved.append(
                     ResolvedDependency(
-                        spec=dep.spec,
-                        required=dep.required,
-                        status="missing",
+                        spec=dep.spec, required=dep.required, status="missing"
                     )
                 )
                 continue
-
-            local_path: Optional[Path] = None
-            status = "local" if found.is_local else "remote"
-
-            if download and not found.is_local:
-                local_path = self._downloader.run(found, date, sink_id=sink_id)
-                if local_path is not None:
-                    status = "downloaded"
-                else:
-                    status = "missing"
-            elif found.is_local:
-                local_path = found.path
-
+            sink_path = as_path(lp.sink) if lp.sink else None
+            if sink_path is None or not sink_path.exists():
+                logger.warning(
+                    "Lockfile entry for %s points to missing file %s — "
+                    "will re-resolve on next run",
+                    dep.spec,
+                    lp.sink,
+                )
+                resolved.append(
+                    ResolvedDependency(
+                        spec=dep.spec, required=dep.required, status="missing"
+                    )
+                )
+                continue
             resolved.append(
                 ResolvedDependency(
                     spec=dep.spec,
                     required=dep.required,
-                    status=status,
-                    remote_url=found.uri if not found.is_local else "",
-                    local_path=local_path,
+                    status="local",
+                    remote_url=lp.url,
+                    local_path=lp.sink,
                 )
             )
-
-        resolution = DependencyResolution(
-            spec_name=spec.name,
-            resolved=resolved,
-        )
-
-        lockfile_path: Optional[Path] = None
-        if resolution.fulfilled:
-            lockfile_path = self._writer.write(resolution, date)
-
-        logger.info(resolution.summary())
-        return resolution, lockfile_path
+        return DependencyResolution(spec_name=spec.name, resolved=resolved)
