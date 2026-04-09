@@ -47,7 +47,7 @@ def http_can_connect(httpserver: str, timeout: int = 10) -> bool:
         fs.info(httpserver)
         return True
     except Exception as e:  # noqa: BLE001
-        logger.error(f"Failed to connect to HTTP server {httpserver} | {e}")
+        logger.warning("Failed to connect to HTTP server %s | %s", httpserver, e)
         return False
 
 
@@ -89,7 +89,7 @@ def http_list_directory(server: str, directory: str) -> Optional[str]:
         with fsspec.open(url, "r") as f:
             return f.read()
     except Exception as e:  # noqa: BLE001
-        logger.error(f"Error listing HTTP directory {server}/{directory}: {e}")
+        logger.warning("Error listing HTTP directory %s/%s: %s", server, directory, e)
         return None
 
 
@@ -123,8 +123,8 @@ def http_get_file(
         fs.get(url, str(file_path))
         return file_path
     except Exception as e:  # noqa: BLE001
-        logger.error(
-            f"Error fetching HTTP file {httpserver}/{directory}/{filename}: {e}"
+        logger.warning(
+            "Error fetching HTTP file %s/%s/%s: %s", httpserver, directory, filename, e
         )
         return None
 

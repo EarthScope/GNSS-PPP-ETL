@@ -48,7 +48,7 @@ def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
             break  # connected successfully
         except Exception as e:  # noqa: BLE001
             label = "FTPS" if ftp_cls is FTP_TLS else "FTP"
-            logger.warning(f"{label} connection failed for {ftpserver} | {e}")
+            logger.warning("%s connection failed for %s | %s", label, ftpserver, e)
             last_exc = e
             if ftp is not None:
                 try:
@@ -90,7 +90,7 @@ def ftp_can_connect(ftpserver: str, timeout: int = 10, use_tls: bool = False) ->
     """
     try:
         with _ftp_connect(ftpserver, timeout=timeout, use_tls=use_tls):
-            logger.info(f"Successfully connected to {ftpserver}")
+            logger.debug("Successfully connected to %s", ftpserver)
             return True
     except ConnectionError:
         return False
@@ -121,7 +121,7 @@ def ftp_list_directory(
     except ConnectionError:
         return []
     except Exception as e:  # noqa: BLE001
-        logger.error(f"FTP listing failed for {directory} on {ftpserver}: {e}")
+        logger.warning("FTP listing failed for %s on %s: %s", directory, ftpserver, e)
         return []
 
 
@@ -164,7 +164,7 @@ def ftp_download_file(
         dest_path.unlink(missing_ok=True)
         return None
     except Exception as e:  # noqa: BLE001
-        logger.error(f"FTP download failed for {filename} on {ftpserver}: {e}")
+        logger.warning("FTP download failed for %s on %s: %s", filename, ftpserver, e)
         dest_path.unlink(missing_ok=True)
         return None
 

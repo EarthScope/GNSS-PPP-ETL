@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message
 
 base_dir = Path("/Users/franklyndunbar/Project/SeaFloorGeodesy/Data/GNSS-DATA")
 client = GNSSClient.from_defaults(base_dir=base_dir)
-
+client.display()
 date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)
 query_agent = client.query().on(date)
 

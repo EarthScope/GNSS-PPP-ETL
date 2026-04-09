@@ -130,13 +130,17 @@ class WormHole:
             file_pattern = self._get_file_pattern(t)
             if not directory or not file_pattern:
                 logger.debug(
-                    f"Skipping target with missing directory or file pattern: "
-                    f"dir={directory!r}, pat={file_pattern!r}"
+                    "Skipping target with missing directory or file pattern: "
+                    "dir=%r, pat=%r",
+                    directory,
+                    file_pattern,
                 )
                 continue
             if fsspec.utils.get_protocol(t.server.hostname) == "file":
                 if not (Path(t.server.hostname) / directory).exists():
-                    logger.debug(f"Local directory does not exist: {t.server.hostname}")
+                    logger.debug(
+                        "Local directory does not exist: %s", t.server.hostname
+                    )
                     continue
             key: _DirKey = (t.server.hostname, directory)
             groups[key].append((t, file_pattern))
@@ -158,7 +162,7 @@ class WormHole:
         try:
             return self._connection_pool_factory.list_directory(hostname, directory)
         except Exception as e:
-            logger.error(f"Listing failed for {hostname}/{directory}: {e}")
+            logger.warning("Listing failed for %s/%s: %s", hostname, directory, e)
             return []
 
     # -- Pattern matching ------------------------------------------
@@ -306,14 +310,15 @@ class WormHole:
         if destination_path.suffix == ".gz":
             decompressed_path = destination_path.with_suffix("")
             if decompressed_path.exists() and decompressed_path.stat().st_size > 0:
-                logger.info(
-                    f"Skipping download, decompressed file already exists: {decompressed_path}"
+                logger.debug(
+                    "Skipping download, decompressed file already exists: %s",
+                    decompressed_path,
                 )
                 return decompressed_path
 
         # Skip download if the file already exists and is non-empty
         if destination_path.exists() and destination_path.stat().st_size > 0:
-            logger.info(f"Skipping download, file already exists: {destination_path}")
+            logger.debug("Skipping download, file already exists: %s", destination_path)
             return destination_path
 
         try:
@@ -325,8 +330,12 @@ class WormHole:
                 target_dir=destination_dir,
             )
         except Exception as e:
-            logger.error(
-                f"Download failed for {hostname}/{query.directory.value}/{query.product.filename.value}: {e}"
+            logger.warning(
+                "Download failed for %s/%s/%s: %s",
+                hostname,
+                query.directory.value,
+                query.product.filename.value,
+                e,
             )
             return None
 
@@ -336,7 +345,7 @@ class WormHole:
             if decompressed is not None:
                 return decompressed
             logger.warning(
-                f"Decompression failed for {result}, returning compressed file"
+                "Decompression failed for %s, returning compressed file", result
             )
 
         return result

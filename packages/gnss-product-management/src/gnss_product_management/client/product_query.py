@@ -200,10 +200,16 @@ class ProductQuery:
         expanded = self._wormhole.search(queries)
         if not expanded:
             logger.debug(
-                f"No search targets found for product {self._product} on date {self._date}"
+                "No search targets found for product %s on date %s",
+                self._product,
+                self._date,
             )
         logger.debug(
-            f"Expanded {len(queries)} queries into {len(expanded)} search targets for product {self._product} on date {self._date}."
+            "Expanded %d queries into %d targets for %s on %s",
+            len(queries),
+            len(expanded),
+            self._product,
+            self._date,
         )
         if self._preferences:
             expanded = sort_by_preferences(expanded, self._preferences)
@@ -227,15 +233,12 @@ class ProductQuery:
             raise ValueError("Call .on(date) before .search()")
 
         logger.debug(
-            "Executing search for product=%s on date=%s with parameters=%s, sources=%s, preferences=%s",
+            "search() product=%s date=%s parameters=%s sources=%s",
             self._product,
             self._date,
             self._parameters,
             self._source_ids,
-            self._preferences,
         )
-        logger.debug("Using search planner: %s", self._search_planner)
-        logger.debug("Using wormhole: %s", self._wormhole)
 
         ranked = self._ranked_targets()
 

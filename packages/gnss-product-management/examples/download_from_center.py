@@ -25,3 +25,5 @@ if queries:
     print(f"Found {len(queries)} queries.")
 else:
     print("No products found.")
+
+client.download(results=queries[:1], sink_id="local")

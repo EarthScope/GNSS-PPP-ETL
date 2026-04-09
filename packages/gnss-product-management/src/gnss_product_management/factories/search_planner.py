@@ -232,7 +232,10 @@ class SearchPlanner:
                     )
                 except KeyError as e:
                     logger.debug(
-                        f"KeyError resolving product {template.name} on resource {resource_id}: {e}"
+                        "KeyError resolving product %s on resource %s: %s",
+                        template.name,
+                        resource_id,
+                        e,
                     )
                     continue
                 for rq in resolved_queries:

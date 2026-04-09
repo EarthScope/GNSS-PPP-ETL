@@ -52,7 +52,7 @@ class ConnectionPool:
             try:
                 return fsspec.filesystem("file")
             except Exception as e:
-                logger.error(f"Error creating local filesystem: {e}")
+                logger.warning("Error creating local filesystem: %s", e)
                 return None
 
         if self.protocol == "ftp":
@@ -70,7 +70,7 @@ class ConnectionPool:
                     )
                 except Exception:
                     continue
-            logger.error(f"FTP/FTPS connection failed for {self.hostname}")
+            logger.warning("FTP/FTPS connection failed for %s", self.hostname)
             return None
 
         # HTTP, HTTPS, and other protocols
@@ -78,7 +78,7 @@ class ConnectionPool:
             fs, _ = fsspec.core.url_to_fs(self.hostname, skip_instance_cache=True)
             return fs
         except Exception as e:
-            logger.error(f"Error creating filesystem for {self.hostname}: {e}")
+            logger.warning("Error creating filesystem for %s: %s", self.hostname, e)
             return None
 
     def _initialize_pool(self):
@@ -100,7 +100,7 @@ class ConnectionPool:
                 self._pool.append(conn)
             self._semaphore = threading.Semaphore(len(self._pool))
             self._initialized = True
-            logger.debug(f"Pool for {self.hostname}: {len(self._pool)} connections")
+            logger.debug("Pool for %s: %d connections", self.hostname, len(self._pool))
 
     @contextmanager
     def get_connection(self):
@@ -145,7 +145,7 @@ class ConnectionPool:
                 self._pool.append(fresh)
         else:
             # Give back the semaphore slot since we can't replace it
-            logger.warning(f"Reconnect failed for {self.hostname}; pool shrunk by 1")
+            logger.warning("Reconnect failed for %s; pool shrunk by 1", self.hostname)
         return fresh
 
     def full_path(self, directory: str) -> str:
@@ -252,19 +252,21 @@ class ConnectionPoolFactory:
                     if pool.protocol == "file":
                         # Local dir doesn't exist — not a transient failure, no retry.
                         return []
-                    logger.debug(f"Stale connection for {hostname}, reconnecting: {e}")
+                    logger.debug(
+                        "Stale connection for %s, reconnecting: %s", hostname, e
+                    )
                     fresh = pool.replace_connection(conn)
                     if fresh is None:
                         return []
                     try:
                         return _cache(_ls(fresh))
                     except Exception as e2:
-                        logger.error(
-                            f"Retry failed listing {directory} on {hostname}: {e2}"
+                        logger.warning(
+                            "Retry failed listing %s on %s: %s", directory, hostname, e2
                         )
                         return []
                 except Exception as e:
-                    logger.error(f"Error listing {directory} on {hostname}: {e}")
+                    logger.warning("Error listing %s on %s: %s", directory, hostname, e)
                     return []
         except ConnectionError:
             # Pool failed to initialise (e.g. FTP host unreachable).
@@ -300,7 +302,7 @@ class ConnectionPoolFactory:
             conn.get(full_path, str(local_path))
             if local_path.exists() and local_path.stat().st_size > 0:
                 return local_path
-            logger.error(f"Downloaded file is missing or empty: {local_path}")
+            logger.error("Downloaded file is missing or empty: %s", local_path)
             local_path.unlink(missing_ok=True)
             return None
 
@@ -308,17 +310,22 @@ class ConnectionPoolFactory:
             try:
                 return _get(conn)
             except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
-                logger.debug(f"Stale connection for {hostname}, reconnecting: {e}")
+                logger.debug("Stale connection for %s, reconnecting: %s", hostname, e)
                 fresh = pool.replace_connection(conn)
                 if fresh is None:
                     return None
                 try:
                     return _get(fresh)
                 except Exception as e2:
-                    logger.error(
-                        f"Retry failed downloading {remote_path} from {hostname}: {e2}"
+                    logger.warning(
+                        "Retry failed downloading %s from %s: %s",
+                        remote_path,
+                        hostname,
+                        e2,
                     )
                     return None
             except Exception as e:
-                logger.error(f"Download failed {remote_path} from {hostname}: {e}")
+                logger.warning(
+                    "Download failed %s from %s: %s", remote_path, hostname, e
+                )
                 return None

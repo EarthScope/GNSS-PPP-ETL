@@ -159,6 +159,7 @@ class WorkSpace:
         assert path.exists(), f"Resource spec file not found: {path}"
         assert path.is_file(), f"Resource spec path must be a file: {path}"
         spec = LocalResourceSpec.from_yaml(path)
+        spec = spec.model_copy(update={"source_file": path})
         name = spec.name
         if id is not None:
             name = id
@@ -496,3 +497,73 @@ class WorkSpace:
                 if p.is_file() and re.search(file_pattern, p.name, re.IGNORECASE)
             )
         return sorted(p for p in search_dir.iterdir() if p.is_file())
+
+    # ---- Rich display -------------------------------------------------------
+
+    def display(self) -> None:
+        """Print a rich summary of loaded specs and registered local resources.
+
+        Prints two tables:
+
+        - **Loaded Specs** — every spec loaded via :meth:`add_resource_spec`,
+          with its name and product list.
+        - **Registered Resources** — every resource bound to a base directory
+          via :meth:`register_spec`, with its alias(es), base directory, and
+          the products it covers.
+
+        Requires the ``rich`` package (bundled as a project dependency).
+        """
+        from rich.console import Console
+        from rich.table import Table
+        from rich import box
+
+        console = Console()
+
+        # Reverse the alias map: spec_name → [alias, ...]
+        spec_aliases: dict[str, list[str]] = {}
+        for alias, spec_name in self._alias_map.items():
+            spec_aliases.setdefault(spec_name, []).append(alias)
+
+        if self._resource_specs:
+            st = Table(
+                title="[bold]Loaded Local Specs[/bold]",
+                box=box.ROUNDED,
+                show_lines=False,
+                header_style="bold white",
+            )
+            st.add_column("Spec Name", style="bold cyan", no_wrap=True)
+            st.add_column("Collections", style="dim")
+
+            for spec_name, spec in sorted(self._resource_specs.items()):
+                collections = sorted(spec.collections.keys())
+                st.add_row(spec_name, ", ".join(collections))
+            console.print(st)
+
+        if self._registered_specs:
+            rt = Table(
+                title="[bold]Registered Local Resources[/bold]",
+                box=box.ROUNDED,
+                show_lines=True,
+                header_style="bold white",
+            )
+            rt.add_column("Name", style="bold green", no_wrap=True)
+            rt.add_column("Alias(es)", style="dim", no_wrap=True)
+            rt.add_column("Spec", style="dim", no_wrap=True)
+            rt.add_column("Spec File", style="dim")
+            rt.add_column("Base Directory", style="dim")
+            rt.add_column("Products", style="dim")
+
+            for name, resource in sorted(self._registered_specs.items()):
+                aliases = ", ".join(sorted(spec_aliases.get(name, [])))
+                products = sorted(resource.item_to_dir.keys())
+                spec = self._resource_specs.get(name) or resource.spec
+                spec_file = str(spec.source_file) if spec.source_file else ""
+                rt.add_row(
+                    name,
+                    aliases,
+                    spec.name,
+                    spec_file,
+                    resource.base_dir,
+                    "\n".join(products),
+                )
+            console.print(rt)

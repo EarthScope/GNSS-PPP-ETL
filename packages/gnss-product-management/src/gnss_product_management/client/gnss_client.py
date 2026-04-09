@@ -132,6 +132,11 @@ class GNSSClient:
             max_connections=max_connections,
         )
 
+    def display(self) -> None:
+        """Display the client's loaded product registry and workspace specs."""
+        self._product_registry.display()
+        self._workspace.display()
+
     def query(self) -> "ProductQuery":
         """Return a fluent :class:`ProductQuery` builder for *product*.
 
@@ -242,10 +247,8 @@ class GNSSClient:
 
         paths: List[Path] = []
         for date, date_results in by_date.items():
-            downloaded = cast(
-                List[Optional[Path]],
-                self._downloader.run(date_results, date, sink_id=sink_id),
-            )
+            downloaded = self._downloader.run(date_results, date, sink_id=sink_id)
+
             for r, path in zip(date_results, downloaded):
                 if path is not None:
                     r.local_path = path

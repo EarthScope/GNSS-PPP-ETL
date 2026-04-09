@@ -519,3 +519,71 @@ class ProductRegistry:
             }
 
         return None
+
+    # ---- Rich display -------------------------------------------------------
+
+    def display(self) -> None:
+        """Print a rich summary of loaded products and registered remote centers.
+
+        Prints two tables to the terminal:
+
+        - **Products** — every product name with its versions and variants.
+        - **Remote Centers** — every registered data center with its
+          available products, protocols, and hostnames.
+
+        Requires the ``rich`` package (bundled as a project dependency).
+        """
+        from rich.console import Console
+        from rich.table import Table
+        from rich import box
+
+        console = Console()
+
+        if self._product_catalog is not None:
+            pt = Table(
+                title="[bold]Registered Products[/bold]",
+                box=box.ROUNDED,
+                show_lines=False,
+                header_style="bold white",
+            )
+            pt.add_column("Product", style="bold cyan", no_wrap=True)
+            pt.add_column("Versions", style="dim")
+            pt.add_column("Variants", style="dim")
+
+            for prod_name, ver_cat in sorted(self._product_catalog.products.items()):
+                versions = sorted(ver_cat.versions.keys())
+                variants: set = set()
+                for var_cat in ver_cat.versions.values():
+                    variants.update(var_cat.variants.keys())
+                pt.add_row(
+                    prod_name,
+                    ", ".join(versions),
+                    ", ".join(sorted(variants)),
+                )
+            console.print(pt)
+
+        if self._catalogs:
+            ct = Table(
+                title="[bold]Remote Centers[/bold]",
+                box=box.ROUNDED,
+                show_lines=True,
+                header_style="bold white",
+            )
+            ct.add_column("ID", style="bold green", no_wrap=True)
+            ct.add_column("Name")
+            ct.add_column("Products", style="dim")
+            ct.add_column("Protocols", style="dim", no_wrap=True)
+            ct.add_column("Hostname(s)", style="dim")
+
+            for center_id, cat in sorted(self._catalogs.items()):
+                product_names = sorted({q.product.name for q in cat.queries})
+                protocols = sorted({s.protocol for s in cat.servers if s.protocol})
+                hostnames = sorted({s.hostname for s in cat.servers})
+                ct.add_row(
+                    center_id,
+                    cat.name,
+                    "\n".join(product_names),
+                    "\n".join(protocols),
+                    "\n".join(hostnames),
+                )
+            console.print(ct)

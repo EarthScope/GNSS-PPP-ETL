@@ -119,7 +119,7 @@ class DownloadPipeline:
 
         query = resource._query
         if query is None:
-            logger.warning("FoundResource has no internal query; cannot download.")
+            logger.debug("FoundResource has no internal query; skipping download.")
             return None
 
         path = self._transport.download_one(
@@ -134,4 +134,5 @@ class DownloadPipeline:
                     sink=path, url=resource.uri, name=resource.product
                 )
                 write_lock_product(lock)
+            logger.info("Downloaded %s → %s", resource.product, path)
         return path
