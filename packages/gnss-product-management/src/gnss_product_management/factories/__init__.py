@@ -13,7 +13,6 @@ from gnss_product_management.specifications.dependencies.dependencies import (
     SearchPreference,
 )
 from gnss_product_management.factories.pipelines import (
-    FindPipeline,
     DownloadPipeline,
     LockfileWriter,
     ResolvePipeline,
@@ -27,7 +26,6 @@ __all__ = [
     "WormHole",
     "DependencyLockFile",
     "SearchPreference",
-    "FindPipeline",
     "DownloadPipeline",
     "LockfileWriter",
     "ResolvePipeline",

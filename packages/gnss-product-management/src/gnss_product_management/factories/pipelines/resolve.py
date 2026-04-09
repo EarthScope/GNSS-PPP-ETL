@@ -22,10 +22,11 @@ from typing import List, Optional, Tuple
 
 from gnss_product_management.environments import ProductRegistry, WorkSpace
 from gnss_product_management.factories.models import FoundResource
-from gnss_product_management.factories.pipelines.find import FindPipeline
+from gnss_product_management.client.product_query import ProductQuery
 from gnss_product_management.factories.pipelines.download import DownloadPipeline
 from gnss_product_management.factories.pipelines.lockfile_writer import LockfileWriter
 from gnss_product_management.factories.remote_transport import WormHole
+from gnss_product_management.factories.search_planner import SearchPlanner
 from gnss_product_management.lockfile.manager import LockfileManager
 from gnss_product_management.lockfile.operations import get_package_version
 from gnss_product_management.specifications.dependencies.dependencies import (
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 class ResolvePipeline:
     """Find → Download → Lockfile for every dependency in a spec.
 
-    Uses :class:`FindPipeline`, :class:`DownloadPipeline`, and
+    Uses :class:`ProductQuery`, :class:`DownloadPipeline`, and
     :class:`LockfileWriter` internally.  All dependencies are resolved
     in parallel via a :class:`~concurrent.futures.ThreadPoolExecutor`.
 
@@ -70,13 +71,15 @@ class ResolvePipeline:
     ) -> None:
         self._env = env
         self._workspace = workspace
-        self._finder = FindPipeline(
-            env, workspace, max_connections=max_connections, transport=transport
+        transport = transport or WormHole(
+            max_connections=max_connections, product_registry=env
         )
+        planner = SearchPlanner(product_registry=env, workspace=workspace)
+        self._query = ProductQuery(wormhole=transport, search_planner=planner)
         self._downloader = DownloadPipeline(
             env,
             workspace,
-            transport=self._finder.transport,
+            transport=transport,
             max_connections=max_connections,
         )
 
@@ -174,14 +177,16 @@ class ResolvePipeline:
         """
         logger.debug("Attempting to resolve dependency %s on %s", dep.spec, date.date())
         try:
-            found: Optional[FoundResource] = self._finder.run(
-                date,
-                dep.spec,
-                centers=centers,
-                filters=dep.constraints or None,
-                preferences=preferences,
-                all=False,
-            )
+            q = self._query.for_product(dep.spec).on(date)
+            if dep.constraints:
+                q = q.where(**dep.constraints)
+            if preferences:
+                for pref in preferences:
+                    q = q.prefer(**{pref.parameter: pref.sorting})
+            if centers:
+                q = q.sources(*centers)
+            candidates = q.search()
+            found: Optional[FoundResource] = candidates[0] if candidates else None
         except Exception as exc:
             logger.debug("No candidates for %s: %s", dep.spec, exc)
             return ResolvedDependency(

@@ -23,7 +23,6 @@ from gnss_product_management.factories import (  # noqa: F401
     SearchPlanner,
     WormHole,
     SearchPreference,
-    FindPipeline,
     DownloadPipeline,
     LockfileWriter,
     ResolvePipeline,

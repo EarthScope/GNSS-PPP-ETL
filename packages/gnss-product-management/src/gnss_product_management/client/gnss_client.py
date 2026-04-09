@@ -9,16 +9,17 @@ import datetime
 from itertools import groupby
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.pipelines.download import DownloadPipeline
-from gnss_product_management.factories.pipelines.find import FindPipeline
 from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
 from gnss_management_specs.configs import LOCAL_SPEC_DIR
 from gnss_product_management.defaults import DefaultProductEnvironment
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.client.product_query import ProductQuery
+from gnss_product_management.factories.search_planner import SearchPlanner
+from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.utilities.paths import AnyPath
 
 from gnss_product_management.specifications.dependencies.dependencies import (
@@ -37,7 +38,7 @@ class GNSSClient:
     """High-level client for searching and downloading GNSS products.
 
     ``GNSSClient`` is the single entry point for all product retrieval.
-    It wraps :class:`FindPipeline`, :class:`DownloadPipeline`, and
+    It wraps :class:`ProductQuery`, :class:`DownloadPipeline`, and
     :class:`ResolvePipeline` as internal implementation details.
 
     Use :meth:`from_defaults` to get started with the bundled specs::
@@ -71,14 +72,20 @@ class GNSSClient:
     ) -> None:
 
         self._product_registry = product_registry
-        self._finder = FindPipeline(
-            product_registry, workspace, max_connections=max_connections
+        self._workspace = workspace
+        self._transport = WormHole(
+            max_connections=max_connections, product_registry=product_registry
+        )
+        self._planner = SearchPlanner(
+            product_registry=product_registry, workspace=workspace
+        )
+        self._query = ProductQuery(
+            wormhole=self._transport, search_planner=self._planner
         )
         self._downloader = DownloadPipeline(
             product_registry,
             workspace,
-            transport=self._finder.transport,
-            max_connections=max_connections,
+            transport=self._transport,
         )
 
     @classmethod
@@ -125,7 +132,7 @@ class GNSSClient:
             max_connections=max_connections,
         )
 
-    def query(self, product: Union[str, dict] = None) -> "ProductQuery":
+    def query(self) -> "ProductQuery":
         """Return a fluent :class:`ProductQuery` builder for *product*.
 
         This is the preferred entry point for building searches.  Chain
@@ -148,8 +155,8 @@ class GNSSClient:
             A :class:`ProductQuery` bound to this client.
         """
         return ProductQuery(
-            wormhole=self._finder.transport,
-            search_planner=self._finder.planner,
+            wormhole=self._transport,
+            search_planner=self._planner,
         )
 
     def search(
@@ -164,7 +171,7 @@ class GNSSClient:
     ) -> List[FoundResource]:
         """Search for products matching the given criteria.
 
-        Delegates to :class:`FindPipeline` internally: builds queries,
+        Delegates to :class:`ProductQuery` internally: builds queries,
         lists remote directories, expands matches, infers parameters,
         and ranks by preference and protocol.
 
@@ -187,22 +194,16 @@ class GNSSClient:
         product_name: str = (
             product.get("name", "") if isinstance(product, dict) else product
         )
-
-        found = cast(
-            List[FoundResource],
-            self._finder.run(
-                date,
-                product_name,
-                filters=parameters,
-                preferences=preferences,
-                local_resources=local_resources,
-                centers=remote_resources,
-                all=True,
-            ),
-        )
-        for fr in found:
-            fr.date = date
-        return found
+        q = self._query.for_product(product_name).on(date)
+        if parameters:
+            q = q.where(**parameters)
+        if preferences:
+            for pref in preferences:
+                q = q.prefer(**{pref.parameter: pref.sorting})
+        if local_resources or remote_resources:
+            sources = list(local_resources or []) + list(remote_resources or [])
+            q = q.sources(*sources)
+        return q.search()
 
     def download(
         self,
@@ -280,7 +281,7 @@ class GNSSClient:
 
         pipeline = ResolvePipeline(
             env=self._product_registry,
-            workspace=self._finder.planner._workspace,
-            transport=self._finder.transport,
+            workspace=self._workspace,
+            transport=self._transport,
         )
         return pipeline.run(dep_spec, date, sink_id=sink_id)
