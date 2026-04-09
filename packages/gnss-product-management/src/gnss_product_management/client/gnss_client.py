@@ -261,7 +261,7 @@ class GNSSClient:
             path = self._wormhole.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
-                local_factory=self._search_planner.local_planner,
+                local_factory=self._search_planner,
                 date=date,
             )
             if path is not None:

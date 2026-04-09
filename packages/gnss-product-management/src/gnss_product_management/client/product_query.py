@@ -20,6 +20,7 @@ from gnss_product_management.factories.ranking import (
 from gnss_product_management.specifications.dependencies.dependencies import (
     SearchPreference,
 )
+from gnss_product_management.specifications.remote.resource import SearchTarget
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,39 @@ class ProductQuery:
             )
         return clone
 
+    def _ranked_targets(self) -> List[SearchTarget]:
+        """Return sorted :class:`SearchTarget` candidates before deduplication.
+
+        Builds queries via :class:`SearchPlanner`, expands them through
+        :class:`WormHole`, then applies preference and protocol sorting.
+        The result is the pre-deduplication list used both by :meth:`search`
+        and by :class:`DependencyResolver`.
+
+        Returns:
+            Sorted list of :class:`SearchTarget` objects, local/file first,
+            then ordered by *preferences* within each protocol tier.
+
+        Raises:
+            ValueError: If :meth:`for_product` or :meth:`on` have not been called.
+        """
+        if self._product is None:
+            raise ValueError("Call .for_product(product) before searching")
+        if self._date is None:
+            raise ValueError("Call .on(date) before searching")
+
+        local_ids, remote_ids = self._resolve_sources()
+        queries = self._search_planner.get(
+            date=self._date,
+            product=self._product,
+            parameters=self._parameters or None,
+            local_resources=local_ids,
+            remote_resources=remote_ids,
+        )
+        expanded = self._wormhole.search(queries)
+        if self._preferences:
+            expanded = sort_by_preferences(expanded, self._preferences)
+        return sort_by_protocol(expanded)
+
     def search(self) -> List[SearchResult]:
         """Execute the query and return ranked results.
 
@@ -195,20 +229,8 @@ class ProductQuery:
         )
         logger.debug("Using search planner: %s", self._search_planner)
         logger.debug("Using wormhole: %s", self._wormhole)
-        local_ids, remote_ids = self._resolve_sources()
 
-        queries = self._search_planner.get(
-            date=self._date,
-            product=self._product,
-            parameters=self._parameters or None,
-            local_resources=local_ids,
-            remote_resources=remote_ids,
-        )
-
-        expanded = self._wormhole.search(queries)
-        if self._preferences:
-            expanded = sort_by_preferences(expanded, self._preferences)
-        ranked = sort_by_protocol(expanded)
+        ranked = self._ranked_targets()
 
         results: List[SearchResult] = []
         seen: Dict[Tuple[str, str], bool] = {}
@@ -235,48 +257,6 @@ class ProductQuery:
             results.append(r)
 
         return results
-
-    def download(
-        self,
-        sink_id: str,
-        *,
-        limit: Optional[int] = None,
-    ) -> List[Path]:
-        """Search and download results in one call.
-
-        Args:
-            sink_id: Local resource alias to download into (e.g. ``"local"``).
-            limit: Maximum number of files to download.  ``None`` downloads
-                all results (use with care).
-
-        Returns:
-            Paths to successfully downloaded files.
-
-        Raises:
-            ValueError: If :meth:`on` has not been called.
-        """
-        if self._date is None:
-            raise ValueError("Call .on(date) before .download()")
-
-        results = self.search()
-        if limit is not None:
-            results = results[:limit]
-
-        paths: List[Path] = []
-        for r in results:
-            if r._query is None:
-                logger.warning("SearchResult has no internal query; skipping.")
-                continue
-            path = self._wormhole.download_one(
-                query=r._query,
-                local_resource_id=sink_id,
-                local_factory=self._search_planner._workspace,
-                date=self._date,
-            )
-            if path is not None:
-                r.local_path = path
-                paths.append(path)
-        return paths
 
     # -- Internal --------------------------------------------------
 

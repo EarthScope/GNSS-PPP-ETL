@@ -31,6 +31,11 @@ from gnss_product_management.specifications.dependencies.dependencies import (
 )
 from gnss_product_management.factories.search_planner import SearchPlanner
 from gnss_product_management.factories.remote_transport import WormHole
+from gnss_product_management.factories.ranking import (
+    sort_by_preferences,
+    sort_by_protocol,
+)
+from gnss_product_management.client.product_query import ProductQuery
 from gnss_product_management.specifications.products.product import (
     infer_from_regex,
 )
@@ -48,22 +53,6 @@ from gnss_product_management.utilities.helpers import decompress_gzip
 from gnss_product_management.utilities.paths import AnyPath, as_path
 
 logger = logging.getLogger(__name__)
-
-
-def _get_param_value(rq: SearchTarget, param_name: str) -> str:
-    """Extract a parameter value from a SearchTarget's product.
-
-    Args:
-        rq: The target to inspect.
-        param_name: Parameter name to extract.
-
-    Returns:
-        The parameter value, or ``""`` if not found.
-    """
-    for p in rq.product.parameters:
-        if p.name == param_name and p.value is not None:
-            return p.value
-    return ""
 
 
 def _build_remote_url(rq: SearchTarget) -> str:
@@ -252,12 +241,12 @@ class DependencyResolver:
             (resolved-as-missing, ``None``).
         """
         try:
-            queries = self._qf.get(
-                date,
-                product={"name": dep.spec},
-                parameters=dep.constraints or None,
-            )
-
+            query = ProductQuery(self._fetcher, self._qf).for_product(dep.spec).on(date)
+            if dep.constraints:
+                query = query.where(**dep.constraints)
+            for pref in self.dep_spec.preferences:
+                query = query.prefer(**{pref.parameter: pref.sorting})
+            expanded_queries: List[SearchTarget] = query._ranked_targets()
         except (ValueError, KeyError) as exc:
             logger.debug("No queries for %s: %s", dep.spec, exc)
             return ResolvedDependency(
@@ -266,25 +255,10 @@ class DependencyResolver:
                 status="missing",
             ), None
 
-        if not queries:
-            logger.warning(
-                f"No queries returned for dependency {dep.spec} with constraints {dep.constraints}"
-            )
-            return ResolvedDependency(
-                spec=dep.spec,
-                required=dep.required,
-                status="missing",
-            ), None
-
-        queries = self._sort_by_preferences(queries)
-
-        # Search using the transport — returns List[SearchTarget] with filename.value set.
-        logger.info(
-            f"Searching for {len(queries)} queries for dependency {dep.spec}..."
-        )
-        expanded_queries: List[SearchTarget] = self._fetcher.search(queries)
         if not expanded_queries:
-            logger.warning(f"No search results for dependency {dep.spec}")
+            logger.warning(
+                f"No search results for dependency {dep.spec} with constraints {dep.constraints}"
+            )
             return ResolvedDependency(
                 spec=dep.spec,
                 required=dep.required,
@@ -292,10 +266,12 @@ class DependencyResolver:
             ), None
         logger.info(f"Found {len(expanded_queries)} results for dependency {dep.spec}")
 
-        # Update parameters from matched filenames.
+        # Update parameters from matched filenames, then re-sort by preferences
+        # (inferred parameter values may change the ordering).
         expanded_queries = [self._update_parameters(rq) for rq in expanded_queries]
-
-        expanded_queries = self._sort_by_preferences(expanded_queries)
+        expanded_queries = sort_by_preferences(
+            expanded_queries, self.dep_spec.preferences
+        )
         filename_groups = defaultdict(list)
         for rq in expanded_queries:
             if rq.product.filename and rq.product.filename.value:
@@ -303,7 +279,7 @@ class DependencyResolver:
 
         # sort by server protocol
         for key, group in filename_groups.items():
-            filename_groups[key] = self._sort_by_protocol(group)
+            filename_groups[key] = sort_by_protocol(group)
 
         for rq_index in expanded_queries:
             if not (rq_index.product.filename and rq_index.product.filename.value):
@@ -337,55 +313,6 @@ class DependencyResolver:
                     )
                     if resolved is not None:
                         return resolved, lock_file
-
-    def _sort_by_preferences(
-        self,
-        queries: List[SearchTarget],
-    ) -> List[SearchTarget]:
-        """Sort queries according to the preference cascade.
-
-        Args:
-            queries: SearchTarget objects to sort.
-
-        Returns:
-            Sorted list of targets.
-        """
-        if not self.dep_spec.preferences:
-            return queries
-
-        for pref in reversed(self.dep_spec.preferences):
-            param_name = pref.parameter
-            sorting = [v.upper() for v in pref.sorting]
-
-            def _key(rq: SearchTarget, _pn=param_name, _s=sorting) -> int:
-                try:
-                    val = _get_param_value(rq, _pn).upper()
-                    return _s.index(val)
-                except (ValueError, TypeError):
-                    return len(_s)
-
-            queries = sorted(queries, key=_key)
-
-        return queries
-
-    def _sort_by_protocol(self, queries: List[SearchTarget]) -> List[SearchTarget]:
-        """Sort queries by server protocol, preferring local/file over remote.
-
-        Args:
-            queries: SearchTarget objects to sort.
-
-        Returns:
-            Sorted list of targets.
-        """
-        protocol_sort_order = ["FILE", "LOCAL", "FTP", "FTPS", "HTTP", "HTTPS"]
-        return sorted(
-            queries,
-            key=lambda rq: (
-                protocol_sort_order.index((rq.server.protocol or "").upper())
-                if (rq.server.protocol or "").upper() in protocol_sort_order
-                else len(protocol_sort_order)
-            ),
-        )
 
     def _update_parameters(self, search_target: SearchTarget) -> SearchTarget:
         """Update a SearchTarget's parameters by re-interpolating patterns.

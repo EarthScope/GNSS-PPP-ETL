@@ -11,16 +11,17 @@ client = GNSSClient.from_defaults(base_dir=base_dir)
 
 date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)
 
-paths = (
-    client.query("CLOCK")
+queries = (
+    client.query()
     .on(date)
+    .for_product("ORBIT")
     .where(TTT="FIN")
     .sources("COD", "ESA", "IGS")
     .prefer(TTT=["FIN", "RAP", "ULT"])
-    .download(sink_id="local", limit=1)
+    .search()
 )
 
-if paths:
-    print(f"Downloaded to: {paths[0]}")
+if queries:
+    print(f"Found {len(queries)} queries.")
 else:
     print("No products found.")
