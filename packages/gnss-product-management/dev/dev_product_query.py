@@ -1,47 +1,79 @@
-from pathlib import Path
+"""Demonstrate the two canonical download interfaces for queried products.
+
+Pattern A — fluent one-shot (search + download in one call):
+
+    paths = client.query("ORBIT").on(date).where(TTT="FIN").download(sink_id="local", limit=1)
+
+Pattern B — two-step inspect-then-download:
+
+    results = client.query("ORBIT").on(date).where(TTT="FIN").search()
+    # inspect / filter results...
+    paths = client.download(results[:1], sink_id="local")
+"""
+
 import datetime
 import logging
+from pathlib import Path
 
-from gnss_product_management import defaults, ProductQuery
-from gnss_product_management.factories.remote_transport import WormHole
-from gnss_product_management.factories.search_planner import SearchPlanner
+from gnss_product_management import GNSSClient
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
-work_space = defaults.DefaultWorkSpace
-product_registry = defaults.DefaultProductEnvironment
 base_dir = Path("/Users/franklyndunbar/Project/SeaFloorGeodesy/Data/GNSS-DATA")
-
-work_space.register_spec(base_dir=base_dir, spec_ids=["local_config"], alias="local")
-
-search_planner = SearchPlanner(product_registry=product_registry, workspace=work_space)
-wormhole = WormHole(max_connections=10, product_registry=product_registry)
+client = GNSSClient.from_defaults(base_dir=base_dir)
 
 date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)
+query_agent = client.query().on(date)
 
-query_agent = ProductQuery(wormhole=wormhole, search_planner=search_planner).on(date)
+# --- Search only -----------------------------------------------------------
 
-
-orbit_agent = query_agent.for_product("ORBIT").where(TTT="FIN").sources("COD", "ESA")
-orbit_results = orbit_agent.search()
+orbit_results = (
+    query_agent.for_product("ORBIT").where(TTT="FIN").sources("COD", "ESA").search()
+)
 print(f"Search results for ORBIT on {date.date()}:\n")
 for r in orbit_results:
     print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
 
-clock_agent = query_agent.for_product("CLOCK").where(TTT="FIN").sources("COD", "ESA")
-clock_results = clock_agent.search()
+clock_results = (
+    query_agent.for_product("CLOCK").where(TTT="FIN").sources("COD", "ESA").search()
+)
 print(f"\nSearch results for CLOCK on {date.date()}:\n")
 for r in clock_results:
     print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
 
-erp_agent = query_agent.for_product("ERP").where(TTT="FIN").sources("COD", "ESA")
-erp_results = erp_agent.search()
+erp_results = (
+    query_agent.for_product("ERP").where(TTT="FIN").sources("COD", "ESA").search()
+)
 print(f"\nSearch results for ERP on {date.date()}:\n")
 for r in erp_results:
     print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
 
-attobx_agent = query_agent.for_product("ATTOBX")
-attobx_results = attobx_agent.search()
+attobx_results = query_agent.for_product("ATTOBX").search()
 print(f"\nSearch results for ATTOBX on {date.date()}:\n")
 for r in attobx_results:
     print(f"  [FOUND]   {r.hostname:<35s} {r.directory:<35s} {r.filename}")
+
+# --- Pattern A: fluent one-shot download -----------------------------------
+# Best when you don't need to inspect results first.
+
+print(f"\n--- Pattern A: fluent one-shot download ---")
+paths = (
+    query_agent.for_product("ORBIT")
+    .where(TTT="FIN")
+    .sources("COD")
+    .download(sink_id="local", limit=1)
+)
+for p in paths:
+    print(f"  [DOWNLOADED]  {p}")
+
+# --- Pattern B: two-step inspect-then-download ----------------------------
+# Best when you want to filter or log results before committing to a download.
+
+print(f"\n--- Pattern B: two-step inspect-then-download ---")
+clock_results = (
+    query_agent.for_product("CLOCK").where(TTT="FIN").sources("COD").search()
+)
+best = [r for r in clock_results if r.protocol.lower() in ("ftp", "ftps", "https")][:1]
+paths = client.download(best, sink_id="local")
+for p in paths:
+    print(f"  [DOWNLOADED]  {p}")

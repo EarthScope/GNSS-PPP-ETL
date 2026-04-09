@@ -88,7 +88,7 @@ class LockfileManager:
         task: str,
         date: datetime.datetime,
         version: str | None = None,
-    ) -> Optional[DependencyLockFile]:
+    ) -> Tuple[Optional[DependencyLockFile], AnyPath]:
         """Load an existing lockfile, or ``None``.
 
         Args:
@@ -102,8 +102,10 @@ class LockfileManager:
         )
         path = self._dir / name
         if not path.exists():
-            return None
-        return DependencyLockFile.model_validate_json(path.read_text(encoding="utf-8"))
+            return None, path
+        return DependencyLockFile.model_validate_json(
+            path.read_text(encoding="utf-8")
+        ), path
 
     def lockfile_path(
         self,

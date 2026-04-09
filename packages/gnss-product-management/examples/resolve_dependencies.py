@@ -11,7 +11,7 @@ lockfiles; missing products are downloaded from remote servers.
 
 import datetime
 from pathlib import Path
-from gnss_product_management import QueryFactory, ResourceFetcher, DependencyResolver
+from gnss_product_management import DependencyResolver
 from gnss_product_management.defaults import DefaultProductEnvironment, DefaultWorkSpace
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
@@ -26,10 +26,10 @@ workspace.register_spec(base_dir=base_dir, spec_ids=["local_config"], alias="loc
 
 # --- 2. Build the resolver -----------------------------------------------
 env = DefaultProductEnvironment
-dep_spec = DependencySpec.from_yaml("path/to/your/dependency_spec.yaml")
+dep_spec = DependencySpec.from_yaml(
+    "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/packages/pride-ppp/src/pride_ppp/configs/dependencies/pride_pppar.yaml"
+)
 
-qf = QueryFactory(product_environment=env, workspace=workspace)
-fetcher = ResourceFetcher(max_connections=4)
 
 resolver = DependencyResolver(
     dep_spec=dep_spec,

@@ -226,6 +226,7 @@ class GNSSClient:
                 directory=rq.directory.value or rq.directory.pattern,  # type: ignore[union-attr]
                 filename=filename,
                 parameters=params,
+                date=date,
             )
             r._query = rq
             results.append(r)
@@ -237,18 +238,18 @@ class GNSSClient:
         results: List[SearchResult],
         *,
         sink_id: str,
-        date: datetime.datetime,
     ) -> List[Path]:
         """Download product candidates to the local sink.
 
         Pass a pre-sliced list to limit how many files are fetched, e.g.
-        ``client.download(results[:1], ...)``.
+        ``client.download(results[:1], sink_id="local")``.
 
         Args:
-            results: Ranked :class:`SearchResult` list from :meth:`search`.
+            results: Ranked :class:`SearchResult` list from :meth:`search`
+                or :meth:`ProductQuery.search`.  Each result must carry a
+                ``date`` (set automatically by the query builders).
             sink_id: Local resource identifier (alias registered in the
                 workspace, e.g. ``"local"``).
-            date: Target date — used to resolve the destination directory.
 
         Returns:
             Paths to successfully downloaded (and decompressed) files.
@@ -258,15 +259,19 @@ class GNSSClient:
             if r._query is None:
                 logger.warning("SearchResult has no internal query; skipping.")
                 continue
+            if r.date is None:
+                logger.warning("SearchResult has no date; skipping.")
+                continue
             path = self._wormhole.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
                 local_factory=self._search_planner,
-                date=date,
+                date=r.date,
             )
             if path is not None:
                 r.local_path = path
-                paths.append(path)
+                if isinstance(path, Path):
+                    paths.append(path)
         return paths
 
     def resolve_dependencies(

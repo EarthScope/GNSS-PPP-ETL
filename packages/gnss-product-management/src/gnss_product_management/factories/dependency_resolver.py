@@ -131,72 +131,139 @@ class DependencyResolver:
             A tuple of (:class:`DependencyResolution`, lockfile path).
         """
         version = get_package_version()
-        lockfile_dir = self._qf._local_search_planner.lockfile_dir(local_sink_id)
+        lockfile_dir = self._qf._workspace.lockfile_dir(local_sink_id)
         manager = LockfileManager(lockfile_dir)
 
-        # --- Fast path: skip if lockfile exists ----------------------
-        existing = manager.load(
+        # resolution = DependencyResolution(
+        #     spec_name=self.dep_spec.name, resolved=[]
+        # )
+        # # --- Fast path: skip if lockfile exists ----------------------
+        # existing = manager.load(
+        #     package=self.dep_spec.package,
+        #     task=self.dep_spec.task,
+        #     date=date,
+        #     version=version,
+        # )
+        # if existing is not None:
+        #     lf_path = manager.lockfile_path(
+        #         package=self.dep_spec.package,
+        #         task=self.dep_spec.task,
+        #         date=date,
+        #         version=version,
+        #     )
+        #     logger.info(
+        #         "Lockfile already exists for %s on %s — skipping resolution: %s",
+        #         self.dep_spec.name,
+        #         date.date(),
+        #         lf_path,
+        #     )
+
+        #     locked = {lp.name: lp for lp in existing.products}
+        #     for dep in self.dep_spec.dependencies:
+        #         lp = locked.get(dep.spec)
+        #         if lp is None:
+        #             # Not in the lockfile — was missing during original resolution.
+        #             resolution.resolved.append(
+        #                 ResolvedDependency(
+        #                     spec=dep.spec,
+        #                     required=dep.required,
+        #                     status="missing",
+        #                 )
+        #             )
+        #             continue
+        #         # Verify the file is still on disk before trusting the lockfile.
+        #         sink_path = as_path(lp.sink) if lp.sink else None
+        #         if sink_path is None or not sink_path.exists():
+        #             logger.warning(
+        #                 "Lockfile entry for %s points to missing file %s — "
+        #                 "will re-resolve on next run",
+        #                 dep.spec,
+        #                 lp.sink,
+        #             )
+        #             resolution.resolved.append(
+        #                 ResolvedDependency(
+        #                     spec=dep.spec,
+        #                     required=dep.required,
+        #                     status="missing",
+        #                 )
+        #             )
+        #             continue
+        #         resolution.resolved.append(
+        #             ResolvedDependency(
+        #                 spec=dep.spec,
+        #                 required=dep.required,
+        #                 status="local",
+        #                 remote_url=lp.url,
+        #                 local_path=lp.sink,
+        #             )
+        #         )
+
+        #     logger.info(resolution.summary())
+        #     return resolution, lf_path
+
+        # --- Full resolution path ------------------------------------
+        resolved_deps: List[ResolvedDependency] = []
+        lockfiles: List[LockProduct] = []
+        to_resolve = list(self.dep_spec.dependencies)
+
+        existing_lockfile, lockfile_path = manager.load(
             package=self.dep_spec.package,
             task=self.dep_spec.task,
             date=date,
             version=version,
         )
-        if existing is not None:
-            lf_path = manager.lockfile_path(
-                package=self.dep_spec.package,
-                task=self.dep_spec.task,
-                date=date,
-                version=version,
-            )
-            logger.info(
-                "Lockfile already exists for %s on %s — skipping resolution: %s",
-                self.dep_spec.name,
-                date.date(),
-                lf_path,
-            )
-            results = []
-            for lp in existing.products:
-                dep = next(
-                    (d for d in self.dep_spec.dependencies if d.spec == lp.name),
-                    None,
-                )
-                results.append(
-                    ResolvedDependency(
-                        spec=lp.name,
-                        required=dep.required if dep else True,
-                        status="local",
-                        remote_url=lp.url,
-                        local_path=lp.sink,
+        if existing_lockfile is not None:
+            existing_locks = {lp.name: lp for lp in existing_lockfile.products}
+            for dep in self.dep_spec.dependencies:
+                if dep.spec in existing_locks:
+                    existing_lock: LockProduct = existing_locks[dep.spec]
+                    sink_path = (
+                        as_path(existing_lock.sink) if existing_lock.sink else None
                     )
-                )
-            resolution = DependencyResolution(
-                spec_name=self.dep_spec.name, resolved=results
+                    if sink_path is not None and sink_path.exists():
+                        resolved_deps.append(
+                            ResolvedDependency(
+                                spec=dep.spec,
+                                required=dep.required,
+                                status="local",
+                                remote_url=existing_lock.url,
+                                local_path=existing_lock.sink,
+                            )
+                        )
+                        lockfiles.append(existing_lock)
+                        to_resolve.remove(dep)
+                    else:
+                        logger.warning(
+                            "Lockfile entry for %s points to missing file %s — "
+                            "will re-resolve on next run",
+                            dep.spec,
+                            existing_lock.sink,
+                        )
+
+        if to_resolve:
+            query_agent = ProductQuery(self._fetcher, self._qf).on(date)
+            partial_resolve_one = partial(
+                self._resolve_one,
+                date=date,
+                query_agent=query_agent,
+                local_sink_id=local_sink_id,
             )
-            logger.info(resolution.summary())
-            return resolution, lf_path
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                futures = [
+                    executor.submit(partial_resolve_one, dep) for dep in to_resolve
+                ]
+                for future in futures:
+                    outcome = future.result()
+                    if outcome is None:
+                        continue
+                    resolved_dep, lock_file = outcome
+                    if resolved_dep is not None:
+                        resolved_deps.append(resolved_dep)
+                    if lock_file is not None:
+                        lockfiles.append(lock_file)
 
-        # --- Full resolution path ------------------------------------
-        results: List[ResolvedDependency] = []
-        lockfiles: List[LockProduct] = []
-        to_resolve = list(self.dep_spec.dependencies)
+        # Write aggregate lockfile only when at least one product was resolved.
 
-        partial_resolve_one = partial(
-            self._resolve_one,
-            date=date,
-            local_sink_id=local_sink_id,
-        )
-        with ThreadPoolExecutor(max_workers=15) as executor:
-            futures = [executor.submit(partial_resolve_one, dep) for dep in to_resolve]
-            for future in futures:
-                if not future:
-                    continue
-                resolved, lock_file = future.result()
-                if resolved:
-                    results.append(resolved)
-                if lock_file:
-                    lockfiles.append(lock_file)
-
-        # Auto-generate aggregate from collected sidecars
         if lockfiles:
             aggregate = manager.build_aggregate(
                 products=lockfiles,
@@ -205,21 +272,14 @@ class DependencyResolver:
                 date=date,
                 version=version,
             )
-            lf_path = manager.save(aggregate)
-        else:
-            lf_path = manager.lockfile_path(
-                package=self.dep_spec.package,
-                task=self.dep_spec.task,
-                date=date,
-                version=version,
-            )
+            lockfile_path = manager.save(aggregate)
 
         resolution = DependencyResolution(
             spec_name=self.dep_spec.name,
-            resolved=results,
+            resolved=resolved_deps,
         )
         logger.info(resolution.summary())
-        return resolution, lf_path
+        return resolution, lockfile_path
 
     # ---- internal helpers ------------------------------------------
 
@@ -227,6 +287,7 @@ class DependencyResolver:
         self,
         dep: Dependency,
         date: datetime.datetime,
+        query_agent: ProductQuery,
         local_sink_id: str,
     ) -> Tuple[Optional[ResolvedDependency], Optional[LockProduct]]:
         """Resolve a single dependency.
@@ -240,8 +301,9 @@ class DependencyResolver:
             A tuple of (resolved dependency, lock product) or
             (resolved-as-missing, ``None``).
         """
+        logger.debug("Attempting to resolve dependency %s on %s", dep.spec, date.date())
         try:
-            query = ProductQuery(self._fetcher, self._qf).for_product(dep.spec).on(date)
+            query = query_agent.for_product(dep.spec)
             if dep.constraints:
                 query = query.where(**dep.constraints)
             for pref in self.dep_spec.preferences:
@@ -295,7 +357,7 @@ class DependencyResolver:
                         rq=rq,
                         dep=dep,
                         local_sink_id=local_sink_id,
-                        local_resource_factory=self._qf._local_search_planner,
+                        local_resource_factory=self._qf,
                         date=date,
                         alternative_urls=remote_urls,
                     )
@@ -307,12 +369,22 @@ class DependencyResolver:
                         rq=rq,
                         dep=dep,
                         local_sink_id=local_sink_id,
-                        local_resource_factory=self._qf._local_search_planner,
+                        local_resource_factory=self._qf,
                         date=date,
                         alternative_urls=remote_urls,
                     )
                     if resolved is not None:
                         return resolved, lock_file
+
+        # All candidates tried without success.
+        logger.warning(
+            "Could not resolve dependency %s — no candidates succeeded", dep.spec
+        )
+        return ResolvedDependency(
+            spec=dep.spec,
+            required=dep.required,
+            status="missing",
+        ), None
 
     def _update_parameters(self, search_target: SearchTarget) -> SearchTarget:
         """Update a SearchTarget's parameters by re-interpolating patterns.
@@ -444,7 +516,7 @@ class DependencyResolver:
                 filename = source_path.name
 
         # If the file is not present in the local_sink resource, we can copy it there.
-        sink_query = local_resource_factory.sink_product(
+        sink_query = local_resource_factory._workspace.sink_product(
             rq.product, local_sink_id, date
         )
         sink_directory = (

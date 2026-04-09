@@ -5,9 +5,12 @@ SearchResult — public result type for GNSSClient.search().
 
 from __future__ import annotations
 
+import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+from gnss_product_management.utilities.paths import AnyPath
 
 
 @dataclass
@@ -33,7 +36,8 @@ class SearchResult:
     directory: str
     filename: str
     parameters: Dict[str, str] = field(default_factory=dict)
-    local_path: Optional[Path] = None
+    date: Optional[datetime.datetime] = None
+    local_path: Optional[AnyPath] = None
     # Internal — holds the SearchTarget for use by GNSSClient.download().
     # Not part of the public interface.
     _query: Any = field(default=None, repr=False, compare=False, init=False)

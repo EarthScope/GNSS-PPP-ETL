@@ -198,6 +198,13 @@ class ProductQuery:
             remote_resources=remote_ids,
         )
         expanded = self._wormhole.search(queries)
+        if not expanded:
+            logger.debug(
+                f"No search targets found for product {self._product} on date {self._date}"
+            )
+        logger.debug(
+            f"Expanded {len(queries)} queries into {len(expanded)} search targets for product {self._product} on date {self._date}."
+        )
         if self._preferences:
             expanded = sort_by_preferences(expanded, self._preferences)
         return sort_by_protocol(expanded)
@@ -252,11 +259,54 @@ class ProductQuery:
                 directory=rq.directory.value or rq.directory.pattern,  # type: ignore[union-attr]
                 filename=filename,
                 parameters=params,
+                date=self._date,
             )
             r._query = rq
             results.append(r)
 
         return results
+
+    def download(
+        self,
+        sink_id: str,
+        *,
+        limit: Optional[int] = None,
+    ) -> List[Path]:
+        """Search and download results in one call.
+
+        Args:
+            sink_id: Local resource alias to download into (e.g. ``"local"``).
+            limit: Maximum number of files to download.  ``None`` downloads
+                all results.
+
+        Returns:
+            Paths to successfully downloaded files.
+
+        Raises:
+            ValueError: If :meth:`for_product` or :meth:`on` have not been called.
+        """
+        # search() validates that _date is set via _ranked_targets()
+        results = self.search()
+        if limit is not None:
+            results = results[:limit]
+
+        assert self._date is not None  # guaranteed by search() above
+        paths: List[Path] = []
+        for r in results:
+            if r._query is None:
+                logger.warning("SearchResult has no internal query; skipping.")
+                continue
+            path = self._wormhole.download_one(
+                query=r._query,
+                local_resource_id=sink_id,
+                local_factory=self._search_planner._workspace,
+                date=self._date,
+            )
+            if path is not None:
+                r.local_path = path
+                if isinstance(path, Path):
+                    paths.append(path)
+        return paths
 
     # -- Internal --------------------------------------------------
 

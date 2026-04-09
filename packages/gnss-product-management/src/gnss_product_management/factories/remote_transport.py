@@ -89,7 +89,7 @@ class WormHole:
 
         # List each unique directory in parallel.
         dir_keys = list(groups.keys())
-        with ThreadPoolExecutor(max_workers=min(len(dir_keys), 25)) as pool:
+        with ThreadPoolExecutor(max_workers=max(min(len(dir_keys), 25), 1)) as pool:
             listings = dict(zip(dir_keys, pool.map(self._list_dir, dir_keys)))
 
         # Match every target's file pattern against the pre-fetched listing.
@@ -288,7 +288,7 @@ class WormHole:
         # TODO use fsspec ls to get file size in bytes, and skip download if size is zero.
         hostname = query.server.hostname
 
-        destination_resource = local_factory.sink_product(
+        destination_resource = local_factory._workspace.sink_product(
             query.product, local_resource_id, date
         )
         destination_dir = (

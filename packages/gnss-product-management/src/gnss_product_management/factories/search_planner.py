@@ -127,7 +127,9 @@ class SearchPlanner:
                     raise ValueError(
                         f"Variant {variant!r} not found for product {product_name_query!r} version {version!r}"
                     )
-                product_templates.append(variant_cat.variants[variant])
+                product_templates.append(
+                    variant_cat.variants[variant].model_copy(deep=True)
+                )
 
         # 2. Resolve date fields via ParameterCatalog
         for template in product_templates:
@@ -181,6 +183,12 @@ class SearchPlanner:
             query_planner=self._product_registry,
             resource_selection=remote_resources,
         )
+        if not remote_out:
+            logger.debug(
+                "No remote search targets found for product query %s on date %s.",
+                product,
+                date.date(),
+            )
         out.extend(remote_out)
 
         # 6. Replace unresolved placeholders with regex patterns
@@ -222,7 +230,10 @@ class SearchPlanner:
                     resolved_queries: List[SearchTarget] = query_planner.source_product(
                         template, resource_id
                     )
-                except KeyError:
+                except KeyError as e:
+                    logger.debug(
+                        f"KeyError resolving product {template.name} on resource {resource_id}: {e}"
+                    )
                     continue
                 for rq in resolved_queries:
                     resolved_dir: str = query_planner._parameter_catalog.interpolate(
