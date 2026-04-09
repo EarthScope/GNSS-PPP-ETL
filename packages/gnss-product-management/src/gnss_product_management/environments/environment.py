@@ -155,7 +155,7 @@ class ProductRegistry:
         _parameter_catalog: Built parameter catalog (available after :meth:`build`).
         _format_catalog: Built format catalog (available after :meth:`build`).
         _product_catalog: Built product catalog (available after :meth:`build`).
-        _remote_resource_factory: Built remote planner (available after :meth:`build`).
+        _remote_search_planner: Built remote planner (available after :meth:`build`).
     """
 
     def __init__(self) -> None:
@@ -170,7 +170,7 @@ class ProductRegistry:
         self._format_catalog: Optional[FormatCatalog] = None
         self._product_spec_catalog: Optional[ProductSpecCatalog] = None
         self._product_catalog: Optional[ProductCatalog] = None
-        self._remote_resource_factory: Optional[RemoteSearchPlanner] = None
+        self._remote_search_planner: Optional[RemoteSearchPlanner] = None
 
     def add_parameter_spec(self, path: Path | str, id: str = "default") -> None:
         """Load and register a parameter specification YAML file.
@@ -309,7 +309,7 @@ class ProductRegistry:
         )
         for id, spec in self._resource_specs.items():
             factory.register(spec.built)
-        self._remote_resource_factory = factory
+        self._remote_search_planner = factory
 
     def build(self) -> None:
         """Build the full catalog chain from loaded specs.

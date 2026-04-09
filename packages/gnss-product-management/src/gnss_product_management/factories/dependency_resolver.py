@@ -142,7 +142,7 @@ class DependencyResolver:
             A tuple of (:class:`DependencyResolution`, lockfile path).
         """
         version = get_package_version()
-        lockfile_dir = self._qf._local.lockfile_dir(local_sink_id)
+        lockfile_dir = self._qf._local_search_planner.lockfile_dir(local_sink_id)
         manager = LockfileManager(lockfile_dir)
 
         # --- Fast path: skip if lockfile exists ----------------------
@@ -319,7 +319,7 @@ class DependencyResolver:
                         rq=rq,
                         dep=dep,
                         local_sink_id=local_sink_id,
-                        local_resource_factory=self._qf._local,
+                        local_resource_factory=self._qf._local_search_planner,
                         date=date,
                         alternative_urls=remote_urls,
                     )
@@ -331,7 +331,7 @@ class DependencyResolver:
                         rq=rq,
                         dep=dep,
                         local_sink_id=local_sink_id,
-                        local_resource_factory=self._qf._local,
+                        local_resource_factory=self._qf._local_search_planner,
                         date=date,
                         alternative_urls=remote_urls,
                     )

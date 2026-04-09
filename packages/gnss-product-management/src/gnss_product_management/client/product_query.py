@@ -60,12 +60,12 @@ class ProductQuery:
 
     def __init__(
         self,
-        fetcher: WormHole,
-        query_factory: SearchPlanner,
+        wormhole: WormHole,
+        search_planner: SearchPlanner,
         product: Union[str, dict],
     ) -> None:
-        self._fetcher = fetcher
-        self._qf = query_factory
+        self._wormhole = wormhole
+        self._search_planner = search_planner
         self._product: dict = {"name": product} if isinstance(product, str) else product
         self._date: Optional[datetime.datetime] = None
         self._parameters: dict = {}
@@ -167,7 +167,7 @@ class ProductQuery:
 
         local_ids, remote_ids = self._resolve_sources()
 
-        queries = self._qf.get(
+        queries = self._search_planner.get(
             date=self._date,
             product=self._product,
             parameters=self._parameters or None,
@@ -175,7 +175,7 @@ class ProductQuery:
             remote_resources=remote_ids,
         )
 
-        expanded = self._fetcher.search(queries)
+        expanded = self._wormhole.search(queries)
         if self._preferences:
             expanded = sort_by_preferences(expanded, self._preferences)
         ranked = sort_by_protocol(expanded)
@@ -237,10 +237,10 @@ class ProductQuery:
             if r._query is None:
                 logger.warning("SearchResult has no internal query; skipping.")
                 continue
-            path = self._fetcher.download_one(
+            path = self._wormhole.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
-                local_factory=self._qf.local_planner,
+                local_factory=self._search_planner.local_planner,
                 date=self._date,
             )
             if path is not None:
@@ -265,7 +265,7 @@ class ProductQuery:
 
         for sid in self._source_ids:
             try:
-                self._qf.local_factory._get_registered_spec(sid)
+                self._search_planner.local_factory._get_registered_spec(sid)
                 local_ids.append(sid)
             except KeyError:
                 remote_ids.append(sid)

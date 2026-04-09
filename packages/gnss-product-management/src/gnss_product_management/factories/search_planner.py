@@ -5,11 +5,17 @@ SearchPlanner — lazy narrowing query builder.
 
 import datetime
 import logging
-from typing import Dict, List, Optional
+from turtle import st
+from typing import Dict, List, Optional, Union
 
 from gnss_product_management.environments import ProductRegistry
 from gnss_product_management.factories.local_search_planner import LocalSearchPlanner
+from gnss_product_management.factories.remote_search_planner import (
+    RemoteSearchPlanner,
+)
 from gnss_product_management.environments import WorkSpace
+from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
+from gnss_product_management.specifications.products.catalog import ProductCatalog
 from gnss_product_management.specifications.products.product import (
     Product,
     PathTemplate,
@@ -60,12 +66,14 @@ class SearchPlanner:
                 catalogs and remote planner ready.
             workspace: :class:`WorkSpace` with registered local resources.
         """
-        self._env = product_registry
-        self._workspace = workspace
-        self._remote = self._env._remote_resource_factory
-        self._products = self._env._product_catalog
-        self._params = self._env._parameter_catalog
-        self._local = LocalSearchPlanner(
+        self._env: ProductRegistry = product_registry
+        self._workspace: WorkSpace = workspace
+        self._remote_search_planner: RemoteSearchPlanner = (
+            self._env._remote_search_planner
+        )
+        self._product_catalog: ProductCatalog = self._env._product_catalog
+        self._parameter_catalog: ParameterCatalog = self._env._parameter_catalog
+        self._local_search_planner = LocalSearchPlanner(
             workspace=self._workspace,
             product_registry=self._env,
         )
@@ -73,13 +81,13 @@ class SearchPlanner:
     @property
     def local_planner(self) -> LocalSearchPlanner:
         """The :class:`LocalSearchPlanner` used by this search planner."""
-        return self._local
+        return self._local_search_planner
 
     # Backward-compatible alias
     @property
     def local_factory(self) -> LocalSearchPlanner:
         """Deprecated alias for :attr:`local_planner`."""
-        return self._local
+        return self._local_search_planner
 
     def get(
         self,
@@ -118,8 +126,8 @@ class SearchPlanner:
         product_version_query = _listify(product.get("version"))
         product_variant_query = _listify(product.get("variant"))
 
-        product_version_catalog: Optional[VersionCatalog] = self._products.products.get(
-            product_name_query
+        product_version_catalog: Optional[VersionCatalog] = (
+            self._product_catalog.products.get(product_name_query)
         )
         if product_version_catalog is None:
             raise ValueError(
@@ -146,7 +154,9 @@ class SearchPlanner:
 
         # 2. Resolve date fields via ParameterCatalog
         for template in product_templates:
-            update_date_params = self._params.resolve_params(template.parameters, date)
+            update_date_params = self._parameter_catalog.resolve_params(
+                template.parameters, date
+            )
             template.parameters = update_date_params
 
         # 3. Narrow parameter ranges by query constraints
@@ -176,44 +186,24 @@ class SearchPlanner:
                     product_templates_1.append(updated)
         else:
             product_templates_1 = product_templates
+
         # 5.1 Local resources
-        for template in product_templates_1:
-            for resource_id in self._local.resource_ids:
-                if local_resources and resource_id not in local_resources:
-                    continue
-                to_update = template.model_copy(deep=True)
-                try:
-                    resolved_queries: List[SearchTarget] = self._local.source_product(
-                        to_update, resource_id
-                    )
-                except KeyError:
-                    continue
-                for rq in resolved_queries:
-                    resolved_dir: str = self._params.interpolate(
-                        rq.directory.pattern, date, computed_only=True
-                    )
-                    rq.directory = PathTemplate(pattern=resolved_dir)
-                    out.append(rq)
+        local_out = self.build_queries_from_planner(
+            templates=product_templates_1,
+            date=date,
+            query_planner=self._local_search_planner,
+            resource_selection=local_resources,
+        )
+        out.extend(local_out)
 
         # 5.2 Remote resources
-        for template in product_templates_1:
-            for center_id in self._remote.resource_ids:
-                if remote_resources and center_id.upper() in remote_resources:
-                    continue
-
-                to_update = template.model_copy(deep=True)
-                try:
-                    resolved_queries: List[SearchTarget] = self._remote.source_product(
-                        to_update, center_id
-                    )
-                except KeyError:
-                    continue
-                for resolution_rq in resolved_queries:
-                    resolved_dir = self._params.interpolate(
-                        resolution_rq.directory.pattern, date, computed_only=True
-                    )
-                    resolution_rq.directory = PathTemplate(pattern=resolved_dir)
-                    out.append(resolution_rq)
+        remote_out = self.build_queries_from_planner(
+            templates=product_templates_1,
+            date=date,
+            query_planner=self._remote_search_planner,
+            resource_selection=remote_resources,
+        )
+        out.extend(remote_out)
 
         # 6. Replace unresolved placeholders with regex patterns
         for rq in out:
@@ -223,4 +213,39 @@ class SearchPlanner:
             if rq.product.filename is not None:
                 rq.product.filename.derive(rq.product.parameters)
 
+        return out
+
+    @staticmethod
+    def build_queries_from_planner(
+        templates: List[Product],
+        date: datetime.datetime,
+        query_planner: Union[LocalSearchPlanner, RemoteSearchPlanner],
+        resource_selection: Optional[List[str]] = None,
+    ) -> List[SearchTarget]:
+        """Build search queries from a given planner and resource selection.
+
+        Args:
+            templates: List of product templates to build queries from.
+            resource_selection: Optional list of resource IDs to restrict to.
+            query_planner: Optional planner to use for building queries. If not provided, defaults to local planner.
+        Returns:
+            A list of :class:`SearchTarget` objects built from the planner and resource selection.
+        """
+        out = []
+        for template in templates:
+            for resource_id in query_planner.resource_ids:
+                if resource_selection and resource_id not in resource_selection:
+                    continue
+                try:
+                    resolved_queries: List[SearchTarget] = query_planner.source_product(
+                        template, resource_id
+                    )
+                except KeyError:
+                    continue
+                for rq in resolved_queries:
+                    resolved_dir: str = query_planner._parameter_catalog.interpolate(
+                        rq.directory.pattern, date, computed_only=True
+                    )
+                    rq.directory = PathTemplate(pattern=resolved_dir)
+                    out.append(rq)
         return out

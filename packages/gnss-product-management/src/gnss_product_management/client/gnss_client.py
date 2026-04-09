@@ -11,6 +11,19 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from gnss_product_management.client.search_result import SearchResult
+from gnss_product_management.factories.search_planner import SearchPlanner
+from gnss_product_management.factories.remote_transport import WormHole
+from gnss_management_specs.configs import LOCAL_SPEC_DIR
+from gnss_product_management.defaults import DefaultProductEnvironment
+from gnss_product_management.environments import WorkSpace
+from gnss_product_management.client.product_query import ProductQuery
+from gnss_product_management.factories.ranking import (
+    sort_by_preferences,
+    sort_by_protocol,
+)
+from gnss_product_management.factories.dependency_resolver import (
+    DependencyResolver,
+)
 
 # Keep spec types at module level — they live in specifications/dependencies
 # which has no transitive dependency on factories or environments.
@@ -65,12 +78,10 @@ class GNSSClient:
         *,
         max_connections: int = 4,
     ) -> None:
-        from gnss_product_management.factories.search_planner import SearchPlanner
-        from gnss_product_management.factories.remote_transport import WormHole
 
         self._env = env
         self._qf = SearchPlanner(product_registry=env, workspace=workspace)
-        self._fetcher = WormHole(max_connections=max_connections, env=env)
+        self._wormhole = WormHole(max_connections=max_connections, env=env)
 
     @classmethod
     def from_defaults(
@@ -98,10 +109,6 @@ class GNSSClient:
         Returns:
             A configured :class:`GNSSClient` instance.
         """
-        from gnss_management_specs.configs import LOCAL_SPEC_DIR
-        from gnss_product_management.defaults import DefaultProductEnvironment
-        from gnss_product_management.environments import WorkSpace
-
         workspace = WorkSpace()
         for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
             workspace.add_resource_spec(path)
@@ -142,11 +149,10 @@ class GNSSClient:
         Returns:
             A :class:`ProductQuery` bound to this client.
         """
-        from gnss_product_management.client.product_query import ProductQuery
 
         return ProductQuery(
-            fetcher=self._fetcher,
-            query_factory=self._qf,
+            fetcher=self._wormhole,
+            search_planner=self._qf,
             product=product,
         )
 
@@ -185,11 +191,6 @@ class GNSSClient:
         if isinstance(product, str):
             product = {"name": product}
 
-        from gnss_product_management.factories.ranking import (
-            sort_by_preferences,
-            sort_by_protocol,
-        )
-
         queries = self._qf.get(
             date=date,
             product=product,
@@ -198,7 +199,7 @@ class GNSSClient:
             remote_resources=remote_resources,
         )
 
-        expanded = self._fetcher.search(queries)
+        expanded = self._wormhole.search(queries)
         if preferences:
             expanded = sort_by_preferences(expanded, preferences)
         ranked = sort_by_protocol(expanded)
@@ -255,7 +256,7 @@ class GNSSClient:
             if r._query is None:
                 logger.warning("SearchResult has no internal query; skipping.")
                 continue
-            path = self._fetcher.download_one(
+            path = self._wormhole.download_one(
                 query=r._query,
                 local_resource_id=sink_id,
                 local_factory=self._qf.local_planner,
@@ -289,9 +290,6 @@ class GNSSClient:
         Returns:
             A ``(DependencyResolution, lockfile_path)`` tuple.
         """
-        from gnss_product_management.factories.dependency_resolver import (
-            DependencyResolver,
-        )
 
         if isinstance(dep_spec, (str, Path)):
             dep_spec = DependencySpec.from_yaml(dep_spec)
@@ -300,6 +298,6 @@ class GNSSClient:
             dep_spec=dep_spec,
             query_factory=self._qf,
             product_environment=self._env,
-            fetcher=self._fetcher,  # WormHole
+            fetcher=self._wormhole,  # WormHole
         )
         return resolver.resolve(date=date, local_sink_id=sink_id)
