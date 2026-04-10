@@ -106,10 +106,7 @@ else:
         #   r.hostname  — e.g. "ftp.aiub.unibe.ch"
         #   r.filename  — just the file name
         #   r.uri       — full remote URL or local path
-        print(
-            f"  [{i}] center={r.center!r:>4s}  quality={r.quality!r}  "
-            f"file={r.filename!r}"
-        )
+        print(f"  [{i}] center={r.center!r:>4s}  quality={r.quality!r}  file={r.filename!r}")
 
     # Download only the top-ranked result.
     # client.download() returns a list of local Path objects.
@@ -117,7 +114,7 @@ else:
     paths = client.download(results=results[:1], sink_id="local")
 
     if paths:
-        print(f"\nDownloaded successfully:")
+        print("\nDownloaded successfully:")
         for p in paths:
             print(f"  {p}")
         # After download, FoundResource.local_path is also populated:
@@ -145,7 +142,7 @@ paths = (
 )
 
 if paths:
-    print(f"Clock file(s) downloaded:")
+    print("Clock file(s) downloaded:")
     for p in paths:
         print(f"  {p}")
 else:

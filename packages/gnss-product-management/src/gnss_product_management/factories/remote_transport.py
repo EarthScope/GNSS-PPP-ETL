@@ -9,20 +9,20 @@ import re
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+
 import fsspec
 import fsspec.utils
-from gnss_product_management.utilities.paths import AnyPath, as_path
-from gnss_product_management.specifications.products.product import PathTemplate
-from gnss_product_management.specifications.remote.resource import SearchTarget
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
+from gnss_product_management.specifications.products.product import PathTemplate
+from gnss_product_management.specifications.remote.resource import SearchTarget
 from gnss_product_management.utilities.helpers import decompress_gzip
+from gnss_product_management.utilities.paths import AnyPath, as_path
 
 logger = logging.getLogger(__name__)
 
 # Type alias for (hostname, directory) grouping key
-_DirKey = Tuple[str, str]
+_DirKey = tuple[str, str]
 
 
 class WormHole:
@@ -59,14 +59,12 @@ class WormHole:
             product_registry: Optional :class:`ProductRegistry` for parameter back-filling
                 after a filename match.
         """
-        self._connection_pool_factory = ConnectionPoolFactory(
-            max_connections=max_connections
-        )
+        self._connection_pool_factory = ConnectionPoolFactory(max_connections=max_connections)
         self._product_registry = product_registry
 
     # -- Public API ------------------------------------------------
 
-    def search(self, targets: List[SearchTarget]) -> List[SearchTarget]:
+    def search(self, targets: list[SearchTarget]) -> list[SearchTarget]:
         """Search every target's server/directory for matching files.
 
         Targets are grouped by ``(hostname, directory)`` so each unique
@@ -93,7 +91,7 @@ class WormHole:
             listings = dict(zip(dir_keys, pool.map(self._list_dir, dir_keys)))
 
         # Match every target's file pattern against the pre-fetched listing.
-        results: List[SearchTarget] = list(rejected)
+        results: list[SearchTarget] = list(rejected)
         for key, group_targets in groups.items():
             listing = listings[key]
             for target, file_pattern in group_targets:
@@ -109,8 +107,8 @@ class WormHole:
     # -- Grouping --------------------------------------------------
 
     def _group_targets(
-        self, targets: List[SearchTarget]
-    ) -> Tuple[Dict[_DirKey, List[Tuple[SearchTarget, str]]], List[SearchTarget]]:
+        self, targets: list[SearchTarget]
+    ) -> tuple[dict[_DirKey, list[tuple[SearchTarget, str]]], list[SearchTarget]]:
         """Group targets by ``(hostname, directory)``.
 
         Args:
@@ -122,25 +120,22 @@ class WormHole:
             file patterns for that directory. Rejected targets are
             those missing directory or pattern.
         """
-        groups: Dict[_DirKey, List[Tuple[SearchTarget, str]]] = defaultdict(list)
-        rejected: List[SearchTarget] = []
+        groups: dict[_DirKey, list[tuple[SearchTarget, str]]] = defaultdict(list)
+        rejected: list[SearchTarget] = []
 
         for t in targets:
             directory = self._get_directory(t)
             file_pattern = self._get_file_pattern(t)
             if not directory or not file_pattern:
                 logger.debug(
-                    "Skipping target with missing directory or file pattern: "
-                    "dir=%r, pat=%r",
+                    "Skipping target with missing directory or file pattern: dir=%r, pat=%r",
                     directory,
                     file_pattern,
                 )
                 continue
             if fsspec.utils.get_protocol(t.server.hostname) == "file":
                 if not (Path(t.server.hostname) / directory).exists():
-                    logger.debug(
-                        "Local directory does not exist: %s", t.server.hostname
-                    )
+                    logger.debug("Local directory does not exist: %s", t.server.hostname)
                     continue
             key: _DirKey = (t.server.hostname, directory)
             groups[key].append((t, file_pattern))
@@ -149,7 +144,7 @@ class WormHole:
 
     # -- Directory listing -----------------------------------------
 
-    def _list_dir(self, key: _DirKey) -> List[str]:
+    def _list_dir(self, key: _DirKey) -> list[str]:
         """List a single ``(hostname, directory)`` pair.
 
         Args:
@@ -168,7 +163,7 @@ class WormHole:
     # -- Pattern matching ------------------------------------------
 
     @staticmethod
-    def _match_files(listing: List[str], file_pattern: str) -> List[str]:
+    def _match_files(listing: list[str], file_pattern: str) -> list[str]:
         """Match filenames in a directory listing against a regex pattern.
 
         Args:
@@ -179,11 +174,7 @@ class WormHole:
             Matching filenames (excluding ``.lock`` files).
         """
         # remove lockfile sidecars and .lock files from listing before matching
-        listing = [
-            f
-            for f in listing
-            if not f.endswith(".lock") and not f.endswith("_lock.json")
-        ]
+        listing = [f for f in listing if not f.endswith(".lock") and not f.endswith("_lock.json")]
         try:
             rx = re.compile(file_pattern, re.IGNORECASE)
             return [f for f in listing if rx.search(f)]
@@ -193,7 +184,7 @@ class WormHole:
     # -- Helpers ---------------------------------------------------
 
     @staticmethod
-    def _get_directory(target: SearchTarget) -> Optional[str]:
+    def _get_directory(target: SearchTarget) -> str | None:
         """Extract the resolved directory string from a target.
 
         Args:
@@ -210,7 +201,7 @@ class WormHole:
         return None
 
     @staticmethod
-    def _get_file_pattern(target: SearchTarget) -> Optional[str]:
+    def _get_file_pattern(target: SearchTarget) -> str | None:
         """Extract the file regex pattern from a target.
 
         Args:
@@ -243,9 +234,6 @@ class WormHole:
         from gnss_product_management.specifications.products.product import (
             infer_from_regex,
         )
-        from gnss_product_management.specifications.parameters.parameter import (
-            Parameter,
-        )
 
         updated = search_target.model_copy(deep=True)
         updated_params = infer_from_regex(
@@ -261,9 +249,7 @@ class WormHole:
                 parameters=updated.product.parameters,
             )
             if classification_results:
-                class_parameters: Dict[str, str] = classification_results.get(
-                    "parameters", {}
-                )
+                class_parameters: dict[str, str] = classification_results.get("parameters", {})
                 if updated.product.parameters is not None:
                     for p in updated.product.parameters:
                         if p.name in class_parameters and p.value is None:
@@ -277,7 +263,7 @@ class WormHole:
         local_resource_id: str,
         local_factory: WorkSpace,
         date: datetime.datetime,
-    ) -> Optional[AnyPath]:
+    ) -> AnyPath | None:
         """Synchronously download matched files for one search target.
 
         Skips the download if the destination file already exists and
@@ -295,12 +281,9 @@ class WormHole:
 
         hostname = query.server.hostname
 
-        destination_resource = local_factory.sink_product(
-            query.product, local_resource_id, date
-        )
+        destination_resource = local_factory.sink_product(query.product, local_resource_id, date)
         destination_dir = (
-            as_path(destination_resource.server.hostname)
-            / destination_resource.directory.value
+            as_path(destination_resource.server.hostname) / destination_resource.directory.value
         )  # type: ignore[union-attr]
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination_path = destination_dir / query.product.filename.value  # type: ignore[union-attr]
@@ -325,13 +308,9 @@ class WormHole:
         )
 
         # Skip download if the remote file is zero bytes (stale/incomplete upload).
-        remote_size = self._connection_pool_factory.get_file_size(
-            hostname, remote_file_path
-        )
+        remote_size = self._connection_pool_factory.get_file_size(hostname, remote_file_path)
         if remote_size is not None and remote_size == 0:
-            logger.warning(
-                "Skipping zero-byte remote file: %s/%s", hostname, remote_file_path
-            )
+            logger.warning("Skipping zero-byte remote file: %s/%s", hostname, remote_file_path)
             return None
 
         try:
@@ -355,8 +334,6 @@ class WormHole:
             decompressed = decompress_gzip(result)
             if decompressed is not None:
                 return decompressed
-            logger.warning(
-                "Decompression failed for %s, returning compressed file", result
-            )
+            logger.warning("Decompression failed for %s, returning compressed file", result)
 
         return result

@@ -15,26 +15,23 @@ import re
 from pathlib import Path
 
 import pytest
-
-from gnss_product_management.specifications.parameters.parameter import (
-    Parameter,
-)
-from gnss_product_management.specifications.products.product import PathTemplate
-from gnss_product_management.specifications.products.catalog import (
-    ProductCatalog,
+from conftest import (
+    TEST_DATE,
+    format_spec_catalog,
+    parameter_catalog,
+    product_spec_catalog,
 )
 from gnss_product_management.specifications.format.format_spec import (
     FormatCatalog,
 )
-from gnss_product_management.utilities.metadata_funcs import register_computed_fields
-
-from conftest import (
-    TEST_DATE,
-    parameter_catalog,
-    format_spec_catalog,
-    product_spec_catalog,
+from gnss_product_management.specifications.parameters.parameter import (
+    Parameter,
 )
-
+from gnss_product_management.specifications.products.catalog import (
+    ProductCatalog,
+)
+from gnss_product_management.specifications.products.product import PathTemplate
+from gnss_product_management.utilities.metadata_funcs import register_computed_fields
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -68,9 +65,7 @@ class TestPathTemplateDerive:
     """Verify PathTemplate template substitution."""
 
     def test_simple_substitution(self) -> None:
-        pp = PathTemplate(
-            pattern="{AAA}0{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*"
-        )
+        pp = PathTemplate(pattern="{AAA}0{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*")
         params = [
             Parameter(name="AAA", value="WUM"),
             Parameter(name="PPP", value="MGX"),
@@ -255,11 +250,7 @@ class TestSearchPlannerFilepaths:
         assert len(remote) > 0
         for q in remote:
             # Directory should have 2025 or GPS week resolved (computed)
-            d = (
-                q.directory.pattern
-                if hasattr(q.directory, "pattern")
-                else str(q.directory)
-            )
+            d = q.directory.pattern if hasattr(q.directory, "pattern") else str(q.directory)
             assert "2025" in d or gpsweek in d  # Either year or GPS week
 
     def test_orbit_filename_has_sp3(self, wuhan_qf, test_date) -> None:
@@ -370,9 +361,7 @@ class TestSearchPlannerFilepaths:
         remote = [q for q in queries if q.server.protocol != "file"]
         dirs = [q.directory.pattern for q in remote]
         # CDDIS uses gnss/products/{GPSWEEK}/ — should have the GPS week resolved
-        assert any(gpsweek in d for d in dirs), (
-            f"No directory with GPS week {gpsweek}: {dirs}"
-        )
+        assert any(gpsweek in d for d in dirs), f"No directory with GPS week {gpsweek}: {dirs}"
 
     def test_filename_is_valid_regex(self, wuhan_qf, test_date) -> None:
         """Generated filename patterns should be valid regex (for WormHole matching)."""

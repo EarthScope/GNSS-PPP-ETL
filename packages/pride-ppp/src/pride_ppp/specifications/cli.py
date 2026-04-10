@@ -6,7 +6,6 @@ Builds the ``pdp3`` command line from processing parameters.
 
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -52,7 +51,9 @@ class PrideCLIConfig(BaseModel):
     Attributes
     ----------
     sample_frequency : float
-        Processing sample frequency in Hz.
+        Processing sample rate passed to pdp3 via the ``-i`` flag, in
+        samples per second (Hz).  A value of ``1`` means 1 Hz (one epoch
+        per second).  Default: ``1``.
     system : str
         Constellation string, e.g. ``"GREC23J"``.
     frequency : list
@@ -82,11 +83,11 @@ class PrideCLIConfig(BaseModel):
     frequency: list = ["G12", "R12", "E15", "C26", "J12"]
     loose_edit: bool = True
     cutoff_elevation: int = 7
-    interval: Optional[float] = None
-    high_ion: Optional[bool] = None
+    interval: float | None = None
+    high_ion: bool | None = None
     tides: str = "SOP"
 
-    pride_configfile_path: Optional[Path] = Field(
+    pride_configfile_path: Path | None = Field(
         None,
         title="Path to Pride Config File",
         description="Path to the Pride config file. If not provided, the default config will be used.",
@@ -113,7 +114,7 @@ class PrideCLIConfig(BaseModel):
                 Tides.print_options()
                 raise ValueError(f"Invalid tide character: {char}")
 
-    def generate_pdp_command(self, site: str, local_file_path: str) -> List[str]:
+    def generate_pdp_command(self, site: str, local_file_path: str) -> list[str]:
         """Generate the ``pdp3`` command-line argument list.
 
         Builds the full argument vector by comparing each config field

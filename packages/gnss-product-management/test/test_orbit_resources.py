@@ -11,17 +11,12 @@ import datetime
 
 import pytest
 
-
 pytestmark = pytest.mark.integration
 
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [
-        q
-        for q in queries
-        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-    ]
+    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):

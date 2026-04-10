@@ -11,10 +11,9 @@ from __future__ import annotations
 import datetime
 import logging
 from pathlib import Path
-from typing import List, Optional
 
 from gnss_product_management.lockfile.manager import LockfileManager
-from gnss_product_management.lockfile.models import DependencyLockFile, LockProduct
+from gnss_product_management.lockfile.models import LockProduct
 from gnss_product_management.lockfile.operations import get_package_version
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
@@ -40,7 +39,7 @@ class LockfileWriter:
         resolution: DependencyResolution,
         date: datetime.datetime,
         *,
-        version: Optional[str] = None,
+        version: str | None = None,
     ) -> Path:
         """Persist *resolution* as a lockfile.
 
@@ -52,7 +51,7 @@ class LockfileWriter:
         Returns:
             Path to the written lockfile.
         """
-        products: List[LockProduct] = []
+        products: list[LockProduct] = []
         for dep in resolution.fulfilled:
             products.append(
                 LockProduct(

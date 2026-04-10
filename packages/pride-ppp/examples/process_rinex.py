@@ -11,7 +11,8 @@ Prerequisites:
 """
 
 from pathlib import Path
-from pride_ppp import PrideProcessor, PrideCLIConfig
+
+from pride_ppp import PrideCLIConfig, PrideProcessor
 
 # --- 1. Configure the processor -----------------------------------------
 # pride_dir:  local product storage (orbits, clocks, etc.)

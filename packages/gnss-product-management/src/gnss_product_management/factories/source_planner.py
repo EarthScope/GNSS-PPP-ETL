@@ -5,7 +5,7 @@ SourcePlanner — common interface for local and remote search planners.
 
 from __future__ import annotations
 
-from typing import List, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from gnss_product_management.specifications.products.product import Product
 from gnss_product_management.specifications.remote.resource import SearchTarget
@@ -24,13 +24,11 @@ class SourcePlanner(Protocol):
     """
 
     @property
-    def resource_ids(self) -> List[str]:
+    def resource_ids(self) -> list[str]:
         """Return identifiers for all registered resources."""
         ...
 
-    def source_product(
-        self, product: Product, resource_id: str, **args
-    ) -> List[SearchTarget]:
+    def source_product(self, product: Product, resource_id: str, **args) -> list[SearchTarget]:
         """Resolve *product* against the resource identified by *resource_id*.
 
         Args:

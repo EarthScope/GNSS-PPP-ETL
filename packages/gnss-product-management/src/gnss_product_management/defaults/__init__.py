@@ -12,15 +12,15 @@ importing these defaults.
 """
 
 from pathlib import Path
+
 from gnss_management_specs.configs import (
-    META_SPEC_YAML,
-    FORMAT_SPEC_YAML,
-    PRODUCT_SPEC_YAML,
-    LOCAL_SPEC_DIR,
     CENTERS_RESOURCE_DIR,
+    FORMAT_SPEC_YAML,
+    LOCAL_SPEC_DIR,
+    META_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
 )
-from gnss_product_management.environments import ProductRegistry
-from gnss_product_management.environments import WorkSpace
+from gnss_product_management.environments import ProductRegistry, WorkSpace
 
 # Pre-built environment with all bundled parameter, format, product, and center specs.
 DefaultProductEnvironment = ProductRegistry()

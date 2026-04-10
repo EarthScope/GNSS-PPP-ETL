@@ -17,12 +17,10 @@ import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from pathlib import Path
-from typing import List, Optional, Tuple
 
+from gnss_product_management.client.product_query import ProductQuery
 from gnss_product_management.environments import ProductRegistry, WorkSpace
 from gnss_product_management.factories.models import FoundResource
-from gnss_product_management.client.product_query import ProductQuery
 from gnss_product_management.factories.pipelines.download import DownloadPipeline
 from gnss_product_management.factories.pipelines.lockfile_writer import LockfileWriter
 from gnss_product_management.factories.remote_transport import WormHole
@@ -67,13 +65,11 @@ class ResolvePipeline:
         workspace: WorkSpace,
         *,
         max_connections: int = 4,
-        transport: Optional[WormHole] = None,
+        transport: WormHole | None = None,
     ) -> None:
         self._env = env
         self._workspace = workspace
-        transport = transport or WormHole(
-            max_connections=max_connections, product_registry=env
-        )
+        transport = transport or WormHole(max_connections=max_connections, product_registry=env)
         planner = SearchPlanner(product_registry=env, workspace=workspace)
         self._query = ProductQuery(wormhole=transport, search_planner=planner)
         self._downloader = DownloadPipeline(
@@ -89,9 +85,9 @@ class ResolvePipeline:
         date: datetime.datetime,
         *,
         sink_id: str = "local_config",
-        centers: Optional[List[str]] = None,
+        centers: list[str] | None = None,
         download: bool = True,
-    ) -> Tuple[DependencyResolution, Optional[AnyPath]]:
+    ) -> tuple[DependencyResolution, AnyPath | None]:
         """Resolve all dependencies in *spec* for *date*.
 
         Args:
@@ -142,7 +138,7 @@ class ResolvePipeline:
 
         resolution = DependencyResolution(spec_name=spec.name, resolved=resolved)
 
-        lf_path: Optional[AnyPath] = None
+        lf_path: AnyPath | None = None
         if resolution.fulfilled:
             writer = LockfileWriter(lockfile_dir, package=spec.package)
             lf_path = writer.write(resolution, date)
@@ -158,8 +154,8 @@ class ResolvePipeline:
         *,
         date: datetime.datetime,
         sink_id: str,
-        preferences: List[SearchPreference],
-        centers: Optional[List[str]],
+        preferences: list[SearchPreference],
+        centers: list[str] | None,
         download: bool,
     ) -> ResolvedDependency:
         """Resolve a single dependency.
@@ -186,18 +182,14 @@ class ResolvePipeline:
             if centers:
                 q = q.sources(*centers)
             candidates = q.search()
-            found: Optional[FoundResource] = candidates[0] if candidates else None
+            found: FoundResource | None = candidates[0] if candidates else None
         except Exception as exc:
             logger.debug("No candidates for %s: %s", dep.spec, exc)
-            return ResolvedDependency(
-                spec=dep.spec, required=dep.required, status="missing"
-            )
+            return ResolvedDependency(spec=dep.spec, required=dep.required, status="missing")
 
         if found is None:
             logger.warning("No search results for dependency %s", dep.spec)
-            return ResolvedDependency(
-                spec=dep.spec, required=dep.required, status="missing"
-            )
+            return ResolvedDependency(spec=dep.spec, required=dep.required, status="missing")
 
         if found.is_local:
             return ResolvedDependency(
@@ -219,9 +211,7 @@ class ResolvePipeline:
         path = self._downloader.run(found, date, sink_id=sink_id)
         if path is None:
             logger.warning("Download failed for dependency %s", dep.spec)
-            return ResolvedDependency(
-                spec=dep.spec, required=dep.required, status="missing"
-            )
+            return ResolvedDependency(spec=dep.spec, required=dep.required, status="missing")
 
         logger.info("Downloaded %s → %s", dep.spec, path)
         return ResolvedDependency(
@@ -251,28 +241,23 @@ class ResolvePipeline:
             A :class:`DependencyResolution` with one entry per dependency.
         """
         locked = {lp.name: lp for lp in existing.products}
-        resolved: List[ResolvedDependency] = []
+        resolved: list[ResolvedDependency] = []
         for dep in spec.dependencies:
             lp = locked.get(dep.spec)
             if lp is None:
                 resolved.append(
-                    ResolvedDependency(
-                        spec=dep.spec, required=dep.required, status="missing"
-                    )
+                    ResolvedDependency(spec=dep.spec, required=dep.required, status="missing")
                 )
                 continue
             sink_path = as_path(lp.sink) if lp.sink else None
             if sink_path is None or not sink_path.exists():
                 logger.warning(
-                    "Lockfile entry for %s points to missing file %s — "
-                    "will re-resolve on next run",
+                    "Lockfile entry for %s points to missing file %s — will re-resolve on next run",
                     dep.spec,
                     lp.sink,
                 )
                 resolved.append(
-                    ResolvedDependency(
-                        spec=dep.spec, required=dep.required, status="missing"
-                    )
+                    ResolvedDependency(spec=dep.spec, required=dep.required, status="missing")
                 )
                 continue
             resolved.append(

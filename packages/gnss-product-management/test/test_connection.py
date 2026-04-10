@@ -11,9 +11,7 @@ These tests hit real FTP servers and are marked ``integration``.
 from __future__ import annotations
 
 import pytest
-
-from gnss_product_management.server.ftp import ftp_can_connect, _ftp_connect
-
+from gnss_product_management.server.ftp import _ftp_connect, ftp_can_connect
 
 # ---------------------------------------------------------------------------
 # Integration: reach real servers
@@ -31,12 +29,7 @@ class TestFtpCanConnect:
         assert ftp_can_connect("ftp://ftp.aiub.unibe.ch", timeout=15) is True
 
     def test_cddis_ftps_reachable(self) -> None:
-        assert (
-            ftp_can_connect(
-                "ftps://gdc.cddis.eosdis.nasa.gov", timeout=15, use_tls=True
-            )
-            is True
-        )
+        assert ftp_can_connect("ftps://gdc.cddis.eosdis.nasa.gov", timeout=15, use_tls=True) is True
 
     def test_hostname_prefix_stripped(self) -> None:
         """ftp:// and ftps:// prefixes must be stripped before connecting."""
@@ -62,9 +55,7 @@ class TestFtpConnectContextManager:
             assert isinstance(response, str)
 
     def test_tls_connection(self) -> None:
-        with _ftp_connect(
-            "ftps://gdc.cddis.eosdis.nasa.gov", timeout=15, use_tls=True
-        ) as ftp:
+        with _ftp_connect("ftps://gdc.cddis.eosdis.nasa.gov", timeout=15, use_tls=True) as ftp:
             response = ftp.pwd()
             assert isinstance(response, str)
 

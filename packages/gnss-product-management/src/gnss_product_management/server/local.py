@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ class LocalAdapter:
         """Return ``True`` if *hostname* is an existing local directory."""
         return Path(hostname).exists()
 
-    def list_directory(self, hostname: str, directory: str) -> List[str]:
+    def list_directory(self, hostname: str, directory: str) -> list[str]:
         """List filenames in a local directory."""
         d = Path(hostname) / directory
         if not d.exists():
@@ -33,6 +32,6 @@ class LocalAdapter:
 
     def download_file(
         self, hostname: str, directory: str, filename: str, dest_path: Path
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """No-op — local files do not require downloading."""
         return None

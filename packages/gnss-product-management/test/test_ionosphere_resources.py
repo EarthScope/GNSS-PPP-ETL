@@ -9,17 +9,12 @@ from __future__ import annotations
 
 import pytest
 
-
 pytestmark = pytest.mark.integration
 
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [
-        q
-        for q in queries
-        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-    ]
+    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -117,16 +112,11 @@ class TestCODGIMProbe:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")
         _assert_found(results, "IONEX")
 
-    def test_ionex_filenames_contain_gim_or_inx(
-        self, cod_qf, fetcher, test_date
-    ) -> None:
+    def test_ionex_filenames_contain_gim_or_inx(self, cod_qf, fetcher, test_date) -> None:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")
         found = _assert_found(results, "IONEX")
         for r in found:
-            assert any(
-                "GIM" in f.upper() or "INX" in f.upper()
-                for f in [r.product.filename.value]
-            )
+            assert any("GIM" in f.upper() or "INX" in f.upper() for f in [r.product.filename.value])
 
     def test_ionex_filenames_contain_cod(self, cod_qf, fetcher, test_date) -> None:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")

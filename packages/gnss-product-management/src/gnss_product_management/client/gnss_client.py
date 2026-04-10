@@ -6,27 +6,26 @@ GNSSClient — high-level entry point for searching and downloading GNSS product
 from __future__ import annotations
 
 import datetime
-from itertools import groupby
 import logging
+from itertools import groupby
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
+from gnss_management_specs.configs import LOCAL_SPEC_DIR
+from gnss_product_management.client.product_query import ProductQuery
+from gnss_product_management.defaults import DefaultProductEnvironment
+from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.pipelines.download import DownloadPipeline
 from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
-from gnss_management_specs.configs import LOCAL_SPEC_DIR
-from gnss_product_management.defaults import DefaultProductEnvironment
-from gnss_product_management.environments import WorkSpace
-from gnss_product_management.client.product_query import ProductQuery
-from gnss_product_management.factories.search_planner import SearchPlanner
 from gnss_product_management.factories.remote_transport import WormHole
-from gnss_product_management.utilities.paths import AnyPath
-
+from gnss_product_management.factories.search_planner import SearchPlanner
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
     SearchPreference,
 )
+from gnss_product_management.utilities.paths import AnyPath
 
 if TYPE_CHECKING:
     from gnss_product_management.environments import ProductRegistry
@@ -65,7 +64,7 @@ class GNSSClient:
 
     def __init__(
         self,
-        product_registry: "ProductRegistry",
+        product_registry: ProductRegistry,
         workspace: WorkSpace,
         *,
         max_connections: int = 4,
@@ -76,12 +75,8 @@ class GNSSClient:
         self._transport = WormHole(
             max_connections=max_connections, product_registry=product_registry
         )
-        self._planner = SearchPlanner(
-            product_registry=product_registry, workspace=workspace
-        )
-        self._query = ProductQuery(
-            wormhole=self._transport, search_planner=self._planner
-        )
+        self._planner = SearchPlanner(product_registry=product_registry, workspace=workspace)
+        self._query = ProductQuery(wormhole=self._transport, search_planner=self._planner)
         self._downloader = DownloadPipeline(
             product_registry,
             workspace,
@@ -91,11 +86,11 @@ class GNSSClient:
     @classmethod
     def from_defaults(
         cls,
-        base_dir: Optional[Union[Path, str]] = None,
+        base_dir: Path | str | None = None,
         *,
         local_alias: str = "local",
         max_connections: int = 4,
-    ) -> "GNSSClient":
+    ) -> GNSSClient:
         """Construct a client from the bundled default specs.
 
         Loads the pre-built :data:`DefaultProductEnvironment` and creates a
@@ -137,24 +132,21 @@ class GNSSClient:
         self._product_registry.display()
         self._workspace.display()
 
-    def query(self) -> "ProductQuery":
-        """Return a fluent :class:`ProductQuery` builder for *product*.
+    def query(self) -> ProductQuery:
+        """Return a fluent :class:`ProductQuery` builder.
 
         This is the preferred entry point for building searches.  Chain
         calls to narrow the query, then call :meth:`ProductQuery.search`
         or :meth:`ProductQuery.download` to execute::
 
             results = (
-                client.query("ORBIT")
+                client.query()
+                .for_product("ORBIT")
                 .on(date)
                 .where(TTT="FIN")
                 .sources("COD", "ESA")
                 .search()
             )
-
-        Args:
-            product: Product name (e.g. ``"ORBIT"``) or dict with ``name``,
-                and optionally ``version`` / ``variant``.
 
         Returns:
             A :class:`ProductQuery` bound to this client.
@@ -167,13 +159,13 @@ class GNSSClient:
     def search(
         self,
         date: datetime.datetime,
-        product: Union[str, dict],
+        product: str | dict,
         *,
-        parameters: Optional[dict] = None,
-        preferences: Optional[List[SearchPreference]] = None,
-        local_resources: Optional[List[str]] = None,
-        remote_resources: Optional[List[str]] = None,
-    ) -> List[FoundResource]:
+        parameters: dict | None = None,
+        preferences: list[SearchPreference] | None = None,
+        local_resources: list[str] | None = None,
+        remote_resources: list[str] | None = None,
+    ) -> list[FoundResource]:
         """Search for products matching the given criteria.
 
         Delegates to :class:`ProductQuery` internally: builds queries,
@@ -196,9 +188,7 @@ class GNSSClient:
             Local/file results precede remote ones; within each protocol
             tier results are ordered by *preferences*.
         """
-        product_name: str = (
-            product.get("name", "") if isinstance(product, dict) else product
-        )
+        product_name: str = product.get("name", "") if isinstance(product, dict) else product
         q = self._query.for_product(product_name).on(date)
         if parameters:
             q = q.where(**parameters)
@@ -212,10 +202,10 @@ class GNSSClient:
 
     def download(
         self,
-        results: List[FoundResource],
+        results: list[FoundResource],
         *,
         sink_id: str,
-    ) -> List[Path]:
+    ) -> list[Path]:
         """Download product candidates to the local sink.
 
         Pass a pre-sliced list to limit how many files are fetched, e.g.
@@ -245,7 +235,7 @@ class GNSSClient:
             )
         }
 
-        paths: List[Path] = []
+        paths: list[Path] = []
         for date, date_results in by_date.items():
             downloaded = self._downloader.run(date_results, date, sink_id=sink_id)
 
@@ -258,11 +248,11 @@ class GNSSClient:
 
     def resolve_dependencies(
         self,
-        dep_spec: Union[DependencySpec, Path, str],
+        dep_spec: DependencySpec | Path | str,
         date: datetime.datetime,
         *,
         sink_id: str,
-    ) -> Tuple[DependencyResolution, Optional[AnyPath]]:
+    ) -> tuple[DependencyResolution, AnyPath | None]:
         """Resolve all dependencies in a spec for the given date.
 
         Accepts a :class:`DependencySpec` object or a path to a YAML file.

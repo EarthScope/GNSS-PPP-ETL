@@ -4,30 +4,23 @@ Core product models — PathTemplate, Product, and catalog hierarchies.
 """
 
 import re
-from typing import Dict, Generic, List, Optional, TypeVar
-
-from pydantic import BaseModel, Field
+from typing import Generic, TypeVar
 
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
     ParameterCatalog,
 )
+from pydantic import BaseModel, Field
 
 
 class PathTemplate(BaseModel):
     """A template pattern with ``{NAME}``-style placeholders, resolved via :meth:`derive`."""
 
-    pattern: str = Field(
-        description="A template pattern with {NAME}-style placeholders."
-    )
-    value: Optional[str] = Field(
-        None, description="The resolved value after derivation."
-    )
-    description: Optional[str] = Field(
-        None, description="A description of the path template."
-    )
+    pattern: str = Field(description="A template pattern with {NAME}-style placeholders.")
+    value: str | None = Field(None, description="The resolved value after derivation.")
+    description: str | None = Field(None, description="A description of the path template.")
 
-    def derive(self, parameters: List[Parameter]) -> None:
+    def derive(self, parameters: list[Parameter]) -> None:
         """Replace ``{PARAM}`` placeholders in *pattern* with parameter values.
 
         Args:
@@ -39,9 +32,7 @@ class PathTemplate(BaseModel):
         for param in parameters:
             if f"{{{param.name}}}" in self.pattern:
                 if param.value is not None:
-                    self.pattern = self.pattern.replace(
-                        f"{{{param.name}}}", param.value
-                    )
+                    self.pattern = self.pattern.replace(f"{{{param.name}}}", param.value)
 
         return None
 
@@ -66,11 +57,7 @@ class PathTemplate(BaseModel):
         i = 0
         while i < len(tokens):
             # re.split with 2 groups produces [literal, full_match, group_name, ...]
-            if (
-                i + 2 < len(tokens)
-                and tokens[i + 1] is not None
-                and tokens[i + 1].startswith("{")
-            ):
+            if i + 2 < len(tokens) and tokens[i + 1] is not None and tokens[i + 1].startswith("{"):
                 # Literal segment before this placeholder
                 literal = tokens[i]
                 if literal:
@@ -97,8 +84,8 @@ class PathTemplate(BaseModel):
 def infer_from_regex(
     regex: str,
     filename: str,
-    parameters: List[Parameter],
-) -> Optional[List[Parameter]]:
+    parameters: list[Parameter],
+) -> list[Parameter] | None:
     """Infer parameter values from *filename* using a pre-built *regex*.
 
     After ``derive()`` and the query-factory's "fill in patterns" step,
@@ -149,13 +136,11 @@ class Product(BaseModel):
     """A resolved product with its parameters and file/directory templates."""
 
     name: str = Field(..., description="The name of the product.")
-    parameters: List[Parameter] = Field(
-        ..., description="A list of parameters for the product."
-    )
-    directory: Optional[PathTemplate] = Field(
+    parameters: list[Parameter] = Field(..., description="A list of parameters for the product.")
+    directory: PathTemplate | None = Field(
         default=None, description="The directory where the product is located."
     )
-    filename: Optional[PathTemplate] = Field(
+    filename: PathTemplate | None = Field(
         default=None, description="The filename pattern for the product."
     )
 

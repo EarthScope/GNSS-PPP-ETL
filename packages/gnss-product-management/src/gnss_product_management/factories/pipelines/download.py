@@ -13,10 +13,8 @@ from __future__ import annotations
 import datetime
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
 
-from gnss_product_management.environments import ProductRegistry
-from gnss_product_management.environments import WorkSpace
+from gnss_product_management.environments import ProductRegistry, WorkSpace
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.factories.search_planner import SearchPlanner
@@ -50,7 +48,7 @@ class DownloadPipeline:
         env: ProductRegistry,
         workspace: WorkSpace,
         *,
-        transport: Optional[WormHole] = None,
+        transport: WormHole | None = None,
         max_connections: int = 4,
     ) -> None:
         self._env = env
@@ -61,11 +59,11 @@ class DownloadPipeline:
 
     def run(
         self,
-        resources: Union[FoundResource, List[FoundResource]],
+        resources: FoundResource | list[FoundResource],
         date: datetime.datetime,
         *,
         sink_id: str = "local_config",
-    ) -> Union[Optional[Path], List[Optional[Path]]]:
+    ) -> Path | None | list[Path | None]:
         """Download found resources to the workspace.
 
         Args:
@@ -81,7 +79,7 @@ class DownloadPipeline:
         if single:
             resources = [resources]
 
-        paths: List[Optional[Path]] = []
+        paths: list[Path | None] = []
         for r in resources:
             path = self._download_one(r, date, sink_id)
             paths.append(path)
@@ -95,7 +93,7 @@ class DownloadPipeline:
         resource: FoundResource,
         date: datetime.datetime,
         sink_id: str,
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """Download a single resource and write its sidecar lockfile.
 
         Args:
@@ -111,9 +109,7 @@ class DownloadPipeline:
             if local_path and local_path.exists():
                 logger.debug("Already local: %s", local_path)
                 if get_lock_product(local_path) is None:
-                    lock = build_lock_product(
-                        sink=local_path, url="", name=resource.product
-                    )
+                    lock = build_lock_product(sink=local_path, url="", name=resource.product)
                     write_lock_product(lock)
                 return local_path
 
@@ -130,9 +126,7 @@ class DownloadPipeline:
         )
         if path is not None:
             if get_lock_product(path) is None:
-                lock = build_lock_product(
-                    sink=path, url=resource.uri, name=resource.product
-                )
+                lock = build_lock_product(sink=path, url=resource.uri, name=resource.product)
                 write_lock_product(lock)
             logger.info("Downloaded %s → %s", resource.product, path)
         return path

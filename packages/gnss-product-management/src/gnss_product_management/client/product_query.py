@@ -4,20 +4,21 @@ ProductQuery — fluent builder for GNSS product search and download.
 """
 
 from __future__ import annotations
+
 import copy
 import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, cast
+from typing import cast
 
 from gnss_product_management.factories.models import FoundResource
-from gnss_product_management.factories.search_planner import SearchPlanner
-from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.factories.ranking import (
     sort_by_preferences,
     sort_by_protocol,
 )
+from gnss_product_management.factories.remote_transport import WormHole
+from gnss_product_management.factories.search_planner import SearchPlanner
 from gnss_product_management.specifications.dependencies.dependencies import (
     SearchPreference,
 )
@@ -67,16 +68,16 @@ class ProductQuery:
     ) -> None:
         self._wormhole = wormhole
         self._search_planner = search_planner
-        self._product: Optional[dict] = None
-        self._date: Optional[datetime.datetime] = None
-        self._date_range: Optional[
-            Tuple[datetime.datetime, datetime.datetime, datetime.timedelta]
-        ] = None
+        self._product: dict | None = None
+        self._date: datetime.datetime | None = None
+        self._date_range: tuple[datetime.datetime, datetime.datetime, datetime.timedelta] | None = (
+            None
+        )
         self._parameters: dict = {}
-        self._source_ids: Optional[tuple] = None  # None = all sources
-        self._preferences: List[SearchPreference] = []
+        self._source_ids: tuple | None = None  # None = all sources
+        self._preferences: list[SearchPreference] = []
 
-    def for_product(self, product: Union[str, dict]) -> "ProductQuery":
+    def for_product(self, product: str | dict) -> ProductQuery:
         """Set the target product for the query.
 
         Args:
@@ -90,7 +91,7 @@ class ProductQuery:
         clone._product = {"name": product} if isinstance(product, str) else product
         return clone
 
-    def on(self, date: datetime.datetime) -> "ProductQuery":
+    def on(self, date: datetime.datetime) -> ProductQuery:
         """Set the target date for the query.
 
         Args:
@@ -109,7 +110,7 @@ class ProductQuery:
         end: datetime.datetime,
         *,
         step: datetime.timedelta = datetime.timedelta(days=1),
-    ) -> "ProductQuery":
+    ) -> ProductQuery:
         """Set a date range for the query.
 
         Searches are run for every date from *start* to *end* (inclusive)
@@ -128,15 +129,13 @@ class ProductQuery:
             ValueError: If *start* is after *end*.
         """
         if start > end:
-            raise ValueError(
-                f"start ({start.date()}) must not be after end ({end.date()})"
-            )
+            raise ValueError(f"start ({start.date()}) must not be after end ({end.date()})")
         clone = copy.copy(self)
         clone._date = None
         clone._date_range = (start, end, step)
         return clone
 
-    def where(self, **parameters) -> "ProductQuery":
+    def where(self, **parameters) -> ProductQuery:
         """Constrain product parameters.
 
         Keyword arguments map parameter names to required values, e.g.
@@ -152,7 +151,7 @@ class ProductQuery:
         clone._parameters.update(parameters)
         return clone
 
-    def sources(self, *ids: str) -> "ProductQuery":
+    def sources(self, *ids: str) -> ProductQuery:
         """Restrict the search to specific local or remote sources.
 
         Pass any mix of registered local aliases and remote center IDs.
@@ -181,7 +180,7 @@ class ProductQuery:
         clone._source_ids = ids
         return clone
 
-    def prefer(self, **kwargs) -> "ProductQuery":
+    def prefer(self, **kwargs) -> ProductQuery:
         """Define a preference cascade for ranking results.
 
         Keyword arguments map parameter names to an ordered list of
@@ -201,12 +200,10 @@ class ProductQuery:
         for param, sorting in kwargs.items():
             if isinstance(sorting, str):
                 sorting = [sorting]
-            clone._preferences.append(
-                SearchPreference(parameter=param, sorting=list(sorting))
-            )
+            clone._preferences.append(SearchPreference(parameter=param, sorting=list(sorting)))
         return clone
 
-    def _ranked_targets(self) -> List[SearchTarget]:
+    def _ranked_targets(self) -> list[SearchTarget]:
         """Return sorted :class:`SearchTarget` candidates before deduplication.
 
         Builds queries via :class:`SearchPlanner`, expands them through
@@ -252,7 +249,7 @@ class ProductQuery:
             expanded = sort_by_preferences(expanded, self._preferences)
         return sort_by_protocol(expanded)
 
-    def _search_range(self) -> List[FoundResource]:
+    def _search_range(self) -> list[FoundResource]:
         """Execute a search for every date in the configured range.
 
         Runs one :meth:`search` call per date in parallel using a
@@ -265,7 +262,7 @@ class ProductQuery:
         assert self._date_range is not None
         start, end, step = self._date_range
 
-        dates: List[datetime.datetime] = []
+        dates: list[datetime.datetime] = []
         current = start
         while current <= end:
             dates.append(current)
@@ -278,11 +275,9 @@ class ProductQuery:
             end.date(),
         )
 
-        all_results: List[FoundResource] = []
+        all_results: list[FoundResource] = []
         with ThreadPoolExecutor(max_workers=min(len(dates), 8)) as executor:
-            future_to_date = {
-                executor.submit(self.on(date).search): date for date in dates
-            }
+            future_to_date = {executor.submit(self.on(date).search): date for date in dates}
             for future in as_completed(future_to_date):
                 date = future_to_date[future]
                 try:
@@ -292,7 +287,7 @@ class ProductQuery:
 
         return all_results
 
-    def search(self) -> List[FoundResource]:
+    def search(self) -> list[FoundResource]:
         """Execute the query and return ranked results.
 
         Returns:
@@ -324,20 +319,16 @@ class ProductQuery:
 
         ranked = self._ranked_targets()
 
-        results: List[FoundResource] = []
-        seen: Dict[Tuple[str, str], bool] = {}
+        results: list[FoundResource] = []
+        seen: dict[tuple[str, str], bool] = {}
         for rq in ranked:
             hostname = rq.server.hostname
-            filename: str = (
-                (rq.product.filename.value or "") if rq.product.filename else ""
-            )  # type: ignore[union-attr]
-            key: Tuple[str, str] = (hostname, filename)
+            filename: str = (rq.product.filename.value or "") if rq.product.filename else ""  # type: ignore[union-attr]
+            key: tuple[str, str] = (hostname, filename)
             if key in seen:
                 continue
             seen[key] = True
-            params = {
-                p.name: p.value for p in rq.product.parameters if p.value is not None
-            }
+            params = {p.name: p.value for p in rq.product.parameters if p.value is not None}
             protocol = (rq.server.protocol or "").upper()
             is_local = protocol in ("FILE", "LOCAL")
             if is_local:
@@ -348,7 +339,9 @@ class ProductQuery:
                 )
             else:
                 proto = (rq.server.protocol or "ftp").lower()
-                uri = f"{proto}://{hostname}/{rq.directory.value or rq.directory.pattern}/{filename}"  # type: ignore[union-attr]
+                uri = (
+                    f"{proto}://{hostname}/{rq.directory.value or rq.directory.pattern}/{filename}"  # type: ignore[union-attr]
+                )
             r = FoundResource(
                 product=rq.product.name,
                 source="local" if is_local else "remote",
@@ -365,8 +358,8 @@ class ProductQuery:
         self,
         sink_id: str,
         *,
-        limit: Optional[int] = None,
-    ) -> List[Path]:
+        limit: int | None = None,
+    ) -> list[Path]:
         """Search and download results in one call.
 
         Args:
@@ -386,7 +379,7 @@ class ProductQuery:
             results = results[:limit]
 
         assert self._date is not None  # guaranteed by search() above
-        paths: List[Path] = []
+        paths: list[Path] = []
         for r in results:
             if r._query is None:
                 logger.warning("FoundResource has no internal query; skipping.")
@@ -405,7 +398,7 @@ class ProductQuery:
 
     # -- Internal --------------------------------------------------
 
-    def _resolve_sources(self) -> Tuple[Optional[List[str]], Optional[List[str]]]:
+    def _resolve_sources(self) -> tuple[list[str] | None, list[str] | None]:
         """Split source IDs into (local_ids, remote_ids) for SearchPlanner.
 
         Returns:
@@ -415,8 +408,8 @@ class ProductQuery:
         if self._source_ids is None:
             return None, None
 
-        local_ids: List[str] = []
-        remote_ids: List[str] = []
+        local_ids: list[str] = []
+        remote_ids: list[str] = []
 
         for sid in self._source_ids:
             try:

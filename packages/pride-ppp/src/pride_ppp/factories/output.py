@@ -9,7 +9,6 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Union
 
 import pandas as pd
 from pydantic import ValidationError
@@ -37,7 +36,7 @@ def get_wrms_from_res(res_path):
     pd.DataFrame
         A DataFrame with the WRMS data.
     """
-    with open(res_path, "r") as res_file:
+    with open(res_path) as res_file:
         timestamps = []
         data = []
         wrms = 0
@@ -147,24 +146,30 @@ def plot_kin_results_wrms(kin_df, title=None, save_as=None):
 # ---------------------------------------------------------------------------
 
 
-def kin_to_kin_position_df(source: str | Path) -> Union[pd.DataFrame, None]:
-    """Create a KinPositionDataFrame from a kin file from PRIDE-PPP.
+def kin_to_kin_position_df(source: str | Path) -> pd.DataFrame | None:
+    """Parse a pdp3 ``.kin`` file into a DataFrame with optional WRMS residuals.
 
-    This includes WRMS residuals.
+    Reads the kinematic position records after the ``END OF HEADER`` marker
+    and converts them to a DataFrame indexed by UTC timestamp.  Attempts to
+    merge WRMS residuals from a co-located ``.res`` file (same directory,
+    stem derived from the ``.kin`` filename); the ``wrms`` column will be
+    ``None`` if the ``.res`` file is missing or cannot be parsed.
 
     Parameters
     ----------
     source : str | Path
-        The path to the kin file.
+        Path to the pdp3 ``.kin`` output file.
 
     Returns
     -------
     pd.DataFrame | None
-        DataFrame with kinematic data and residuals, or None if the file
-        cannot be parsed.
+        DataFrame with columns including ``time``, ``latitude``,
+        ``longitude``, ``height``, ``pdop``, and ``wrms``, indexed by
+        record number.  Returns ``None`` if the file has no header or
+        contains no valid data records.
     """
     logger.info(f"Parsing KIN file: {source}")
-    with open(source, "r") as file:
+    with open(source) as file:
         lines = file.readlines()
 
     end_header_index = next(
@@ -180,9 +185,7 @@ def kin_to_kin_position_df(source: str | Path) -> Union[pd.DataFrame, None]:
         split_line = line.strip().split()
         selected_columns = split_line[:9] + [split_line[-1]]
         try:
-            ppp: Union[PridePPP, ValidationError] = PridePPP.from_kin_file(
-                selected_columns
-            )
+            ppp: PridePPP | ValidationError = PridePPP.from_kin_file(selected_columns)
             data.append(ppp)
         except Exception:
             pass
@@ -231,9 +234,7 @@ def kin_to_kin_position_df(source: str | Path) -> Union[pd.DataFrame, None]:
         logger.error(f"Error adding residuals: {e}")
         dataframe["wrms"] = None
 
-    dataframe = dataframe.drop(
-        columns=["modified_julian_date", "second_of_day"], errors="ignore"
-    )
+    dataframe = dataframe.drop(columns=["modified_julian_date", "second_of_day"], errors="ignore")
     dataframe.reset_index(inplace=True)
     logger.info(f"GNSS Parser: {dataframe.shape[0]} shots from FILE {str(source)}")
     return dataframe
@@ -254,10 +255,12 @@ def read_kin_data(kin_path):
     Returns
     -------
     pd.DataFrame
-        Columns: Mjd, Sod, *, X, Y, Z, Latitude, Longitude, Height,
-        Nsat, G, R, E, C2, C3, J, PDOP.  Indexed by datetime.
+        Fixed-width columns: Mjd, Sod, *, X, Y, Z, Latitude, Longitude,
+        Height, Nsat, G (GPS sats), R (GLONASS), E (Galileo), C2 (BDS-2),
+        C3 (BDS-3), J (QZSS), PDOP.  Indexed by UTC datetime derived from
+        MJD + seconds-of-day.
     """
-    with open(kin_path, "r") as kin_file:
+    with open(kin_path) as kin_file:
         for i, line in enumerate(kin_file):
             if "END OF HEADER" in line:
                 end_of_header = i + 1
@@ -316,7 +319,7 @@ def read_kin_data(kin_path):
     return kin_df
 
 
-def validate_kin_file(source: Union[str, Path]) -> bool:
+def validate_kin_file(source: str | Path) -> bool:
     """Validate a kin file.
 
     This is done by checking if it can be parsed into a DataFrame and

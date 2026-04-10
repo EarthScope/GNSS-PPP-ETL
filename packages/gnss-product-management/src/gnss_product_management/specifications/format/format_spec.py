@@ -4,22 +4,20 @@ Format-variant specifications and FormatCatalog â€” resolves FormatVariantSpec â
 """
 
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
-from pydantic import BaseModel, Field
-
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
     ParameterCatalog,
 )
 from gnss_product_management.specifications.products.product import (
-    Product,
     PathTemplate,
+    Product,
     VariantCatalog,
     VersionCatalog,
 )
+from pydantic import BaseModel, Field
 
 
 class FormatVariantSpec(BaseModel):
@@ -32,10 +30,10 @@ class FormatVariantSpec(BaseModel):
     """
 
     name: str
-    version: Optional[str] = None
-    variant: Optional[str] = None
-    parameters: Optional[List[dict]] = Field(default_factory=list)
-    filename: Optional[str] = None
+    version: str | None = None
+    variant: str | None = None
+    parameters: list[dict] | None = Field(default_factory=list)
+    filename: str | None = None
 
     def materialize(self, parameter_catalog: ParameterCatalog) -> Product:
         """Materialize against a ParameterCatalog to produce a Product.
@@ -88,7 +86,7 @@ class FormatSpecCatalog(BaseModel):
                         - name: PARAM
                       filename: "{PARAM}..."
         """
-        with open(path, "r") as f:
+        with open(path) as f:
             data = yaml.safe_load(f)
 
         result = {}
@@ -168,8 +166,6 @@ class FormatCatalog(Catalog):
                     if name not in merged:
                         merged[name] = VersionCatalog(versions={})
                     if version_name not in merged[name].versions:
-                        merged[name].versions[version_name] = VariantCatalog(
-                            variants={}
-                        )
+                        merged[name].versions[version_name] = VariantCatalog(variants={})
                     merged[name].versions[version_name].variants[variant_name] = product
         return FormatCatalog(formats={k: v.model_dump() for k, v in merged.items()})

@@ -9,10 +9,10 @@ Provides both standalone functions (``ftp_can_connect``, ``ftp_list_directory``,
 
 import logging
 import re
+from collections.abc import Generator
 from contextlib import contextmanager
 from ftplib import FTP, FTP_TLS
 from pathlib import Path
-from typing import Generator, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +59,7 @@ def _ftp_connect(ftpserver: str, timeout: int = 60, use_tls: bool = False):
             continue
 
     if ftp is None:
-        raise ConnectionError(
-            f"All FTP connection attempts failed for {ftpserver}"
-        ) from last_exc
+        raise ConnectionError(f"All FTP connection attempts failed for {ftpserver}") from last_exc
 
     try:
         yield ftp
@@ -132,7 +130,7 @@ def ftp_download_file(
     dest_path: Path,
     timeout: int = 180,
     use_tls: bool = False,
-) -> Optional[Path]:
+) -> Path | None:
     """Download *filename* from *ftpserver*/*directory* to *dest_path*.
 
     Parent directories are created automatically.  Partial downloads are
@@ -207,19 +205,15 @@ class FTPAdapter:
 
     def can_connect(self, hostname: str) -> bool:
         """Test FTP/FTPS connectivity to *hostname*."""
-        return ftp_can_connect(
-            hostname, timeout=min(self._timeout, 10), use_tls=self._use_tls
-        )
+        return ftp_can_connect(hostname, timeout=min(self._timeout, 10), use_tls=self._use_tls)
 
-    def list_directory(self, hostname: str, directory: str) -> List[str]:
+    def list_directory(self, hostname: str, directory: str) -> list[str]:
         """List filenames in a remote FTP directory."""
-        return ftp_list_directory(
-            hostname, directory, timeout=self._timeout, use_tls=self._use_tls
-        )
+        return ftp_list_directory(hostname, directory, timeout=self._timeout, use_tls=self._use_tls)
 
     def download_file(
         self, hostname: str, directory: str, filename: str, dest_path: Path
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """Download a file from an FTP server to *dest_path*."""
         return ftp_download_file(
             hostname,

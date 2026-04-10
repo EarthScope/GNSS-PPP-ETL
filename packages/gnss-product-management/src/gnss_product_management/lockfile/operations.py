@@ -20,10 +20,9 @@ URIs / :class:`~cloudpathlib.CloudPath` objects interchangeably via
 
 import datetime
 import enum
-from importlib.metadata import version as _get_package_version
-from pathlib import Path
-from typing import List, Optional, Tuple
 import logging
+from importlib.metadata import version as _get_package_version
+
 from gnss_product_management.lockfile.models import (
     DependencyLockFile,
     LockProduct,
@@ -83,9 +82,7 @@ def validate_lock_product(
             return True
 
     if not sink_path.exists():
-        logger.warning(
-            f"Lock product validation failed: sink file does not exist: {sink_path}"
-        )
+        logger.warning(f"Lock product validation failed: sink file does not exist: {sink_path}")
         return False
     if product.hash:
         actual_hash = _hash_file(sink_path)
@@ -110,7 +107,7 @@ def build_lock_product(
     url: str,
     name: str = "",
     description: str = "",
-    alternative_urls: Optional[List[str]] = None,
+    alternative_urls: list[str] | None = None,
 ) -> LockProduct:
     """Build a :class:`LockProduct` from a local or cloud file.
 
@@ -142,9 +139,7 @@ def build_lock_product(
         sink=str(sink_path),
         hash=hash_value,
         size=size,
-        alternatives=[
-            LockProductAlternative(url=alt_url) for alt_url in (alternative_urls or [])
-        ],
+        alternatives=[LockProductAlternative(url=alt_url) for alt_url in (alternative_urls or [])],
     )
 
 
@@ -170,7 +165,7 @@ def get_lock_product_path(sink: AnyPath | str) -> AnyPath:
     return as_path(str(sink_path) + "_lock.json")
 
 
-def get_lock_product(sink: AnyPath | str) -> Optional[LockProduct]:
+def get_lock_product(sink: AnyPath | str) -> LockProduct | None:
     """Read the :class:`LockProduct` sidecar JSON for *sink*.
 
     Args:
@@ -198,9 +193,7 @@ def write_lock_product(lock_product: LockProduct) -> AnyPath:
         Path (local or cloud) to the written sidecar file.
     """
     lock_product_path = get_lock_product_path(lock_product.sink)
-    lock_product_path.write_text(
-        lock_product.model_dump_json(indent=2), encoding="utf-8"
-    )
+    lock_product_path.write_text(lock_product.model_dump_json(indent=2), encoding="utf-8")
     return lock_product_path
 
 
@@ -255,9 +248,7 @@ def get_dependency_lockfile_name(
             f"Invalid date value: {date}. Expected datetime or string in YYYY-MM-DD format."
         ) from e
 
-    return (
-        "_".join([package, task, str(YYYY), str(DOY).zfill(3), version]) + "_lock.json"
-    )
+    return "_".join([package, task, str(YYYY), str(DOY).zfill(3), version]) + "_lock.json"
 
 
 def get_dependency_lockfile(
@@ -266,7 +257,7 @@ def get_dependency_lockfile(
     task: str,
     date: datetime.datetime | str,
     version: str | None = None,
-) -> Tuple[Optional[DependencyLockFile], Optional[AnyPath]]:
+) -> tuple[DependencyLockFile | None, AnyPath | None]:
     """Read a :class:`DependencyLockFile` from *directory*.
 
     Args:

@@ -29,24 +29,24 @@ Enums:
     :class:`HashMismatchMode`
 """
 
+from gnss_product_management.lockfile.manager import LockfileManager
 from gnss_product_management.lockfile.models import (
+    DependencyLockFile,
     LockProduct,
     LockProductAlternative,
-    DependencyLockFile,
 )
 from gnss_product_management.lockfile.operations import (
     HashMismatchMode,
-    validate_lock_product,
     build_lock_product,
-    get_lock_product_path,
-    get_lock_product,
-    write_lock_product,
-    get_dependency_lockfile_name,
     get_dependency_lockfile,
-    write_dependency_lockfile,
+    get_dependency_lockfile_name,
+    get_lock_product,
+    get_lock_product_path,
     get_package_version,
+    validate_lock_product,
+    write_dependency_lockfile,
+    write_lock_product,
 )
-from gnss_product_management.lockfile.manager import LockfileManager
 
 __all__ = [
     # models

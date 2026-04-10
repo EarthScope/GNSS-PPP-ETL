@@ -9,17 +9,12 @@ from __future__ import annotations
 
 import pytest
 
-
 pytestmark = pytest.mark.integration
 
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [
-        q
-        for q in queries
-        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-    ]
+    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -77,7 +72,4 @@ class TestVMFProbe:
         results = _search_remote(vmf_qf, fetcher, test_date, "VMF")
         found = _assert_found(results, "VMF")
         for r in found:
-            assert any(
-                "VMF" in f.upper() or "vmf" in f.lower()
-                for f in [r.product.filename.value]
-            )
+            assert any("VMF" in f.upper() or "vmf" in f.lower() for f in [r.product.filename.value])

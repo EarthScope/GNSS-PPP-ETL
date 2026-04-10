@@ -1,9 +1,9 @@
 """Tests for infer_from_regex — reverse-parsing filenames via FormatRegistry."""
 
-from typing import List
-
 import pytest
 
+# ── Paths ──────────────────────────────────────────────────────────
+from gnss_management_specs.configs import META_SPEC_YAML, PRODUCT_SPEC_YAML
 from gnss_product_management.specifications.format.spec import (
     FormatRegistry,
     FormatSpecCollection,
@@ -16,11 +16,6 @@ from gnss_product_management.specifications.products.product import (
     PathTemplate,
     infer_from_regex,
 )
-
-
-# ── Paths ──────────────────────────────────────────────────────────
-from gnss_management_specs.configs import META_SPEC_YAML, PRODUCT_SPEC_YAML
-
 
 # ── Fixtures ───────────────────────────────────────────────────────
 
@@ -42,7 +37,7 @@ def _build_regex_and_params(
     version: str,
     variant: str,
     **overrides: str,
-) -> tuple[str, List[Parameter]]:
+) -> tuple[str, list[Parameter]]:
     """Build a derived regex and parameter list from a FormatCatalog entry.
 
     Simulates what SearchPlanner does: starts from the template, fills in
@@ -53,7 +48,7 @@ def _build_regex_and_params(
     """
     ver = format_catalog.get_version(format_name, version)
     template = ver.file_templates[variant]
-    params: List[Parameter] = []
+    params: list[Parameter] = []
     for name, field in ver.metadata.items():
         if field is None or not field.pattern:
             continue
@@ -88,9 +83,7 @@ class TestProductDefaultInfer:
             CNT="ORB",
             FMT="SP3",
         )
-        result = infer_from_regex(
-            regex, "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", params
-        )
+        result = infer_from_regex(regex, "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "WUM"
@@ -124,9 +117,7 @@ class TestProductDefaultInfer:
             CNT="CLK",
             FMT="CLK",
         )
-        result = infer_from_regex(
-            regex, "COD0OPSRAP_20251000000_01D_30S_CLK.CLK.gz", params
-        )
+        result = infer_from_regex(regex, "COD0OPSRAP_20251000000_01D_30S_CLK.CLK.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "COD"
@@ -152,9 +143,7 @@ class TestProductDefaultInfer:
             CNT="ORB",
             FMT="SP3",
         )
-        result = infer_from_regex(
-            regex, "IGS0OPSRAP_20251000000_01D_15M_ORB.SP3", params
-        )
+        result = infer_from_regex(regex, "IGS0OPSRAP_20251000000_01D_15M_ORB.SP3", params)
         assert result is not None
         assert next(p for p in result if p.name == "AAA").value == "IGS"
 
@@ -196,9 +185,7 @@ class TestProductDefaultInfer:
             CNT="ABS",
             FMT="BIA",
         )
-        result = infer_from_regex(
-            regex, "WUM0MGXFIN_20240010000_01D_01D_ABS.BIA.gz", params
-        )
+        result = infer_from_regex(regex, "WUM0MGXFIN_20240010000_01D_01D_ABS.BIA.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["CNT"] == "ABS"
@@ -222,9 +209,7 @@ class TestProductDefaultInfer:
             CNT="ERP",
             FMT="ERP",
         )
-        result = infer_from_regex(
-            regex, "GFZ0MGXRAP_20251000000_01D_01D_ERP.ERP.gz", params
-        )
+        result = infer_from_regex(regex, "GFZ0MGXRAP_20251000000_01D_01D_ERP.ERP.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "GFZ"
@@ -366,9 +351,7 @@ class TestRinex3Infer:
             FRU="30S",
             D="M",
         )
-        result = infer_from_regex(
-            regex, "ALIC00AUS_R_20250150000_01D_30S_MO.rnx", params
-        )
+        result = infer_from_regex(regex, "ALIC00AUS_R_20250150000_01D_30S_MO.rnx", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["SSSS"] == "ALIC"

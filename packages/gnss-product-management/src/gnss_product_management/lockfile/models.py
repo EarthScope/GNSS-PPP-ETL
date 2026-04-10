@@ -10,7 +10,6 @@ serialized to JSON sidecar files on disk.
 """
 
 import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -27,22 +26,18 @@ class LockProduct(BaseModel):
     name: str
     description: str = ""
     timestamp: str = Field(
-        default_factory=lambda: datetime.datetime.now(
-            datetime.timezone.utc
-        ).isoformat(),
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
         description="ISO 8601 timestamp of when the product was locked.",
     )
     # Primary source
     url: str = Field(..., description="Absolute URL to the primary resource.")
-    hash: str = Field(
-        "", description="Hash of the resource for integrity verification."
-    )
-    size: Optional[int] = Field(None, description="Size of the resource in bytes.")
+    hash: str = Field("", description="Hash of the resource for integrity verification.")
+    size: int | None = Field(None, description="Size of the resource in bytes.")
 
     # Relative directory template for local layout, e.g. "products/{year}/orbit/"
     sink: str = Field("", description="Sink Path")
 
-    alternatives: List[LockProductAlternative] = Field(
+    alternatives: list[LockProductAlternative] = Field(
         default_factory=list,
         description="List of alternative sources for the product.",
     )
@@ -77,13 +72,11 @@ class DependencyLockFile(BaseModel):
         description="Whether the lockfile is date-scoped (one lockfile per processing day).",
     )
     timestamp: str = Field(
-        default_factory=lambda: datetime.datetime.now(
-            datetime.timezone.utc
-        ).isoformat(),
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(),
         description="ISO 8601 timestamp of when the lockfile was created.",
     )
-    products: List[LockProduct] = Field(default_factory=list)
-    metadata: Optional[dict] = Field(
+    products: list[LockProduct] = Field(default_factory=list)
+    metadata: dict | None = Field(
         None,
         description="Optional additional metadata about the lockfile or resolution process.",
     )

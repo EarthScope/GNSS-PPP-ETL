@@ -13,20 +13,19 @@ from pathlib import Path
 
 import pytest
 
-from gnss_product_management.environments import ProductRegistry, WorkSpace
-from gnss_product_management.factories import SearchPlanner, WormHole
-from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
-from gnss_product_management.specifications.format.format_spec import FormatSpecCatalog
-from gnss_product_management.specifications.products.catalog import ProductSpecCatalog
-
 # ── Paths to YAML config files ────────────────────────────────────
 from gnss_management_specs.configs import (
-    META_SPEC_YAML,
-    FORMAT_SPEC_YAML,
-    PRODUCT_SPEC_YAML,
-    LOCAL_SPEC_DIR,
     CENTERS_RESOURCE_DIR,
+    FORMAT_SPEC_YAML,
+    LOCAL_SPEC_DIR,
+    META_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
 )
+from gnss_product_management.environments import ProductRegistry, WorkSpace
+from gnss_product_management.factories import SearchPlanner, WormHole
+from gnss_product_management.specifications.format.format_spec import FormatSpecCatalog
+from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
+from gnss_product_management.specifications.products.catalog import ProductSpecCatalog
 
 LOCAL_CONFIGS = list(Path(LOCAL_SPEC_DIR).glob("*.yaml"))
 CENTERS_DIR = CENTERS_RESOURCE_DIR

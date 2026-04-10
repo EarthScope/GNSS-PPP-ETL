@@ -12,12 +12,11 @@ directly; this module dispatches to :class:`~cloudpathlib.CloudPath` for
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
 
 from cloudpathlib import CloudPath
 
 # Convenience alias used throughout the package for type annotations.
-AnyPath = Union[Path, CloudPath]
+AnyPath = Path | CloudPath
 
 _CLOUD_SCHEMES = ("s3://", "gs://", "az://", "gcs://", "abfs://")
 

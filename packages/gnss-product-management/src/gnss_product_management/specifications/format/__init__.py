@@ -1,16 +1,28 @@
 """Author: Franklyn Dunbar"""
 
-from .spec import (
-    FormatFieldDef as FormatFieldDef,
-    FormatVersionSpec as FormatVersionSpec,
-    FormatSpec as FormatSpec,
-    FormatSpecCollection as FormatSpecCollection,
-    FormatRegistry as FormatRegistry,
+from .format_spec import (
+    FormatCatalog as FormatCatalog,
+)
+from .format_spec import (
+    FormatSpecCatalog as FormatSpecCatalog,
 )
 from .format_spec import (
     FormatVariantSpec as FormatVariantSpec,
-    FormatSpecCatalog as FormatSpecCatalog,
-    FormatCatalog as FormatCatalog,
+)
+from .spec import (
+    FormatFieldDef as FormatFieldDef,
+)
+from .spec import (
+    FormatRegistry as FormatRegistry,
+)
+from .spec import (
+    FormatSpec as FormatSpec,
+)
+from .spec import (
+    FormatSpecCollection as FormatSpecCollection,
+)
+from .spec import (
+    FormatVersionSpec as FormatVersionSpec,
 )
 
 __all__ = [

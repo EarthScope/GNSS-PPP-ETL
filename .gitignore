@@ -1,15 +1,26 @@
 .venv/*
-gnss-ppp-products/node_modules/*
- 
 .DS_Store
 .vscode/
-*.pyc.*
+
+# Python bytecode
 __pycache__/
+*.py[cod]
 *.pyo
 *.pyd
-*.__pycache__/.*
-*.cpython* 
-.*cpython.*
 
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Tooling caches
+.ruff_cache/
+
+# Project-specific
 .github/skills/*
 .claude/*

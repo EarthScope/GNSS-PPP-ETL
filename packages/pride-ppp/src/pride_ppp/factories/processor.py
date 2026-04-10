@@ -13,18 +13,15 @@ import logging
 import re
 import shutil
 import subprocess
+import tempfile
+from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from itertools import groupby
 from pathlib import Path
-from typing import Dict, Iterator, List, Literal, Optional, Sequence, Union
-import tempfile
-import pandas as pd
+from typing import Literal
 
-from gnss_product_management import (
-    GNSSClient,
-    WorkSpace,
-)
+import pandas as pd
 from gnss_management_specs.configs import (
     CENTERS_RESOURCE_DIR,
     FORMAT_SPEC_YAML,
@@ -32,14 +29,16 @@ from gnss_management_specs.configs import (
     META_SPEC_YAML,
     PRODUCT_SPEC_YAML,
 )
+from gnss_product_management import (
+    GNSSClient,
+    WorkSpace,
+)
 from gnss_product_management.environments import ProductRegistry
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
 )
 
-from ..specifications.cli import PrideCLIConfig
-from ..specifications.config import PRIDEPPPFileConfig, SatelliteProducts
 from ..defaults import (
     PRIDE_CENTERS_DIR,
     PRIDE_DIR_SPEC,
@@ -48,6 +47,8 @@ from ..defaults import (
     PRIDE_PPPAR_SPEC,
     PRIDE_PRODUCT_SPEC,
 )
+from ..specifications.cli import PrideCLIConfig
+from ..specifications.config import PRIDEPPPFileConfig, SatelliteProducts
 from .output import get_wrms_from_res, kin_to_kin_position_df
 from .rinex import rinex_get_time_range
 
@@ -63,16 +64,20 @@ class ProcessingMode(enum.Enum):
     """Product timeliness mode.
 
     Controls which dependency-spec YAML is used for product resolution.
+    The timeliness codes refer to IGS product latency classes:
+    FIN = final (≥13 days), RAP = rapid (≤17 hours), ULT = ultra-rapid (≤3 hours).
 
-    * ``DEFAULT`` — cascades through FIN → RAP → ULT (best available).
-    * ``FINAL``   — only accepts final (FIN) products.
+    * ``DEFAULT`` — cascades through FIN → RAP → ULT, using the best
+      available product at the time of the run.
+    * ``FINAL``   — only accepts final (FIN) products; fails if FIN
+      products are not yet available for the requested date.
     """
 
     DEFAULT = "default"
     FINAL = "final"
 
 
-_MODE_TO_SPEC: Dict[ProcessingMode, Path] = {
+_MODE_TO_SPEC: dict[ProcessingMode, Path] = {
     ProcessingMode.DEFAULT: PRIDE_PPPAR_SPEC,
     ProcessingMode.FINAL: PRIDE_PPPAR_FINAL_SPEC,
 }
@@ -82,7 +87,7 @@ _MODE_TO_SPEC: Dict[ProcessingMode, Path] = {
 _SITE_RE = re.compile(r"^([A-Za-z0-9]{4})")
 
 # Spec name → SatelliteProducts field mapping
-_SPEC_TO_PRODUCT_FIELD: Dict[str, str] = {
+_SPEC_TO_PRODUCT_FIELD: dict[str, str] = {
     "ORBIT": "satellite_orbit",
     "CLOCK": "satellite_clock",
     "BIA": "code_phase_bias",
@@ -126,8 +131,8 @@ class ProcessingResult:
     rinex_path: Path
     site: str
     date: datetime.date
-    kin_path: Optional[Path]
-    res_path: Optional[Path]
+    kin_path: Path | None
+    res_path: Path | None
     config_path: Path
     resolution: DependencyResolution
     returncode: int = 0
@@ -138,7 +143,7 @@ class ProcessingResult:
         """``True`` if pdp3 produced a valid .kin output file."""
         return self.kin_path is not None and self.kin_path.exists()
 
-    def positions(self) -> Optional[pd.DataFrame]:
+    def positions(self) -> pd.DataFrame | None:
         """Parse the ``.kin`` file into a DataFrame with WRMS residuals.
 
         Returns
@@ -150,7 +155,7 @@ class ProcessingResult:
             return None
         return kin_to_kin_position_df(self.kin_path)
 
-    def residuals(self) -> Optional[pd.DataFrame]:
+    def residuals(self) -> pd.DataFrame | None:
         """Parse the ``.res`` file into a WRMS DataFrame.
 
         Returns
@@ -187,7 +192,7 @@ def _infer_site(rinex: Path) -> str:
 
 def _resolution_to_satellite_products(
     resolution: DependencyResolution,
-) -> tuple[SatelliteProducts, Optional[Path]]:
+) -> tuple[SatelliteProducts, Path | None]:
     """Map a dependency resolution to PRIDE-PPPAR satellite product paths.
 
     Iterates over the fulfilled dependencies in *resolution* and extracts
@@ -207,8 +212,8 @@ def _resolution_to_satellite_products(
         *product_directory* is the common parent directory of the resolved
         product files, or ``None`` if no products were fulfilled.
     """
-    product_fields: Dict[str, str] = {}
-    product_dir: Optional[Path] = None
+    product_fields: dict[str, str] = {}
+    product_dir: Path | None = None
 
     for rd in resolution.fulfilled:
         # Map the spec name (e.g. "ORBIT") to the SatelliteProducts field name
@@ -236,7 +241,7 @@ def _resolution_to_satellite_products(
     )
 
 
-def _resolution_to_table_dir(resolution: DependencyResolution) -> Optional[Path]:
+def _resolution_to_table_dir(resolution: DependencyResolution) -> Path | None:
     """Locate the directory containing ANTEX / reference table files.
 
     Scans fulfilled dependencies for the ``ATTATX`` spec (antenna phase
@@ -260,7 +265,7 @@ def _resolution_to_table_dir(resolution: DependencyResolution) -> Optional[Path]
 
 def _write_config(
     satellite_products: SatelliteProducts,
-    table_dir: Optional[Path],
+    table_dir: Path | None,
     dest: Path,
 ) -> Path:
     """Write a PRIDE-PPPAR ``config_file`` to disk.
@@ -320,11 +325,9 @@ class PrideProcessor:
         pride_dir: Path,
         output_dir: Path,
         *,
-        pride_install_dir: Optional[Path] = None,
-        cli_config: Optional[PrideCLIConfig] = PrideCLIConfig(),
-        mode: Union[
-            ProcessingMode, Literal["FINAL", "DEFAULT"]
-        ] = ProcessingMode.DEFAULT,
+        pride_install_dir: Path | None = None,
+        cli_config: PrideCLIConfig | None = PrideCLIConfig(),
+        mode: ProcessingMode | Literal["FINAL", "DEFAULT"] = ProcessingMode.DEFAULT,
     ) -> None:
         """Initialise the processor and all its owned subsystems.
 
@@ -491,9 +494,7 @@ class PrideProcessor:
     # ------------------------------------------------------------------ #
     # Subprocess execution
     # ------------------------------------------------------------------ #
-    def _build_pdp_command(
-        self, rinex: Path, site: str, config_path: Path
-    ) -> List[str]:
+    def _build_pdp_command(self, rinex: Path, site: str, config_path: Path) -> list[str]:
         """Assemble the full ``pdp3`` command-line invocation.
 
         Clones the processor's CLI config, overriding
@@ -518,10 +519,10 @@ class PrideProcessor:
 
     @staticmethod
     def _run_pdp3(
-        command: List[str],
+        command: list[str],
         site: str,
         output_dir: Path,
-    ) -> tuple[Optional[Path], Optional[Path], int, str]:
+    ) -> tuple[Path | None, Path | None, int, str]:
         """Execute pdp3 in *working_dir* and move outputs to *output_dir*.
 
         pdp3 writes intermediate files (ambiguity tables, residual grids)
@@ -536,7 +537,6 @@ class PrideProcessor:
         Args:
             command: Full pdp3 argument list from ``_build_pdp_command``.
             site: 4-char site ID used to locate output files by pattern.
-            working_dir: Directory where pdp3 runs (``cwd``).
             output_dir: Final destination for ``.kin`` / ``.res`` files.
 
         Returns:
@@ -571,8 +571,8 @@ class PrideProcessor:
             kin_files = list(Path(tmpdir).rglob(f"kin_*_{site.lower()}"))
             res_files = list(Path(tmpdir).rglob(f"res_*_{site.lower()}"))
 
-            kin_out: Optional[Path] = None
-            res_out: Optional[Path] = None
+            kin_out: Path | None = None
+            res_out: Path | None = None
 
             output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -595,7 +595,7 @@ class PrideProcessor:
 
     def _build_kin_res_paths(
         self, date: datetime.datetime, site: str, output_dir: Path
-    ) -> tuple[Optional[Path], Optional[Path]]:
+    ) -> tuple[Path | None, Path | None]:
         """Construct the expected ``.kin`` and ``.res`` output paths.
 
         The naming convention mirrors what pdp3 produces:
@@ -640,7 +640,7 @@ class PrideProcessor:
             if not kin_path.exists():
                 return False
             # Attempt to parse the kinfile — only accept it if it yields data
-            kin_df: Optional[pd.DataFrame] = kin_to_kin_position_df(kin_path)
+            kin_df: pd.DataFrame | None = kin_to_kin_position_df(kin_path)
             if kin_df and not kin_df.empty:
                 return True
         return False
@@ -653,8 +653,8 @@ class PrideProcessor:
         self,
         rinex: Path,
         *,
-        site: Optional[str] = None,
-        date: Optional[datetime.date] = None,
+        site: str | None = None,
+        date: datetime.date | None = None,
         override: bool = False,
     ) -> ProcessingResult:
         """Process one RINEX file end-to-end.
@@ -703,9 +703,7 @@ class PrideProcessor:
         # Determine date
         if date is None:
             ts_start, _ = rinex_get_time_range(rinex)
-            start_date = (
-                ts_start.date() if isinstance(ts_start, datetime.datetime) else ts_start
-            )
+            start_date = ts_start.date() if isinstance(ts_start, datetime.datetime) else ts_start
         else:
             start_date = date if isinstance(date, datetime.date) else date.date()
 
@@ -754,9 +752,7 @@ class PrideProcessor:
         sat_products, _ = _resolution_to_satellite_products(resolution)
         table_dir = _resolution_to_table_dir(resolution)
         config_path = _write_config(sat_products, table_dir, work_dir / "config_file")
-        command = self._build_pdp_command(
-            rinex=rinex, site=site, config_path=config_path
-        )
+        command = self._build_pdp_command(rinex=rinex, site=site, config_path=config_path)
 
         # --- 5. Run pdp3 ------------------------------------------------------
         kin_path, res_path, returncode, stderr = self._run_pdp3(
@@ -781,7 +777,7 @@ class PrideProcessor:
         self,
         rinex_files: Sequence[Path],
         *,
-        sites: Optional[Sequence[str]] = None,
+        sites: Sequence[str] | None = None,
         max_workers: int = 1,
         override: bool = False,
     ) -> Iterator[ProcessingResult]:
@@ -825,13 +821,11 @@ class PrideProcessor:
             sites = [_infer_site(Path(r)) for r in rinex_files]
 
         if len(sites) != len(rinex_files):
-            raise ValueError(
-                f"sites ({len(sites)}) must match rinex_files ({len(rinex_files)})"
-            )
+            raise ValueError(f"sites ({len(sites)}) must match rinex_files ({len(rinex_files)})")
 
         # --- Step 1: Gather metadata for each RINEX file ------------------------
         # Build (rinex, site, date) tuples by reading each RINEX header.
-        jobs: List[tuple[Path, str, datetime.date]] = []
+        jobs: list[tuple[Path, str, datetime.date]] = []
         for rinex, site in zip(rinex_files, sites):
             rinex = Path(rinex)
             ts_start, _ = rinex_get_time_range(rinex)
@@ -841,7 +835,7 @@ class PrideProcessor:
         # --- Step 2: Resolve products once per unique date ----------------------
         # Sorting + groupby ensures each date is visited exactly once.
         jobs_sorted = sorted(jobs, key=lambda j: j[2])
-        resolutions: Dict[datetime.date, DependencyResolution] = {}
+        resolutions: dict[datetime.date, DependencyResolution] = {}
         for date_key, group in groupby(jobs_sorted, key=lambda j: j[2]):
             target_dt = datetime.datetime(
                 date_key.year,
@@ -854,8 +848,8 @@ class PrideProcessor:
             logger.info(resolutions[date_key].summary())
 
         # --- Step 3: Write per-date config files in year/doy dirs ---------------
-        work_dirs: Dict[datetime.date, Path] = {}
-        config_paths: Dict[datetime.date, Path] = {}
+        work_dirs: dict[datetime.date, Path] = {}
+        config_paths: dict[datetime.date, Path] = {}
         for date_key, resolution in resolutions.items():
             sat_products, _ = _resolution_to_satellite_products(resolution)
             table_dir = _resolution_to_table_dir(resolution)
@@ -868,7 +862,7 @@ class PrideProcessor:
             )
 
         # --- Step 4: Build commands, skip cached results -------------------------
-        pending: List[tuple[int, List[str], str, datetime.date]] = []
+        pending: list[tuple[int, list[str], str, datetime.date]] = []
 
         for i, (rinex, site, d) in enumerate(jobs):
             kin_file, res_file = self._build_kin_res_paths(
@@ -877,9 +871,7 @@ class PrideProcessor:
                 output_dir=self._output_dir,
             )
             if self._validate_kinfile(kin_file, override=override):
-                logger.info(
-                    "Valid output already exists for %s on %s, skipping", site, d
-                )
+                logger.info("Valid output already exists for %s on %s, skipping", site, d)
                 yield ProcessingResult(
                     rinex_path=rinex,
                     site=site,

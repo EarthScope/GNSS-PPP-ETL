@@ -7,12 +7,11 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
-
 from gnss_product_management.utilities.paths import AnyPath
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 if TYPE_CHECKING:
     from gnss_product_management.lockfile import ProductLockfile
@@ -26,18 +25,18 @@ class FoundResource(BaseModel):
     product: str = Field(..., description="Product name (e.g. 'ORBIT', 'CLOCK').")
     source: str = Field(..., description="'local' or 'remote'.")
     uri: str = Field(..., description="Local file path or remote URL.")
-    parameters: Dict[str, str] = Field(
+    parameters: dict[str, str] = Field(
         default_factory=dict, description="All resolved parameter values."
     )
-    date: Optional[datetime.datetime] = Field(
+    date: datetime.datetime | None = Field(
         default=None, description="Target date this resource was resolved for."
     )
-    local_path: Optional[AnyPath] = Field(
+    local_path: AnyPath | None = Field(
         default=None, description="Local filesystem path after a successful download."
     )
 
     # Internal: original SearchTarget, not serialized. Used by DownloadPipeline.
-    _query: Optional[object] = PrivateAttr(default=None)
+    _query: object | None = PrivateAttr(default=None)
 
     @property
     def center(self) -> str:
@@ -55,7 +54,7 @@ class FoundResource(BaseModel):
         return self.source == "local"
 
     @property
-    def path(self) -> Optional[Path]:
+    def path(self) -> Path | None:
         """Return the local :class:`Path` if this is a local resource, else ``None``."""
         if self.is_local:
             return Path(self.uri)
@@ -93,10 +92,10 @@ class Resolution(BaseModel):
     """Result of resolving all dependencies for a task."""
 
     task: str = Field(..., description="Dependency spec name (e.g. 'pride-pppar').")
-    paths: List[Path] = Field(
+    paths: list[Path] = Field(
         default_factory=list, description="Local paths of all resolved products."
     )
-    lockfile: Optional["ProductLockfile"] = None
+    lockfile: ProductLockfile | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -114,21 +113,19 @@ class DiscoveryEntry(BaseModel):
 class DiscoveryReport(BaseModel):
     """Structured summary of available products for a date."""
 
-    entries: List[DiscoveryEntry] = Field(default_factory=list)
+    entries: list[DiscoveryEntry] = Field(default_factory=list)
 
     @property
-    def products(self) -> List[str]:
+    def products(self) -> list[str]:
         """Sorted list of unique product names in this report."""
         return sorted(set(e.product for e in self.entries))
 
     @property
-    def centers(self) -> List[str]:
+    def centers(self) -> list[str]:
         """Sorted list of unique center identifiers in this report."""
         return sorted(set(e.center for e in self.entries if e.center))
 
-    def filter(
-        self, product: Optional[str] = None, center: Optional[str] = None
-    ) -> List[DiscoveryEntry]:
+    def filter(self, product: str | None = None, center: str | None = None) -> list[DiscoveryEntry]:
         """Filter entries by product name and/or center.
 
         Args:
@@ -149,7 +146,7 @@ class DiscoveryReport(BaseModel):
 class MissingProductError(Exception):
     """Raised when a required product cannot be found during resolve()."""
 
-    def __init__(self, missing: List[str], task: str = ""):
+    def __init__(self, missing: list[str], task: str = ""):
         """Initialise with the list of missing product names.
 
         Args:

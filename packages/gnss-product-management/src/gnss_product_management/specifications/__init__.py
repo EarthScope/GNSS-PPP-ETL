@@ -17,54 +17,54 @@ Lockfile models (``LockProduct``, ``DependencyLockFile``) live in
 :mod:`gnss_product_management.lockfile` but are re-exported here for convenience.
 """
 
+from gnss_product_management.lockfile import (
+    DependencyLockFile,
+    LockProduct,
+    LockProductAlternative,
+)
 from gnss_product_management.specifications.catalog import Catalog
-from gnss_product_management.specifications.parameters.parameter import (
-    Parameter,
-    ParameterCatalog,
+from gnss_product_management.specifications.dependencies.dependencies import (
+    Dependency,
+    DependencyResolution,
+    DependencySpec,
+    ResolvedDependency,
+    SearchPreference,
+)
+from gnss_product_management.specifications.format.format_spec import (
+    FormatCatalog,
+    FormatSpecCatalog,
+    FormatVariantSpec,
 )
 from gnss_product_management.specifications.format.spec import (
     FormatFieldDef,
-    FormatVersionSpec,
+    FormatRegistry,
     FormatSpec,
     FormatSpecCollection,
-    FormatRegistry,
-)
-from gnss_product_management.specifications.format.format_spec import (
-    FormatVariantSpec,
-    FormatCatalog,
-    FormatSpecCatalog,
-)
-from gnss_product_management.specifications.products.product import (
-    Product,
-    PathTemplate,
-)
-from gnss_product_management.specifications.products.catalog import (
-    ProductCatalog,
-    ProductSpecCatalog,
-)
-from gnss_product_management.specifications.remote.resource import (
-    Server,
-    ResourceSpec,
-    SearchTarget,
-)
-from gnss_product_management.specifications.remote.resource_catalog import (
-    ResourceCatalog,
+    FormatVersionSpec,
 )
 from gnss_product_management.specifications.local.local import (
     LocalCollection,
     LocalResourceSpec,
 )
-from gnss_product_management.specifications.dependencies.dependencies import (
-    SearchPreference,
-    Dependency,
-    DependencySpec,
-    DependencyResolution,
-    ResolvedDependency,
+from gnss_product_management.specifications.parameters.parameter import (
+    Parameter,
+    ParameterCatalog,
 )
-from gnss_product_management.lockfile import (
-    LockProduct,
-    LockProductAlternative,
-    DependencyLockFile,
+from gnss_product_management.specifications.products.catalog import (
+    ProductCatalog,
+    ProductSpecCatalog,
+)
+from gnss_product_management.specifications.products.product import (
+    PathTemplate,
+    Product,
+)
+from gnss_product_management.specifications.remote.resource import (
+    ResourceSpec,
+    SearchTarget,
+    Server,
+)
+from gnss_product_management.specifications.remote.resource_catalog import (
+    ResourceCatalog,
 )
 
 __all__ = [

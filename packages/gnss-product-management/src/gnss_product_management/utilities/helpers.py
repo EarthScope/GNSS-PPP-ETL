@@ -82,9 +82,7 @@ def _ensure_datetime(date: datetime.date | datetime.datetime) -> datetime.dateti
         A timezone-aware :class:`~datetime.datetime` in UTC.
     """
     if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
-        return datetime.datetime(
-            date.year, date.month, date.day, tzinfo=datetime.timezone.utc
-        )
+        return datetime.datetime(date.year, date.month, date.day, tzinfo=datetime.timezone.utc)
     if date.tzinfo is None:
         return date.replace(tzinfo=datetime.timezone.utc)
     return date

@@ -12,8 +12,8 @@ Provides the two core configuration objects:
 
 from gnss_product_management.environments.environment import ProductRegistry
 from gnss_product_management.environments.workspace import (
-    WorkSpace,
     RegisteredLocalResource,
+    WorkSpace,
     paths_overlap,
 )
 

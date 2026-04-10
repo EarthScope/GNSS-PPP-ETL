@@ -5,12 +5,10 @@ ranking — module-level helpers for sorting SearchTarget results.
 
 from __future__ import annotations
 
-from typing import List
-
-from gnss_product_management.specifications.remote.resource import SearchTarget
 from gnss_product_management.specifications.dependencies.dependencies import (
     SearchPreference,
 )
+from gnss_product_management.specifications.remote.resource import SearchTarget
 
 
 def _get_param_value(rq: SearchTarget, param_name: str) -> str:
@@ -29,7 +27,7 @@ def _get_param_value(rq: SearchTarget, param_name: str) -> str:
     return ""
 
 
-def sort_by_protocol(targets: List[SearchTarget]) -> List[SearchTarget]:
+def sort_by_protocol(targets: list[SearchTarget]) -> list[SearchTarget]:
     """Sort search targets by server protocol, preferring local/file over remote.
 
     Args:
@@ -51,9 +49,9 @@ def sort_by_protocol(targets: List[SearchTarget]) -> List[SearchTarget]:
 
 
 def sort_by_preferences(
-    targets: List[SearchTarget],
-    preferences: List[SearchPreference],
-) -> List[SearchTarget]:
+    targets: list[SearchTarget],
+    preferences: list[SearchPreference],
+) -> list[SearchTarget]:
     """Sort search targets according to a preference cascade.
 
     Iterates *preferences* in reverse order (lowest priority first) so

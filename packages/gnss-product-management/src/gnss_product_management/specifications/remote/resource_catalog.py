@@ -4,14 +4,12 @@ ResourceCatalog — resolve a ResourceSpec against a ProductCatalog into queryab
 """
 
 from itertools import product as iterproduct
-from typing import List, Optional
-
 
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.remote.resource import (
-    SearchTarget,
     ResourceSpec,
+    SearchTarget,
     Server,
 )
 
@@ -35,9 +33,9 @@ def _cartesian_product(
 
 
 def _merge_parameters(
-    base_params: List[Parameter],
-    overrides: List[Parameter],
-) -> List[Parameter]:
+    base_params: list[Parameter],
+    overrides: list[Parameter],
+) -> list[Parameter]:
     """Return base params with overrides applied by name.
 
     Args:
@@ -72,10 +70,10 @@ class ResourceCatalog(Catalog):
 
     id: str
     name: str
-    description: Optional[str] = None
-    website: Optional[str] = None
-    servers: List[Server]
-    queries: List[SearchTarget]
+    description: str | None = None
+    website: str | None = None
+    servers: list[Server]
+    queries: list[SearchTarget]
 
     @classmethod
     def build(cls, resource_spec: ResourceSpec, product_catalog) -> "ResourceCatalog":
@@ -115,9 +113,7 @@ class ResourceCatalog(Catalog):
                     continue
                 for variant_name, base_product in variant_catalog.variants.items():
                     for combo in combos:
-                        merged_params = _merge_parameters(
-                            base_product.parameters, combo
-                        )
+                        merged_params = _merge_parameters(base_product.parameters, combo)
                         pinned_product = base_product.model_copy(
                             update={
                                 "parameters": merged_params,

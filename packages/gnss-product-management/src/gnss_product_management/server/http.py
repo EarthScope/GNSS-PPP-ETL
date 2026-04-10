@@ -11,7 +11,6 @@ import logging
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional
 from urllib.parse import unquote
 
 import fsspec
@@ -74,7 +73,7 @@ def extract_filenames_from_html(html: str) -> list[str]:
 
 
 @lru_cache(maxsize=128)
-def http_list_directory(server: str, directory: str) -> Optional[str]:
+def http_list_directory(server: str, directory: str) -> str | None:
     """Fetch the raw HTML directory listing from *server*/*directory*.
 
     Args:
@@ -97,9 +96,9 @@ def http_get_file(
     httpserver: str,
     directory: str,
     filename: str,
-    dest_dir: Optional[Path] = None,
+    dest_dir: Path | None = None,
     timeout: int = 60,
-) -> Optional[Path]:
+) -> Path | None:
     """Download a file via HTTP(S).
 
     Args:
@@ -123,9 +122,7 @@ def http_get_file(
         fs.get(url, str(file_path))
         return file_path
     except Exception as e:  # noqa: BLE001
-        logger.warning(
-            "Error fetching HTTP file %s/%s/%s: %s", httpserver, directory, filename, e
-        )
+        logger.warning("Error fetching HTTP file %s/%s/%s: %s", httpserver, directory, filename, e)
         return None
 
 
@@ -148,7 +145,7 @@ class HTTPAdapter:
         """Test HTTP/HTTPS connectivity to *hostname*."""
         return http_can_connect(hostname, timeout=min(self._timeout, 10))
 
-    def list_directory(self, hostname: str, directory: str) -> List[str]:
+    def list_directory(self, hostname: str, directory: str) -> list[str]:
         """List filenames from an HTTP directory listing page."""
         html = http_list_directory(hostname, directory)
         if html is None:
@@ -157,7 +154,7 @@ class HTTPAdapter:
 
     def download_file(
         self, hostname: str, directory: str, filename: str, dest_path: Path
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """Download a file from an HTTP server to *dest_path*."""
         result = http_get_file(
             hostname,

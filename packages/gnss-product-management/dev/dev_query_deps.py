@@ -1,16 +1,13 @@
 import datetime
-from pathlib import Path
-import time
 import logging
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
-)
-# logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+import time
+from pathlib import Path
 
 from gnss_product_management import GNSSClient
 from gnss_product_management.defaults import DefaultProductEnvironment, DefaultWorkSpace
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+# logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
 workspace = DefaultWorkSpace
 workspace.add_resource_spec(

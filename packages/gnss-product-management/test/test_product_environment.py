@@ -3,15 +3,13 @@
 from pathlib import Path
 
 import pytest
-
-from gnss_product_management.factories import ProductRegistry
 from gnss_management_specs.configs import (
-    META_SPEC_YAML,
-    FORMAT_SPEC_YAML,
-    PRODUCT_SPEC_YAML,
     CENTERS_RESOURCE_DIR,
+    FORMAT_SPEC_YAML,
+    META_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
 )
-
+from gnss_product_management.factories import ProductRegistry
 
 # ── Fixtures ──────────────────────────────────────────────────────
 
@@ -140,9 +138,7 @@ class TestClassify:
         assert result["parameters"]["AAA"] == "IGS"
 
     def test_classify_strips_path(self, env):
-        result = env.classify(
-            "/data/products/WUM/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz"
-        )
+        result = env.classify("/data/products/WUM/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz")
         assert result is not None
         assert result["product"] == "ORBIT"
         assert result["parameters"]["AAA"] == "WUM"
@@ -153,9 +149,7 @@ class TestClassify:
         )
 
         params = [Parameter(name="CNT", value="ORB")]
-        result = env.classify(
-            "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params
-        )
+        result = env.classify("WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params)
         assert result is not None
         assert result["product"] == "ORBIT"
 
@@ -165,7 +159,5 @@ class TestClassify:
         )
 
         params = [Parameter(name="CNT", value="CLK")]
-        result = env.classify(
-            "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params
-        )
+        result = env.classify("WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params)
         assert result is None

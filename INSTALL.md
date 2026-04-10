@@ -61,15 +61,20 @@ pride-ppp
 
 ```bash
 # All non-integration tests for gnss-product-management
-cd packages/gnss-product-management
-uv run pytest test/ -m "not integration" -q
+uv run pytest packages/gnss-product-management/test/ -m "not integration" -q
+
+# pride-ppp tests
+uv run pytest packages/pride-ppp/tests/ -q
 ```
 
 ## Verifying the install
 
 ```python
-from gnss_product_management import QueryFactory, ResourceFetcher
-from gnss_product_management.configs import PRODUCT_SPEC_YAML
+from gnss_product_management import GNSSClient
+from gnss_management_specs.configs import PRODUCT_SPEC_YAML
 
 print(PRODUCT_SPEC_YAML)  # path to bundled product spec
+
+client = GNSSClient.from_defaults()
+client.display()  # lists loaded products and centers
 ```

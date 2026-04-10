@@ -112,17 +112,21 @@ uv sync --all-packages
 
 ```python
 from datetime import datetime, timezone
-from gnss_product_management import QueryFactory, ResourceFetcher
-from gnss_product_management.defaults import DefaultProductEnvironment, DefaultWorkSpace
+from gnss_product_management import GNSSClient
 
-qf = QueryFactory(product_environment=DefaultProductEnvironment, workspace=DefaultWorkSpace)
-queries = qf.get(date=datetime(2025, 1, 2, tzinfo=timezone.utc), product={"name": "ORBIT"})
+client = GNSSClient.from_defaults()
+date = datetime(2025, 1, 2, tzinfo=timezone.utc)
 
-fetcher = ResourceFetcher()
-results = fetcher.search(queries)
+results = (
+    client.query()
+    .for_product("ORBIT")
+    .on(date)
+    .where(TTT="FIN")
+    .sources("COD", "ESA")
+    .search()
+)
 for r in results:
-    if r.found:
-        print(r.query.server.hostname, r.matched_filenames)
+    print(r.hostname, r.filename)
 ```
 
 ### Resolve & download all dependencies
@@ -130,22 +134,14 @@ for r in results:
 ```python
 from datetime import datetime, timezone
 from pathlib import Path
-from gnss_product_management import QueryFactory, ResourceFetcher, DependencyResolver
-from gnss_product_management.defaults import DefaultProductEnvironment, DefaultWorkSpace
-from gnss_product_management.specifications.dependencies.dependencies import DependencySpec
+from gnss_product_management import GNSSClient
 
-workspace = DefaultWorkSpace
-workspace.register_spec(base_dir=Path("/data/gnss-products"), spec_ids=["local_config"], alias="local")
+client = GNSSClient.from_defaults(base_dir=Path("/data/gnss-products"))
+date = datetime(2025, 1, 2, tzinfo=timezone.utc)
 
-dep_spec = DependencySpec.from_yaml("path/to/your/dependency_spec.yaml")
-qf = QueryFactory(product_environment=DefaultProductEnvironment, workspace=workspace)
-resolver = DependencyResolver(
-    dep_spec=dep_spec,
-    product_environment=DefaultProductEnvironment,
-    query_factory=qf,
-    fetcher=ResourceFetcher(),
+resolution, lockfile_path = client.resolve_dependencies(
+    "path/to/your/dependency_spec.yaml", date, sink_id="local"
 )
-resolution, lockfile = resolver.resolve(date=datetime(2025, 1, 2, tzinfo=timezone.utc), local_sink_id="local")
 print(resolution.table())
 ```
 
@@ -175,7 +171,6 @@ Runnable scripts in each package's `examples/` directory:
 | Package | Script | Description |
 |---|---|---|
 | gnss-product-management | [search_products.py](packages/gnss-product-management/examples/search_products.py) | Search all centers for a product type on a given date |
-| gnss-product-management | [resolve_dependencies.py](packages/gnss-product-management/examples/resolve_dependencies.py) | Resolve and download all PRIDE-PPPAR dependencies |
 | gnss-product-management | [download_from_center.py](packages/gnss-product-management/examples/download_from_center.py) | Download a specific product from a single center |
 | pride-ppp | [process_rinex.py](packages/pride-ppp/examples/process_rinex.py) | Process one RINEX file end-to-end |
 | pride-ppp | [batch_process.py](packages/pride-ppp/examples/batch_process.py) | Batch-process multiple RINEX files |
@@ -200,18 +195,21 @@ GNSS-PPP-ETL/
 │   │   ├── src/gnss_product_management/
 │   │   │   ├── defaults/           # Wires gnss-management-specs into singletons
 │   │   │   ├── environments/       # ProductEnvironment, WorkSpace
-│   │   │   ├── factories/          # QueryFactory, ResourceFetcher, DependencyResolver
+│   │   │   ├── factories/          # SearchPlanner, WormHole, ConnectionPoolFactory, pipelines
 │   │   │   ├── specifications/     # Pydantic models (Parameter, FormatSpec, ProductSpec)
 │   │   │   ├── server/             # FTP, HTTP, local filesystem adapters
 │   │   │   └── utilities/          # Date math, decompression, naming helpers
 │   │   └── test/
 │   └── pride-ppp/                        # PRIDE-PPPAR integration
 │       └── src/pride_ppp/
-│           ├── processor.py              # PrideProcessor — main entry point
-│           ├── cli.py                    # pdp3 command-line builder
-│           ├── config.py                 # PRIDE config-file I/O
-│           ├── output.py                 # .kin/.res parsing
-│           └── rinex.py                  # RINEX utilities
+│           ├── factories/
+│           │   ├── processor.py          # PrideProcessor — main entry point
+│           │   ├── output.py             # .kin/.res file parsing
+│           │   └── rinex.py              # RINEX utilities
+│           └── specifications/
+│               ├── cli.py                # pdp3 command-line builder
+│               ├── config.py             # PRIDE config-file I/O
+│               └── output.py            # Pydantic models for .kin records
 ```
 
 ## Requirements

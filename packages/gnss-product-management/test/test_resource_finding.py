@@ -15,10 +15,8 @@ from __future__ import annotations
 import datetime
 
 import pytest
-
 from gnss_product_management.factories import WormHole
 from gnss_product_management.specifications.products.product import PathTemplate
-
 
 pytestmark = pytest.mark.integration
 
@@ -32,9 +30,7 @@ def _search_remote(qf, fetcher, date, product_name, parameters=None):
     """Run the full query→search pipeline and return matched SearchTargets."""
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
     remote_queries = [
-        q
-        for q in queries
-        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+        q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
     ]
     return fetcher.search(remote_queries)
 
@@ -125,8 +121,7 @@ class TestCODResourceFinding:
         results = _search_remote(cod_qf, fetcher, test_date, "IONEX")
         found = _assert_found(results, "IONEX")
         assert any(
-            "GIM" in r.product.filename.value.upper()
-            or "INX" in r.product.filename.value.upper()
+            "GIM" in r.product.filename.value.upper() or "INX" in r.product.filename.value.upper()
             for r in found
         )
 
@@ -197,9 +192,7 @@ class TestFetcherCaching:
             parameters={"AAA": "WUM"},
         )
         remote_queries = [
-            q
-            for q in queries
-            if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
+            q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
         ]
         fresh_fetcher.search(remote_queries)
         assert len(fresh_fetcher._connection_pool_factory._listing_cache) > 0

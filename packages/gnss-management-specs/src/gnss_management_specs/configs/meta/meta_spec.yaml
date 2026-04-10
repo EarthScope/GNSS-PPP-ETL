@@ -2,7 +2,7 @@
 SSSS:
   - pattern: "[A-Za-z0-9]{4}"         # 4-char station code
   - description: 4-character station code (e.g., "ALIC", "BRST")
-  - derivation: enum 
+  - derivation: enum
 
 MONUMENT:
   - pattern: "[0-9]"              # 1-char monument / marker number
@@ -26,7 +26,7 @@ SSSMRCCC_:
 YYYY:
   - pattern: "\\d{4}"                 # 4-digit year
   - description: 4-digit year (e.g., "2024")
-  - derivation: computed 
+  - derivation: computed
 
 YY:
   - pattern: "\\d{2}"                   # 2-digit year

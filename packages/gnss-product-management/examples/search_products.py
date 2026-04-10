@@ -165,9 +165,7 @@ clock_final = (
 )
 print_results(f"CLOCK final solutions on {date.date()}", clock_final)
 
-bias_final = (
-    base_query.for_product("BIA").where(TTT="FIN").prefer(AAA=["WUM", "COD"]).search()
-)
+bias_final = base_query.for_product("BIA").where(TTT="FIN").prefer(AAA=["WUM", "COD"]).search()
 print_results(f"BIA final solutions on {date.date()}", bias_final)
 
 # ---------------------------------------------------------------------------

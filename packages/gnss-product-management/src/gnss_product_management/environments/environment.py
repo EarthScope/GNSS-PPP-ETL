@@ -9,22 +9,10 @@ and provides :meth:`~ProductRegistry.classify` for parsing product filenames
 back into structured metadata.
 """
 
-from pathlib import Path
-
-from typing import Any, Dict, List, NamedTuple, Optional
 import re
 from datetime import datetime
-
-
-from gnss_product_management.specifications.remote.resource import (
-    ResourceSpec,
-    SearchTarget,
-)
-from gnss_product_management.specifications.remote.resource_catalog import (
-    ResourceCatalog,
-)
-from pydantic import BaseModel
-
+from pathlib import Path
+from typing import Any, NamedTuple
 
 from gnss_product_management.specifications.format.format_spec import (
     FormatCatalog,
@@ -39,7 +27,15 @@ from gnss_product_management.specifications.products.catalog import (
     ProductSpecCatalog,
 )
 from gnss_product_management.specifications.products.product import Product
+from gnss_product_management.specifications.remote.resource import (
+    ResourceSpec,
+    SearchTarget,
+)
+from gnss_product_management.specifications.remote.resource_catalog import (
+    ResourceCatalog,
+)
 from gnss_product_management.utilities.metadata_funcs import register_computed_fields
+from pydantic import BaseModel
 
 
 class _MatchEntry(NamedTuple):
@@ -60,7 +56,7 @@ class _MatchEntry(NamedTuple):
 
 def _merged_parameter_catalog(
     base: ParameterCatalog,
-    product_params: List[Parameter],
+    product_params: list[Parameter],
 ) -> ParameterCatalog:
     """Merge product-specific parameter patterns into the global catalog.
 
@@ -71,9 +67,7 @@ def _merged_parameter_catalog(
     Returns:
         A new :class:`ParameterCatalog` with overrides applied.
     """
-    merged = {
-        name: param.model_copy(deep=True) for name, param in base.parameters.items()
-    }
+    merged = {name: param.model_copy(deep=True) for name, param in base.parameters.items()}
     for p in product_params:
         if p.name in merged:
             updates = {}
@@ -111,13 +105,9 @@ def _build_match_table(
                 if product.filename is None:
                     continue
                 spec = (
-                    product_spec_catalog.products[prod_name]
-                    .versions[ver_name]
-                    .variants[var_name]
+                    product_spec_catalog.products[prod_name].versions[ver_name].variants[var_name]
                 )
-                merged = _merged_parameter_catalog(
-                    parameter_catalog, product.parameters
-                )
+                merged = _merged_parameter_catalog(parameter_catalog, product.parameters)
                 regex_str = product.filename.to_regex(merged)
                 entries.append(
                     _MatchEntry(
@@ -128,9 +118,7 @@ def _build_match_table(
                         version=ver_name,
                         variant=var_name,
                         fixed_params={
-                            p.name: p.value
-                            for p in product.parameters
-                            if p.value is not None
+                            p.name: p.value for p in product.parameters if p.value is not None
                         },
                     )
                 )
@@ -170,16 +158,16 @@ class ProductRegistry:
     def __init__(self) -> None:
         """Initialise an empty registry with no specs loaded."""
 
-        self._parameter_specs: Dict[str, LoadedSpecs] = {}
-        self._format_specs: Dict[str, LoadedSpecs] = {}
-        self._product_specs: Dict[str, LoadedSpecs] = {}
-        self._resource_specs: Dict[str, LoadedSpecs] = {}
+        self._parameter_specs: dict[str, LoadedSpecs] = {}
+        self._format_specs: dict[str, LoadedSpecs] = {}
+        self._product_specs: dict[str, LoadedSpecs] = {}
+        self._resource_specs: dict[str, LoadedSpecs] = {}
 
-        self._parameter_catalog: Optional[ParameterCatalog] = None
-        self._format_catalog: Optional[FormatCatalog] = None
-        self._product_spec_catalog: Optional[ProductSpecCatalog] = None
-        self._product_catalog: Optional[ProductCatalog] = None
-        self._catalogs: Dict[str, ResourceCatalog] = {}
+        self._parameter_catalog: ParameterCatalog | None = None
+        self._format_catalog: FormatCatalog | None = None
+        self._product_spec_catalog: ProductSpecCatalog | None = None
+        self._product_catalog: ProductCatalog | None = None
+        self._catalogs: dict[str, ResourceCatalog] = {}
 
     def add_parameter_spec(self, path: Path | str, id: str = "default") -> None:
         """Load and register a parameter specification YAML file.
@@ -195,9 +183,7 @@ class ProductRegistry:
             f"Parameter spec with id '{id}' already exists. Please choose a unique id."
         )
         parameter_spec_catalog = ParameterCatalog.from_yaml(path)
-        self._parameter_specs[id] = LoadedSpecs(
-            filename=path, built=parameter_spec_catalog
-        )
+        self._parameter_specs[id] = LoadedSpecs(filename=path, built=parameter_spec_catalog)
 
     def add_format_spec(self, path: Path | str, id: str = "default") -> None:
         """Load and register a format specification YAML file.
@@ -330,22 +316,22 @@ class ProductRegistry:
     # ---- Remote resource query interface -----------------------------------
 
     @property
-    def resource_ids(self) -> List[str]:
+    def resource_ids(self) -> list[str]:
         """Identifiers for all registered remote resource centers."""
         return list(self._catalogs.keys())
 
     @property
-    def centers(self) -> List[str]:
+    def centers(self) -> list[str]:
         """Alias for :attr:`resource_ids`."""
         return self.resource_ids
 
     @property
-    def catalogs(self) -> List[ResourceCatalog]:
+    def catalogs(self) -> list[ResourceCatalog]:
         """All registered remote resource catalogs."""
         return list(self._catalogs.values())
 
     @property
-    def all_queries(self) -> List[SearchTarget]:
+    def all_queries(self) -> list[SearchTarget]:
         """Flattened list of every search target across all remote centers."""
         return [q for cat in self._catalogs.values() for q in cat.queries]
 
@@ -361,7 +347,7 @@ class ProductRegistry:
         return self._catalogs[center_id]
 
     @staticmethod
-    def match_pinned_query(found: Product, incoming: Product) -> Optional[Product]:
+    def match_pinned_query(found: Product, incoming: Product) -> Product | None:
         """Check if a found query matches an incoming product based on pinned parameters.
 
         Args:
@@ -372,12 +358,8 @@ class ProductRegistry:
             The *incoming* product with matched values filled in,
             or ``None`` if pinned parameters conflict.
         """
-        found_params = {
-            p.name: p.value for p in found.parameters if p.value is not None
-        }
-        incoming_params = {
-            p.name: p.value for p in incoming.parameters if p.value is not None
-        }
+        found_params = {p.name: p.value for p in found.parameters if p.value is not None}
+        incoming_params = {p.name: p.value for p in incoming.parameters if p.value is not None}
         matching_keys = set(found_params.keys()) & set(incoming_params.keys())
         for key in matching_keys:
             found_val = found_params[key]
@@ -390,7 +372,7 @@ class ProductRegistry:
                 p.value = found_params.get(p.name)
         return incoming
 
-    def source_product(self, product: Product, resource_id: str) -> List[SearchTarget]:
+    def source_product(self, product: Product, resource_id: str) -> list[SearchTarget]:
         """Resolve a product into all matching SearchTargets for a remote resource.
 
         Args:
@@ -416,15 +398,13 @@ class ProductRegistry:
                 f"Known products: {set(q.product.name for q in cat.queries)}"
             )
 
-        results: List[SearchTarget] = []
+        results: list[SearchTarget] = []
         for query in candidates:
             # Deep copy so we never mutate the catalog's original query
             query = query.model_copy(deep=True)
             incoming = product.model_copy(deep=True)
 
-            matched_product: Optional[Product] = self.match_pinned_query(
-                query.product, incoming
-            )
+            matched_product: Product | None = self.match_pinned_query(query.product, incoming)
             if matched_product is None:
                 continue
 
@@ -435,9 +415,7 @@ class ProductRegistry:
 
         return results
 
-    def sink_product(
-        self, product: Product, resource_id: str, date: datetime
-    ) -> SearchTarget:
+    def sink_product(self, product: Product, resource_id: str, date: datetime) -> SearchTarget:
         """Resolve the remote directory/filename for uploading *product*.
 
         Args:
@@ -472,8 +450,8 @@ class ProductRegistry:
     def classify(
         self,
         filename: str,
-        parameters: Optional[List[Parameter]] = None,
-    ) -> Optional[Dict[str, str]]:
+        parameters: list[Parameter] | None = None,
+    ) -> dict[str, str] | None:
         """Parse a product filename and return its metadata.
 
         Args:
@@ -488,9 +466,7 @@ class ProductRegistry:
             no product template matches.
         """
         name = Path(filename).name
-        constraints = {
-            p.name: p.value for p in (parameters or []) if p.value is not None
-        }
+        constraints = {p.name: p.value for p in (parameters or []) if p.value is not None}
 
         for entry in self._match_table:
             if any(
@@ -505,9 +481,7 @@ class ProductRegistry:
 
             extracted = {k: v for k, v in m.groupdict().items() if v is not None}
 
-            if any(
-                k in extracted and extracted[k] != v for k, v in constraints.items()
-            ):
+            if any(k in extracted and extracted[k] != v for k, v in constraints.items()):
                 continue
 
             return {
@@ -533,9 +507,9 @@ class ProductRegistry:
 
         Requires the ``rich`` package (bundled as a project dependency).
         """
+        from rich import box
         from rich.console import Console
         from rich.table import Table
-        from rich import box
 
         console = Console()
 

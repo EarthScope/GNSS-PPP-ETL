@@ -18,8 +18,6 @@ from __future__ import annotations
 
 import datetime
 import logging
-from pathlib import Path
-from typing import List, Optional
 
 from gnss_product_management.lockfile.models import DependencyLockFile, LockProduct
 from gnss_product_management.lockfile.operations import (
@@ -77,9 +75,7 @@ class LockfileManager:
             date: Processing date.
             version: Optional package version.
         """
-        name = get_dependency_lockfile_name(
-            package=package, task=task, date=date, version=version
-        )
+        name = get_dependency_lockfile_name(package=package, task=task, date=date, version=version)
         return (self._dir / name).exists()
 
     def load(
@@ -88,7 +84,7 @@ class LockfileManager:
         task: str,
         date: datetime.datetime,
         version: str | None = None,
-    ) -> Tuple[Optional[DependencyLockFile], AnyPath]:
+    ) -> tuple[DependencyLockFile | None, AnyPath]:
         """Load an existing lockfile, or ``None``.
 
         Args:
@@ -97,15 +93,11 @@ class LockfileManager:
             date: Processing date.
             version: Optional package version.
         """
-        name = get_dependency_lockfile_name(
-            package=package, task=task, date=date, version=version
-        )
+        name = get_dependency_lockfile_name(package=package, task=task, date=date, version=version)
         path = self._dir / name
         if not path.exists():
             return None, path
-        return DependencyLockFile.model_validate_json(
-            path.read_text(encoding="utf-8")
-        ), path
+        return DependencyLockFile.model_validate_json(path.read_text(encoding="utf-8")), path
 
     def lockfile_path(
         self,
@@ -122,9 +114,7 @@ class LockfileManager:
             date: Processing date.
             version: Optional package version.
         """
-        name = get_dependency_lockfile_name(
-            package=package, task=task, date=date, version=version
-        )
+        name = get_dependency_lockfile_name(package=package, task=task, date=date, version=version)
         return self._dir / name
 
     # ------------------------------------------------------------------ #
@@ -151,7 +141,7 @@ class LockfileManager:
 
     def build_aggregate(
         self,
-        products: List[LockProduct],
+        products: list[LockProduct],
         package: str,
         task: str,
         date: datetime.datetime | str,
@@ -172,9 +162,7 @@ class LockfileManager:
         if version is None:
             version = get_package_version()
 
-        date_str = (
-            date.strftime("%Y-%m-%d") if isinstance(date, datetime.datetime) else date
-        )
+        date_str = date.strftime("%Y-%m-%d") if isinstance(date, datetime.datetime) else date
 
         return DependencyLockFile(
             date=date_str,
@@ -229,7 +217,7 @@ class LockfileManager:
         lockfile = DependencyLockFile.model_validate_json(data)
 
         mode = HashMismatchMode.STRICT if strict else HashMismatchMode.WARN
-        valid_products: List[LockProduct] = []
+        valid_products: list[LockProduct] = []
         for product in lockfile.products:
             if validate_lock_product(product, mode=mode):
                 valid_products.append(product)
@@ -260,6 +248,4 @@ class LockfileManager:
             date: Processing date.
             version: Optional package version.
         """
-        return get_dependency_lockfile_name(
-            package=package, task=task, date=date, version=version
-        )
+        return get_dependency_lockfile_name(package=package, task=task, date=date, version=version)

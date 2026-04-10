@@ -13,18 +13,14 @@ from pathlib import Path
 
 import pytest
 
+# ── Paths ──────────────────────────────────────────────────────────
+from gnss_management_specs.configs import LOCAL_SPEC_DIR
 from gnss_product_management.environments import WorkSpace
-from gnss_product_management.factories.remote_transport import WormHole
 from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
     ResolvedDependency,
 )
-
-
-# ── Paths ──────────────────────────────────────────────────────────
-
-from gnss_management_specs.configs import LOCAL_SPEC_DIR
 
 _TEST_RESOURCES = Path(__file__).resolve().parent / "resources"
 PRIDE_PPPAR_SPEC = _TEST_RESOURCES / "pride_pppar.yaml"
@@ -118,9 +114,7 @@ class TestResolverWithFetcher:
         test_date,
     ) -> None:
         """At least some products should be found remotely."""
-        resolution, lockfile_path = pipeline.run(
-            dep_spec, test_date, sink_id="local_config"
-        )
+        resolution, lockfile_path = pipeline.run(dep_spec, test_date, sink_id="local_config")
         found = [r.status != "missing" for r in resolution.resolved]
 
         assert all(found), f"Expected no missing product.\n{resolution.table()}"

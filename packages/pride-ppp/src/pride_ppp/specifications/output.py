@@ -7,7 +7,7 @@ parsed from pdp3 ``.kin`` output files.
 
 import logging
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Union
 
 import julian
 from pydantic import BaseModel, Field, ValidationError, model_validator
@@ -35,8 +35,10 @@ PRIDE_PPP_LOG_INDEX = {
 class PridePPP(BaseModel):
     """Single-epoch kinematic position record from a pdp3 ``.kin`` file.
 
-    Each instance represents one line of output.  Coordinates are in a
-    local East/North/Up frame (metres) plus geodetic lat/lon/height.
+    Each instance represents one line of output.  The ``east``, ``north``,
+    and ``up`` fields store ECEF X/Y/Z coordinates in metres (despite the
+    field names, which mirror the column order in the pdp3 output file).
+    Geodetic lat/lon/height are also provided.
 
     Attributes
     ----------
@@ -45,11 +47,11 @@ class PridePPP(BaseModel):
     second_of_day : float
         Seconds elapsed since midnight UTC (0–86 400).
     east : float
-        East displacement in metres (local ENU frame).
+        ECEF X-coordinate in metres (field name mirrors pdp3 column order).
     north : float
-        North displacement in metres (local ENU frame).
+        ECEF Y-coordinate in metres (field name mirrors pdp3 column order).
     up : float
-        Up displacement in metres (local ENU frame).
+        ECEF Z-coordinate in metres (field name mirrors pdp3 column order).
     latitude : float
         Geodetic latitude in decimal degrees (−90–90).
     longitude : float
@@ -77,18 +79,18 @@ class PridePPP(BaseModel):
     height: float = Field(ge=-1000, le=10000)
     number_of_satellites: int = Field(default=1, ge=0, le=125)
     pdop: float = Field(default=0, ge=0, le=1000)
-    time: Optional[datetime] = None
+    time: datetime | None = None
 
     class Config:
         coerce = True
 
     @model_validator(mode="before")
     def validate_time(cls, values):
-        """Coerce ``pdop`` to float before full field validation.
+        """Coerce ``pdop`` to float before field-level validation.
 
-        Some ``.kin`` files encode PDOP as an integer string.  This
-        pre-validator ensures it is always a float so the ``ge``/``le``
-        constraints pass.
+        Some ``.kin`` files encode PDOP as an integer string rather than a
+        float literal.  This pre-validator normalises the value so the
+        ``ge``/``le`` constraints on the ``pdop`` field always pass.
         """
         values["pdop"] = float(values.get("pdop", 0.0))
         return values
@@ -101,15 +103,13 @@ class PridePPP(BaseModel):
         Julian Date, then to a Python ``datetime`` via the ``julian``
         library.
         """
-        julian_date = (
-            values.modified_julian_date + (values.second_of_day / 86400) + 2400000.5
-        )
+        julian_date = values.modified_julian_date + (values.second_of_day / 86400) + 2400000.5
         t = julian.from_jd(julian_date, fmt="jd")
         values.time = t
         return values
 
     @classmethod
-    def from_kin_file(cls, data: List[str]) -> Union["PridePPP", ValidationError]:
+    def from_kin_file(cls, data: list[str]) -> Union["PridePPP", ValidationError]:
         """Parse a single line (as split tokens) from a ``.kin`` file.
 
         Parameters

@@ -22,20 +22,19 @@ objects.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Union
 from pathlib import Path
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-import yaml
 
+import yaml
 from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class FormatFieldDef(BaseModel):
     """Properties of a metadata field declared inside a format version."""
 
-    pattern: Optional[str] = None
-    default: Optional[str] = None
-    description: Optional[str] = None
+    pattern: str | None = None
+    default: str | None = None
+    description: str | None = None
 
 
 class FormatVersionSpec(BaseModel):
@@ -43,17 +42,17 @@ class FormatVersionSpec(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    description: Optional[str] = None
-    notes: Optional[str] = None
-    metadata: Dict[str, Optional[FormatFieldDef]] = Field(default_factory=dict)
-    file_templates: Dict[str, str] = Field(default_factory=dict)
-    compression: List[str] = Field(default_factory=list)
+    description: str | None = None
+    notes: str | None = None
+    metadata: dict[str, FormatFieldDef | None] = Field(default_factory=dict)
+    file_templates: dict[str, str] = Field(default_factory=dict)
+    compression: list[str] = Field(default_factory=list)
 
     @field_validator("file_templates", mode="before")
     @classmethod
-    def _unwrap_lists(cls, v: Dict) -> Dict[str, str]:
+    def _unwrap_lists(cls, v: dict) -> dict[str, str]:
         """Accept both ``str`` and ``[str]`` from YAML."""
-        out: Dict[str, str] = {}
+        out: dict[str, str] = {}
         for key, val in v.items():
             if isinstance(val, list):
                 out[key] = val[0] if val else ""
@@ -77,17 +76,17 @@ class FormatSpec(BaseModel):
     """
 
     description: str = ""
-    versions: Dict[str, FormatVersionSpec] = Field(default_factory=dict)
-    compression: List[str] = Field(default_factory=list)
+    versions: dict[str, FormatVersionSpec] = Field(default_factory=dict)
+    compression: list[str] = Field(default_factory=list)
 
 
 class FormatSpecCollection(BaseModel):
     """Collection of format specifications from the ``formats:`` YAML key."""
 
-    formats: Dict[str, FormatSpec] = Field(default_factory=dict)
+    formats: dict[str, FormatSpec] = Field(default_factory=dict)
 
     @classmethod
-    def from_yaml(cls, path: Union[str, Path]) -> "FormatSpecCollection":
+    def from_yaml(cls, path: str | Path) -> FormatSpecCollection:
         """Load from a YAML file, extracting the ``formats:`` section.
 
         Args:
@@ -111,7 +110,7 @@ class FormatRegistry(BaseModel):
         formats: Mapping of format name to resolved :class:`FormatSpec`.
     """
 
-    formats: Dict[str, FormatSpec] = Field(default_factory=dict)
+    formats: dict[str, FormatSpec] = Field(default_factory=dict)
 
     def get_format(self, name: str) -> FormatSpec:
         """Retrieve a format by name.
@@ -128,9 +127,7 @@ class FormatRegistry(BaseModel):
         try:
             return self.formats[name]
         except KeyError:
-            raise KeyError(
-                f"Format {name!r} not found. Available: {sorted(self.formats)}"
-            )
+            raise KeyError(f"Format {name!r} not found. Available: {sorted(self.formats)}")
 
     def get_version(self, format_name: str, version: str) -> FormatVersionSpec:
         """Retrieve a specific version of a format.
@@ -157,7 +154,7 @@ class FormatRegistry(BaseModel):
     @classmethod
     def build(
         cls, format_spec: FormatSpecCollection, metadata_catalog: ParameterCatalog
-    ) -> "FormatRegistry":
+    ) -> FormatRegistry:
         """Build a :class:`FormatRegistry` by resolving metadata field defaults.
 
         Verifies that every metadata field referenced in a format version
@@ -176,11 +173,11 @@ class FormatRegistry(BaseModel):
             ValueError: If a file template placeholder has no
                 corresponding metadata field.
         """
-        format_spec_collection: Dict[str, FormatSpec] = format_spec.formats
-        format_spec_collection_resolved: Dict[str, FormatSpec] = {}
+        format_spec_collection: dict[str, FormatSpec] = format_spec.formats
+        format_spec_collection_resolved: dict[str, FormatSpec] = {}
 
         for format_spec_name, format_spec_entry in format_spec_collection.items():
-            format_version_spec_collection_resolved: Dict[str, FormatVersionSpec] = {}
+            format_version_spec_collection_resolved: dict[str, FormatVersionSpec] = {}
 
             for version_name, version_spec in format_spec_entry.versions.items():
                 resolved_metadata = {}
@@ -199,9 +196,7 @@ class FormatRegistry(BaseModel):
 
                     resolved_metadata[field_name] = FormatFieldDef(
                         pattern=field_default,
-                        description=field_def.description
-                        if field_def is not None
-                        else None,
+                        description=field_def.description if field_def is not None else None,
                     )
                 for variant_name, file_template in version_spec.file_templates.items():
                     matches = re.findall(r"\{(.*?)\}", file_template)
@@ -214,14 +209,12 @@ class FormatRegistry(BaseModel):
                                 f"does not have a corresponding metadata field."
                             )
 
-                format_version_spec_collection_resolved[version_name] = (
-                    FormatVersionSpec(
-                        description=version_spec.description,
-                        notes=version_spec.notes,
-                        metadata=resolved_metadata,
-                        file_templates=version_spec.file_templates,
-                        compression=version_spec.compression,
-                    )
+                format_version_spec_collection_resolved[version_name] = FormatVersionSpec(
+                    description=version_spec.description,
+                    notes=version_spec.notes,
+                    metadata=resolved_metadata,
+                    file_templates=version_spec.file_templates,
+                    compression=version_spec.compression,
                 )
             format_spec_collection_resolved[format_spec_name] = FormatSpec(
                 description=format_spec_entry.description,

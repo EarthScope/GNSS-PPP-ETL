@@ -18,20 +18,19 @@ import datetime
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional
-
-from gnss_product_management.specifications.remote.resource import SearchTarget, Server
-from gnss_product_management.utilities.paths import AnyPath, as_path
-from pydantic import BaseModel
+from typing import TYPE_CHECKING
 
 from gnss_product_management.specifications.local.local import LocalResourceSpec
-from gnss_product_management.specifications.products.product import (
-    Product,
-    PathTemplate,
-)
 from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from gnss_product_management.specifications.products.catalog import ProductCatalog
+from gnss_product_management.specifications.products.product import (
+    PathTemplate,
+    Product,
+)
+from gnss_product_management.specifications.remote.resource import SearchTarget, Server
 from gnss_product_management.utilities.helpers import _ensure_datetime
+from gnss_product_management.utilities.paths import AnyPath, as_path
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from gnss_product_management.environments.environment import ProductRegistry
@@ -86,7 +85,7 @@ class RegisteredLocalResource(BaseModel):
     name: str
     base_dir: str
     spec: LocalResourceSpec
-    item_to_dir: Dict[str, str]
+    item_to_dir: dict[str, str]
     server: Server
 
     @property
@@ -125,13 +124,13 @@ class WorkSpace:
     def __init__(self):
         """Initialise an empty workspace with no specs loaded."""
 
-        self._registered_specs: Dict[str, RegisteredLocalResource] = {}
-        self._alias_map: Dict[str, str] = {}  # alias → spec name
-        self._resource_specs: Dict[str, LocalResourceSpec] = {}
-        self._product_catalog: Optional[ProductCatalog] = None
-        self._parameter_catalog: Optional[ParameterCatalog] = None
+        self._registered_specs: dict[str, RegisteredLocalResource] = {}
+        self._alias_map: dict[str, str] = {}  # alias → spec name
+        self._resource_specs: dict[str, LocalResourceSpec] = {}
+        self._product_catalog: ProductCatalog | None = None
+        self._parameter_catalog: ParameterCatalog | None = None
 
-    def bind(self, product_registry: "ProductRegistry") -> None:
+    def bind(self, product_registry: ProductRegistry) -> None:
         """Inject catalog references from a built :class:`ProductRegistry`.
 
         Must be called before using :meth:`source_product`,
@@ -143,7 +142,7 @@ class WorkSpace:
         self._product_catalog = product_registry._product_catalog
         self._parameter_catalog = product_registry._parameter_catalog
 
-    def add_resource_spec(self, path: Path | str, id: Optional[str] = None) -> None:
+    def add_resource_spec(self, path: Path | str, id: str | None = None) -> None:
         """Load a :class:`LocalResourceSpec` from a YAML file.
 
         Args:
@@ -169,7 +168,7 @@ class WorkSpace:
         self._resource_specs[name] = spec
 
     def register_spec(
-        self, base_dir: AnyPath | str, spec_ids: List[str], alias: Optional[str] = None
+        self, base_dir: AnyPath | str, spec_ids: list[str], alias: str | None = None
     ) -> None:
         """Bind loaded spec(s) to a base directory and register the result.
 
@@ -192,7 +191,7 @@ class WorkSpace:
         assert base_path.exists(), f"Base directory not found: {base_dir}"
         assert base_path.is_dir(), f"Base directory must be a directory: {base_dir}"
 
-        specs_to_register: List[LocalResourceSpec] = []
+        specs_to_register: list[LocalResourceSpec] = []
         for spec_id in spec_ids:
             assert spec_id in self._resource_specs, (
                 f"Spec id '{spec_id}' not found. Available specs: {list(self._resource_specs.keys())}"
@@ -217,7 +216,7 @@ class WorkSpace:
                     )
             self._alias_map[alias] = spec_to_register.name
 
-        item_to_dir: Dict[str, str] = {}
+        item_to_dir: dict[str, str] = {}
         for coll_name, coll in spec_to_register.collections.items():
             for item in coll.items:
                 if item in item_to_dir:
@@ -249,7 +248,7 @@ class WorkSpace:
         self,
         spec: LocalResourceSpec | Path | str,
         base_dir: Path | str,
-        alias: Optional[str] = None,
+        alias: str | None = None,
     ) -> None:
         """Register a local resource specification in one step.
 
@@ -299,7 +298,7 @@ class WorkSpace:
                 )
             self._alias_map[alias] = name
 
-        item_to_dir: Dict[str, str] = {}
+        item_to_dir: dict[str, str] = {}
         for coll_name, coll in spec.collections.items():
             for item in coll.items:
                 if item in item_to_dir:
@@ -318,7 +317,7 @@ class WorkSpace:
         )
 
     @property
-    def resource_ids(self) -> List[str]:
+    def resource_ids(self) -> list[str]:
         """Identifiers for all registered local resources."""
         return list(self._registered_specs.keys())
 
@@ -344,7 +343,7 @@ class WorkSpace:
             )
         return registered_spec
 
-    def source_product(self, product: Product, resource_id: str) -> List[SearchTarget]:
+    def source_product(self, product: Product, resource_id: str) -> list[SearchTarget]:
         """Resolve a product into SearchTarget objects for a local resource.
 
         Args:
@@ -403,9 +402,7 @@ class WorkSpace:
                 f"Spec {product.name!r} not found in any local collection. "
                 f"Known specs: {list(registered_spec.item_to_dir.keys())}"
             )
-        resolved = self._parameter_catalog.interpolate(
-            directory_template, dt, computed_only=True
-        )
+        resolved = self._parameter_catalog.interpolate(directory_template, dt, computed_only=True)
 
         out_query = SearchTarget(
             product=product,
@@ -439,8 +436,8 @@ class WorkSpace:
     def find_local_files(
         self,
         query: SearchTarget,
-        date: Optional[datetime.date] = None,
-    ) -> List[AnyPath]:
+        date: datetime.date | None = None,
+    ) -> list[AnyPath]:
         """Search local or cloud storage for files matching a query.
 
         Works identically for local :class:`~pathlib.Path` and cloud
@@ -456,15 +453,11 @@ class WorkSpace:
         Raises:
             KeyError: If the query's server is not registered.
         """
-        assert self._parameter_catalog is not None, (
-            "Call bind() before find_local_files()"
-        )
+        assert self._parameter_catalog is not None, "Call bind() before find_local_files()"
         dir_pattern = query.directory.pattern
         if date:
             date = _ensure_datetime(date)
-            dir_pattern = self._parameter_catalog.interpolate(
-                dir_pattern, date, computed_only=True
-            )
+            dir_pattern = self._parameter_catalog.interpolate(dir_pattern, date, computed_only=True)
 
         # Find the registered spec that owns this query's server.
         registered_spec = None
@@ -479,9 +472,7 @@ class WorkSpace:
                 f"Known servers: {[s.server.id for s in self._registered_specs.values()]}"
             )
 
-        file_pattern = (
-            query.product.filename.pattern if query.product.filename else None
-        )
+        file_pattern = query.product.filename.pattern if query.product.filename else None
         if date and file_pattern:
             date = _ensure_datetime(date)
             file_pattern = self._parameter_catalog.interpolate(
@@ -513,9 +504,9 @@ class WorkSpace:
 
         Requires the ``rich`` package (bundled as a project dependency).
         """
+        from rich import box
         from rich.console import Console
         from rich.table import Table
-        from rich import box
 
         console = Console()
 

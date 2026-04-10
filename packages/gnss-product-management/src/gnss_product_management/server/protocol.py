@@ -6,7 +6,7 @@ Protocol adapter interface for directory listing and file download.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -21,7 +21,7 @@ class DirectoryAdapter(Protocol):
         """Return *True* if the host is reachable."""
         ...
 
-    def list_directory(self, hostname: str, directory: str) -> List[str]:
+    def list_directory(self, hostname: str, directory: str) -> list[str]:
         """Return filenames in *directory* on *hostname*."""
         ...
 
@@ -31,6 +31,6 @@ class DirectoryAdapter(Protocol):
         directory: str,
         filename: str,
         dest_path: Path,
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """Download *filename* to *dest_path*.  Return the path on success."""
         ...

@@ -6,13 +6,11 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-
 from pride_ppp.factories.output import (
     get_wrms_from_res,
     kin_to_kin_position_df,
     validate_kin_file,
 )
-
 
 # ---------------------------------------------------------------------------
 # kin_to_kin_position_df

@@ -27,23 +27,17 @@ query_agent = client.query().on(date)
 
 # --- Search only -----------------------------------------------------------
 
-orbit_results = (
-    query_agent.for_product("ORBIT").where(TTT="FIN").sources("COD", "ESA").search()
-)
+orbit_results = query_agent.for_product("ORBIT").where(TTT="FIN").sources("COD", "ESA").search()
 print(f"Search results for ORBIT on {date.date()}:\n")
 for r in orbit_results:
     print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
 
-clock_results = (
-    query_agent.for_product("CLOCK").where(TTT="FIN").sources("COD", "ESA").search()
-)
+clock_results = query_agent.for_product("CLOCK").where(TTT="FIN").sources("COD", "ESA").search()
 print(f"\nSearch results for CLOCK on {date.date()}:\n")
 for r in clock_results:
     print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
 
-erp_results = (
-    query_agent.for_product("ERP").where(TTT="FIN").sources("COD", "ESA").search()
-)
+erp_results = query_agent.for_product("ERP").where(TTT="FIN").sources("COD", "ESA").search()
 print(f"\nSearch results for ERP on {date.date()}:\n")
 for r in erp_results:
     print(f"  [FOUND]   {r.hostname:<35s}  {r.filename}")
@@ -56,7 +50,7 @@ for r in attobx_results:
 # --- Pattern A: fluent one-shot download -----------------------------------
 # Best when you don't need to inspect results first.
 
-print(f"\n--- Pattern A: fluent one-shot download ---")
+print("\n--- Pattern A: fluent one-shot download ---")
 paths = (
     query_agent.for_product("ORBIT")
     .where(TTT="FIN")
@@ -69,10 +63,8 @@ for p in paths:
 # --- Pattern B: two-step inspect-then-download ----------------------------
 # Best when you want to filter or log results before committing to a download.
 
-print(f"\n--- Pattern B: two-step inspect-then-download ---")
-clock_results = (
-    query_agent.for_product("CLOCK").where(TTT="FIN").sources("COD").search()
-)
+print("\n--- Pattern B: two-step inspect-then-download ---")
+clock_results = query_agent.for_product("CLOCK").where(TTT="FIN").sources("COD").search()
 best = [r for r in clock_results if r.protocol.lower() in ("ftp", "ftps", "https")][:1]
 paths = client.download(best, sink_id="local")
 for p in paths:

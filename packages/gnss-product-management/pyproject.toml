@@ -23,7 +23,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["test"]
 addopts = "-v -s"
 log_cli = true
 log_cli_level = "INFO"
@@ -42,4 +42,3 @@ raw-options = { root = "../.." }
 
 [tool.hatch.build.targets.wheel]
 force-include = { "pyproject.toml" = "pyproject.toml" }
-
