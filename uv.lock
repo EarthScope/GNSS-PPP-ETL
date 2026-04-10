@@ -753,6 +753,7 @@ dependencies = [
     { name = "cloudpathlib" },
     { name = "gnss-product-management" },
     { name = "pride-ppp" },
+    { name = "pytest" },
 ]
 
 [package.dev-dependencies]
@@ -770,6 +771,7 @@ requires-dist = [
     { name = "cloudpathlib", specifier = ">=0.23.0" },
     { name = "gnss-product-management", editable = "packages/gnss-product-management" },
     { name = "pride-ppp", editable = "packages/pride-ppp" },
+    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [package.metadata.requires-dev]
