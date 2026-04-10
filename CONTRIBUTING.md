@@ -58,12 +58,12 @@ directory automatically — no manifest to update.
 
 id: NRC                     # IAG/IGS three-character analysis center code
 name: Natural Resources Canada
-website: https://webapp.csrs-scrs.nrcan-rncan.gc.ca/
+website: https://natural-resources.canada.ca/maps-tools-publications/data
 
 servers:
   - id: nrcan_ftp
     name: NRCan Products FTP
-    hostname: "ftp://products.nrcan.gc.ca"
+    hostname: "ftp://pretend.ftp.server"
     protocol: ftp             # ftp | ftps | http | https
     auth_required: false
 
@@ -117,26 +117,6 @@ results = (
 )
 print(results)
 ```
-
-#### FTPS and authenticated centers
-
-For FTPS (e.g., CDDIS-style):
-
-```yaml
-servers:
-  - id: myserver_ftps
-    hostname: "ftps://secure.example.org"
-    protocol: ftps
-    auth_required: true
-```
-
-Authentication is read from `~/.netrc`. Add a line:
-
-```
-machine secure.example.org login <username> password <password>
-```
-
-The client never stores credentials in the spec files.
 
 ---
 
