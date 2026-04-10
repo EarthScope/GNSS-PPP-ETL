@@ -1,24 +1,28 @@
 # gnss-product-management
 
-Specification-driven discovery, resolution, and download of GNSS Precise Point Positioning products from IGS analysis centers.
+Specification-driven discovery, resolution, and download of IGS GNSS products
+from analysis center servers.
 
 ## What it does
 
-- **YAML-driven specs** — products, formats, centers, and local storage are defined in bundled YAML configurations. No code changes needed to add a new center or product type.
-- **Query engine** — give it a date and product name; it resolves the exact remote path (FTP, FTPS, HTTP) across all registered centers using a parameter catalog and template expansion.
-- **Dependency resolver** — declare what a processing task needs (orbit, clock, bias, ERP, …) and the resolver finds, downloads, and caches every product in one call.
-- **Local workspace** — resolved products land in a structured local directory tree, tracked by lock files for reproducibility.
+- Resolves IGS long filenames from a date and product name using the parameter
+  catalog (`TTT`, `AAA`, `YYYY`, `DDD`, `GPSWEEK`, etc.)
+- Queries FTP, FTPS, and HTTP servers at registered analysis centers, lists
+  directories, and matches filenames by regex
+- Downloads and decompresses `.gz` files into a structured local workspace or
+  cloud storage bucket
+- Resolves a complete `DependencySpec` (orbit + clock + bias + ERP + …) in
+  one call, with a lockfile fast-path for repeat runs
 
 ## Installation
 
-**From the monorepo (development):**
+From the monorepo (development):
 
 ```bash
-# From the repository root — uv resolves workspace dependencies automatically
 uv sync
 ```
 
-**Standalone:**
+Standalone:
 
 ```bash
 uv add gnss-product-management
@@ -26,55 +30,84 @@ uv add gnss-product-management
 pip install gnss-product-management
 ```
 
+---
+
+## Product parameters
+
+Every IGS long filename encodes a set of named fields. This library uses the
+same names as keys throughout:
+
+| Parameter | IGS field | Meaning | Common values |
+|---|---|---|---|
+| `TTT` | solution type | Timeliness/quality class | `FIN` (final ≥13 d), `RAP` (rapid ≤17 h), `ULT` (ultra-rapid ≤3 h), `NRT` (near-real-time), `PRD` (predicted) |
+| `AAA` | analysis center | Producing AC | `COD`, `ESA`, `GFZ`, `WUM`, `IGS`, … |
+| `YYYY` | year | 4-digit year | computed from date |
+| `DDD` | day-of-year | Day of year | computed from date |
+| `GPSWEEK` | GPS week | GPS week number | computed from date |
+| `SMP` | sampling interval | File sampling | `05M`, `30S`, `01H`, … |
+| `FMT` | format | File extension | `SP3`, `CLK`, `BIA`, … |
+
+Computed fields (`YYYY`, `DDD`, `GPSWEEK`, etc.) are resolved automatically
+from the query date. You only need to specify the fields you want to pin.
+
+---
+
 ## Quick start
 
-### 1. Search (no local storage needed)
+### Search across centers
 
 ```python
 from datetime import datetime, timezone
 from gnss_product_management import GNSSClient
 
-date = datetime(2025, 1, 2, tzinfo=timezone.utc)
-
-# Build client from bundled specs — no base_dir means search-only mode
 client = GNSSClient.from_defaults()
+date = datetime(2025, 1, 15, tzinfo=timezone.utc)  # 2025 DOY 015
 
 results = (
     client.query()
     .for_product("ORBIT")
     .on(date)
-    .where(TTT="FIN")              # final solution
-    .sources("COD", "ESA", "IGS") # restrict to these centers
-    .prefer(TTT=["FIN", "RAP", "ULT"])
+    .where(TTT="FIN")
+    .sources("COD", "WUM", "GFZ")
+    .prefer(TTT=["FIN", "RAP", "ULT"], AAA=["WUM", "COD", "GFZ"])
     .search()
 )
-
 for r in results:
-    print(r.center, r.quality, r.filename)
+    print(r.center, r.quality, r.filename, r.uri)
 ```
 
-### 2. Download products
+### Download one product
 
 ```python
-from pathlib import Path
+client = GNSSClient.from_defaults(base_dir="/data/gnss-products")
 
-client = GNSSClient.from_defaults(base_dir=Path.home() / "gnss_data")
-
-# search() + download() in one fluent chain
 paths = (
     client.query()
     .for_product("ORBIT")
     .on(date)
     .where(TTT="FIN")
-    .sources("COD")
-    .download(sink_id="local")
+    .sources("WUM")
+    .download(sink_id="local", limit=1)
 )
-
-for p in paths:
-    print(p)
 ```
 
-### 3. Resolve all processor dependencies
+### Search a date range
+
+```python
+from datetime import timedelta
+
+results = (
+    client.query()
+    .for_product("CLOCK")
+    .on_range(start_date, end_date, step=timedelta(days=1))
+    .where(TTT="FIN")
+    .sources("COD")
+    .search()
+)
+# Searches run in parallel across dates (up to 8 concurrent threads)
+```
+
+### Resolve all dependencies
 
 ```python
 resolution, lockfile_path = client.resolve_dependencies(
@@ -82,98 +115,147 @@ resolution, lockfile_path = client.resolve_dependencies(
     date,
     sink_id="local",
 )
-
 print(resolution.summary())
-print(resolution.table())
 
 if resolution.all_required_fulfilled:
-    for spec_name, path in resolution.product_paths().items():
-        print(f"{spec_name}: {path}")
+    for spec, path in resolution.product_paths().items():
+        print(f"{spec:12s}  {path}")
 ```
 
-See [examples/](examples/) for runnable scripts with full explanations.
+---
 
-## Core concepts
+## DependencySpec YAML
 
-### Product parameters
+A `DependencySpec` encodes which products a processing task needs, from which
+centers to prefer them, and the timeliness cascade:
 
-Every GNSS product file is identified by a set of parameters.  The two most
-important are:
+```yaml
+name: my_task
+package: my-package
+task: ppp_processing
+preferences:
+  - parameter: TTT                    # prefer final products
+    sorting: [FIN, RAP, ULT]
+  - parameter: AAA                    # prefer WUM then COD
+    sorting: [WUM, COD, ESA, GFZ]
+dependencies:
+  - spec: ORBIT
+    required: true
+  - spec: CLOCK
+    required: true
+  - spec: BIA
+    required: false                   # optional for float PPP; required for PPP-AR integer fixing
+  - spec: ERP
+    required: true
+  - spec: ATTATX
+    required: true
+    constraints:
+      TTT: FIN                        # per-dependency overrides
+```
 
-| Parameter | Meaning | Common values |
-|---|---|---|
-| `TTT` | Solution type / timeliness | `FIN` (final), `RAP` (rapid), `ULT` (ultra-rapid) |
-| `AAA` | Analysis center | `COD`, `ESA`, `GFZ`, `WUM`, `IGS`, … |
+The `spec` field must match a product name registered in the catalog
+(`ORBIT`, `CLOCK`, `BIA`, `ERP`, `GIM`, `ATTATX`, etc.). The `preferences`
+list is evaluated top-down; when multiple products match, the one ranked
+highest by the preference cascade is used.
 
-Chain `.where(TTT="FIN")` on a query to filter, and `.prefer(TTT=["FIN", "RAP"])` to
-rank results without hard-filtering.
+---
 
-### FoundResource
+## Cloud workspace
 
-`search()` returns a list of `FoundResource` objects.  Each one represents a single
-candidate file — either on a remote server or in local storage — with convenience
-properties:
-
-| Property | Description |
-|---|---|
-| `r.center` | Analysis center (e.g. `"COD"`) |
-| `r.quality` | Solution tier (e.g. `"FIN"`) |
-| `r.filename` | File name only |
-| `r.uri` | Full remote URL or local path |
-| `r.protocol` | `"ftp"`, `"https"`, or `"file"` |
-| `r.hostname` | Server hostname |
-| `r.local_path` | Set after a successful download |
-| `r.downloaded` | `True` if `local_path` is set |
-
-### DependencySpec
-
-A YAML file that lists every product a processor needs, the centers to prefer, and the
-solution tier cascade.  Pass the path directly to `resolve_dependencies()`:
+Any URI scheme supported by
+[cloudpathlib](https://cloudpathlib.drivendata.org/) works as `base_dir`:
 
 ```python
-resolution, _ = client.resolve_dependencies("pride_pppar.yaml", date, sink_id="local")
+# Amazon S3
+client = GNSSClient.from_defaults(base_dir="s3://my-bucket/gnss/products")
+
+# Google Cloud Storage
+client = GNSSClient.from_defaults(base_dir="gs://my-bucket/gnss/products")
+
+# Azure Blob Storage
+client = GNSSClient.from_defaults(base_dir="az://my-container/gnss/products")
 ```
 
-The resolver checks the local workspace first (fast-path via lockfile), then downloads
-missing files.  Subsequent calls with the same date return immediately.
+Lock files are stored under `base_dir/dependency_lockfiles/`. When multiple
+workers share the same prefix, the first to complete a dependency resolution
+writes the lockfile; subsequent workers detect it and skip all network
+activity.
 
-## Architecture
+---
 
-The package is organized into four layers (see [docs/architecture.md](../../docs/architecture.md) for full details):
+## Connection pool configuration
 
+`max_connections` sets the per-hostname connection pool size. The default of
+4 is conservative; adjust based on the center's documented limits:
+
+```python
+client = GNSSClient.from_defaults(
+    base_dir="/data/gnss",
+    max_connections=8,      # increase for less restrictive servers
+)
 ```
-Layer 3 — Client          GNSSClient (single user-facing entry point)
-Layer 2 — Pipelines       ProductQuery, DownloadPipeline, ResolvePipeline
-Layer 1 — Factories       SearchPlanner, WormHole, ConnectionPoolFactory
-Layer 0 — Specifications  ProductSpec, FormatSpec, DependencySpec, YAML configs
+
+CDDIS (NASA) enforces strict anonymous FTPS connection limits — keep
+`max_connections` at 2–4 for CDDIS queries. FTP centers (COD, WUM, GFZ)
+generally tolerate 6–8. When a limit is exceeded the pool blocks until a
+slot is free; no requests are dropped.
+
+---
+
+## Custom registry
+
+To load your own center or product specs instead of the bundled defaults:
+
+```python
+from gnss_product_management.environments import ProductRegistry, WorkSpace
+from gnss_product_management import GNSSClient
+
+registry = ProductRegistry()
+registry.add_parameter_spec("path/to/meta_spec.yaml")
+registry.add_format_spec("path/to/format_spec.yaml")
+registry.add_product_spec("path/to/product_spec.yaml")
+registry.add_resource_spec("path/to/my_center.yaml")   # one per center
+registry.build()
+
+workspace = WorkSpace()
+workspace.add_resource_spec("path/to/local_config.yaml")
+workspace.register_spec(base_dir="/data/gnss", spec_ids=["local_config"])
+
+client = GNSSClient(product_registry=registry, workspace=workspace)
 ```
 
-Each layer depends only on layers below it.  All user code should go through
-`GNSSClient`.
+---
 
-## API overview
+## API reference
 
-| Symbol | Purpose |
+| Symbol | Description |
 |---|---|
 | `GNSSClient` | Single entry point — search, download, resolve |
-| `GNSSClient.query()` | Returns a fluent `ProductQuery` builder |
-| `GNSSClient.search()` | Direct search without the builder |
-| `GNSSClient.download()` | Download pre-searched `FoundResource` objects |
+| `GNSSClient.from_defaults()` | Build from bundled specs |
+| `GNSSClient.query()` | Returns a `ProductQuery` fluent builder |
+| `GNSSClient.search()` | Direct search (bypasses builder) |
+| `GNSSClient.download()` | Download pre-searched `FoundResource` list |
 | `GNSSClient.resolve_dependencies()` | Full spec-driven dependency resolution |
-| `GNSSClient.display()` | Rich tables showing loaded products and centers |
-| `ProductQuery` | Fluent builder: `.for_product()`, `.on()`, `.where()`, `.sources()`, `.prefer()`, `.search()`, `.download()` |
-| `FoundResource` | Single discovered file — remote URI or local path with metadata properties |
+| `GNSSClient.display()` | Print loaded products and registered centers |
+| `ProductQuery` | Builder: `.for_product()` `.on()` `.where()` `.sources()` `.prefer()` `.on_range()` `.search()` `.download()` |
+| `FoundResource` | Discovered file — `.center`, `.quality`, `.filename`, `.uri`, `.is_local`, `.downloaded` |
 | `DependencySpec` | Parsed YAML dependency specification |
 | `DependencyResolution` | Result of `resolve_dependencies()` — `.summary()`, `.table()`, `.product_paths()`, `.missing` |
 
-## Supported centers
+---
 
-| Center | Products |
-|---|---|
-| **CDDIS** (NASA) | clock, GIM, leap seconds, navigation, orbit |
-| **COD** (AIUB) | bias, clock, ERP, GIM, orbit |
-| **ESA** (ESOC) | clock, GIM, orbit |
-| **GFZ** (Potsdam) | clock, orbit |
-| **IGS** (IGN France) | ATX, bias, clock, ERP, navigation, OBX, orbit |
-| **VMF** (TU Wien) | orography, VMF1, VMF3 |
-| **WUM** (Wuhan) | bias, clock, ERP, GIM, leap seconds, navigation, OBX, orbit, sat_parameters |
+## Supported analysis centers
+
+| Center | Institution | Protocol | Products |
+|---|---|---|---|
+| CDDIS | NASA GSFC | FTPS | clock, GIM, leap seconds, navigation, orbit |
+| COD | AIUB / Univ. Bern | FTP | bias, clock, ERP, GIM, orbit |
+| ESA | ESA/ESOC | FTP | clock, GIM, orbit |
+| GFZ | GFZ Potsdam | FTP | clock, orbit |
+| IGS | IGS combined products (files.igs.org) | FTP / HTTPS | ATX, bias, clock, ERP, navigation, OBX, orbit |
+| VMF | TU Wien | HTTPS | orography, VMF1, VMF3 |
+| WUM | Wuhan University (WHU) | FTP | bias, clock, ERP, GIM, leap seconds, navigation, OBX, orbit, sat_parameters |
+
+> **CDDIS authentication:** CDDIS requires an EarthData login for FTPS
+> access. Add credentials for `cddis.nasa.gov` to your `~/.netrc` file.
+> Registration: <https://cddis.nasa.gov/Data_and_Derived_Products/CreateAccount.html>

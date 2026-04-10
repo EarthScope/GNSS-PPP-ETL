@@ -61,16 +61,22 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessingMode(enum.Enum):
-    """Product timeliness mode.
+    """IGS product timeliness mode for dependency resolution.
 
-    Controls which dependency-spec YAML is used for product resolution.
-    The timeliness codes refer to IGS product latency classes:
-    FIN = final (≥13 days), RAP = rapid (≤17 hours), ULT = ultra-rapid (≤3 hours).
+    Selects which dependency-spec YAML governs which products are accepted.
 
-    * ``DEFAULT`` — cascades through FIN → RAP → ULT, using the best
-      available product at the time of the run.
-    * ``FINAL``   — only accepts final (FIN) products; fails if FIN
-      products are not yet available for the requested date.
+    * ``DEFAULT`` — cascades through FIN → RAP → ULT.  Uses the best
+      available product at run time.  Suitable for near-real-time processing
+      or when the observation date is within the last two weeks.
+    * ``FINAL``   — accepts only IGS final (FIN) products (available ≥13 days
+      after observation).  Suitable for post-processing campaigns where
+      reproducibility and highest accuracy are required.
+
+    IGS product latency reference (approximate):
+
+    - FIN (final)       : orbit ≈ 13 days,  clock ≈ 13 days
+    - RAP (rapid)       : orbit ≈ 17 hours, clock ≈ 17 hours
+    - ULT (ultra-rapid) : orbit ≈ 3 hours,  clock predicted half
     """
 
     DEFAULT = "default"
@@ -144,12 +150,26 @@ class ProcessingResult:
         return self.kin_path is not None and self.kin_path.exists()
 
     def positions(self) -> pd.DataFrame | None:
-        """Parse the ``.kin`` file into a DataFrame with WRMS residuals.
+        """Parse the ``.kin`` file into a DataFrame of kinematic positions.
 
         Returns
         -------
         pd.DataFrame or None
-            Kinematic position DataFrame, or ``None`` if the run failed.
+            Kinematic position DataFrame indexed by UTC epoch, or ``None``
+            if the run failed.  Columns:
+
+            * ``Latitude``  — geodetic latitude (degrees)
+            * ``Longitude`` — geodetic longitude (degrees)
+            * ``Height``    — ellipsoidal height (metres)
+            * ``Nsat``      — number of satellites used in the epoch solution
+            * ``PDOP``      — position dilution of precision
+            * ``wrms``      — phase residual WRMS per epoch (mm), merged
+              from the ``.res`` file
+
+            Coordinates are in the reference frame of the resolved orbit/clock
+            products (IGS20/ITRF2020 for Repro3+ products; IGS14/ITRF2014 for
+            earlier series). Epochs with ``Nsat ≤ 4`` or ``PDOP ≥ 5`` should
+            be treated with caution.
         """
         if not self.success or self.kin_path is None:
             return None
@@ -176,9 +196,14 @@ class ProcessingResult:
 def _infer_site(rinex: Path) -> str:
     """Extract a 4-character site identifier from a RINEX filename.
 
-    Matches the first four alphanumeric characters of the filename stem
-    (e.g. ``NCC12540.25o`` → ``NCC1``).  Falls back to ``"SIT1"`` when
-    the filename does not conform to the expected RINEX naming convention.
+    Matches the first four alphanumeric characters of the filename stem.
+    Works for both RINEX 3 long names (``SITE00USA_R_20251500000_01D_30S_MO.rnx``
+    → ``SITE``) and legacy 8.3 names (``NCC12500.25o`` → ``NCC1``).
+
+    Falls back to ``"SIT1"`` when the filename does not contain a
+    4-character alphanumeric prefix.  This fallback is silent — pass
+    ``site=`` explicitly to :meth:`PrideProcessor.process` for non-standard
+    filenames so that output files are named correctly.
 
     Args:
         rinex: Path to a RINEX observation file.
@@ -297,27 +322,37 @@ def _write_config(
 
 
 class PrideProcessor:
-    """Facade: RINEX file in → kinematic positions out.
+    """RINEX observation file in → kinematic PPP-AR positions out.
 
-    Owns its own ProductEnvironment and WorkSpace.  No global state.
-    Thread-safe for concurrent ``process()`` calls.
+    Owns its own :class:`ProductRegistry`, :class:`WorkSpace`, and
+    :class:`GNSSClient`.  No global state; a single instance is safe to
+    reuse across many :meth:`process` / :meth:`process_batch` calls.
 
-    Attributes
-    ----------
-    _pride_dir : Path
-        Root directory for PRIDE products and working state.
-    _output_dir : Path
-        Final destination for ``.kin`` / ``.res`` output files.
-    _pride_install_dir : Path or None
-        Optional path to an existing PRIDE-PPPAR installation.
-    _cli_config : PrideCLIConfig
-        Configuration for pdp3 CLI flag generation.
-    _mode : ProcessingMode
-        Product timeliness mode (DEFAULT or FINAL).
-    _client : GNSSClient
-        Configured GNSS client — owns product resolution and download.
-    _dep_spec : DependencySpec
-        Dependency specification governing product resolution.
+    The full pipeline per RINEX file:
+
+    1. Infer site ID and observation date from the RINEX filename/header.
+    2. Resolve IGS products (orbit, clock, bias, ERP, ATX) for that date
+       via :meth:`GNSSClient.resolve_dependencies`.  Skips resolution if a
+       valid ``DependencyLockFile`` already exists.
+    3. Return a cached :class:`ProcessingResult` if a valid ``.kin`` output
+       already exists in ``output_dir`` (unless *override* is ``True``).
+    4. Write a ``pdp3`` ``config_file`` to ``pride_dir/{year}/{doy}/``.
+    5. Execute ``pdp3`` and move ``.kin`` / ``.res`` outputs to ``output_dir``.
+
+    For a full station-year, use :meth:`process_batch`: it resolves products
+    once per unique date, writes configs for all dates, skips cached results,
+    then dispatches ``pdp3`` subprocesses in parallel.
+
+    Example::
+
+        processor = PrideProcessor(
+            pride_dir=Path("/data/pride"),
+            output_dir=Path("/data/output"),
+            mode=ProcessingMode.FINAL,
+        )
+        for result in processor.process_batch(rinex_files, max_workers=4):
+            if result.success:
+                print(result.date, len(result.positions()), "epochs")
     """
 
     def __init__(

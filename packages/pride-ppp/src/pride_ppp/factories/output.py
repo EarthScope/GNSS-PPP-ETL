@@ -24,17 +24,24 @@ logger = logging.getLogger(__name__)
 
 
 def get_wrms_from_res(res_path):
-    """Get WRMS from a RES file.
+    """Compute per-epoch phase residual WRMS from a pdp3 ``.res`` file.
+
+    The WRMS is computed as :math:`\\sqrt{\\sum w_i r_i^2 / \\sum w_i}` where
+    :math:`r_i` are the double-differenced phase residuals (cycles) and
+    :math:`w_i` are the corresponding weights, then converted to millimetres.
 
     Parameters
     ----------
-    res_path : str
-        The path to the RES file.
+    res_path : str or Path
+        Path to the pdp3 residual output file (``res_{YYYY}{DOY}_{site}.res``).
 
     Returns
     -------
     pd.DataFrame
-        A DataFrame with the WRMS data.
+        Two-column DataFrame:
+
+        * ``date``  \u2014 UTC epoch timestamp
+        * ``wrms``  \u2014 phase residual WRMS (mm) for that epoch
     """
     with open(res_path) as res_file:
         timestamps = []

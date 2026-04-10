@@ -18,7 +18,18 @@ if TYPE_CHECKING:
 
 
 class FoundResource(BaseModel):
-    """A discovered product resource — either a local file or a remote URI."""
+    """A discovered IGS product — either a local file or a remote URI.
+
+    Returned by :meth:`GNSSClient.search` and :meth:`ProductQuery.search`.
+    The most useful properties for geodetic workflows:
+
+    - ``r.center`` — analysis center code (``AAA`` field, e.g. ``"WUM"``)
+    - ``r.quality`` — timeliness code (``TTT`` field: ``"FIN"``, ``"RAP"``, ``"ULT"``)
+    - ``r.filename`` — bare IGS long filename
+    - ``r.uri`` — full remote URL (``ftp://...``) or local path
+    - ``r.is_local`` — ``True`` if already on disk
+    - ``r.downloaded`` — ``True`` after a successful download
+    """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

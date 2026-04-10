@@ -1,31 +1,60 @@
-# `factories/`: The Workhorses of GNSS Product Management
+# `factories/` — Orchestration layer
 
-Alright, this `factories/` directory is where a lot of the heavy lifting happens. Think of these as the specialist workshops, each one dedicated to building, managing, or orchestrating a particular aspect of our GNSS product handling system. These classes are designed to encapsulate complex logic, create specific types of objects, and generally keep the machinery of data fetching and processing running smoothly.
+This directory contains the classes that coordinate between the catalog layer
+(resolved specs) and external I/O (FTP/HTTPS servers, local/cloud filesystem).
 
-Here's a rundown of the key players you'll find in this bustling workshop:
+## Key classes
 
-*   **`query_factory.py`**: The Master Planner (`QueryFactory`)
-    *   This is where we take high-level product requests (like "give me orbits for this date") and turn them into concrete, actionable `ResourceQuery` objects. It narrows down the search space based on our configurations, generating precise instructions for finding products both locally and remotely. It's the brains behind translating intent into search parameters.
+### `SearchPlanner` (`search_planner.py`)
 
-*   **`resource_fetcher.py`**: The Data Retriever (`ResourceFetcher`)
-    *   Once the `QueryFactory` has figured out *what* to look for, the `ResourceFetcher` rolls up its sleeves and actually goes and finds it. It takes `ResourceQuery` objects, lists remote (FTP/HTTP) or local directories, matches filenames using clever regex patterns, and then, crucially, handles the downloading and initial decompression of those files. It's the intrepid explorer bringing data home.
+Translates a product name + date + parameter constraints into a list of
+`SearchTarget` objects — one per (product × version × variant × resource)
+combination. It delegates to `ProductRegistry` for remote targets and
+`WorkSpace` for local targets, both of which satisfy the `SourcePlanner`
+protocol.
 
-*   **`local_factory.py`**: The Local Librarian (`LocalResourceFactory`)
-    *   This factory is the meticulous housekeeper for our local data archive. It knows exactly where each type of downloaded GNSS product should go on our disk, based on our `local_config.yaml`. It manages the registration of local storage locations, prevents path overlaps, and helps construct the final destination paths for incoming files. It also helps us find files we've already stored.
+### `WormHole` (`remote_transport.py`)
 
-*   **`remote_factory.py`**: The Remote Expedition Leader (`RemoteResourceFactory`)
-    *   Just as the `LocalResourceFactory` handles local storage, the `RemoteResourceFactory` is in charge of understanding and interacting with various remote GNSS data providers (like CDDIS, IGS, WUM, etc.). It registers their server details and product offerings, allowing our system to "source" products from these distant locations.
+Takes a `SearchTarget` list, groups targets by `(hostname, directory)`,
+lists remote directories in parallel via `ConnectionPoolFactory`, and
+matches filenames by regex. Returns expanded `SearchTarget` objects with
+`filename.value` populated. Also handles single-file downloads.
 
-*   **`connection_pool.py`**: The Network Manager (`ConnectionPoolFactory`)
-    *   Any time we talk to a remote server (be it FTP or HTTP), this factory is on the job. It manages and reuses network connections efficiently, preventing us from opening and closing connections unnecessarily. This makes our data fetching much faster and more reliable, especially when dealing with many requests.
+### `ConnectionPoolFactory` (`connection_pool.py`)
 
-*   **`dependency_resolver.py`**: The Supply Chain Manager (`DependencyResolver`)
-    *   This factory is responsible for making sure that for any given processing task, all required input products (dependencies) are available. It uses the `dependencies/` configurations to figure out what's needed and can even try multiple sources or preferences to fulfill those needs. It's crucial for getting all the right ingredients before starting a complex computational recipe.
+Manages per-hostname `ConnectionPool` objects backed by
+[fsspec](https://filesystem-spec.readthedocs.io/). Supports FTP, FTPS, HTTP,
+HTTPS, and local file:// URIs. The pool semaphore enforces `max_connections`
+per host — callers block rather than fail when the limit is reached.
 
-*   **`resource_factory.py`**: The General Foreman (`ResourceFactory`)
-    *   This one acts as a more general orchestrator, potentially coordinating the activities of other resource-related factories or providing a unified interface for various resource management tasks. It's often the first point of contact for higher-level components needing to interact with different types of resources.
+### `SearchPlanner` + `WormHole` interaction
 
-*   **`models.py`**: The Data Architects
-    *   While not a "factory" in the same sense, this file typically contains the Pydantic models and data structures that are created, manipulated, and passed around by all these factories. These models (like `ResourceQuery`, `Product`, `Server`, etc.) define the consistent shape and validation for our data throughout the system.
+```
+SearchPlanner.get(date, product, parameters)
+    → List[SearchTarget]   (directory pattern + filename pattern)
+WormHole.search(targets)
+    → List[SearchTarget]   (filename.value populated from directory listing)
+WormHole.download_one(target, ...)
+    → Path                 (decompressed local file)
+```
 
-In essence, the `factories/` directory is where the operational logic for our GNSS product pipeline is implemented. These classes work together in a well-oiled machine to find, fetch, store, and manage the vast quantities of data essential for Precise Point Positioning. Treat them with care, as they are the very engine of our system!
+## Pipelines (`pipelines/`)
+
+| Class | File | Responsibility |
+|---|---|---|
+| `DownloadPipeline` | `pipelines/download.py` | `FoundResource` → downloaded local path + sidecar lockfile |
+| `LockfileWriter` | `pipelines/lockfile_writer.py` | `DependencyResolution` → aggregate `DependencyLockFile` |
+| `ResolvePipeline` | `pipelines/resolve.py` | `DependencySpec` + date → `DependencyResolution` + lockfile path |
+
+`ResolvePipeline` composes `ProductQuery` + `DownloadPipeline` +
+`LockfileWriter`. It resolves all dependencies in parallel
+(`ThreadPoolExecutor`, up to 15 workers) and writes the aggregate lockfile
+only when all required dependencies are fulfilled.
+
+## Supporting files
+
+| File | Contents |
+|---|---|
+| `models.py` | `FoundResource`, `Resolution`, `DiscoveryEntry`, `DiscoveryReport`, `MissingProductError` |
+| `ranking.py` | `sort_by_protocol`, `sort_by_preferences` — pure functions, no state |
+| `source_planner.py` | `SourcePlanner` Protocol — implemented by `ProductRegistry` and `WorkSpace` |

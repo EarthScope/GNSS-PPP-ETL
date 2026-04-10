@@ -5,25 +5,9 @@ grouped by architectural layer.
 
 ---
 
-## Layer 0 — Server Adapters
+## Layer 0 — Configuration & Utilities
 
-Low-level directory listing and file download over FTP, HTTP, and local filesystem.
-
-| Class | File | Base | Description |
-|---|---|---|---|
-| `DirectoryAdapter` | `server/protocol.py` | `Protocol` | Abstract contract: `can_connect()`, `list_directory()`, `download_file()` |
-| `FTPAdapter` | `server/ftp.py` | — | FTP/FTPS adapter using `fsspec` + `ConnectionPool` |
-| `HTTPAdapter` | `server/http.py` | — | HTTP/HTTPS adapter using `fsspec` |
-| `LocalAdapter` | `server/local.py` | — | Local filesystem adapter |
-
-### Relationships
-
-```
-DirectoryAdapter (Protocol)
- ├── FTPAdapter   implements DirectoryAdapter
- ├── HTTPAdapter  implements DirectoryAdapter
- └── LocalAdapter implements DirectoryAdapter
-```
+Layer 0 contains no standalone classes — only module-level helpers and bundled YAML data. Low-level network I/O is handled at Layer 3 by `ConnectionPoolFactory` (via `fsspec`). See [Layer 6 — Utilities](#layer-6--utilities) for the utility classes (`_PassthroughDict`, `IGSAntexReferenceFrameType`) and [Layer 3 — Factories, Planners & Transport](#layer-3--factories-planners--transport) for `ConnectionPool` / `ConnectionPoolFactory`.
 
 ---
 
@@ -51,7 +35,7 @@ unless noted otherwise.
 | `FormatSpec` (resolved) | `specifications/format/format_spec.py` | `BaseModel` | `name`, `version`, `variant`, `parameters`, `filename` |
 | `FormatSpecCatalog` | `specifications/format/format_spec.py` | `BaseModel` | `formats: dict[str, VersionCatalog[FormatSpec]]` |
 | `FormatCatalog` | `specifications/format/format_spec.py` | `Catalog` | `formats: dict[str, VersionCatalog[Product]]` |
-| `FormatRegistry` | `specifications/format/format_catalog.py` | `BaseModel` | `formats: Dict[str, FormatSpec]` (reusable definitions) |
+| `FormatRegistry` | `specifications/format/spec.py` | `BaseModel` | `formats: Dict[str, FormatSpec]` (reusable definitions) |
 
 ### Products
 
@@ -139,20 +123,20 @@ Load YAML specs, build catalogs, and register local storage layouts.
 |---|---|---|---|
 | `_MatchEntry` | `environments/environment.py` | `NamedTuple` | `template_len`, `compiled_regex`, `product_name`, `format_name`, `version`, `variant`, `fixed_params` |
 | `LoadedSpecs` | `environments/environment.py` | `BaseModel` | Holds raw spec models before catalog build |
-| `ProductRegistry` | `environments/environment.py` | — | Central registry: loads YAML → builds `FormatCatalog`, `ProductCatalog`, `ParameterCatalog`, `RemoteSearchPlanner` |
+| `ProductRegistry` | `environments/environment.py` | — | Central registry: loads YAML → builds `FormatCatalog`, `ProductCatalog`, `ParameterCatalog`, `ResourceCatalog` objects; satisfies `SourcePlanner` Protocol for remote queries |
 | `RegisteredLocalResource` | `environments/workspace.py` | `BaseModel` | `name`, `base_dir`, `spec: LocalResourceSpec`, `server: Server` |
 | `WorkSpace` | `environments/workspace.py` | — | Registry of local storage directories and layout specs |
 
 ### Relationships
 
 ```
-ProductRegistry
+ProductRegistry  (implements SourcePlanner Protocol — remote resources)
  ├── owns FormatCatalog
  ├── owns ProductCatalog
  ├── owns ParameterCatalog
- └── owns RemoteSearchPlanner (built from ResourceSpec files)
+ └── owns ResourceCatalog[] (built from ResourceSpec files)
 
-WorkSpace
+WorkSpace  (implements SourcePlanner Protocol — local resources)
  └── owns RegisteredLocalResource[]
       ├── references LocalResourceSpec
       └── references Server
@@ -181,9 +165,9 @@ Query construction, remote search, download, ranking, and dependency resolution.
 
 | Class | File | Base | Key Fields |
 |---|---|---|---|
-| `RemoteSearchPlanner` | `factories/remote_search_planner.py` | — | `_product_catalog`, `_parameter_catalog`, `_catalogs: Dict[str, ResourceCatalog]` |
-| `LocalSearchPlanner` | `factories/local_search_planner.py` | — | `_workspace`, `_product_registry`, `_registered_specs`, `_alias_map` |
-| `SearchPlanner` | `factories/search_planner.py` | — | `_env: ProductRegistry`, `_workspace: WorkSpace`, `_remote`, `_local` |
+| `SearchPlanner` | `factories/search_planner.py` | — | `_product_registry: ProductRegistry`, `_workspace: WorkSpace` |
+
+`SearchPlanner` delegates remote lookups to `ProductRegistry` and local lookups to `WorkSpace` — both satisfy the `SourcePlanner` Protocol (`resource_ids`, `source_product()`, `sink_product()`).
 
 ### Transport
 
@@ -193,9 +177,7 @@ Query construction, remote search, download, ranking, and dependency resolution.
 
 ### Dependency Resolution
 
-| Class | File | Base | Key Fields |
-|---|---|---|---|
-| `DependencyResolver` | `factories/dependency_resolver.py` | — | `dep_spec`, `_qf: SearchPlanner`, `_fetcher: WormHole`, `_product_environment: ProductRegistry` |
+Dependency resolution is handled by `ResolvePipeline` (see Pipelines below). There is no separate `DependencyResolver` class.
 
 ### Models & Exceptions
 
@@ -211,10 +193,9 @@ Query construction, remote search, download, ranking, and dependency resolution.
 
 | Class | File | Base | Key Fields |
 |---|---|---|---|
-| `FindPipeline` | `factories/pipelines/find.py` | — | `_planner: SearchPlanner`, `_transport: WormHole` |
 | `DownloadPipeline` | `factories/pipelines/download.py` | — | `_planner: SearchPlanner`, `_transport: WormHole` |
 | `LockfileWriter` | `factories/pipelines/lockfile_writer.py` | — | `_manager: LockfileManager`, `_package: str` |
-| `ResolvePipeline` | `factories/pipelines/resolve.py` | — | `_finder: FindPipeline`, `_downloader: DownloadPipeline`, `_writer: LockfileWriter` |
+| `ResolvePipeline` | `factories/pipelines/resolve.py` | — | `_query: ProductQuery`, `_downloader: DownloadPipeline` |
 
 ### Ranking (module-level functions, no classes)
 
@@ -227,32 +208,17 @@ Query construction, remote search, download, ranking, and dependency resolution.
 
 ```
 SourcePlanner (Protocol)
- ├── LocalSearchPlanner  implements SourcePlanner
- └── RemoteSearchPlanner implements SourcePlanner
+ ├── ProductRegistry  implements SourcePlanner (remote resources)
+ └── WorkSpace        implements SourcePlanner (local resources)
 
 SearchPlanner
- ├── uses ProductRegistry (env)
- ├── uses WorkSpace
- ├── owns RemoteSearchPlanner (_remote)
- └── owns LocalSearchPlanner  (_local)
+ ├── uses ProductRegistry (_product_registry) — remote resource_ids / source_product
+ └── uses WorkSpace (_workspace)              — local resource_ids / source_product
 
 WormHole
  ├── owns ConnectionPoolFactory
- ├── reads SearchTarget[]         → search()  → SearchTarget[] (expanded)
- └── reads SearchTarget           → download_one() → Path
-
-DependencyResolver
- ├── uses SearchPlanner  (_qf)
- ├── uses WormHole       (_fetcher)
- ├── uses ProductRegistry
- ├── reads DependencySpec
- └── produces DependencyResolution
-
-FindPipeline
- ├── owns SearchPlanner
- ├── owns WormHole
- ├── calls ranking.sort_by_protocol / sort_by_preferences
- └── produces FoundResource[]
+ ├── reads SearchTarget[]  → search()       → SearchTarget[] (expanded)
+ └── reads SearchTarget    → download_one() → Path
 
 DownloadPipeline
  ├── owns SearchPlanner
@@ -266,9 +232,9 @@ LockfileWriter
  └── produces Path (lockfile)
 
 ResolvePipeline
- ├── owns FindPipeline
+ ├── owns ProductQuery  (_query)
  ├── owns DownloadPipeline
- ├── owns LockfileWriter
+ ├── calls ranking.sort_by_protocol / sort_by_preferences (via ProductQuery)
  ├── reads DependencySpec
  └── produces (DependencyResolution, Path)
 ```
@@ -283,7 +249,8 @@ High-level entry points consumed by application code.
 |---|---|---|---|
 | `GNSSClient` | `client/gnss_client.py` | — | `_env: ProductRegistry`, `_qf: SearchPlanner`, `_fetcher: WormHole` |
 | `ProductQuery` | `client/product_query.py` | — | `_fetcher: WormHole`, `_qf: SearchPlanner`, `_product`, `_date`, `_parameters`, `_source_ids`, `_preferences` |
-| `SearchResult` | `client/search_result.py` | `@dataclass` | `hostname`, `protocol`, `directory`, `filename`, `parameters`, `local_path`, `_query` |
+
+Search results are returned as `FoundResource` objects (see Layer 3 — Models & Exceptions).
 
 ### Relationships
 
@@ -293,16 +260,13 @@ GNSSClient
  ├── owns SearchPlanner
  ├── owns WormHole
  ├── creates ProductQuery (fluent builder)
- ├── delegates to DependencyResolver
- └── produces SearchResult[], DependencyResolution
+ ├── delegates to ResolvePipeline (dependency resolution)
+ └── produces FoundResource[], DependencyResolution
 
 ProductQuery (fluent builder)
  ├── uses WormHole
  ├── uses SearchPlanner
- └── produces SearchResult[]
-
-SearchResult
- └── wraps a resolved SearchTarget with local_path
+ └── produces FoundResource[]
 ```
 
 ---
@@ -357,21 +321,20 @@ LockfileManager
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Client API                                                     │
-│  GNSSClient ──► ProductQuery ──► SearchResult                   │
+│  GNSSClient ──► ProductQuery ──► FoundResource[]                │
 └──────┬──────────────────────────────────────────────────────────┘
        │ uses
 ┌──────▼──────────────────────────────────────────────────────────┐
 │  Pipelines                                                      │
-│  ResolvePipeline ──► FindPipeline ──► DownloadPipeline          │
+│  ResolvePipeline ──► ProductQuery ──► DownloadPipeline          │
 │                  └──► LockfileWriter                            │
 └──────┬──────────────────────────────────────────────────────────┘
        │ uses
 ┌──────▼──────────────────────────────────────────────────────────┐
 │  Factories                                                      │
-│  SearchPlanner ──► RemoteSearchPlanner                          │
-│                └──► LocalSearchPlanner                          │
+│  SearchPlanner ──► ProductRegistry (remote, via SourcePlanner)  │
+│                └──► WorkSpace (local, via SourcePlanner)        │
 │  WormHole ──► ConnectionPoolFactory ──► ConnectionPool          │
-│  DependencyResolver ──► SearchPlanner + WormHole                │
 │  ranking.sort_by_protocol / sort_by_preferences                 │
 └──────┬──────────────────────────────────────────────────────────┘
        │ uses
@@ -390,8 +353,8 @@ LockfileManager
 └──────┬──────────────────────────────────────────────────────────┘
        │ uses
 ┌──────▼──────────────────────────────────────────────────────────┐
-│  Server Adapters                                                │
-│  DirectoryAdapter ← FTPAdapter, HTTPAdapter, LocalAdapter       │
+│  Utilities / Configuration (Layer 0)                            │
+│  as_path(), hash_file(), decompress_gzip(), bundled YAMLs       │
 └─────────────────────────────────────────────────────────────────┘
 
   Lockfile Management (cross-cutting)

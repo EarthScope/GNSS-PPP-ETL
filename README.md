@@ -76,8 +76,8 @@ Product types currently defined in the bundled specifications:
 |---|---|---|
 | **Orbit** | SP3 | Precise satellite ephemerides (15 min) |
 | **Clock** | CLK | Satellite & station clock corrections (30 s / 5 min) |
-| **Bias** | BIA | Code and phase bias (OSB/DSB) for ambiguity resolution |
-| **ERP** | ERP | Polar motion, UT1-UTC, LOD |
+| **Bias** | BIA | OSB/FCB code and phase biases — required for PPP-AR integer ambiguity fixing |
+| **ERP** | ERP | Polar motion (x_p, y_p), UT1-UTC, LOD — ITRF↔ICRF transformation |
 | **GIM** | IONEX | Global ionosphere TEC maps |
 | **Navigation** | RINEX NAV | Broadcast ephemerides (merged BRDC) |
 | **ATX** | ANTEX | Satellite & receiver antenna phase center calibrations |
@@ -95,9 +95,13 @@ Product types currently defined in the bundled specifications:
 | **COD** | [AIUB, Univ. of Bern](http://www.aiub.unibe.ch/research/code___analysis_center/) | `ftp.aiub.unibe.ch` | FTP |
 | **ESA** | [ESA/ESOC](https://gssc.esa.int/) | `gssc.esa.int` | FTP |
 | **GFZ** | [GFZ Potsdam](https://www.gfz-potsdam.de/) | `isdcftp.gfz-potsdam.de` | FTP |
-| **IGS** | [IGN France](https://igs.org/) / [IGS](https://files.igs.org/) | `igs.ign.fr` / `files.igs.org` | FTP / HTTPS |
+| **IGS** | [IGS combined products](https://igs.org/) | `igs.ign.fr` / `files.igs.org` | FTP / HTTPS |
 | **VMF** | [TU Wien](https://vmf.geo.tuwien.ac.at/) | `vmf.geo.tuwien.ac.at` | HTTPS |
-| **WUM** | [Wuhan University](http://www.igs.gnsswhu.cn/) | `igs.gnsswhu.cn` | FTP |
+| **WUM** | [Wuhan University (WHU)](http://www.igs.gnsswhu.cn/) | `igs.gnsswhu.cn` | FTP |
+
+> **CDDIS authentication:** CDDIS FTPS requires an EarthData account. Add
+> `machine cddis.nasa.gov login <user> password <pass>` to `~/.netrc`.
+> Register at <https://cddis.nasa.gov/Data_and_Derived_Products/CreateAccount.html>.
 
 ## Quick start
 
@@ -194,11 +198,11 @@ GNSS-PPP-ETL/
 │   ├── gnss-product-management/          # Product discovery & download
 │   │   ├── src/gnss_product_management/
 │   │   │   ├── defaults/           # Wires gnss-management-specs into singletons
-│   │   │   ├── environments/       # ProductEnvironment, WorkSpace
+│   │   │   ├── environments/       # ProductRegistry, WorkSpace
 │   │   │   ├── factories/          # SearchPlanner, WormHole, ConnectionPoolFactory, pipelines
 │   │   │   ├── specifications/     # Pydantic models (Parameter, FormatSpec, ProductSpec)
-│   │   │   ├── server/             # FTP, HTTP, local filesystem adapters
-│   │   │   └── utilities/          # Date math, decompression, naming helpers
+│   │   │   ├── lockfile/           # LockfileManager, DependencyLockFile, operations
+│   │   │   └── utilities/          # Date math, decompression, path helpers
 │   │   └── test/
 │   └── pride-ppp/                        # PRIDE-PPPAR integration
 │       └── src/pride_ppp/

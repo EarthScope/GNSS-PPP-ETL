@@ -136,13 +136,22 @@ class ProductQuery:
         return clone
 
     def where(self, **parameters) -> ProductQuery:
-        """Constrain product parameters.
+        """Constrain product parameters (hard filter).
 
-        Keyword arguments map parameter names to required values, e.g.
-        ``where(TTT="FIN")`` or ``where(TTT=["FIN", "RAP"])``.
+        Keyword arguments use IGS long filename field codes as keys.
+        Common constraints:
+
+        - ``TTT="FIN"`` — final solutions only (≥13 days latency)
+        - ``TTT="RAP"`` — rapid solutions only (≤17 hours latency)
+        - ``TTT="ULT"`` — ultra-rapid solutions only (≤3 hours latency)
+        - ``AAA="WUM"`` — Wuhan University products only
+        - ``AAA=["WUM", "COD"]`` — WUM or COD only
+
+        Use :meth:`prefer` instead of :meth:`where` when you want to rank
+        results without excluding alternatives.
 
         Args:
-            **parameters: Parameter name → value (or list of values).
+            **parameters: IGS field name → required value or list of values.
 
         Returns:
             ``self`` for chaining.
@@ -181,17 +190,24 @@ class ProductQuery:
         return clone
 
     def prefer(self, **kwargs) -> ProductQuery:
-        """Define a preference cascade for ranking results.
+        """Rank results by a preference cascade without hard-filtering.
 
-        Keyword arguments map parameter names to an ordered list of
-        preferred values.  The first entry is most preferred::
+        Unlike :meth:`where`, ``prefer`` keeps all matching products in the
+        result list but sorts them so the most-preferred appear first.  The
+        standard IGS timeliness cascade is::
 
             .prefer(TTT=["FIN", "RAP", "ULT"])
 
-        Multiple calls accumulate preferences in call order.
+        Center preference can be layered on top::
+
+            .prefer(TTT=["FIN", "RAP", "ULT"], AAA=["WUM", "COD", "GFZ"])
+
+        Multiple :meth:`prefer` calls accumulate in call order; later calls
+        do not override earlier ones.
 
         Args:
-            **kwargs: Parameter name → ordered list of preferred values.
+            **kwargs: IGS field name → ordered list of preferred values,
+                most preferred first.
 
         Returns:
             ``self`` for chaining.

@@ -8,8 +8,8 @@
 
 | Boundary | Direction | Modules | Operations |
 |---|---|---|---|
-| **Network** (FTP/FTPS) | Outbound | `server/ftp.py`, `ConnectionPoolFactory` | List directories, download files |
-| **Network** (HTTP/HTTPS) | Outbound | `server/http.py`, `ConnectionPoolFactory` | List directories (HTML parsing), download files |
+| **Network** (FTP/FTPS) | Outbound | `ConnectionPoolFactory` | List directories, download files |
+| **Network** (HTTP/HTTPS) | Outbound | `ConnectionPoolFactory` | List directories (HTML parsing), download files |
 | **Filesystem** (bundled configs) | Read | `gnss-management-specs` package | Load YAML specs at startup |
 | **Filesystem / Cloud** (user workspace) | Read/Write | `WorkSpace`, `LockfileManager` | Search/store product files (local paths or `s3://` URIs) |
 | **User input** | Inbound | `GNSSClient`, `ProductQuery` | Date, product name, constraints |
@@ -34,19 +34,19 @@
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 2: CATALOG (Resolution + Registry)                    │
 │  FormatCatalog, ProductCatalog, ResourceCatalog,             │
-│  RemoteSearchPlanner, SourcePlanner (Protocol)               │
+│  SourcePlanner (Protocol)                                    │
 │  (specifications/format/, specifications/products/,          │
-│   specifications/remote/, factories/remote_search_planner.py)│
+│   specifications/remote/, factories/source_planner.py)       │
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 1: SPECIFICATION (Data Models + YAML Loading)         │
 │  ParameterCatalog, FormatSpec, ProductSpec, SearchTarget,    │
 │  LocalResourceSpec, DependencySpec, LockProduct              │
 │  (specifications/, lockfile/models.py)                       │
 ├──────────────────────────────────────────────────────────────┤
-│  Layer 0: CONFIGURATION (Static Data + I/O Adapters)         │
-│  Bundled YAML files, DirectoryAdapter implementations,       │
+│  Layer 0: CONFIGURATION (Static Data + Utilities)            │
+│  Bundled YAML files,                                         │
 │  as_path(), hash_file(), decompress_gzip()                   │
-│  (server/, utilities/, gnss-management-specs)                │
+│  (utilities/, gnss-management-specs)                         │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -69,22 +69,17 @@ Layer 4 → Layer 3 → Layer 2 → Layer 1 → Layer 0
 | Module | Concern | Boundary |
 |---|---|---|
 | `gnss-management-specs` | Path constants (META_SPEC_YAML, etc.) and all bundled YAML files | Filesystem (package resources) |
-| `server/protocol.py` | `DirectoryAdapter` Protocol interface | — |
-| `server/ftp.py` | FTP/FTPS protocol adapter (`FTPAdapter`) | Network |
-| `server/http.py` | HTTP/HTTPS protocol adapter (`HTTPAdapter`) | Network |
-| `server/local.py` | Local filesystem adapter (`LocalAdapter`) | Filesystem |
 | `utilities/helpers.py` | `hash_file`, `decompress_gzip`, `_PassthroughDict`, `_listify`, `expand_dict_combinations`, `_ensure_datetime` | — |
 | `utilities/metadata_funcs.py` | Computed field registration (DDD, GPSWEEK, etc.) | — |
 | `utilities/paths.py` | `as_path(uri) -> Path \| CloudPath`, `AnyPath` type alias | — |
 
 ### Abstractions
 
-- **`DirectoryAdapter`** (`server/protocol.py`): `typing.Protocol` defining `can_connect()`, `list_directory()`, `download_file()`. Implemented by `FTPAdapter`, `HTTPAdapter`, `LocalAdapter`.
 - **`as_path(uri)`** (`utilities/paths.py`): Single dispatch point for path construction. Returns `cloudpathlib.CloudPath` for `s3://`, `gs://`, `az://` URIs and `pathlib.Path` for everything else. All filesystem operations throughout the package flow through this helper.
 - **`AnyPath`**: `Union[Path, CloudPath]` type alias used in signatures throughout layers 2–4.
 
 ### Key Rule
-Layer 0 must not import from any other layer. Protocol adapters operate on primitive types (strings, paths), not domain models.
+Layer 0 must not import from any other layer. Utility functions operate on primitive types (strings, paths), not domain models.
 
 ---
 
@@ -102,7 +97,7 @@ Layer 0 must not import from any other layer. Protocol adapters operate on primi
 | `FormatVersionSpec` | `specifications/format/spec.py` | A format version with metadata fields + file templates |
 | `FormatSpec` | `specifications/format/spec.py` | Top-level format with versions |
 | `FormatSpecCatalog` | `specifications/format/format_spec.py` | Loaded format specs from YAML |
-| `FormatRegistry` | `specifications/format/format_catalog.py` | Read-only lookup of raw format specs |
+| `FormatRegistry` | `specifications/format/spec.py` | Read-only lookup of raw format specs |
 | `Product` | `specifications/products/product.py` | Concrete product: name, parameters, directory/filename templates |
 | `PathTemplate` | `specifications/products/product.py` | Template string with `{PARAM}` placeholders + resolved value |
 | `VariantCatalog[T]` | `specifications/products/product.py` | Generic: variant name → T |
@@ -142,12 +137,11 @@ Layer 1 models are **declarative data**. They define *what exists*, not how to b
 
 | Abstraction | Module | Input → Output |
 |---|---|---|
-| `Catalog` (ABC) | `specifications/catalog.py` | Base class enforcing `@classmethod resolve()` on all catalogs |
-| `SourcePlanner` (Protocol) | `factories/source_planner.py` | Shared interface: `resource_ids`, `source_product()` |
+| `Catalog` (ABC) | `specifications/catalog.py` | Base class enforcing `@classmethod build()` on all catalogs |
+| `SourcePlanner` (Protocol) | `factories/source_planner.py` | Shared interface: `resource_ids`, `source_product()`, `sink_product()`, `register()` |
 | `FormatCatalog` | `specifications/format/format_spec.py` | FormatSpecCatalog + ParameterCatalog → resolved Products per format/version/variant |
 | `ProductCatalog` | `specifications/products/catalog.py` | ProductSpecCatalog + FormatCatalog → resolved Products per product/version/variant |
 | `ResourceCatalog` | `specifications/remote/resource_catalog.py` | ResourceSpec + ProductCatalog → expanded SearchTarget list |
-| `RemoteSearchPlanner` | `factories/remote_search_planner.py` | Registry of ResourceCatalogs per center; satisfies `SourcePlanner` |
 
 ### Resolution Chain
 
@@ -157,13 +151,15 @@ ParameterCatalog ──┐
 FormatSpecCatalog ─┘    ProductSpecCatalog ─┘                   ↑ ResourceSpec[]
 ```
 
+`ProductRegistry` (Layer 4 setup, Layer 2 usage) holds the built `ResourceCatalog` objects and implements the `SourcePlanner` Protocol for remote resource lookup. `WorkSpace` implements `SourcePlanner` for local resource lookup. `SearchPlanner` (Layer 3) delegates to both.
+
 ### Interfaces
 
-- `FormatCatalog.resolve(format_spec_catalog, parameter_catalog) -> FormatCatalog`
-- `ProductCatalog.resolve(product_spec_catalog, format_catalog) -> ProductCatalog`
-- `ResourceCatalog.resolve(resource_spec, product_catalog) -> ResourceCatalog`
+- `FormatCatalog.build(format_spec_catalog, parameter_catalog) -> FormatCatalog`
+- `ProductCatalog.build(product_spec_catalog, format_catalog) -> ProductCatalog`
+- `ResourceCatalog.build(resource_spec, product_catalog) -> ResourceCatalog`
 
-`SearchPlanner` (Layer 3) consumes `ResourceCatalog` objects and satisfies the `SourcePlanner` Protocol:
+`ProductRegistry` and `WorkSpace` satisfy the `SourcePlanner` Protocol used by `SearchPlanner` (Layer 3):
 - `resource_ids -> List[str]`
 - `source_product(product, resource_id) -> List[SearchTarget]`
 
@@ -199,8 +195,8 @@ User constraints (date, product, parameters...)
    ├── Compute date fields (ParameterCatalog)
    ├── Narrow parameters (user constraints)
    ├── Expand combinations (cartesian product)
-   ├── Local targets (LocalSearchPlanner.source_product)
-   └── Remote targets (RemoteSearchPlanner.source_product)
+   ├── Local targets (WorkSpace.source_product)
+   └── Remote targets (ProductRegistry.source_product)
         │
         ▼
    List[SearchTarget]  (directory pattern + filename pattern)
@@ -234,7 +230,7 @@ All path operations (`.exists()`, `.iterdir()`, `.read_text()`, `.write_text()`,
 - `LockfileManager(lockfile_dir: str | Path | CloudPath)` — storage-agnostic
 
 ### Key Rule
-Orchestration modules coordinate between catalogs and I/O adapters. They **do not define** domain models — they consume them. Network/filesystem operations are delegated to Layer 0 adapters or `cloudpathlib`.
+Orchestration modules coordinate between catalogs and I/O. They **do not define** domain models — they consume them. Network/filesystem operations are delegated to `ConnectionPoolFactory` (via `fsspec`) or `cloudpathlib`.
 
 ---
 
@@ -314,16 +310,16 @@ All standard user code should interact through `GNSSClient` or `ProductQuery`. `
 ```
 Layer 0 (Configuration)         Layer 1 (Specification)
 ─────────────────────           ───────────────────────
-DirectoryAdapter (Protocol)     Parameter
-FTPAdapter                      ParameterCatalog
-HTTPAdapter                     FormatFieldDef
-LocalAdapter                    FormatVersionSpec
-as_path() / AnyPath             FormatSpec
-hash_file()                     FormatSpecCatalog
-decompress_gzip()               FormatRegistry
-_ensure_datetime()              Product
-register_computed_fields()      PathTemplate
-gnss-management-specs YAMLs     VariantCatalog[T]
+as_path() / AnyPath             Parameter
+hash_file()                     ParameterCatalog
+decompress_gzip()               FormatFieldDef
+_ensure_datetime()              FormatVersionSpec
+register_computed_fields()      FormatSpec
+gnss-management-specs YAMLs     FormatSpecCatalog
+                                FormatRegistry
+                                Product
+                                PathTemplate
+                                VariantCatalog[T]
                                 VersionCatalog[T]
                                 ProductSpec
                                 ProductSpecCatalog
@@ -367,7 +363,7 @@ RegisteredLocalResource
 
 | Layer | Purpose | Depends On | Boundary |
 |---|---|---|---|
-| 0 — Configuration | Static data, I/O adapters, path utilities | Nothing | Filesystem, Network, Cloud |
+| 0 — Configuration | Static data, path utilities, bundled YAMLs | Nothing | Filesystem |
 | 1 — Specification | Domain models, YAML loading | Layer 0 | Filesystem (YAML reads) |
 | 2 — Catalog | Resolve specs → concrete objects, registries | Layer 1 | None (pure computation) |
 | 3 — Orchestration | Build queries, execute fetches, resolve deps, manage lockfiles | Layers 0, 1, 2 | Network, Filesystem, Cloud |
