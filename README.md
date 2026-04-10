@@ -5,6 +5,21 @@ products for Precise Point Positioning, with an integrated
 [PRIDE-PPPAR](https://pride.whu.edu.cn/pppar/) processing pipeline for
 kinematic PPP-AR solutions.
 
+## Contents
+
+- [Motivation](#motivation)
+- [Packages](#packages)
+- [Documentation](#documentation)
+- [Supported products](#supported-products)
+- [Supported analysis centers & servers](#supported-analysis-centers--servers)
+- [Quick start](#quick-start)
+- [Examples](#examples)
+- [Project structure](#project-structure)
+- [Requirements](#requirements)
+- [References](#references)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Motivation
 
 Running PPP or PPP-AR requires a constellation of auxiliary products — precise
@@ -229,6 +244,15 @@ GNSS-PPP-ETL/
 - [PRIDE-PPPAR (Wuhan University)](https://pride.whu.edu.cn/pppar/)
 - [IGS Long Product Filenames](https://igs.org/formats-and-standards/)
 - [Vienna Mapping Functions](https://vmf.geo.tuwien.ac.at/)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for step-by-step guides covering the
+three most common spec extensions:
+
+- Adding a new analysis center (`configs/centers/`)
+- Adding a new product type (`product_spec.yaml` + `format_spec.yaml`)
+- Adding a new metadata parameter (`meta_spec.yaml`)
 
 ## License
 
