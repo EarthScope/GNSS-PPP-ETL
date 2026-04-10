@@ -4,8 +4,8 @@ Author: Franklyn Dunbar
 Lockfile manager — single facade for all lockfile operations.
 
 Provides a unified interface for checking, loading, saving, and
-sharing dependency lockfiles.  All callers (DependencyResolver,
-PrideProcessor, CLI) should go through :class:`LockfileManager`
+sharing dependency lockfiles.  All callers (:class:`ResolvePipeline`,
+:class:`PrideProcessor`, CLI) should go through :class:`LockfileManager`
 rather than calling operations functions directly.
 
 ``lockfile_dir`` may be a local filesystem path or a cloud URI

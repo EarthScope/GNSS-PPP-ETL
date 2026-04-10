@@ -175,7 +175,7 @@ class ProductQuery:
         Builds queries via :class:`SearchPlanner`, expands them through
         :class:`WormHole`, then applies preference and protocol sorting.
         The result is the pre-deduplication list used both by :meth:`search`
-        and by :class:`DependencyResolver`.
+        and by :class:`ResolvePipeline`.
 
         Returns:
             Sorted list of :class:`SearchTarget` objects, local/file first,

@@ -22,10 +22,7 @@ import tempfile
 import pandas as pd
 
 from gnss_product_management import (
-    DependencyResolver,
-    ProductEnvironment,
-    QueryFactory,
-    ResourceFetcher,
+    GNSSClient,
     WorkSpace,
 )
 from gnss_management_specs.configs import (
@@ -35,6 +32,7 @@ from gnss_management_specs.configs import (
     META_SPEC_YAML,
     PRODUCT_SPEC_YAML,
 )
+from gnss_product_management.environments import ProductRegistry
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
@@ -311,16 +309,10 @@ class PrideProcessor:
         Configuration for pdp3 CLI flag generation.
     _mode : ProcessingMode
         Product timeliness mode (DEFAULT or FINAL).
-    _env : ProductEnvironment
-        Fully-built product environment (immutable after construction).
+    _client : GNSSClient
+        Configured GNSS client — owns product resolution and download.
     _dep_spec : DependencySpec
         Dependency specification governing product resolution.
-    _workspace : WorkSpace
-        Maps logical sink IDs to physical directories.
-    _qf : QueryFactory
-        Translates (spec, date, params) into concrete download queries.
-    _fetcher : ResourceFetcher
-        Shared HTTP fetcher for downloading products.
     """
 
     def __init__(
@@ -370,11 +362,6 @@ class PrideProcessor:
         self._cli_config = cli_config if cli_config is not None else PrideCLIConfig()
         self._mode = mode
 
-        # Build private ProductEnvironment (immutable after .build()).
-        # Loads parameter metadata, format specs, product specs (including
-        # PRIDE-specific products), and all analysis-centre resource specs.
-        self._env = self._build_env()
-
         # Load the DependencySpec that matches the requested processing mode.
         # The dep-spec controls which TTT (timeliness) values the resolver
         # will accept — e.g. FINAL mode restricts TTT to [FIN].
@@ -382,25 +369,22 @@ class PrideProcessor:
         self._dep_spec = DependencySpec.from_yaml(spec_path)
         logger.info("Processing mode: %s  (spec: %s)", mode.value, spec_path.name)
 
-        # Build and register the WorkSpace — maps logical sink IDs ("pride",
-        # "pride_install") to physical directories on disk so resolved
-        # products know where to land.
-        self._workspace = self._build_workspace()
-
-        # QueryFactory translates (spec, date, parameters) into concrete
-        # queries that the ResourceFetcher can execute against remote hosts.
-        self._qf = QueryFactory(
-            product_environment=self._env, workspace=self._workspace
+        # Build the product registry (parameter, format, product, and center specs)
+        # and the workspace (sink mappings), then wire them into a GNSSClient.
+        registry = self._build_registry()
+        workspace = self._build_workspace()
+        self._client = GNSSClient(
+            product_registry=registry,
+            workspace=workspace,
+            max_connections=10,
         )
-        # Shared HTTP fetcher — reusable across multiple resolve() calls.
-        self._fetcher = ResourceFetcher(max_connections=10)
 
     # ------------------------------------------------------------------ #
     # Private construction helpers
     # ------------------------------------------------------------------ #
 
-    def _build_env(self) -> ProductEnvironment:
-        """Construct and finalise the ``ProductEnvironment``.
+    def _build_registry(self) -> ProductRegistry:
+        """Construct and finalise the :class:`ProductRegistry`.
 
         Loads, in order:
 
@@ -414,20 +398,20 @@ class PrideProcessor:
            ``PRIDE_CENTERS_DIR`` are scanned.
 
         Returns:
-            A fully built (immutable) ``ProductEnvironment``.
+            A fully built :class:`ProductRegistry`.
         """
-        env = ProductEnvironment()
-        env.add_parameter_spec(META_SPEC_YAML)
-        env.add_format_spec(FORMAT_SPEC_YAML)
-        env.add_product_spec(PRODUCT_SPEC_YAML)
-        env.add_product_spec(PRIDE_PRODUCT_SPEC, id="pride")
+        registry = ProductRegistry()
+        registry.add_parameter_spec(META_SPEC_YAML)
+        registry.add_format_spec(FORMAT_SPEC_YAML)
+        registry.add_product_spec(PRODUCT_SPEC_YAML)
+        registry.add_product_spec(PRIDE_PRODUCT_SPEC, id="pride")
         for path in Path(CENTERS_RESOURCE_DIR).glob("*.yaml"):
-            env.add_resource_spec(path)
+            registry.add_resource_spec(path)
         if PRIDE_CENTERS_DIR.is_dir():
             for path in PRIDE_CENTERS_DIR.glob("*.yaml"):
-                env.add_resource_spec(path)
-        env.build()
-        return env
+                registry.add_resource_spec(path)
+        registry.build()
+        return registry
 
     def _build_workspace(self) -> WorkSpace:
         """Create the ``WorkSpace`` and register local directory specs.
@@ -439,7 +423,7 @@ class PrideProcessor:
         * ``"pride_install"``  → ``self._pride_install_dir`` (optional)
 
         Returns:
-            A configured ``WorkSpace`` ready for use by the ``QueryFactory``.
+            A configured :class:`WorkSpace`.
         """
         ws = WorkSpace()
         for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
@@ -472,10 +456,10 @@ class PrideProcessor:
     ) -> DependencyResolution:
         """Resolve all dependencies for a single UTC date.
 
-        Creates a fresh ``DependencyResolver`` (stateless) and delegates
-        to it.  The resolver walks the dependency spec's preference list
-        (centre × timeliness) top-down and for each product either verifies
-        a local copy already exists or downloads it.
+        Delegates to :meth:`GNSSClient.resolve_dependencies`.  The resolver
+        walks the dependency spec's preference list (centre × timeliness)
+        top-down and for each product either verifies a local copy already
+        exists or downloads it.
 
         Args:
             date: Target date (midnight UTC) for product resolution.
@@ -483,18 +467,13 @@ class PrideProcessor:
                 Defaults to ``"pride"`` which maps to ``self._pride_dir``.
 
         Returns:
-            A ``DependencyResolution`` containing fulfilled and missing
+            A :class:`DependencyResolution` containing fulfilled and missing
             product entries.
         """
-        resolver = DependencyResolver(
-            dep_spec=self._dep_spec,
-            product_environment=self._env,
-            query_factory=self._qf,
-            fetcher=self._fetcher,
-        )
-        resolution, _ = resolver.resolve(
-            date=date,
-            local_sink_id=local_sink_id,
+        resolution, _ = self._client.resolve_dependencies(
+            self._dep_spec,
+            date,
+            sink_id=local_sink_id,
         )
         return resolution
 
@@ -684,7 +663,7 @@ class PrideProcessor:
 
         1. **Infer metadata** — site ID and observation date are extracted
            from the RINEX filename / header if not provided explicitly.
-        2. **Resolve products** — the ``DependencyResolver`` walks the
+        2. **Resolve products** — :meth:`GNSSClient.resolve_dependencies` walks the
            preference cascade (centre × timeliness) and downloads any
            missing products to ``pride_dir``.
         3. **Check cache** — if a valid ``.kin`` output already exists in
