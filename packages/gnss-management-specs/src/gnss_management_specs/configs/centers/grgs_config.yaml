@@ -1,0 +1,71 @@
+id: GRGS
+name: Groupe de Recherche de Géodésie Spatiale (CNES/GRGS)
+description: >
+  GRGS is a French geodesy research group (CNES/OMP) and an IGS analysis center
+  using the GINS/Gipsy software suite. AC code GRG. Contributes precise orbits,
+  clocks, ERP and signal biases to both IGS and MGEX combinations.
+website: https://grgs.obs-mip.fr/
+
+servers:
+  - id: grgs_ftp
+    name: GRGS FTP server
+    hostname: "ftp://grgs.obs-mip.fr"
+    protocol: ftp
+    auth_required: false
+    description: >
+      GRGS anonymous FTP server. Product directory layout follows the
+      IGS long-filename convention; verify the path with run_in_terminal
+      or the discover_centers.py dev script before production use.
+
+products:
+  # ── Orbits ──────────────────────────────────────────────────────
+  - id: grgs_orbit
+    product_name: ORBIT
+    server_id: grgs_ftp
+    available: true
+    description: GRGS precise GPS/GNSS orbits
+    parameters:
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 05M}
+      - {name: SMP, value: 15M}
+    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}
+
+  # ── Clocks ──────────────────────────────────────────────────────
+  - id: grgs_clock
+    product_name: CLOCK
+    server_id: grgs_ftp
+    available: true
+    description: GRGS precise satellite clocks
+    parameters:
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 30S}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}
+
+  # ── ERP ─────────────────────────────────────────────────────────
+  - id: grgs_erp
+    product_name: ERP
+    server_id: grgs_ftp
+    available: true
+    description: Earth rotation parameters
+    parameters:
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}
+
+  # ── Biases ──────────────────────────────────────────────────────
+  - id: grgs_bias
+    product_name: BIA
+    server_id: grgs_ftp
+    available: true
+    description: Observable-specific signal biases (OSB / FCB)
+    parameters:
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}

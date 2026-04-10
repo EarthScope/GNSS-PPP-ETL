@@ -89,6 +89,16 @@ def cddis_env() -> ProductRegistry:
 
 
 @pytest.fixture(scope="session")
+def esa_env() -> ProductRegistry:
+    return _build_env("esa_config.yaml")
+
+
+@pytest.fixture(scope="session")
+def jpl_env() -> ProductRegistry:
+    return _build_env("jpl_config.yaml")
+
+
+@pytest.fixture(scope="session")
 def multi_env() -> ProductRegistry:
     """Environment with all centers registered."""
     return _build_env(
@@ -98,6 +108,8 @@ def multi_env() -> ProductRegistry:
         "igs_config.yaml",
         "gfz_config.yaml",
         "vmf_config.yaml",
+        "esa_config.yaml",
+        "jpl_config.yaml",
     )
 
 
@@ -144,6 +156,16 @@ def vmf_qf(vmf_env, workspace) -> SearchPlanner:
 @pytest.fixture(scope="session")
 def gfz_qf(gfz_env, workspace) -> SearchPlanner:
     return SearchPlanner(product_registry=gfz_env, workspace=workspace)
+
+
+@pytest.fixture(scope="session")
+def esa_qf(esa_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=esa_env, workspace=workspace)
+
+
+@pytest.fixture(scope="session")
+def jpl_qf(jpl_env, workspace) -> SearchPlanner:
+    return SearchPlanner(product_registry=jpl_env, workspace=workspace)
 
 
 @pytest.fixture(scope="session")

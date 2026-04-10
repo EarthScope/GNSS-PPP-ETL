@@ -91,6 +91,31 @@ products:
       - {name: PPP, value: OPS}
     directory: {pattern: "pub/igs/products/{GPSWEEK}/"}
 
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: igs_sinex
+    product_name: SINEX
+    server_id: ign_ftp
+    available: true
+    description: IGS combined weekly station coordinate SINEX solutions
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/igs/products/{GPSWEEK}/"}
+
+  # ── Troposphere SINEX ─────────────────────────────────────────-
+  - id: igs_trop
+    product_name: TROP
+    server_id: ign_ftp
+    available: true
+    description: IGS troposphere SINEX ZTD/gradient solutions
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "pub/igs/products/troposphere/zpd/{YYYY}/"}
+
   # ── Broadcast navigation ───────────────────────────────────────
   - id: igs_nav
     product_name: RNX3_BRDC

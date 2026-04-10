@@ -23,6 +23,8 @@ dev = [
     "pre-commit>=4.5.1",
     "pre-commit-hooks>=4.6.0",
     "ruff>=0.15.8",
+    "rich>=13.0",
+    "typer>=0.12",
 ]
 test = [
   "pytest>=8",

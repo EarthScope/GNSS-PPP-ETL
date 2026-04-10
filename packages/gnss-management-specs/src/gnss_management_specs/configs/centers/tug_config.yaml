@@ -1,0 +1,78 @@
+id: TUG
+name: Graz University of Technology (ITSG)
+description: >
+  The Institute of Geodesy at Graz University of Technology (TU Graz / ITSG)
+  is an IGS MGEX analysis center. Produces multi-constellation precise orbits,
+  clocks, and signal biases using the GROOPS software suite. IGS AC code TUG.
+  Known for high-quality BDS and Galileo products.
+  NOTE: TUG does not host IGS-format GNSS products on its own FTP server
+  (ftp.tugraz.at only hosts GRACE gravity products). TUG products are
+  available via CDDIS and IGN mirrors under AAA=TUG entries.
+website: https://www.tugraz.at/institute/ifg/
+
+servers:
+  - id: cddis_mirror
+    name: CDDIS FTPS (mirror)
+    hostname: "ftp://gdc.cddis.eosdis.nasa.gov"
+    protocol: ftps
+    auth_required: false
+    description: >
+      TUG products are only available through the CDDIS/IGN IGS mirrors.
+      Use the CDDIS center config for direct access.
+
+products:
+  # ── Orbits ──────────────────────────────────────────────────────
+  - id: tug_orbit
+    product_name: ORBIT
+    server_id: cddis_mirror
+    available: true
+    description: TUG multi-GNSS precise orbits (GPS, GLONASS, Galileo, BDS) via CDDIS
+    parameters:
+      - {name: AAA, value: TUG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 05M}
+      - {name: SMP, value: 15M}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Clocks ──────────────────────────────────────────────────────
+  - id: tug_clock
+    product_name: CLOCK
+    server_id: cddis_mirror
+    available: true
+    description: TUG multi-GNSS precise satellite clocks via CDDIS
+    parameters:
+      - {name: AAA, value: TUG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 30S}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── ERP ─────────────────────────────────────────────────────────
+  - id: tug_erp
+    product_name: ERP
+    server_id: cddis_mirror
+    available: true
+    description: Earth rotation parameters via CDDIS
+    parameters:
+      - {name: AAA, value: TUG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Biases ──────────────────────────────────────────────────────
+  - id: tug_bias
+    product_name: BIA
+    server_id: cddis_mirror
+    available: true
+    description: Observable-specific signal biases (OSB), including multi-GNSS, via CDDIS
+    parameters:
+      - {name: AAA, value: TUG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
