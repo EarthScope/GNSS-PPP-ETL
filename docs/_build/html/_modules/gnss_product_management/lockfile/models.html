@@ -1,0 +1,202 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.lockfile.models &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.lockfile.models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.lockfile.models</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Author: Franklyn Dunbar</span>
+
+<span class="sd">Pydantic models for lockfile entries and dependency lockfiles.</span>
+
+<span class="sd">Defines the data structures that represent a single resolved product</span>
+<span class="sd">(:class:`LockProduct`) and a collection of resolved products for one</span>
+<span class="sd">processing day (:class:`DependencyLockFile`).  These models are</span>
+<span class="sd">serialized to JSON sidecar files on disk.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+
+
+<div class="viewcode-block" id="LockProductAlternative">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.factories.LockProductAlternative">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LockProductAlternative</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An alternative (mirror / fallback) source for a locked product.&quot;&quot;&quot;</span>
+
+    <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Absolute URL to the alternative resource.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="LockProduct">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.factories.LockProduct">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LockProduct</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single resolved product entry in the lockfile.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ISO 8601 timestamp of when the product was locked.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Primary source</span>
+    <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Absolute URL to the primary resource.&quot;</span><span class="p">)</span>
+    <span class="nb">hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Hash of the resource for integrity verification.&quot;</span><span class="p">)</span>
+    <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Size of the resource in bytes.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Relative directory template for local layout, e.g. &quot;products/{year}/orbit/&quot;</span>
+    <span class="n">sink</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Sink Path&quot;</span><span class="p">)</span>
+
+    <span class="n">alternatives</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LockProductAlternative</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;List of alternative sources for the product.&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="DependencyLockFile">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.factories.DependencyLockFile">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DependencyLockFile</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Top-level lockfile: a fully-resolved, reproducible product manifest.</span>
+
+<span class="sd">    The lockfile is date-scoped — one lockfile per processing day.</span>
+<span class="sd">    Identity key: ``(task, date, version)`` where *version* is the</span>
+<span class="sd">    ``gnss-product-management`` package version.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">date</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="o">...</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Processing date this lockfile corresponds to, in YYYY-MM-DD format.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="o">...</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Name of the package this lockfile corresponds to, e.g. &#39;PRIDE&#39;.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="o">...</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Name of the processing task this lockfile corresponds to, e.g. &#39;PPP&#39;.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="o">...</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;gnss-product-management package version used to generate this lockfile.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">requires_date</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">True</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Whether the lockfile is date-scoped (one lockfile per processing day).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ISO 8601 timestamp of when the lockfile was created.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">products</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LockProduct</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Optional additional metadata about the lockfile or resolution process.&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

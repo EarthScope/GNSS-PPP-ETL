@@ -1,0 +1,710 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.environments.workspace &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.environments.workspace</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.environments.workspace</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">Workspace management for local GNSS product storage.</span>
+
+<span class="sd">Maps :class:`LocalResourceSpec` definitions (loaded from YAML) to concrete</span>
+<span class="sd">base directories on disk so that local resources can be queried through the</span>
+<span class="sd">same :class:`ResourceQuery` interface used for remote servers.</span>
+
+<span class="sd">Base directories may be local filesystem paths (``/data/gnss``) or cloud</span>
+<span class="sd">URIs (``s3://bucket/prefix``).  Path operations are dispatched through</span>
+<span class="sd">:func:`~gnss_product_management.utilities.paths.as_path` so that all</span>
+<span class="sd">filesystem interactions work uniformly regardless of backend.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.local.local</span><span class="w"> </span><span class="kn">import</span> <span class="n">LocalResourceSpec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.parameters.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterCatalog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.products.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProductCatalog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.products.product</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PathTemplate</span><span class="p">,</span>
+    <span class="n">Product</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.remote.resource</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchTarget</span><span class="p">,</span> <span class="n">Server</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ensure_datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">as_path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.environments.environment</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProductRegistry</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="paths_overlap">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.paths_overlap">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">paths_overlap</span><span class="p">(</span><span class="n">p1</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">p2</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check whether two paths share a common ancestor-descendant relationship.</span>
+
+<span class="sd">    For local paths, checks the resolved filesystem hierarchy.  For cloud</span>
+<span class="sd">    URIs, falls back to string prefix comparison (cloud paths have no</span>
+<span class="sd">    symlinks to resolve).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p1: First path or URI.</span>
+<span class="sd">        p2: Second path or URI.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``True`` if either path is a parent of (or equal to) the other.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s1</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">s2</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Cloud paths — use string prefix comparison</span>
+    <span class="k">if</span> <span class="s2">&quot;://&quot;</span> <span class="ow">in</span> <span class="n">s1</span> <span class="ow">or</span> <span class="s2">&quot;://&quot;</span> <span class="ow">in</span> <span class="n">s2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">s1</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span> <span class="ow">or</span> <span class="n">s2</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
+
+    <span class="c1"># Local paths — resolve symlinks before comparing</span>
+    <span class="n">r1</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">r1</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span> <span class="ow">or</span> <span class="n">r2</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span><span class="n">r1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="RegisteredLocalResource">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.RegisteredLocalResource">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RegisteredLocalResource</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A local resource spec that has been bound to a base directory.</span>
+
+<span class="sd">    ``base_dir`` is stored as a URI string so that it can represent both</span>
+<span class="sd">    local paths (``/data/gnss``) and cloud locations</span>
+<span class="sd">    (``s3://bucket/prefix``).  Use the :attr:`base_path` property to</span>
+<span class="sd">    obtain the appropriate :class:`~pathlib.Path` or</span>
+<span class="sd">    :class:`~cloudpathlib.CloudPath` object for filesystem operations.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        name: Human-readable identifier for this resource.</span>
+<span class="sd">        base_dir: Base directory URI (local path or cloud URI).</span>
+<span class="sd">        spec: The underlying local resource specification.</span>
+<span class="sd">        item_to_dir: Mapping of item names to their subdirectory.</span>
+<span class="sd">        server: A ``file``-protocol :class:`Server` wrapping *base_dir*.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">LocalResourceSpec</span>
+    <span class="n">item_to_dir</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">server</span><span class="p">:</span> <span class="n">Server</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">base_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyPath</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The base directory as a :class:`~pathlib.Path` or cloud path.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">as_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="WorkSpace">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WorkSpace</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Registry of local storage directories and their layout specifications.</span>
+
+<span class="sd">    Manages the mapping between ``LocalResourceSpec`` definitions (loaded from</span>
+<span class="sd">    YAML) and concrete base directories on disk or in cloud storage.  Each</span>
+<span class="sd">    registered spec gets a ``Server(protocol=&#39;file&#39;)`` so that local resources</span>
+<span class="sd">    can be queried with the same ``ResourceQuery`` interface used for remote</span>
+<span class="sd">    servers.</span>
+
+<span class="sd">    Also provides product-resolution methods (``source_product``,</span>
+<span class="sd">    ``sink_product``, ``lockfile_dir``, ``find_local_files``) once bound to a</span>
+<span class="sd">    :class:`ProductRegistry` via :meth:`bind`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        _registered_specs: Mapping of spec names to registered resources.</span>
+<span class="sd">        _alias_map: Mapping of aliases to canonical spec names.</span>
+<span class="sd">        _resource_specs: Loaded but not-yet-registered spec objects.</span>
+<span class="sd">        _product_catalog: Product catalog (available after :meth:`bind`).</span>
+<span class="sd">        _parameter_catalog: Parameter catalog (available after :meth:`bind`).</span>
+
+<span class="sd">    Usage::</span>
+
+<span class="sd">        ws = WorkSpace()</span>
+<span class="sd">        ws.add_resource_spec(&#39;local_config.yaml&#39;)</span>
+<span class="sd">        ws.register_spec(base_dir=&#39;/data/gnss&#39;, spec_ids=[&#39;local_config&#39;], alias=&#39;local&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WorkSpace.__init__">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialise an empty workspace with no specs loaded.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RegisteredLocalResource</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># alias → spec name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">LocalResourceSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product_catalog</span><span class="p">:</span> <span class="n">ProductCatalog</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_catalog</span><span class="p">:</span> <span class="n">ParameterCatalog</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="WorkSpace.bind">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.bind">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">product_registry</span><span class="p">:</span> <span class="n">ProductRegistry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inject catalog references from a built :class:`ProductRegistry`.</span>
+
+<span class="sd">        Must be called before using :meth:`source_product`,</span>
+<span class="sd">        :meth:`sink_product`, or :meth:`find_local_files`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            product_registry: A fully built registry with catalogs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product_catalog</span> <span class="o">=</span> <span class="n">product_registry</span><span class="o">.</span><span class="n">_product_catalog</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_catalog</span> <span class="o">=</span> <span class="n">product_registry</span><span class="o">.</span><span class="n">_parameter_catalog</span></div>
+
+
+<div class="viewcode-block" id="WorkSpace.add_resource_spec">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.add_resource_spec">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_resource_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a :class:`LocalResourceSpec` from a YAML file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path to the YAML specification file.</span>
+<span class="sd">            id: Optional override for the spec name.  Defaults to the</span>
+<span class="sd">                name declared inside the YAML file.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AssertionError: If *path* does not exist or a spec with</span>
+<span class="sd">                the same name is already registered.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(),</span> <span class="sa">f</span><span class="s2">&quot;Resource spec file not found: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">(),</span> <span class="sa">f</span><span class="s2">&quot;Resource spec path must be a file: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">spec</span> <span class="o">=</span> <span class="n">LocalResourceSpec</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;source_file&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">})</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="nb">id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="nb">id</span>
+        <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Resource spec with name &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; already exists. Please choose a unique name.&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">spec</span></div>
+
+
+<div class="viewcode-block" id="WorkSpace.register_spec">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.register_spec">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_spec</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">spec_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Bind loaded spec(s) to a base directory and register the result.</span>
+
+<span class="sd">        *base_dir* may be a local filesystem path or a cloud URI such as</span>
+<span class="sd">        ``s3://bucket/prefix``.  When multiple *spec_ids* are given they are</span>
+<span class="sd">        merged into a single :class:`LocalResourceSpec`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            base_dir: Root directory for the resource (local path or cloud URI).</span>
+<span class="sd">            spec_ids: One or more previously loaded spec identifiers.</span>
+<span class="sd">            alias: Optional alias that also maps to this resource.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AssertionError: If *base_dir* does not exist or any</span>
+<span class="sd">                *spec_id* has not been loaded.</span>
+<span class="sd">            ValueError: If *alias* is already in use or *base_dir* overlaps</span>
+<span class="sd">                with an existing registration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base_path</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">base_dir</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">base_path</span><span class="o">.</span><span class="n">exists</span><span class="p">(),</span> <span class="sa">f</span><span class="s2">&quot;Base directory not found: </span><span class="si">{</span><span class="n">base_dir</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="n">base_path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">(),</span> <span class="sa">f</span><span class="s2">&quot;Base directory must be a directory: </span><span class="si">{</span><span class="n">base_dir</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">specs_to_register</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LocalResourceSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">spec_id</span> <span class="ow">in</span> <span class="n">spec_ids</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">spec_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="p">,</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Spec id &#39;</span><span class="si">{</span><span class="n">spec_id</span><span class="si">}</span><span class="s2">&#39; not found. Available specs: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">built_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="p">[</span><span class="n">spec_id</span><span class="p">]</span>
+            <span class="n">specs_to_register</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">built_spec</span><span class="p">)</span>
+
+        <span class="n">spec_to_register</span> <span class="o">=</span> <span class="n">LocalResourceSpec</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">specs_to_register</span><span class="p">)</span>
+        <span class="n">server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">spec_to_register</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">hostname</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span><span class="p">),</span>
+            <span class="n">protocol</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
+            <span class="n">auth_required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="n">specs_to_register</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">alias</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">alias</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">:</span>
+                <span class="n">alias_mapped_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">alias_mapped_spec</span> <span class="o">!=</span> <span class="n">spec_to_register</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Alias </span><span class="si">{</span><span class="n">alias</span><span class="si">!r}</span><span class="s2"> is already in use for spec </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span><span class="si">!r}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">spec_to_register</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="n">item_to_dir</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">coll_name</span><span class="p">,</span> <span class="n">coll</span> <span class="ow">in</span> <span class="n">spec_to_register</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">coll</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">item_to_dir</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Spec </span><span class="si">{</span><span class="n">item</span><span class="si">!r}</span><span class="s2"> is in multiple collections: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item_to_dir</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> and </span><span class="si">{</span><span class="n">coll_name</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">item_to_dir</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">coll</span><span class="o">.</span><span class="n">directory</span>
+
+        <span class="n">local_resource</span> <span class="o">=</span> <span class="n">RegisteredLocalResource</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">spec_to_register</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">base_dir</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span><span class="p">),</span>
+            <span class="n">spec</span><span class="o">=</span><span class="n">spec_to_register</span><span class="p">,</span>
+            <span class="n">item_to_dir</span><span class="o">=</span><span class="n">item_to_dir</span><span class="p">,</span>
+            <span class="n">server</span><span class="o">=</span><span class="n">server</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Check for overlapping base directories with existing registered resources</span>
+        <span class="k">for</span> <span class="n">registered_spec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">paths_overlap</span><span class="p">(</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">base_path</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Base directory </span><span class="si">{</span><span class="n">base_dir</span><span class="si">!r}</span><span class="s2"> overlaps with existing base directory &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">base_dir</span><span class="si">!r}</span><span class="s2"> for spec </span><span class="si">{</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Please choose non-overlapping base directories for local resources.&quot;</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="p">[</span><span class="n">spec_to_register</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">local_resource</span></div>
+
+
+<div class="viewcode-block" id="WorkSpace.register">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">spec</span><span class="p">:</span> <span class="n">LocalResourceSpec</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">base_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a local resource specification in one step.</span>
+
+<span class="sd">        Convenience alternative to :meth:`add_resource_spec` +</span>
+<span class="sd">        :meth:`register_spec`.  Accepts a :class:`LocalResourceSpec`</span>
+<span class="sd">        object or a path to a YAML file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            spec: A :class:`LocalResourceSpec`, or a path to a YAML file.</span>
+<span class="sd">            base_dir: Root directory on disk for the resource.</span>
+<span class="sd">            alias: Optional alias that also maps to this resource.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If *base_dir* overlaps with an existing</span>
+<span class="sd">                registration or *alias* is already taken.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_dir</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">base_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="p">(</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">LocalResourceSpec</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
+
+        <span class="n">base_path</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">base_dir</span><span class="p">))</span> <span class="k">if</span> <span class="n">base_dir</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">hostname</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">base_path</span> <span class="k">else</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">protocol</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
+            <span class="n">auth_required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Local resource </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> is already registered.&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">registered_spec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">paths_overlap</span><span class="p">(</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Base directory </span><span class="si">{</span><span class="n">base_dir</span><span class="si">!r}</span><span class="s2"> for spec </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> overlaps with &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;existing base directory </span><span class="si">{</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">base_dir</span><span class="si">!r}</span><span class="s2"> for spec &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">. Please choose non-overlapping base &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;directories for local resources.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">alias</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">alias</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Alias </span><span class="si">{</span><span class="n">alias</span><span class="si">!r}</span><span class="s2"> is already in use for spec </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span><span class="si">!r}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="n">item_to_dir</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">coll_name</span><span class="p">,</span> <span class="n">coll</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">coll</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">item_to_dir</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Spec </span><span class="si">{</span><span class="n">item</span><span class="si">!r}</span><span class="s2"> is in multiple collections: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item_to_dir</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> and </span><span class="si">{</span><span class="n">coll_name</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">item_to_dir</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">coll</span><span class="o">.</span><span class="n">directory</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">RegisteredLocalResource</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">base_dir</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">base_dir</span><span class="p">))),</span>
+            <span class="n">spec</span><span class="o">=</span><span class="n">spec</span><span class="p">,</span>
+            <span class="n">item_to_dir</span><span class="o">=</span><span class="n">item_to_dir</span><span class="p">,</span>
+            <span class="n">server</span><span class="o">=</span><span class="n">server</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resource_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Identifiers for all registered local resources.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_registered_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name_or_alias</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RegisteredLocalResource</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Look up a registered local resource by name or alias.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name_or_alias: Resource name or alias.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The registered local resource.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            KeyError: If *name_or_alias* is not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name_or_alias</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">:</span>
+            <span class="n">name_or_alias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="p">[</span><span class="n">name_or_alias</span><span class="p">]</span>
+        <span class="n">registered_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name_or_alias</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">registered_spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Local resource </span><span class="si">{</span><span class="n">name_or_alias</span><span class="si">!r}</span><span class="s2"> not found. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Known resources: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">registered_spec</span>
+
+<div class="viewcode-block" id="WorkSpace.source_product">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.source_product">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">,</span> <span class="n">resource_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve a product into SearchTarget objects for a local resource.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            product: Product to resolve.</span>
+<span class="sd">            resource_id: Local resource identifier.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of :class:`SearchTarget` objects.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            KeyError: If *resource_id* or *product.name* is not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">registered_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_registered_spec</span><span class="p">(</span><span class="n">resource_id</span><span class="p">)</span>
+        <span class="n">directory_template</span> <span class="o">=</span> <span class="n">registered_spec</span><span class="o">.</span><span class="n">item_to_dir</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">directory_template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Product </span><span class="si">{</span><span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> not found in resource </span><span class="si">{</span><span class="n">resource_id</span><span class="si">!r}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Known products: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">item_to_dir</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">PathTemplate</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">directory_template</span><span class="p">)</span>
+        <span class="n">directory</span><span class="o">.</span><span class="n">derive</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">SearchTarget</span><span class="p">(</span>
+                <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span>
+                <span class="n">server</span><span class="o">=</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">server</span><span class="p">,</span>
+                <span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="WorkSpace.sink_product">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.sink_product">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sink_product</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">product</span><span class="p">:</span> <span class="n">Product</span><span class="p">,</span>
+        <span class="n">resource_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SearchTarget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve the local directory for a product on a given date.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            product: Product to locate.</span>
+<span class="sd">            resource_id: Local resource identifier.</span>
+<span class="sd">            date: Target date for computed template fields.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`SearchTarget` with resolved directory path.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            KeyError: If *resource_id* or *product.name* is not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_catalog</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Call bind() before sink_product()&quot;</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">_ensure_datetime</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+        <span class="n">registered_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_registered_spec</span><span class="p">(</span><span class="n">resource_id</span><span class="p">)</span>
+
+        <span class="n">directory_template</span> <span class="o">=</span> <span class="n">registered_spec</span><span class="o">.</span><span class="n">item_to_dir</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">directory_template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Spec </span><span class="si">{</span><span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> not found in any local collection. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Known specs: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">item_to_dir</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_catalog</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">directory_template</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">computed_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">out_query</span> <span class="o">=</span> <span class="n">SearchTarget</span><span class="p">(</span>
+            <span class="n">product</span><span class="o">=</span><span class="n">product</span><span class="p">,</span>
+            <span class="n">server</span><span class="o">=</span><span class="n">registered_spec</span><span class="o">.</span><span class="n">server</span><span class="p">,</span>
+            <span class="n">directory</span><span class="o">=</span><span class="n">PathTemplate</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">directory_template</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">resolved</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out_query</span></div>
+
+
+<div class="viewcode-block" id="WorkSpace.lockfile_dir">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.lockfile_dir">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lockfile_dir</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">resource_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyPath</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the dependency lockfile directory for a resource.</span>
+
+<span class="sd">        For local resources this is a subdirectory of the base directory.</span>
+<span class="sd">        For cloud resources (e.g. ``s3://bucket/prefix``) it is an</span>
+<span class="sd">        equivalent cloud path, enabling distributed workers to share</span>
+<span class="sd">        lockfile state via cloud storage.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            resource_id: Local resource identifier.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the lockfile directory (created if needed).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">registered_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_registered_spec</span><span class="p">(</span><span class="n">resource_id</span><span class="p">)</span>
+        <span class="n">dep_lockfile_dir</span> <span class="o">=</span> <span class="n">registered_spec</span><span class="o">.</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;dependency_lockfiles&quot;</span>
+        <span class="n">dep_lockfile_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dep_lockfile_dir</span></div>
+
+
+<div class="viewcode-block" id="WorkSpace.find_local_files">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.find_local_files">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_local_files</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="n">SearchTarget</span><span class="p">,</span>
+        <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnyPath</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search local or cloud storage for files matching a query.</span>
+
+<span class="sd">        Works identically for local :class:`~pathlib.Path` and cloud</span>
+<span class="sd">        :class:`~cloudpathlib.CloudPath` base directories.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            query: SearchTarget with directory and filename patterns.</span>
+<span class="sd">            date: Optional date for interpolating computed fields.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Sorted list of matching paths (local or cloud).</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            KeyError: If the query&#39;s server is not registered.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_catalog</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Call bind() before find_local_files()&quot;</span>
+        <span class="n">dir_pattern</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">pattern</span>
+        <span class="k">if</span> <span class="n">date</span><span class="p">:</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">_ensure_datetime</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+            <span class="n">dir_pattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_catalog</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">dir_pattern</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">computed_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Find the registered spec that owns this query&#39;s server.</span>
+        <span class="n">registered_spec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">query</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+                <span class="n">registered_spec</span> <span class="o">=</span> <span class="n">candidate</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">registered_spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Server </span><span class="si">{</span><span class="n">query</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">id</span><span class="si">!r}</span><span class="s2"> not found in any registered local resource. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Known servers: </span><span class="si">{</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">id</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">file_pattern</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">pattern</span> <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">date</span> <span class="ow">and</span> <span class="n">file_pattern</span><span class="p">:</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">_ensure_datetime</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+            <span class="n">file_pattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_catalog</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">file_pattern</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">computed_only</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+        <span class="n">search_dir</span> <span class="o">=</span> <span class="n">registered_spec</span><span class="o">.</span><span class="n">base_path</span> <span class="o">/</span> <span class="n">dir_pattern</span>
+
+        <span class="k">if</span> <span class="n">file_pattern</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">p</span>
+                <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">search_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">search_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">())</span></div>
+
+
+    <span class="c1"># ---- Rich display -------------------------------------------------------</span>
+
+<div class="viewcode-block" id="WorkSpace.display">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.environments.WorkSpace.display">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">display</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print a rich summary of loaded specs and registered local resources.</span>
+
+<span class="sd">        Prints two tables:</span>
+
+<span class="sd">        - **Loaded Specs** — every spec loaded via :meth:`add_resource_spec`,</span>
+<span class="sd">          with its name and product list.</span>
+<span class="sd">        - **Registered Resources** — every resource bound to a base directory</span>
+<span class="sd">          via :meth:`register_spec`, with its alias(es), base directory, and</span>
+<span class="sd">          the products it covers.</span>
+
+<span class="sd">        Requires the ``rich`` package (bundled as a project dependency).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">rich</span><span class="w"> </span><span class="kn">import</span> <span class="n">box</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">rich.console</span><span class="w"> </span><span class="kn">import</span> <span class="n">Console</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">rich.table</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+
+        <span class="n">console</span> <span class="o">=</span> <span class="n">Console</span><span class="p">()</span>
+
+        <span class="c1"># Reverse the alias map: spec_name → [alias, ...]</span>
+        <span class="n">spec_aliases</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">spec_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alias_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">spec_aliases</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">spec_name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alias</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="p">:</span>
+            <span class="n">st</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="s2">&quot;[bold]Loaded Local Specs[/bold]&quot;</span><span class="p">,</span>
+                <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="o">.</span><span class="n">ROUNDED</span><span class="p">,</span>
+                <span class="n">show_lines</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">header_style</span><span class="o">=</span><span class="s2">&quot;bold white&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">st</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Spec Name&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;bold cyan&quot;</span><span class="p">,</span> <span class="n">no_wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">st</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Collections&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;dim&quot;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">spec_name</span><span class="p">,</span> <span class="n">spec</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="n">collections</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">spec_name</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">collections</span><span class="p">))</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="p">:</span>
+            <span class="n">rt</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+                <span class="n">title</span><span class="o">=</span><span class="s2">&quot;[bold]Registered Local Resources[/bold]&quot;</span><span class="p">,</span>
+                <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="o">.</span><span class="n">ROUNDED</span><span class="p">,</span>
+                <span class="n">show_lines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">header_style</span><span class="o">=</span><span class="s2">&quot;bold white&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;bold green&quot;</span><span class="p">,</span> <span class="n">no_wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Alias(es)&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;dim&quot;</span><span class="p">,</span> <span class="n">no_wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Spec&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;dim&quot;</span><span class="p">,</span> <span class="n">no_wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Spec File&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;dim&quot;</span><span class="p">)</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Base Directory&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;dim&quot;</span><span class="p">)</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Products&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;dim&quot;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">resource</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_registered_specs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="n">aliases</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">spec_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[])))</span>
+                <span class="n">products</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">item_to_dir</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_specs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="n">resource</span><span class="o">.</span><span class="n">spec</span>
+                <span class="n">spec_file</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">source_file</span><span class="p">)</span> <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">source_file</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                <span class="n">rt</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">aliases</span><span class="p">,</span>
+                    <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">spec_file</span><span class="p">,</span>
+                    <span class="n">resource</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">products</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

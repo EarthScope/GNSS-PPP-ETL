@@ -1,0 +1,924 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class Reference — gnss-product-management &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="gnss-product-management API" href="api/gnss-product-management.html" />
+    <link rel="prev" title="gnss-product-management: Layers &amp; Abstractions" href="architecture.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Class Reference — gnss-product-management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#layer-0-configuration-utilities">Layer 0 — Configuration &amp; Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-1-specifications-data-models">Layer 1 — Specifications (Data Models)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#formats">Formats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#products">Products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-resources">Remote Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#local-resources">Local Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#abstract-base">Abstract Base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#relationships">Relationships</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-2-environments-registry">Layer 2 — Environments &amp; Registry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Relationships</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-3-factories-planners-transport">Layer 3 — Factories, Planners &amp; Transport</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#protocols">Protocols</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#connection-management">Connection Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#search-planners">Search Planners</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transport">Transport</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dependency-resolution">Dependency Resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#models-exceptions">Models &amp; Exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pipelines">Pipelines</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ranking-module-level-functions-no-classes">Ranking (module-level functions, no classes)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Relationships</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-4-client-api">Layer 4 — Client API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Relationships</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-5-lockfile-management">Layer 5 — Lockfile Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Relationships</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-6-utilities">Layer 6 — Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-level-singletons">Module-Level Singletons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#full-dependency-graph-simplified">Full Dependency Graph (simplified)</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Class Reference — gnss-product-management</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/class-reference.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="class-reference-gnss-product-management">
+<h1>Class Reference — gnss-product-management<a class="headerlink" href="#class-reference-gnss-product-management" title="Link to this heading"></a></h1>
+<p>Every class, dataclass, Protocol, NamedTuple, Enum, and Exception in the package,
+grouped by architectural layer.</p>
+<hr class="docutils" />
+<section id="layer-0-configuration-utilities">
+<h2>Layer 0 — Configuration &amp; Utilities<a class="headerlink" href="#layer-0-configuration-utilities" title="Link to this heading"></a></h2>
+<p>Layer 0 contains no standalone classes — only module-level helpers and bundled YAML data. Low-level network I/O is handled at Layer 3 by <code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code> (via <code class="docutils literal notranslate"><span class="pre">fsspec</span></code>). See <a class="reference internal" href="#layer-6--utilities"><span class="xref myst">Layer 6 — Utilities</span></a> for the utility classes (<code class="docutils literal notranslate"><span class="pre">_PassthroughDict</span></code>, <code class="docutils literal notranslate"><span class="pre">IGSAntexReferenceFrameType</span></code>) and <a class="reference internal" href="#layer-3--factories-planners--transport"><span class="xref myst">Layer 3 — Factories, Planners &amp; Transport</span></a> for <code class="docutils literal notranslate"><span class="pre">ConnectionPool</span></code> / <code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="layer-1-specifications-data-models">
+<h2>Layer 1 — Specifications (Data Models)<a class="headerlink" href="#layer-1-specifications-data-models" title="Link to this heading"></a></h2>
+<p>Immutable data models parsed from YAML. Everything here is a Pydantic <code class="docutils literal notranslate"><span class="pre">BaseModel</span></code>
+unless noted otherwise.</p>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DerivationMethod</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/parameters/parameter.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str,</span> <span class="pre">Enum</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ENUM</span></code>, <code class="docutils literal notranslate"><span class="pre">COMPUTED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Parameter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/parameters/parameter.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">pattern</span></code>, <code class="docutils literal notranslate"><span class="pre">derivation</span></code>, <code class="docutils literal notranslate"><span class="pre">compute</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ParameterCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/parameters/parameter.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">parameters:</span> <span class="pre">Dict[str,</span> <span class="pre">Parameter]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="formats">
+<h3>Formats<a class="headerlink" href="#formats" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatFieldDef</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pattern</span></code>, <code class="docutils literal notranslate"><span class="pre">default</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FormatVersionSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">notes</span></code>, <code class="docutils literal notranslate"><span class="pre">metadata</span></code>, <code class="docutils literal notranslate"><span class="pre">file_templates</span></code>, <code class="docutils literal notranslate"><span class="pre">compression</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatSpec</span></code> (raw)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">versions</span></code>, <code class="docutils literal notranslate"><span class="pre">compression</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FormatSpecCollection</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">formats:</span> <span class="pre">Dict[str,</span> <span class="pre">FormatSpec]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatSpec</span></code> (resolved)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/format_spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">version</span></code>, <code class="docutils literal notranslate"><span class="pre">variant</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">filename</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FormatSpecCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/format_spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">formats:</span> <span class="pre">dict[str,</span> <span class="pre">VersionCatalog[FormatSpec]]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/format_spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Catalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">formats:</span> <span class="pre">dict[str,</span> <span class="pre">VersionCatalog[Product]]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FormatRegistry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">formats:</span> <span class="pre">Dict[str,</span> <span class="pre">FormatSpec]</span></code> (reusable definitions)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="products">
+<h3>Products<a class="headerlink" href="#products" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PathTemplate</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pattern</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Product</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters:</span> <span class="pre">List[Parameter]</span></code>, <code class="docutils literal notranslate"><span class="pre">filename:</span> <span class="pre">PathTemplate</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">VariantCatalog[T]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel,</span> <span class="pre">Generic[T]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">variants:</span> <span class="pre">Dict[str,</span> <span class="pre">T]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">VersionCatalog[T]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel,</span> <span class="pre">Generic[T]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">versions:</span> <span class="pre">Dict[str,</span> <span class="pre">T]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ProductSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/catalog.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">version</span></code>, <code class="docutils literal notranslate"><span class="pre">variant</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">filename</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ProductSpecCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/catalog.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">products:</span> <span class="pre">dict[str,</span> <span class="pre">VersionCatalog[ProductSpec]]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ProductCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/catalog.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Catalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">products:</span> <span class="pre">dict[str,</span> <span class="pre">VersionCatalog[Product]]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="remote-resources">
+<h3>Remote Resources<a class="headerlink" href="#remote-resources" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Server</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">hostname</span></code>, <code class="docutils literal notranslate"><span class="pre">protocol</span></code>, <code class="docutils literal notranslate"><span class="pre">auth_required</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ResourceProductSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">server_id</span></code>, <code class="docutils literal notranslate"><span class="pre">product_name</span></code>, <code class="docutils literal notranslate"><span class="pre">product_version</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">directory</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResourceSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">servers:</span> <span class="pre">List[Server]</span></code>, <code class="docutils literal notranslate"><span class="pre">products:</span> <span class="pre">List[ResourceProductSpec]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SearchTarget</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">product:</span> <span class="pre">Product</span></code>, <code class="docutils literal notranslate"><span class="pre">server:</span> <span class="pre">Server</span></code>, <code class="docutils literal notranslate"><span class="pre">directory:</span> <span class="pre">PathTemplate</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResourceCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource_catalog.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Catalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">servers</span></code>, <code class="docutils literal notranslate"><span class="pre">queries:</span> <span class="pre">List[SearchTarget]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="local-resources">
+<h3>Local Resources<a class="headerlink" href="#local-resources" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LocalCollection</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/local/local.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">directory</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">items</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LocalResourceSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/local/local.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">collections:</span> <span class="pre">List[LocalCollection]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="dependencies">
+<h3>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SearchPreference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">parameter</span></code>, <code class="docutils literal notranslate"><span class="pre">sorting</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Dependency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">spec</span></code>, <code class="docutils literal notranslate"><span class="pre">required</span></code>, <code class="docutils literal notranslate"><span class="pre">constraints:</span> <span class="pre">Dict[str,</span> <span class="pre">str]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DependencySpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">preferences</span></code>, <code class="docutils literal notranslate"><span class="pre">dependencies</span></code>, <code class="docutils literal notranslate"><span class="pre">package</span></code>, <code class="docutils literal notranslate"><span class="pre">task</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ResolvedDependency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">spec</span></code>, <code class="docutils literal notranslate"><span class="pre">required</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">local_path</span></code>, <code class="docutils literal notranslate"><span class="pre">remote_url</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DependencyResolution</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">spec_name</span></code>, <code class="docutils literal notranslate"><span class="pre">resolved:</span> <span class="pre">List[ResolvedDependency]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="abstract-base">
+<h3>Abstract Base<a class="headerlink" href="#abstract-base" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Catalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/catalog.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p>Abstract <code class="docutils literal notranslate"><span class="pre">build()</span></code> classmethod — base for all resolved catalogs</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="relationships">
+<h3>Relationships<a class="headerlink" href="#relationships" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Catalog (abstract BaseModel)
+ ├── FormatCatalog
+ ├── ProductCatalog
+ └── ResourceCatalog
+
+Parameter ──used-by──► PathTemplate
+Parameter ──used-by──► Product
+Parameter ──used-by──► FormatSpec
+Parameter ──used-by──► ResourceProductSpec
+
+PathTemplate ──field-of──► Product
+PathTemplate ──field-of──► SearchTarget (directory)
+
+Product ──field-of──► SearchTarget
+Server  ──field-of──► SearchTarget
+
+VersionCatalog[T] / VariantCatalog[T]
+ └── wraps FormatSpec, ProductSpec, Product
+
+FormatSpec ──resolved-into──► Product (via FormatCatalog.build)
+ProductSpec ──resolved-into──► Product (via ProductCatalog.build)
+ResourceSpec ──resolved-into──► ResourceCatalog (queries: List[SearchTarget])
+
+SearchPreference ──used-by──► DependencySpec
+Dependency ──used-by──► DependencySpec
+ResolvedDependency ──used-by──► DependencyResolution
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-2-environments-registry">
+<h2>Layer 2 — Environments &amp; Registry<a class="headerlink" href="#layer-2-environments-registry" title="Link to this heading"></a></h2>
+<p>Load YAML specs, build catalogs, and register local storage layouts.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_MatchEntry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/environment.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NamedTuple</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">template_len</span></code>, <code class="docutils literal notranslate"><span class="pre">compiled_regex</span></code>, <code class="docutils literal notranslate"><span class="pre">product_name</span></code>, <code class="docutils literal notranslate"><span class="pre">format_name</span></code>, <code class="docutils literal notranslate"><span class="pre">version</span></code>, <code class="docutils literal notranslate"><span class="pre">variant</span></code>, <code class="docutils literal notranslate"><span class="pre">fixed_params</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LoadedSpecs</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/environment.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p>Holds raw spec models before catalog build</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/environment.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p>Central registry: loads YAML → builds <code class="docutils literal notranslate"><span class="pre">FormatCatalog</span></code>, <code class="docutils literal notranslate"><span class="pre">ProductCatalog</span></code>, <code class="docutils literal notranslate"><span class="pre">ParameterCatalog</span></code>, <code class="docutils literal notranslate"><span class="pre">ResourceCatalog</span></code> objects; satisfies <code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> Protocol for remote queries</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RegisteredLocalResource</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/workspace.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">base_dir</span></code>, <code class="docutils literal notranslate"><span class="pre">spec:</span> <span class="pre">LocalResourceSpec</span></code>, <code class="docutils literal notranslate"><span class="pre">server:</span> <span class="pre">Server</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/workspace.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p>Registry of local storage directories and layout specs</p></td>
+</tr>
+</tbody>
+</table>
+<section id="id1">
+<h3>Relationships<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ProductRegistry  (implements SourcePlanner Protocol — remote resources)
+ ├── owns FormatCatalog
+ ├── owns ProductCatalog
+ ├── owns ParameterCatalog
+ └── owns ResourceCatalog[] (built from ResourceSpec files)
+
+WorkSpace  (implements SourcePlanner Protocol — local resources)
+ └── owns RegisteredLocalResource[]
+      ├── references LocalResourceSpec
+      └── references Server
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-3-factories-planners-transport">
+<h2>Layer 3 — Factories, Planners &amp; Transport<a class="headerlink" href="#layer-3-factories-planners-transport" title="Link to this heading"></a></h2>
+<p>Query construction, remote search, download, ranking, and dependency resolution.</p>
+<section id="protocols">
+<h3>Protocols<a class="headerlink" href="#protocols" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/source_planner.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Protocol</span></code></p></td>
+<td><p>Common interface: <code class="docutils literal notranslate"><span class="pre">resource_ids</span></code>, <code class="docutils literal notranslate"><span class="pre">source_product()</span></code>, <code class="docutils literal notranslate"><span class="pre">sink_product()</span></code>, <code class="docutils literal notranslate"><span class="pre">register()</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="connection-management">
+<h3>Connection Management<a class="headerlink" href="#connection-management" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ConnectionPool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/connection_pool.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hostname</span></code>, <code class="docutils literal notranslate"><span class="pre">protocol</span></code>, <code class="docutils literal notranslate"><span class="pre">max_connections</span></code>, <code class="docutils literal notranslate"><span class="pre">_pool</span></code>, <code class="docutils literal notranslate"><span class="pre">_semaphore</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/connection_pool.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_pools:</span> <span class="pre">Dict[str,</span> <span class="pre">ConnectionPool]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="search-planners">
+<h3>Search Planners<a class="headerlink" href="#search-planners" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/search_planner.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_product_registry:</span> <span class="pre">ProductRegistry</span></code>, <code class="docutils literal notranslate"><span class="pre">_workspace:</span> <span class="pre">WorkSpace</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code> delegates remote lookups to <code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> and local lookups to <code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code> — both satisfy the <code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> Protocol (<code class="docutils literal notranslate"><span class="pre">resource_ids</span></code>, <code class="docutils literal notranslate"><span class="pre">source_product()</span></code>, <code class="docutils literal notranslate"><span class="pre">sink_product()</span></code>).</p>
+</section>
+<section id="transport">
+<h3>Transport<a class="headerlink" href="#transport" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WormHole</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/remote_transport.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_connection_pool_factory:</span> <span class="pre">ConnectionPoolFactory</span></code>, <code class="docutils literal notranslate"><span class="pre">_env:</span> <span class="pre">ProductRegistry</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="dependency-resolution">
+<h3>Dependency Resolution<a class="headerlink" href="#dependency-resolution" title="Link to this heading"></a></h3>
+<p>Dependency resolution is handled by <code class="docutils literal notranslate"><span class="pre">ResolvePipeline</span></code> (see Pipelines below). There is no separate <code class="docutils literal notranslate"><span class="pre">DependencyResolver</span></code> class.</p>
+</section>
+<section id="models-exceptions">
+<h3>Models &amp; Exceptions<a class="headerlink" href="#models-exceptions" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FoundResource</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">product</span></code>, <code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">uri</span></code>, <code class="docutils literal notranslate"><span class="pre">center</span></code>, <code class="docutils literal notranslate"><span class="pre">quality</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">_query</span></code> (private)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Resolution</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">task</span></code>, <code class="docutils literal notranslate"><span class="pre">paths:</span> <span class="pre">List[Path]</span></code>, <code class="docutils literal notranslate"><span class="pre">lockfile</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DiscoveryEntry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">product</span></code>, <code class="docutils literal notranslate"><span class="pre">center</span></code>, <code class="docutils literal notranslate"><span class="pre">quality</span></code>, <code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">uri</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DiscoveryReport</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">entries:</span> <span class="pre">List[DiscoveryEntry]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MissingProductError</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Exception</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">missing:</span> <span class="pre">List[str]</span></code>, <code class="docutils literal notranslate"><span class="pre">task:</span> <span class="pre">str</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="pipelines">
+<h3>Pipelines<a class="headerlink" href="#pipelines" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DownloadPipeline</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/pipelines/download.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_planner:</span> <span class="pre">SearchPlanner</span></code>, <code class="docutils literal notranslate"><span class="pre">_transport:</span> <span class="pre">WormHole</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LockfileWriter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/pipelines/lockfile_writer.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_manager:</span> <span class="pre">LockfileManager</span></code>, <code class="docutils literal notranslate"><span class="pre">_package:</span> <span class="pre">str</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResolvePipeline</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/pipelines/resolve.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_query:</span> <span class="pre">ProductQuery</span></code>, <code class="docutils literal notranslate"><span class="pre">_downloader:</span> <span class="pre">DownloadPipeline</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="ranking-module-level-functions-no-classes">
+<h3>Ranking (module-level functions, no classes)<a class="headerlink" href="#ranking-module-level-functions-no-classes" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Signature</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sort_by_protocol</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/ranking.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(targets:</span> <span class="pre">List[SearchTarget])</span> <span class="pre">-&gt;</span> <span class="pre">List[SearchTarget]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sort_by_preferences</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/ranking.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(targets,</span> <span class="pre">preferences)</span> <span class="pre">-&gt;</span> <span class="pre">List[SearchTarget]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id2">
+<h3>Relationships<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>SourcePlanner (Protocol)
+ ├── ProductRegistry  implements SourcePlanner (remote resources)
+ └── WorkSpace        implements SourcePlanner (local resources)
+
+SearchPlanner
+ ├── uses ProductRegistry (_product_registry) — remote resource_ids / source_product
+ └── uses WorkSpace (_workspace)              — local resource_ids / source_product
+
+WormHole
+ ├── owns ConnectionPoolFactory
+ ├── reads SearchTarget[]  → search()       → SearchTarget[] (expanded)
+ └── reads SearchTarget    → download_one() → Path
+
+DownloadPipeline
+ ├── owns SearchPlanner
+ ├── owns WormHole
+ ├── reads FoundResource._query → WormHole.download_one()
+ └── produces Path
+
+LockfileWriter
+ ├── owns LockfileManager
+ ├── reads DependencyResolution
+ └── produces Path (lockfile)
+
+ResolvePipeline
+ ├── owns ProductQuery  (_query)
+ ├── owns DownloadPipeline
+ ├── calls ranking.sort_by_protocol / sort_by_preferences (via ProductQuery)
+ ├── reads DependencySpec
+ └── produces (DependencyResolution, Path)
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-4-client-api">
+<h2>Layer 4 — Client API<a class="headerlink" href="#layer-4-client-api" title="Link to this heading"></a></h2>
+<p>High-level entry points consumed by application code.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GNSSClient</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">client/gnss_client.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_env:</span> <span class="pre">ProductRegistry</span></code>, <code class="docutils literal notranslate"><span class="pre">_qf:</span> <span class="pre">SearchPlanner</span></code>, <code class="docutils literal notranslate"><span class="pre">_fetcher:</span> <span class="pre">WormHole</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ProductQuery</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">client/product_query.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_fetcher:</span> <span class="pre">WormHole</span></code>, <code class="docutils literal notranslate"><span class="pre">_qf:</span> <span class="pre">SearchPlanner</span></code>, <code class="docutils literal notranslate"><span class="pre">_product</span></code>, <code class="docutils literal notranslate"><span class="pre">_date</span></code>, <code class="docutils literal notranslate"><span class="pre">_parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">_source_ids</span></code>, <code class="docutils literal notranslate"><span class="pre">_preferences</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Search results are returned as <code class="docutils literal notranslate"><span class="pre">FoundResource</span></code> objects (see Layer 3 — Models &amp; Exceptions).</p>
+<section id="id3">
+<h3>Relationships<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>GNSSClient
+ ├── owns ProductRegistry
+ ├── owns SearchPlanner
+ ├── owns WormHole
+ ├── creates ProductQuery (fluent builder)
+ ├── delegates to ResolvePipeline (dependency resolution)
+ └── produces FoundResource[], DependencyResolution
+
+ProductQuery (fluent builder)
+ ├── uses WormHole
+ ├── uses SearchPlanner
+ └── produces FoundResource[]
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-5-lockfile-management">
+<h2>Layer 5 — Lockfile Management<a class="headerlink" href="#layer-5-lockfile-management" title="Link to this heading"></a></h2>
+<p>Persist reproducible product manifests as JSON sidecar files.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Key Fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LockProductAlternative</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">url</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LockProduct</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, <code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">hash</span></code>, <code class="docutils literal notranslate"><span class="pre">size</span></code>, <code class="docutils literal notranslate"><span class="pre">sink</span></code>, <code class="docutils literal notranslate"><span class="pre">alternatives</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DependencyLockFile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/models.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BaseModel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">date</span></code>, <code class="docutils literal notranslate"><span class="pre">package</span></code>, <code class="docutils literal notranslate"><span class="pre">task</span></code>, <code class="docutils literal notranslate"><span class="pre">version</span></code>, <code class="docutils literal notranslate"><span class="pre">products:</span> <span class="pre">List[LockProduct]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HashMismatchMode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/operations.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Enum</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WARN</span></code>, <code class="docutils literal notranslate"><span class="pre">STRICT</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LockfileManager</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/manager.py</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_dir:</span> <span class="pre">Path</span></code> — facade for load/save/build operations</p></td>
+</tr>
+</tbody>
+</table>
+<section id="id4">
+<h3>Relationships<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>DependencyLockFile
+ └── contains LockProduct[]
+      └── contains LockProductAlternative[]
+
+LockfileManager
+ ├── reads/writes DependencyLockFile
+ ├── uses LockProduct
+ └── uses HashMismatchMode (via operations)
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-6-utilities">
+<h2>Layer 6 — Utilities<a class="headerlink" href="#layer-6-utilities" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Base</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_PassthroughDict</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">utilities/helpers.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dict</span></code></p></td>
+<td><p>Returns <code class="docutils literal notranslate"><span class="pre">'{key}'</span></code> for missing keys (used in template formatting)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">IGSAntexReferenceFrameType</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">utilities/metadata_funcs.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Enum</span></code></p></td>
+<td><p>IGS ANTEX reference frame identifiers (<code class="docutils literal notranslate"><span class="pre">IGS05</span></code>, <code class="docutils literal notranslate"><span class="pre">IGS08</span></code>, …)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="module-level-singletons">
+<h2>Module-Level Singletons<a class="headerlink" href="#module-level-singletons" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>File</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DefaultProductEnvironment</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">defaults/__init__.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code></p></td>
+<td><p>Pre-configured registry built from bundled YAML</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DefaultWorkSpace</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">defaults/__init__.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code></p></td>
+<td><p>Pre-configured workspace built from bundled YAML</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="full-dependency-graph-simplified">
+<h2>Full Dependency Graph (simplified)<a class="headerlink" href="#full-dependency-graph-simplified" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────────────────────────┐
+│  Client API                                                     │
+│  GNSSClient ──► ProductQuery ──► FoundResource[]                │
+└──────┬──────────────────────────────────────────────────────────┘
+       │ uses
+┌──────▼──────────────────────────────────────────────────────────┐
+│  Pipelines                                                      │
+│  ResolvePipeline ──► ProductQuery ──► DownloadPipeline          │
+│                  └──► LockfileWriter                            │
+└──────┬──────────────────────────────────────────────────────────┘
+       │ uses
+┌──────▼──────────────────────────────────────────────────────────┐
+│  Factories                                                      │
+│  SearchPlanner ──► ProductRegistry (remote, via SourcePlanner)  │
+│                └──► WorkSpace (local, via SourcePlanner)        │
+│  WormHole ──► ConnectionPoolFactory ──► ConnectionPool          │
+│  ranking.sort_by_protocol / sort_by_preferences                 │
+└──────┬──────────────────────────────────────────────────────────┘
+       │ uses
+┌──────▼──────────────────────────────────────────────────────────┐
+│  Environments                                                   │
+│  ProductRegistry ──► builds catalogs from specs                 │
+│  WorkSpace ──► RegisteredLocalResource[]                        │
+└──────┬──────────────────────────────────────────────────────────┘
+       │ uses
+┌──────▼──────────────────────────────────────────────────────────┐
+│  Specifications (BaseModel data layer)                          │
+│  Parameter, PathTemplate, Product, Server, SearchTarget         │
+│  FormatCatalog, ProductCatalog, ResourceCatalog                 │
+│  DependencySpec, DependencyResolution, SearchPreference         │
+│  LocalResourceSpec, LocalCollection                             │
+└──────┬──────────────────────────────────────────────────────────┘
+       │ uses
+┌──────▼──────────────────────────────────────────────────────────┐
+│  Utilities / Configuration (Layer 0)                            │
+│  as_path(), hash_file(), decompress_gzip(), bundled YAMLs       │
+└─────────────────────────────────────────────────────────────────┘
+
+  Lockfile Management (cross-cutting)
+  LockfileManager ──► DependencyLockFile ──► LockProduct
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="architecture.html" class="btn btn-neutral float-left" title="gnss-product-management: Layers &amp; Abstractions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api/gnss-product-management.html" class="btn btn-neutral float-right" title="gnss-product-management API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

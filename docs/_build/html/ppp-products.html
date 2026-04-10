@@ -1,0 +1,533 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GNSS PPP Product Reference &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="YAML Configuration Reference" href="config-reference.html" />
+    <link rel="prev" title="gnss-product-management: Layers &amp; Abstractions" href="architecture.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">GNSS PPP Product Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#igs-long-filename-convention">IGS Long Filename Convention</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#product-types">Product Types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#precise-orbit-sp3">Precise Orbit (SP3)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#precise-clock-clk">Precise Clock (CLK)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#earth-rotation-parameters-erp">Earth Rotation Parameters (ERP)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#code-phase-bias-bia">Code/Phase Bias (BIA)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ionosphere-products-ionex">Ionosphere Products (IONEX)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#troposphere-products">Troposphere Products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#antenna-calibration-antex">Antenna Calibration (ANTEX)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-frame-sinex">Reference Frame / SINEX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#real-time-ssr-streams">Real-Time SSR Streams</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#observation-data-rinex">Observation Data (RINEX)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rinex-2">RINEX 2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rinex-3">RINEX 3+</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-product-summary">Complete Product Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#typical-ppp-processing-directory">Typical PPP Processing Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">GNSS PPP Product Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ppp-products.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="gnss-ppp-product-reference">
+<h1>GNSS PPP Product Reference<a class="headerlink" href="#gnss-ppp-product-reference" title="Link to this heading"></a></h1>
+<p>This document covers naming conventions, file formats, and product types used
+in Precise Point Positioning (PPP) and PPP with Ambiguity Resolution (PPP-AR).</p>
+<hr class="docutils" />
+<section id="igs-long-filename-convention">
+<h2>IGS Long Filename Convention<a class="headerlink" href="#igs-long-filename-convention" title="Link to this heading"></a></h2>
+<p>Most modern products follow the <strong>IGS long filename convention</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">AC</span><span class="o">&gt;&lt;</span><span class="n">TYPE</span><span class="o">&gt;</span><span class="n">_</span><span class="o">&lt;</span><span class="n">YYYYDDDHHMM</span><span class="o">&gt;</span><span class="n">_</span><span class="o">&lt;</span><span class="n">LEN</span><span class="o">&gt;</span><span class="n">_</span><span class="o">&lt;</span><span class="n">SMP</span><span class="o">&gt;</span><span class="n">_</span><span class="o">&lt;</span><span class="n">CNT</span><span class="o">&gt;.&lt;</span><span class="n">FMT</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>AC</p></td>
+<td><p>Analysis Center</p></td>
+<td><p>IGS, COD, GFZ, WHU</p></td>
+</tr>
+<tr class="row-odd"><td><p>TYPE</p></td>
+<td><p>Product type</p></td>
+<td><p>ORB, CLK, ERP, BIA</p></td>
+</tr>
+<tr class="row-even"><td><p>YYYYDDDHHMM</p></td>
+<td><p>Start epoch (year + day-of-year + time)</p></td>
+<td><p>20231230000</p></td>
+</tr>
+<tr class="row-odd"><td><p>LEN</p></td>
+<td><p>Product length</p></td>
+<td><p>01D (1 day), 01H</p></td>
+</tr>
+<tr class="row-even"><td><p>SMP</p></td>
+<td><p>Sampling interval</p></td>
+<td><p>05M, 30S</p></td>
+</tr>
+<tr class="row-odd"><td><p>CNT</p></td>
+<td><p>Content descriptor</p></td>
+<td><p>ORB, CLK</p></td>
+</tr>
+<tr class="row-even"><td><p>FMT</p></td>
+<td><p>File format</p></td>
+<td><p>SP3, CLK, ERP</p></td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">IGS0OPSFIN_20231230000_01D_05M_ORB</span><span class="o">.</span><span class="n">SP3</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="product-types">
+<h2>Product Types<a class="headerlink" href="#product-types" title="Link to this heading"></a></h2>
+<section id="precise-orbit-sp3">
+<h3>Precise Orbit (SP3)<a class="headerlink" href="#precise-orbit-sp3" title="Link to this heading"></a></h3>
+<p>High-accuracy satellite positions replacing broadcast ephemerides.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Convention</p></th>
+<th class="head"><p>Pattern</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Legacy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igsWWWWD.sp3</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igs22341.sp3</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Modern</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AC0OPSFIN_YYYYDDDHHMM_01D_05M_ORB.SP3</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IGS0OPSFIN_20231230000_01D_05M_ORB.SP3</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="precise-clock-clk">
+<h3>Precise Clock (CLK)<a class="headerlink" href="#precise-clock-clk" title="Link to this heading"></a></h3>
+<p>Satellite clock error corrections.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Convention</p></th>
+<th class="head"><p>Pattern</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Legacy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igsWWWWD.clk</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igs22341.clk</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Modern</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AC0OPSFIN_YYYYDDDHHMM_01D_30S_CLK.CLK</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IGS0OPSFIN_20231230000_01D_30S_CLK.CLK</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="earth-rotation-parameters-erp">
+<h3>Earth Rotation Parameters (ERP)<a class="headerlink" href="#earth-rotation-parameters-erp" title="Link to this heading"></a></h3>
+<p>Transform between Earth-fixed and inertial reference frames.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Convention</p></th>
+<th class="head"><p>Pattern</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Legacy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igsWWWWD.erp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igs22341.erp</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Modern</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AC0OPSFIN_YYYYDDDHHMM_01D_01D_ERP.ERP</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IGS0OPSFIN_20231230000_01D_01D_ERP.ERP</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="code-phase-bias-bia">
+<h3>Code/Phase Bias (BIA)<a class="headerlink" href="#code-phase-bias-bia" title="Link to this heading"></a></h3>
+<p>Correct signal-dependent hardware biases.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Product</p></th>
+<th class="head"><p>Pattern</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Code Bias (OSB)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AC0MGXRAP_YYYYDDD0000_01D_01D_BIA.BIA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CAS0MGXRAP_20231230000_01D_01D_BIA.BIA</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Phase Bias (PPP-AR)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AC0MGXRAP_YYYYDDD0000_01D_30S_PHS.BIA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CAS0MGXRAP_20231230000_01D_30S_PHS.BIA</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="ionosphere-products-ionex">
+<h3>Ionosphere Products (IONEX)<a class="headerlink" href="#ionosphere-products-ionex" title="Link to this heading"></a></h3>
+<p>Global ionosphere maps providing total electron content models.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Convention</p></th>
+<th class="head"><p>Pattern</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Legacy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igsgDDD0.YYi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igsg1230.23i</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Modern</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AC0OPSFIN_YYYYDDD0000_01D_02H_GIM.INX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IGS0OPSFIN_20231230000_01D_02H_GIM.INX</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="troposphere-products">
+<h3>Troposphere Products<a class="headerlink" href="#troposphere-products" title="Link to this heading"></a></h3>
+<p>Atmospheric delay estimates improving vertical accuracy.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AC0OPSFIN_YYYYDDD0000_01D_05M_TRO</span><span class="o">.</span><span class="n">TRO</span>
+</pre></div>
+</div>
+</section>
+<section id="antenna-calibration-antex">
+<h3>Antenna Calibration (ANTEX)<a class="headerlink" href="#antenna-calibration-antex" title="Link to this heading"></a></h3>
+<p>Phase center offset and variation models for antennas.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">igs14.atx</span></code></p></td>
+<td><p>IGS14 antenna model</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">igs20.atx</span></code></p></td>
+<td><p>IGS20 antenna model</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reference-frame-sinex">
+<h3>Reference Frame / SINEX<a class="headerlink" href="#reference-frame-sinex" title="Link to this heading"></a></h3>
+<p>Weekly SINEX solutions:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Convention</p></th>
+<th class="head"><p>Pattern</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Legacy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igsWWWW.snx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">igs2234.snx</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Modern</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AC0OPSFIN_YYYYDDD0000_07D_07D_SOL.SNX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IGS0OPSFIN_20231230000_07D_07D_SOL.SNX</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="real-time-ssr-streams">
+<h3>Real-Time SSR Streams<a class="headerlink" href="#real-time-ssr-streams" title="Link to this heading"></a></h3>
+<p>Real-time corrections via NTRIP (RTCM 3.x SSR):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Stream</p></th>
+<th class="head"><p>Contents</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">IGS03</span></code></p></td>
+<td><p>Orbit + clock corrections</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CLK93</span></code></p></td>
+<td><p>Clock corrections</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SSRA00IGS0</span></code></p></td>
+<td><p>Multi-signal corrections</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<hr class="docutils" />
+<section id="observation-data-rinex">
+<h2>Observation Data (RINEX)<a class="headerlink" href="#observation-data-rinex" title="Link to this heading"></a></h2>
+<section id="rinex-2">
+<h3>RINEX 2<a class="headerlink" href="#rinex-2" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ssssDDD0</span><span class="o">.</span><span class="n">YYo</span>          <span class="p">(</span><span class="n">observation</span><span class="p">)</span>
+<span class="n">ssssDDD0</span><span class="o">.</span><span class="n">YYd</span><span class="o">.</span><span class="n">Z</span>        <span class="p">(</span><span class="n">compressed</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="rinex-3">
+<h3>RINEX 3+<a class="headerlink" href="#rinex-3" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SSSS00CCC_R_YYYYDDDHHMM_01D_30S_MO</span><span class="o">.</span><span class="n">rnx</span><span class="o">.</span><span class="n">gz</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="complete-product-summary">
+<h2>Complete Product Summary<a class="headerlink" href="#complete-product-summary" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Product Category</p></th>
+<th class="head"><p>Product Name</p></th>
+<th class="head"><p>Purpose in PPP</p></th>
+<th class="head"><p>Format</p></th>
+<th class="head"><p>Sampling</p></th>
+<th class="head"><p>Latency</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Observations</p></td>
+<td><p>GNSS Observation Data</p></td>
+<td><p>Raw measurements (code, phase)</p></td>
+<td><p>RINEX OBS</p></td>
+<td><p>1–30 s</p></td>
+<td><p>Real-time / daily</p></td>
+</tr>
+<tr class="row-odd"><td><p>Satellite Orbits</p></td>
+<td><p>Precise Orbit Ephemerides</p></td>
+<td><p>Accurate satellite positions</p></td>
+<td><p>SP3</p></td>
+<td><p>5–15 min</p></td>
+<td><p>Ultra-rapid / Rapid / Final</p></td>
+</tr>
+<tr class="row-even"><td><p>Satellite Clocks</p></td>
+<td><p>Precise Clock Offsets</p></td>
+<td><p>Satellite clock error correction</p></td>
+<td><p>RINEX CLK</p></td>
+<td><p>5 s / 30 s</p></td>
+<td><p>Ultra-rapid / Rapid / Final</p></td>
+</tr>
+<tr class="row-odd"><td><p>Bias Products</p></td>
+<td><p>Differential Code Bias (DCB)</p></td>
+<td><p>Code biases between frequencies</p></td>
+<td><p>SINEX BIAS</p></td>
+<td><p>Daily</p></td>
+<td><p>Rapid / Final</p></td>
+</tr>
+<tr class="row-even"><td><p>Bias Products</p></td>
+<td><p>Observable Specific Bias (OSB)</p></td>
+<td><p>Signal-specific biases (multi-GNSS)</p></td>
+<td><p>SINEX BIAS</p></td>
+<td><p>Daily</p></td>
+<td><p>Rapid / Final</p></td>
+</tr>
+<tr class="row-odd"><td><p>Phase Bias</p></td>
+<td><p>Fractional Cycle Bias (FCB)</p></td>
+<td><p>Integer ambiguity fixing in PPP-AR</p></td>
+<td><p>FCB / SINEX BIAS</p></td>
+<td><p>5 min – 30 s</p></td>
+<td><p>Rapid / Final</p></td>
+</tr>
+<tr class="row-even"><td><p>Earth Orientation</p></td>
+<td><p>Earth Rotation Parameters (ERP/EOP)</p></td>
+<td><p>Terrestrial ↔ inertial frame transform</p></td>
+<td><p>ERP</p></td>
+<td><p>Daily</p></td>
+<td><p>Rapid / Final</p></td>
+</tr>
+<tr class="row-odd"><td><p>Reference Frame</p></td>
+<td><p>Station Coordinates / Frame Solutions</p></td>
+<td><p>Define reference frame (ITRF)</p></td>
+<td><p>SINEX</p></td>
+<td><p>Daily / weekly</p></td>
+<td><p>Final</p></td>
+</tr>
+<tr class="row-even"><td><p>Troposphere</p></td>
+<td><p>Zenith Tropospheric Delay (ZTD/ZPD)</p></td>
+<td><p>Atmospheric delay corrections</p></td>
+<td><p>SINEX TRO</p></td>
+<td><p>5 min – 1 hr</p></td>
+<td><p>Rapid / Final</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ionosphere</p></td>
+<td><p>Global TEC Maps</p></td>
+<td><p>Ionospheric delay models</p></td>
+<td><p>IONEX</p></td>
+<td><p>15 min – 2 hr</p></td>
+<td><p>Rapid / Final</p></td>
+</tr>
+<tr class="row-even"><td><p>Antenna Calibration</p></td>
+<td><p>Antenna Phase Center Models</p></td>
+<td><p>Receiver/satellite antenna offsets</p></td>
+<td><p>ANTEX</p></td>
+<td><p>Static</p></td>
+<td><p>Final</p></td>
+</tr>
+<tr class="row-odd"><td><p>Satellite Attitude</p></td>
+<td><p>Satellite Yaw / Attitude</p></td>
+<td><p>Satellite antenna orientation</p></td>
+<td><p>ATT / YAW</p></td>
+<td><p>5–15 min</p></td>
+<td><p>Rapid / Final</p></td>
+</tr>
+<tr class="row-even"><td><p>Real-Time Corrections</p></td>
+<td><p>SSR Corrections</p></td>
+<td><p>Real-time orbit/clock/bias</p></td>
+<td><p>RTCM SSR</p></td>
+<td><p>1–10 s</p></td>
+<td><p>Real-time</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="typical-ppp-processing-directory">
+<h2>Typical PPP Processing Directory<a class="headerlink" href="#typical-ppp-processing-directory" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ppp_run/
+├── obs/
+│   └── station.rnx
+├── products/
+│   ├── orbit.sp3
+│   ├── clock.clk
+│   ├── erp.erp
+│   ├── bias.bia
+│   ├── ionosphere.inx
+│   ├── antenna.atx
+│   └── troposphere.tro
+└── output/
+    ├── position.pos
+    └── residuals.txt
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://igs.org/formats-and-standards/">IGS File Naming Convention</a></p></li>
+<li><p><a class="reference external" href="https://files.igs.org/pub/data/format/">RINEX 3 Specification</a></p></li>
+<li><p><a class="reference external" href="https://igs.org/formats-and-standards/">IONEX Format Specification</a></p></li>
+<li><p><a class="reference external" href="https://www.iers.org/IERS/EN/Organization/AnalysisCoordinator/SinexFormat/sinex.html">SINEX Format Specification</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="architecture.html" class="btn btn-neutral float-left" title="gnss-product-management: Layers &amp; Abstractions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="config-reference.html" class="btn btn-neutral float-right" title="YAML Configuration Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

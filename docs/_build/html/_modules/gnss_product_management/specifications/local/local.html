@@ -1,0 +1,214 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.specifications.local.local &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.specifications.local.local</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.specifications.local.local</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">Pure Pydantic models for local storage specifications.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="LocalCollection">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.LocalCollection">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LocalCollection</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A group of product specs sharing a directory template.&quot;&quot;&quot;</span>
+
+    <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">items</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="LocalResourceSpec">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.LocalResourceSpec">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LocalResourceSpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Root model for a local storage layout.</span>
+
+<span class="sd">    A single spec maps collection names to :class:`LocalCollection`</span>
+<span class="sd">    objects.  Multiple specs can be merged via :meth:`merge` so that</span>
+<span class="sd">    different YAML files (e.g. per-project or per-workflow) combine</span>
+<span class="sd">    into one unified layout.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">collections</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">LocalCollection</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">source_file</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="LocalResourceSpec.from_yaml">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.LocalResourceSpec.from_yaml">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_yaml</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocalResourceSpec</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load from a YAML file.</span>
+
+<span class="sd">        Accepts either a top-level ``local:`` wrapper or a flat file</span>
+<span class="sd">        whose top-level key is ``collections:``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path to the YAML file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`LocalResourceSpec` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span>
+
+        <span class="n">class_instance</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;local&quot;</span><span class="p">,</span> <span class="n">raw</span><span class="p">))</span>
+        <span class="n">class_instance</span><span class="o">.</span><span class="n">source_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">class_instance</span></div>
+
+
+<div class="viewcode-block" id="LocalResourceSpec.merge">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.LocalResourceSpec.merge">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">specs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">LocalResourceSpec</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">LocalResourceSpec</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge multiple local storage specs into one.</span>
+
+<span class="sd">        Later specs override collections with the same name.  Items</span>
+<span class="sd">        within identically-named collections are combined (union).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            specs: Sequence of specs to merge.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new :class:`LocalResourceSpec` with combined collections.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">merged_collections</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">LocalCollection</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">coll_name</span><span class="p">,</span> <span class="n">coll</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">coll_name</span> <span class="ow">in</span> <span class="n">merged_collections</span><span class="p">:</span>
+                    <span class="n">existing</span> <span class="o">=</span> <span class="n">merged_collections</span><span class="p">[</span><span class="n">coll_name</span><span class="p">]</span>
+                    <span class="c1"># Combine items (avoid duplicates, preserve order)</span>
+                    <span class="n">combined_items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">existing</span><span class="o">.</span><span class="n">items</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">coll</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">combined_items</span><span class="p">:</span>
+                            <span class="n">combined_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                    <span class="n">merged_collections</span><span class="p">[</span><span class="n">coll_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">LocalCollection</span><span class="p">(</span>
+                        <span class="n">directory</span><span class="o">=</span><span class="n">coll</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span>
+                        <span class="n">description</span><span class="o">=</span><span class="n">coll</span><span class="o">.</span><span class="n">description</span> <span class="ow">or</span> <span class="n">existing</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+                        <span class="n">items</span><span class="o">=</span><span class="n">combined_items</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">merged_collections</span><span class="p">[</span><span class="n">coll_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">coll</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="n">merged_collections</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

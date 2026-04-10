@@ -1,0 +1,559 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.client.product_query &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.client.product_query</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.client.product_query</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">ProductQuery — fluent builder for GNSS product search and download.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">as_completed</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">cast</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.factories.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoundResource</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.factories.ranking</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">sort_by_preferences</span><span class="p">,</span>
+    <span class="n">sort_by_protocol</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.factories.remote_transport</span><span class="w"> </span><span class="kn">import</span> <span class="n">WormHole</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.factories.search_planner</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchPlanner</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.dependencies.dependencies</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SearchPreference</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.remote.resource</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchTarget</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ProductQuery">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProductQuery</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fluent builder for constructing and executing a GNSS product search.</span>
+
+<span class="sd">    Constructed via :meth:`GNSSClient.query` — do not instantiate directly.</span>
+
+<span class="sd">    Chain method calls to build the query, then call :meth:`search` or</span>
+<span class="sd">    :meth:`download` to execute::</span>
+
+<span class="sd">        results = (</span>
+<span class="sd">            client.query(&quot;ORBIT&quot;)</span>
+<span class="sd">            .on(date)</span>
+<span class="sd">            .where(TTT=&quot;FIN&quot;)</span>
+<span class="sd">            .sources(&quot;COD&quot;, &quot;ESA&quot;)</span>
+<span class="sd">            .prefer(TTT=[&quot;FIN&quot;, &quot;RAP&quot;, &quot;ULT&quot;])</span>
+<span class="sd">            .search()</span>
+<span class="sd">        )</span>
+
+<span class="sd">        paths = (</span>
+<span class="sd">            client.query(&quot;CLOCK&quot;)</span>
+<span class="sd">            .on(date)</span>
+<span class="sd">            .where(TTT=&quot;FIN&quot;)</span>
+<span class="sd">            .sources(&quot;local&quot;, &quot;COD&quot;)</span>
+<span class="sd">            .download(sink_id=&quot;local&quot;)</span>
+<span class="sd">        )</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fetcher: :class:`WormHole` used for directory listing and</span>
+<span class="sd">            file download.</span>
+<span class="sd">        query_factory: :class:`SearchPlanner` used to build</span>
+<span class="sd">            :class:`SearchTarget` objects from product specs.</span>
+<span class="sd">        product: Product name (e.g. ``&quot;ORBIT&quot;``) or dict with ``name``,</span>
+<span class="sd">            and optionally ``version`` / ``variant``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">wormhole</span><span class="p">:</span> <span class="n">WormHole</span><span class="p">,</span>
+        <span class="n">search_planner</span><span class="p">:</span> <span class="n">SearchPlanner</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wormhole</span> <span class="o">=</span> <span class="n">wormhole</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_search_planner</span> <span class="o">=</span> <span class="n">search_planner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_date_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_source_ids</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># None = all sources</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_preferences</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchPreference</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="ProductQuery.for_product">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.for_product">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">for_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">product</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the target product for the query.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            product: Product name (e.g. ``&quot;ORBIT&quot;``) or dict with ``name``,</span>
+<span class="sd">                and optionally ``version`` / ``variant``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self`` for chaining.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">clone</span><span class="o">.</span><span class="n">_product</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">product</span><span class="p">}</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">product</span>
+        <span class="k">return</span> <span class="n">clone</span></div>
+
+
+<div class="viewcode-block" id="ProductQuery.on">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.on">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the target date for the query.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            date: Timezone-aware datetime.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self`` for chaining.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">clone</span><span class="o">.</span><span class="n">_date</span> <span class="o">=</span> <span class="n">date</span>
+        <span class="k">return</span> <span class="n">clone</span></div>
+
+
+<div class="viewcode-block" id="ProductQuery.on_range">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.on_range">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_range</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">start</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+        <span class="n">end</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set a date range for the query.</span>
+
+<span class="sd">        Searches are run for every date from *start* to *end* (inclusive)</span>
+<span class="sd">        with the given *step* (default: 1 day).  Results from all dates are</span>
+<span class="sd">        merged into a single flat list from :meth:`search`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            start: First date to query (inclusive).</span>
+<span class="sd">            end: Last date to query (inclusive).</span>
+<span class="sd">            step: Interval between consecutive dates (default: 1 day).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self`` for chaining.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If *start* is after *end*.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">end</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start (</span><span class="si">{</span><span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="si">}</span><span class="s2">) must not be after end (</span><span class="si">{</span><span class="n">end</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">clone</span><span class="o">.</span><span class="n">_date</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">clone</span><span class="o">.</span><span class="n">_date_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">clone</span></div>
+
+
+<div class="viewcode-block" id="ProductQuery.where">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.where">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">parameters</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constrain product parameters.</span>
+
+<span class="sd">        Keyword arguments map parameter names to required values, e.g.</span>
+<span class="sd">        ``where(TTT=&quot;FIN&quot;)`` or ``where(TTT=[&quot;FIN&quot;, &quot;RAP&quot;])``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            **parameters: Parameter name → value (or list of values).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self`` for chaining.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">clone</span><span class="o">.</span><span class="n">_parameters</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">clone</span></div>
+
+
+<div class="viewcode-block" id="ProductQuery.sources">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.sources">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">ids</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Restrict the search to specific local or remote sources.</span>
+
+<span class="sd">        Pass any mix of registered local aliases and remote center IDs.</span>
+<span class="sd">        Each ID is resolved at :meth:`search` time — local aliases are</span>
+<span class="sd">        routed to local disk, everything else is treated as a remote</span>
+<span class="sd">        center ID.</span>
+
+<span class="sd">        Calling :meth:`sources` with no arguments is an error; omit the</span>
+<span class="sd">        call entirely to search all available sources.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *ids: One or more source identifiers.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self`` for chaining.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If no IDs are provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ids</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;sources() requires at least one resource ID. &quot;</span>
+                <span class="s2">&quot;Omit the call entirely to search all sources.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">clone</span><span class="o">.</span><span class="n">_source_ids</span> <span class="o">=</span> <span class="n">ids</span>
+        <span class="k">return</span> <span class="n">clone</span></div>
+
+
+<div class="viewcode-block" id="ProductQuery.prefer">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.prefer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prefer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Define a preference cascade for ranking results.</span>
+
+<span class="sd">        Keyword arguments map parameter names to an ordered list of</span>
+<span class="sd">        preferred values.  The first entry is most preferred::</span>
+
+<span class="sd">            .prefer(TTT=[&quot;FIN&quot;, &quot;RAP&quot;, &quot;ULT&quot;])</span>
+
+<span class="sd">        Multiple calls accumulate preferences in call order.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            **kwargs: Parameter name → ordered list of preferred values.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self`` for chaining.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">sorting</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sorting</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">sorting</span> <span class="o">=</span> <span class="p">[</span><span class="n">sorting</span><span class="p">]</span>
+            <span class="n">clone</span><span class="o">.</span><span class="n">_preferences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SearchPreference</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">param</span><span class="p">,</span> <span class="n">sorting</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">sorting</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">clone</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ranked_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return sorted :class:`SearchTarget` candidates before deduplication.</span>
+
+<span class="sd">        Builds queries via :class:`SearchPlanner`, expands them through</span>
+<span class="sd">        :class:`WormHole`, then applies preference and protocol sorting.</span>
+<span class="sd">        The result is the pre-deduplication list used both by :meth:`search`</span>
+<span class="sd">        and by :class:`ResolvePipeline`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Sorted list of :class:`SearchTarget` objects, local/file first,</span>
+<span class="sd">            then ordered by *preferences* within each protocol tier.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If :meth:`for_product` or :meth:`on` have not been called.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_product</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Call .for_product(product) before searching&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Call .on(date) before searching&quot;</span><span class="p">)</span>
+
+        <span class="n">local_ids</span><span class="p">,</span> <span class="n">remote_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_sources</span><span class="p">()</span>
+        <span class="n">queries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_search_planner</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_date</span><span class="p">,</span>
+            <span class="n">product</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_product</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">local_resources</span><span class="o">=</span><span class="n">local_ids</span><span class="p">,</span>
+            <span class="n">remote_resources</span><span class="o">=</span><span class="n">remote_ids</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">expanded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wormhole</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">queries</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">expanded</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">&quot;No search targets found for product </span><span class="si">%s</span><span class="s2"> on date </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_product</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_date</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Expanded </span><span class="si">%d</span><span class="s2"> queries into </span><span class="si">%d</span><span class="s2"> targets for </span><span class="si">%s</span><span class="s2"> on </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">queries</span><span class="p">),</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">expanded</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_product</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_date</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preferences</span><span class="p">:</span>
+            <span class="n">expanded</span> <span class="o">=</span> <span class="n">sort_by_preferences</span><span class="p">(</span><span class="n">expanded</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preferences</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sort_by_protocol</span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_search_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FoundResource</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute a search for every date in the configured range.</span>
+
+<span class="sd">        Runs one :meth:`search` call per date in parallel using a</span>
+<span class="sd">        :class:`~concurrent.futures.ThreadPoolExecutor` (max 8 workers) and</span>
+<span class="sd">        merges all results into a single flat list.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Combined list of :class:`FoundResource` objects from all dates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_date_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_date_range</span>
+
+        <span class="n">dates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="k">while</span> <span class="n">current</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">:</span>
+            <span class="n">dates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+            <span class="n">current</span> <span class="o">+=</span> <span class="n">step</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;on_range(): </span><span class="si">%d</span><span class="s2"> dates from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">),</span>
+            <span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+            <span class="n">end</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="n">all_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FoundResource</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">),</span> <span class="mi">8</span><span class="p">))</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">future_to_date</span> <span class="o">=</span> <span class="p">{</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">):</span> <span class="n">date</span> <span class="k">for</span> <span class="n">date</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">future_to_date</span><span class="p">):</span>
+                <span class="n">date</span> <span class="o">=</span> <span class="n">future_to_date</span><span class="p">[</span><span class="n">future</span><span class="p">]</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">all_results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Search failed for date </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">date</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span> <span class="n">exc</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">all_results</span>
+
+<div class="viewcode-block" id="ProductQuery.search">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.search">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FoundResource</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute the query and return ranked results.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Ranked list of :class:`FoundResource` objects, best first.</span>
+<span class="sd">            Local/file results precede remote ones; within each protocol</span>
+<span class="sd">            tier results are ordered by *preferences*.</span>
+<span class="sd">            When :meth:`on_range` was used, results from all dates are</span>
+<span class="sd">            returned as a flat combined list.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If neither :meth:`on` nor :meth:`on_range` has been called.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_product</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Call .for_product(product) before .search()&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_date_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_search_range</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Call .on(date) or .on_range(start, end) before .search()&quot;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;search() product=</span><span class="si">%s</span><span class="s2"> date=</span><span class="si">%s</span><span class="s2"> parameters=</span><span class="si">%s</span><span class="s2"> sources=</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_product</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_date</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_source_ids</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">ranked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ranked_targets</span><span class="p">()</span>
+
+        <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FoundResource</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">seen</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">rq</span> <span class="ow">in</span> <span class="n">ranked</span><span class="p">:</span>
+            <span class="n">hostname</span> <span class="o">=</span> <span class="n">rq</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">hostname</span>
+            <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="n">rq</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">value</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">rq</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># type: ignore[union-attr]</span>
+            <span class="n">key</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">hostname</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">seen</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">rq</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+            <span class="n">protocol</span> <span class="o">=</span> <span class="p">(</span><span class="n">rq</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">protocol</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="n">is_local</span> <span class="o">=</span> <span class="n">protocol</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;FILE&quot;</span><span class="p">,</span> <span class="s2">&quot;LOCAL&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_local</span><span class="p">:</span>
+                <span class="n">uri</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+                    <span class="n">Path</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="p">(</span><span class="n">rq</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">value</span> <span class="ow">or</span> <span class="n">rq</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span>  <span class="c1"># type: ignore[union-attr]</span>
+                    <span class="o">/</span> <span class="n">filename</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">proto</span> <span class="o">=</span> <span class="p">(</span><span class="n">rq</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">protocol</span> <span class="ow">or</span> <span class="s2">&quot;ftp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">uri</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">proto</span><span class="si">}</span><span class="s2">://</span><span class="si">{</span><span class="n">hostname</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">rq</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">value</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">rq</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">pattern</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c1"># type: ignore[union-attr]</span>
+                <span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">FoundResource</span><span class="p">(</span>
+                <span class="n">product</span><span class="o">=</span><span class="n">rq</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">=</span><span class="s2">&quot;local&quot;</span> <span class="k">if</span> <span class="n">is_local</span> <span class="k">else</span> <span class="s2">&quot;remote&quot;</span><span class="p">,</span>
+                <span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+                <span class="n">date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_date</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">_query</span> <span class="o">=</span> <span class="n">rq</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">results</span></div>
+
+
+<div class="viewcode-block" id="ProductQuery.download">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.download">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sink_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search and download results in one call.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sink_id: Local resource alias to download into (e.g. ``&quot;local&quot;``).</span>
+<span class="sd">            limit: Maximum number of files to download.  ``None`` downloads</span>
+<span class="sd">                all results.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Paths to successfully downloaded files.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If :meth:`for_product` or :meth:`on` have not been called.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># search() validates that _date is set via _ranked_targets()</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_date</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>  <span class="c1"># guaranteed by search() above</span>
+        <span class="n">paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">_query</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;FoundResource has no internal query; skipping.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wormhole</span><span class="o">.</span><span class="n">download_one</span><span class="p">(</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">SearchTarget</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">_query</span><span class="p">),</span>
+                <span class="n">local_resource_id</span><span class="o">=</span><span class="n">sink_id</span><span class="p">,</span>
+                <span class="n">local_factory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_search_planner</span><span class="o">.</span><span class="n">_workspace</span><span class="p">,</span>
+                <span class="n">date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_date</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">local_path</span> <span class="o">=</span> <span class="n">path</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+                    <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">paths</span></div>
+
+
+    <span class="c1"># -- Internal --------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split source IDs into (local_ids, remote_ids) for SearchPlanner.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A ``(local_ids, remote_ids)`` tuple, each ``None`` when empty</span>
+<span class="sd">            (meaning &quot;all of that type&quot;).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="n">local_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">remote_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_ids</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_search_planner</span><span class="o">.</span><span class="n">_workspace</span><span class="o">.</span><span class="n">_get_registered_spec</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+                <span class="n">local_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">remote_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">local_ids</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span> <span class="n">remote_ids</span> <span class="ow">or</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

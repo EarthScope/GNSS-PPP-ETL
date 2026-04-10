@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.specifications.dependencies.dependencies &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.specifications.dependencies.dependencies</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.specifications.dependencies.dependencies</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">Pure Pydantic models and result types for dependency specifications.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># Path is kept for DependencySpec.from_yaml signature compatibility</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+
+
+<div class="viewcode-block" id="SearchPreference">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.SearchPreference">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SearchPreference</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;One slot in the preference cascade.&quot;&quot;&quot;</span>
+
+    <span class="n">parameter</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">sorting</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;List of product parameters to sort by for this preference.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="Dependency">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.Dependency">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Dependency</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single product dependency.&quot;&quot;&quot;</span>
+
+    <span class="n">spec</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">constraints</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="DependencySpec">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.DependencySpec">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DependencySpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Full dependency specification for a processing task.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">preferences</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchPreference</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">dependencies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Dependency</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">task</span><span class="p">:</span> <span class="nb">str</span>
+
+<div class="viewcode-block" id="DependencySpec.from_yaml">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.DependencySpec.from_yaml">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_yaml</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DependencySpec</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a dependency specification from a YAML file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path to the YAML file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`DependencySpec` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ResolvedDependency">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.ResolvedDependency">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ResolvedDependency</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolution result for one dependency.&quot;&quot;&quot;</span>
+
+    <span class="n">spec</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># &quot;local&quot; | &quot;downloaded&quot; | &quot;remote&quot; | &quot;missing&quot;</span>
+
+    <span class="c1"># Stored as a URI string so it works for both local paths and cloud</span>
+    <span class="c1"># URIs (e.g. ``s3://bucket/path/file.sp3``).  Use</span>
+    <span class="c1"># ``gnss_product_management.utilities.paths.as_path(local_path)``</span>
+    <span class="c1"># to obtain a path object for filesystem operations.</span>
+    <span class="n">local_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Lockfile fields — populated during resolution for later export</span>
+    <span class="n">remote_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="DependencyResolution">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.DependencyResolution">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DependencyResolution</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Aggregated resolution result for all dependencies in a spec.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        spec_name: Name of the dependency specification.</span>
+<span class="sd">        resolved: List of :class:`ResolvedDependency` results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">spec_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">resolved</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ResolvedDependency</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fulfilled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ResolvedDependency</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dependencies that have been resolved (not missing).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">&quot;missing&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">missing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ResolvedDependency</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dependencies that could not be resolved.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;missing&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all_required_fulfilled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``True`` if every required dependency has been resolved.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">&quot;missing&quot;</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">required</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DependencyResolution.product_paths">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.DependencyResolution.product_paths">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">product_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a ``{spec: uri}`` mapping for resolved local files.</span>
+
+<span class="sd">        Values are URI strings that work for both local paths and cloud</span>
+<span class="sd">        locations.  Pass them through</span>
+<span class="sd">        ``gnss_product_management.utilities.paths.as_path()`` to get a</span>
+<span class="sd">        path object suitable for filesystem operations.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict mapping spec names to their local-path or cloud URIs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">spec</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">local_path</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">local_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="DependencyResolution.summary">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.DependencyResolution.summary">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a one-line summary of resolution counts.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Human-readable summary string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resolved</span><span class="p">)</span>
+        <span class="n">local</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">)</span>
+        <span class="n">downloaded</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;downloaded&quot;</span><span class="p">)</span>
+        <span class="n">missing_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;missing&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;DependencyResolution(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_name</span><span class="si">}</span><span class="s2">): &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> deps — &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">local</span><span class="si">}</span><span class="s2"> local, </span><span class="si">{</span><span class="n">downloaded</span><span class="si">}</span><span class="s2"> downloaded, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">missing_count</span><span class="si">}</span><span class="s2"> missing&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DependencyResolution.table">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.factories.DependencyResolution.table">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">table</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a formatted table of all resolved dependencies.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Multi-line string with columns for spec, required,</span>
+<span class="sd">            status, and path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;spec&#39;</span><span class="si">:</span><span class="s2">&lt;14s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;required&#39;</span><span class="si">:</span><span class="s2">&lt;10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;status&#39;</span><span class="si">:</span><span class="s2">&lt;12s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;preference&#39;</span><span class="si">:</span><span class="s2">&lt;20s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;path&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">90</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved</span><span class="p">:</span>
+            <span class="n">path_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">local_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">local_path</span> <span class="k">else</span> <span class="s2">&quot;(none)&quot;</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">spec</span><span class="si">:</span><span class="s2">&lt;14s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;yes&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">r</span><span class="o">.</span><span class="n">required</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;no&#39;</span><span class="si">:</span><span class="s2">&lt;10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="si">:</span><span class="s2">&lt;12s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">path_str</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

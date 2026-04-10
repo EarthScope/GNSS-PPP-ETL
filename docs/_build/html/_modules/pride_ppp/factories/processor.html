@@ -1,0 +1,1075 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pride_ppp.factories.processor &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pride_ppp.factories.processor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for pride_ppp.factories.processor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;PrideProcessor — concurrent-safe RINEX → kinematic position pipeline.</span>
+
+<span class="sd">Owns all internal state (ProductEnvironment, WorkSpace, DependencySpec).</span>
+<span class="sd">Each ``process()`` call runs pdp3 in a date-partitioned working directory</span>
+<span class="sd">(``pride_dir/{year}/{doy}/``) so concurrent calls never collide.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">as_completed</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_management_specs.configs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CENTERS_RESOURCE_DIR</span><span class="p">,</span>
+    <span class="n">FORMAT_SPEC_YAML</span><span class="p">,</span>
+    <span class="n">LOCAL_SPEC_DIR</span><span class="p">,</span>
+    <span class="n">META_SPEC_YAML</span><span class="p">,</span>
+    <span class="n">PRODUCT_SPEC_YAML</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">GNSSClient</span><span class="p">,</span>
+    <span class="n">WorkSpace</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.environments</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProductRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.dependencies.dependencies</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DependencyResolution</span><span class="p">,</span>
+    <span class="n">DependencySpec</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..defaults</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PRIDE_CENTERS_DIR</span><span class="p">,</span>
+    <span class="n">PRIDE_DIR_SPEC</span><span class="p">,</span>
+    <span class="n">PRIDE_INSTALL_SPEC</span><span class="p">,</span>
+    <span class="n">PRIDE_PPPAR_FINAL_SPEC</span><span class="p">,</span>
+    <span class="n">PRIDE_PPPAR_SPEC</span><span class="p">,</span>
+    <span class="n">PRIDE_PRODUCT_SPEC</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..specifications.cli</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrideCLIConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..specifications.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">PRIDEPPPFileConfig</span><span class="p">,</span> <span class="n">SatelliteProducts</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.output</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_wrms_from_res</span><span class="p">,</span> <span class="n">kin_to_kin_position_df</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.rinex</span><span class="w"> </span><span class="kn">import</span> <span class="n">rinex_get_time_range</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Processing mode</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="ProcessingMode">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.ProcessingMode">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProcessingMode</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Product timeliness mode.</span>
+
+<span class="sd">    Controls which dependency-spec YAML is used for product resolution.</span>
+<span class="sd">    The timeliness codes refer to IGS product latency classes:</span>
+<span class="sd">    FIN = final (≥13 days), RAP = rapid (≤17 hours), ULT = ultra-rapid (≤3 hours).</span>
+
+<span class="sd">    * ``DEFAULT`` — cascades through FIN → RAP → ULT, using the best</span>
+<span class="sd">      available product at the time of the run.</span>
+<span class="sd">    * ``FINAL``   — only accepts final (FIN) products; fails if FIN</span>
+<span class="sd">      products are not yet available for the requested date.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
+    <span class="n">FINAL</span> <span class="o">=</span> <span class="s2">&quot;final&quot;</span></div>
+
+
+
+<span class="n">_MODE_TO_SPEC</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">ProcessingMode</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">:</span> <span class="n">PRIDE_PPPAR_SPEC</span><span class="p">,</span>
+    <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">FINAL</span><span class="p">:</span> <span class="n">PRIDE_PPPAR_FINAL_SPEC</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Regex for inferring 4-char site ID from RINEX filenames.</span>
+<span class="c1"># Matches the leading 4 alphabetic characters of the filename stem.</span>
+<span class="n">_SITE_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^([A-Za-z0-9]</span><span class="si">{4}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<span class="c1"># Spec name → SatelliteProducts field mapping</span>
+<span class="n">_SPEC_TO_PRODUCT_FIELD</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;ORBIT&quot;</span><span class="p">:</span> <span class="s2">&quot;satellite_orbit&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CLOCK&quot;</span><span class="p">:</span> <span class="s2">&quot;satellite_clock&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BIA&quot;</span><span class="p">:</span> <span class="s2">&quot;code_phase_bias&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ATTOBX&quot;</span><span class="p">:</span> <span class="s2">&quot;quaternions&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ERP&quot;</span><span class="p">:</span> <span class="s2">&quot;erp&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Result</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="ProcessingResult">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.ProcessingResult">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProcessingResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Immutable result from a single RINEX → kinematic processing run.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rinex_path : Path</span>
+<span class="sd">        Path to the input RINEX observation file.</span>
+<span class="sd">    site : str</span>
+<span class="sd">        4-character station identifier (e.g. ``&quot;NCC1&quot;``).</span>
+<span class="sd">    date : datetime.date</span>
+<span class="sd">        Observation date for this processing run.</span>
+<span class="sd">    kin_path : Path or None</span>
+<span class="sd">        Path to the output ``.kin`` file, or ``None`` if pdp3 did not</span>
+<span class="sd">        produce one.</span>
+<span class="sd">    res_path : Path or None</span>
+<span class="sd">        Path to the output ``.res`` residuals file, or ``None``.</span>
+<span class="sd">    config_path : Path</span>
+<span class="sd">        Path to the ``config_file`` used for this run.</span>
+<span class="sd">    resolution : DependencyResolution</span>
+<span class="sd">        Product resolution result (fulfilled and missing dependencies).</span>
+<span class="sd">    returncode : int</span>
+<span class="sd">        pdp3 process exit code (0 = success).</span>
+<span class="sd">    stderr : str</span>
+<span class="sd">        Captured stderr from the pdp3 subprocess.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rinex_path</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">site</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span>
+    <span class="n">kin_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">res_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">resolution</span><span class="p">:</span> <span class="n">DependencyResolution</span>
+    <span class="n">returncode</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">stderr</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">success</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``True`` if pdp3 produced a valid .kin output file.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ProcessingResult.positions">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.ProcessingResult.positions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">positions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the ``.kin`` file into a DataFrame with WRMS residuals.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame or None</span>
+<span class="sd">            Kinematic position DataFrame, or ``None`` if the run failed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">success</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">kin_to_kin_position_df</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kin_path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ProcessingResult.residuals">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.ProcessingResult.residuals">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">residuals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the ``.res`` file into a WRMS DataFrame.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame or None</span>
+<span class="sd">            WRMS residuals indexed by timestamp, or ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">get_wrms_from_res</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res_path</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Internal helpers</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_site</span><span class="p">(</span><span class="n">rinex</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract a 4-character site identifier from a RINEX filename.</span>
+
+<span class="sd">    Matches the first four alphanumeric characters of the filename stem</span>
+<span class="sd">    (e.g. ``NCC12540.25o`` → ``NCC1``).  Falls back to ``&quot;SIT1&quot;`` when</span>
+<span class="sd">    the filename does not conform to the expected RINEX naming convention.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rinex: Path to a RINEX observation file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Uppercase 4-char site ID.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">_SITE_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rinex</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="n">m</span> <span class="k">else</span> <span class="s2">&quot;SIT1&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolution_to_satellite_products</span><span class="p">(</span>
+    <span class="n">resolution</span><span class="p">:</span> <span class="n">DependencyResolution</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">SatelliteProducts</span><span class="p">,</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Map a dependency resolution to PRIDE-PPPAR satellite product paths.</span>
+
+<span class="sd">    Iterates over the fulfilled dependencies in *resolution* and extracts</span>
+<span class="sd">    the local filenames for each product category that pdp3 needs</span>
+<span class="sd">    (orbits, clocks, biases, quaternions, ERP).  The resulting</span>
+<span class="sd">    ``SatelliteProducts`` instance is written directly into the PRIDE</span>
+<span class="sd">    config file.</span>
+
+<span class="sd">    Only the **first** fulfilled dependency per category is used (the</span>
+<span class="sd">    resolver already returns them in preference order).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        resolution: A completed ``DependencyResolution`` from the resolver.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A 2-tuple of ``(SatelliteProducts, product_directory)``.</span>
+<span class="sd">        *product_directory* is the common parent directory of the resolved</span>
+<span class="sd">        product files, or ``None`` if no products were fulfilled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">product_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">product_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">rd</span> <span class="ow">in</span> <span class="n">resolution</span><span class="o">.</span><span class="n">fulfilled</span><span class="p">:</span>
+        <span class="c1"># Map the spec name (e.g. &quot;ORBIT&quot;) to the SatelliteProducts field name</span>
+        <span class="n">field_name</span> <span class="o">=</span> <span class="n">_SPEC_TO_PRODUCT_FIELD</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">spec</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">field_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">product_fields</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">local_path</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">product_fields</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span>
+        <span class="c1"># Use the first product&#39;s parent as the common product directory</span>
+        <span class="k">if</span> <span class="n">product_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">product_dir</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">parent</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">SatelliteProducts</span><span class="p">(</span>
+            <span class="n">satellite_orbit</span><span class="o">=</span><span class="n">product_fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;satellite_orbit&quot;</span><span class="p">),</span>
+            <span class="n">satellite_clock</span><span class="o">=</span><span class="n">product_fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;satellite_clock&quot;</span><span class="p">),</span>
+            <span class="n">code_phase_bias</span><span class="o">=</span><span class="n">product_fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code_phase_bias&quot;</span><span class="p">),</span>
+            <span class="n">quaternions</span><span class="o">=</span><span class="n">product_fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quaternions&quot;</span><span class="p">),</span>
+            <span class="n">erp</span><span class="o">=</span><span class="n">product_fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;erp&quot;</span><span class="p">),</span>
+            <span class="n">product_directory</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">product_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">product_dir</span> <span class="k">else</span> <span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">product_dir</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolution_to_table_dir</span><span class="p">(</span><span class="n">resolution</span><span class="p">:</span> <span class="n">DependencyResolution</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Locate the directory containing ANTEX / reference table files.</span>
+
+<span class="sd">    Scans fulfilled dependencies for the ``ATTATX`` spec (antenna phase</span>
+<span class="sd">    centre corrections) and returns its parent directory.  pdp3 uses this</span>
+<span class="sd">    as the ``table_directory`` in its config file to find ancillary data</span>
+<span class="sd">    (ANTEX, leap-second table, satellite metadata, etc.).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        resolution: A completed ``DependencyResolution``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Parent directory of the ANTEX file, or ``None`` if not resolved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">rd</span> <span class="ow">in</span> <span class="n">resolution</span><span class="o">.</span><span class="n">fulfilled</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rd</span><span class="o">.</span><span class="n">spec</span> <span class="ow">in</span> <span class="s2">&quot;ATTATX&quot;</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">local_path</span>
+            <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">path</span><span class="o">.</span><span class="n">parent</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_write_config</span><span class="p">(</span>
+    <span class="n">satellite_products</span><span class="p">:</span> <span class="n">SatelliteProducts</span><span class="p">,</span>
+    <span class="n">table_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dest</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write a PRIDE-PPPAR ``config_file`` to disk.</span>
+
+<span class="sd">    Loads the default config template, injects the resolved satellite</span>
+<span class="sd">    product filenames and table directory, then serialises to *dest*.</span>
+<span class="sd">    Parent directories are created automatically.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        satellite_products: Resolved product paths for orbits, clocks, etc.</span>
+<span class="sd">        table_dir: Directory containing ANTEX and reference tables.</span>
+<span class="sd">        dest: Target path for the config file (e.g.</span>
+<span class="sd">              ``pride_dir/2025/015/config_file``).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The path that was written (same as *dest*).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">PRIDEPPPFileConfig</span><span class="o">.</span><span class="n">load_default</span><span class="p">()</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">satellite_products</span> <span class="o">=</span> <span class="n">satellite_products</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">observation</span><span class="o">.</span><span class="n">table_directory</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">table_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">table_dir</span> <span class="k">else</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">dest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">write_config_file</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dest</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># PrideProcessor</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="PrideProcessor">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PrideProcessor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PrideProcessor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Facade: RINEX file in → kinematic positions out.</span>
+
+<span class="sd">    Owns its own ProductEnvironment and WorkSpace.  No global state.</span>
+<span class="sd">    Thread-safe for concurrent ``process()`` calls.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _pride_dir : Path</span>
+<span class="sd">        Root directory for PRIDE products and working state.</span>
+<span class="sd">    _output_dir : Path</span>
+<span class="sd">        Final destination for ``.kin`` / ``.res`` output files.</span>
+<span class="sd">    _pride_install_dir : Path or None</span>
+<span class="sd">        Optional path to an existing PRIDE-PPPAR installation.</span>
+<span class="sd">    _cli_config : PrideCLIConfig</span>
+<span class="sd">        Configuration for pdp3 CLI flag generation.</span>
+<span class="sd">    _mode : ProcessingMode</span>
+<span class="sd">        Product timeliness mode (DEFAULT or FINAL).</span>
+<span class="sd">    _client : GNSSClient</span>
+<span class="sd">        Configured GNSS client — owns product resolution and download.</span>
+<span class="sd">    _dep_spec : DependencySpec</span>
+<span class="sd">        Dependency specification governing product resolution.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PrideProcessor.__init__">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PrideProcessor.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pride_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">pride_install_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cli_config</span><span class="p">:</span> <span class="n">PrideCLIConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PrideCLIConfig</span><span class="p">(),</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">ProcessingMode</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;FINAL&quot;</span><span class="p">,</span> <span class="s2">&quot;DEFAULT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialise the processor and all its owned subsystems.</span>
+
+<span class="sd">        Construction is intentionally *eager*: the ProductEnvironment is</span>
+<span class="sd">        built, all spec YAMLs are parsed, and the WorkSpace is registered</span>
+<span class="sd">        so that every subsequent ``process()`` / ``process_batch()`` call</span>
+<span class="sd">        can proceed without further setup.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pride_dir: Root directory for PRIDE products and working state.</span>
+<span class="sd">                Config files and pdp3 working directories will be written</span>
+<span class="sd">                under ``pride_dir/{year}/{doy}/``.</span>
+<span class="sd">            output_dir: Final destination for ``.kin`` / ``.res`` output</span>
+<span class="sd">                files produced by pdp3.</span>
+<span class="sd">            pride_install_dir: Optional path to a PRIDE-PPPAR installation</span>
+<span class="sd">                that provides additional table files.  When set, its spec</span>
+<span class="sd">                is registered on the WorkSpace.</span>
+<span class="sd">            cli_config: Override the default pdp3 CLI flags.  When ``None``</span>
+<span class="sd">                a default ``PrideCLIConfig`` (kinematic, 1 s, loose edit)</span>
+<span class="sd">                is used.</span>
+<span class="sd">            mode: Product timeliness mode.  Selects which dependency-spec</span>
+<span class="sd">                YAML governs product resolution:</span>
+
+<span class="sd">                * ``ProcessingMode.DEFAULT`` — FIN → RAP → ULT cascade.</span>
+<span class="sd">                * ``ProcessingMode.FINAL``   — only FINAL products.</span>
+
+<span class="sd">                Also accepts the string literals ``&quot;DEFAULT&quot;`` or</span>
+<span class="sd">                ``&quot;FINAL&quot;`` for convenience.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="p">(</span><span class="n">mode</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pride_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">pride_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pride_install_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">pride_install_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">pride_install_dir</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cli_config</span> <span class="o">=</span> <span class="n">cli_config</span> <span class="k">if</span> <span class="n">cli_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">PrideCLIConfig</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+        <span class="c1"># Load the DependencySpec that matches the requested processing mode.</span>
+        <span class="c1"># The dep-spec controls which TTT (timeliness) values the resolver</span>
+        <span class="c1"># will accept — e.g. FINAL mode restricts TTT to [FIN].</span>
+        <span class="n">spec_path</span> <span class="o">=</span> <span class="n">_MODE_TO_SPEC</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mode</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dep_spec</span> <span class="o">=</span> <span class="n">DependencySpec</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="n">spec_path</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing mode: </span><span class="si">%s</span><span class="s2">  (spec: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">spec_path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># Build the product registry (parameter, format, product, and center specs)</span>
+        <span class="c1"># and the workspace (sink mappings), then wire them into a GNSSClient.</span>
+        <span class="n">registry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_registry</span><span class="p">()</span>
+        <span class="n">workspace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_workspace</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="p">(</span>
+            <span class="n">product_registry</span><span class="o">=</span><span class="n">registry</span><span class="p">,</span>
+            <span class="n">workspace</span><span class="o">=</span><span class="n">workspace</span><span class="p">,</span>
+            <span class="n">max_connections</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Private construction helpers</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductRegistry</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct and finalise the :class:`ProductRegistry`.</span>
+
+<span class="sd">        Loads, in order:</span>
+
+<span class="sd">        1. **Parameter metadata** — dimension names, allowed values.</span>
+<span class="sd">        2. **Format spec** — file naming templates (SP3, CLK, …).</span>
+<span class="sd">        3. **Product specs** — the core product catalogue *and* the</span>
+<span class="sd">           PRIDE-specific product catalogue (tables, ocean models, etc.).</span>
+<span class="sd">        4. **Resource specs** — per-analysis-centre YAML files that</span>
+<span class="sd">           describe where each product lives on the remote servers.</span>
+<span class="sd">           Both the shared ``CENTERS_RESOURCE_DIR`` and the PRIDE-specific</span>
+<span class="sd">           ``PRIDE_CENTERS_DIR`` are scanned.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A fully built :class:`ProductRegistry`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">registry</span> <span class="o">=</span> <span class="n">ProductRegistry</span><span class="p">()</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">add_parameter_spec</span><span class="p">(</span><span class="n">META_SPEC_YAML</span><span class="p">)</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">add_format_spec</span><span class="p">(</span><span class="n">FORMAT_SPEC_YAML</span><span class="p">)</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">add_product_spec</span><span class="p">(</span><span class="n">PRODUCT_SPEC_YAML</span><span class="p">)</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">add_product_spec</span><span class="p">(</span><span class="n">PRIDE_PRODUCT_SPEC</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;pride&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="n">CENTERS_RESOURCE_DIR</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.yaml&quot;</span><span class="p">):</span>
+            <span class="n">registry</span><span class="o">.</span><span class="n">add_resource_spec</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">PRIDE_CENTERS_DIR</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">PRIDE_CENTERS_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.yaml&quot;</span><span class="p">):</span>
+                <span class="n">registry</span><span class="o">.</span><span class="n">add_resource_spec</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">registry</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_workspace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">WorkSpace</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create the ``WorkSpace`` and register local directory specs.</span>
+
+<span class="sd">        A WorkSpace maps logical *sink IDs* to physical base directories.</span>
+<span class="sd">        After registration, the resolver can materialise files under:</span>
+
+<span class="sd">        * ``&quot;pride&quot;``          → ``self._pride_dir``</span>
+<span class="sd">        * ``&quot;pride_install&quot;``  → ``self._pride_install_dir`` (optional)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A configured :class:`WorkSpace`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">WorkSpace</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="n">LOCAL_SPEC_DIR</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.yaml&quot;</span><span class="p">):</span>
+            <span class="n">ws</span><span class="o">.</span><span class="n">add_resource_spec</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="n">ws</span><span class="o">.</span><span class="n">add_resource_spec</span><span class="p">(</span><span class="n">PRIDE_DIR_SPEC</span><span class="p">)</span>
+        <span class="n">ws</span><span class="o">.</span><span class="n">add_resource_spec</span><span class="p">(</span><span class="n">PRIDE_INSTALL_SPEC</span><span class="p">)</span>
+
+        <span class="n">ws</span><span class="o">.</span><span class="n">register_spec</span><span class="p">(</span>
+            <span class="n">base_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pride_dir</span><span class="p">,</span>
+            <span class="n">spec_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pride_config&quot;</span><span class="p">],</span>
+            <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;pride&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pride_install_dir</span><span class="p">:</span>
+            <span class="n">ws</span><span class="o">.</span><span class="n">register_spec</span><span class="p">(</span>
+                <span class="n">base_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pride_install_dir</span><span class="p">,</span>
+                <span class="n">spec_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pride_install_config&quot;</span><span class="p">],</span>
+                <span class="n">alias</span><span class="o">=</span><span class="s2">&quot;pride_install&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">ws</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Resolution (per-call fresh resolver)</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+        <span class="n">local_sink_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pride&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DependencyResolution</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve all dependencies for a single UTC date.</span>
+
+<span class="sd">        Delegates to :meth:`GNSSClient.resolve_dependencies`.  The resolver</span>
+<span class="sd">        walks the dependency spec&#39;s preference list (centre × timeliness)</span>
+<span class="sd">        top-down and for each product either verifies a local copy already</span>
+<span class="sd">        exists or downloads it.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            date: Target date (midnight UTC) for product resolution.</span>
+<span class="sd">            local_sink_id: WorkSpace alias that receives downloaded files.</span>
+<span class="sd">                Defaults to ``&quot;pride&quot;`` which maps to ``self._pride_dir``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`DependencyResolution` containing fulfilled and missing</span>
+<span class="sd">            product entries.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">resolution</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">resolve_dependencies</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dep_spec</span><span class="p">,</span>
+            <span class="n">date</span><span class="p">,</span>
+            <span class="n">sink_id</span><span class="o">=</span><span class="n">local_sink_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">resolution</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Directory helpers</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_working_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return ``pride_dir/{year}/{doy}/``, creating it if needed.&quot;&quot;&quot;</span>
+        <span class="n">doy</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pride_dir</span> <span class="o">/</span> <span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">doy</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Subprocess execution</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_pdp_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rinex</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">site</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Assemble the full ``pdp3`` command-line invocation.</span>
+
+<span class="sd">        Clones the processor&#39;s CLI config, overriding</span>
+<span class="sd">        ``pride_configfile_path`` with the date-specific config file, then</span>
+<span class="sd">        generates the argument list via ``PrideCLIConfig.generate_pdp_command``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rinex: Path to the observation file passed to pdp3.</span>
+<span class="sd">            site: 4-char site identifier (e.g. ``&quot;NCC1&quot;``).</span>
+<span class="sd">            config_path: The ``config_file`` written by ``_write_config``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of strings suitable for ``subprocess.run()``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cli</span> <span class="o">=</span> <span class="n">PrideCLIConfig</span><span class="p">(</span>
+            <span class="o">**</span><span class="p">{</span>
+                <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_cli_config</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(),</span>
+                <span class="s2">&quot;pride_configfile_path&quot;</span><span class="p">:</span> <span class="n">config_path</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">cli</span><span class="o">.</span><span class="n">generate_pdp_command</span><span class="p">(</span><span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span> <span class="n">local_file_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">rinex</span><span class="p">))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run_pdp3</span><span class="p">(</span>
+        <span class="n">command</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">site</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute pdp3 in *working_dir* and move outputs to *output_dir*.</span>
+
+<span class="sd">        pdp3 writes intermediate files (ambiguity tables, residual grids)</span>
+<span class="sd">        into its current working directory.  We point it at the persistent</span>
+<span class="sd">        ``pride_dir/{year}/{doy}/`` directory so these artefacts are</span>
+<span class="sd">        available for inspection after the run.</span>
+
+<span class="sd">        After execution the method searches recursively for ``kin_*`` and</span>
+<span class="sd">        ``res_*`` output files matching *site*, appends ``.kin`` / ``.res``</span>
+<span class="sd">        extensions, and moves them to *output_dir*.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            command: Full pdp3 argument list from ``_build_pdp_command``.</span>
+<span class="sd">            site: 4-char site ID used to locate output files by pattern.</span>
+<span class="sd">            output_dir: Final destination for ``.kin`` / ``.res`` files.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``(kin_path, res_path, returncode, stderr)`` where paths are</span>
+<span class="sd">            ``None`` when the corresponding output was not produced.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            FileNotFoundError: If the ``pdp3`` binary is not on ``PATH``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;pdp3&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="s2">&quot;pdp3 binary not found in PATH&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
+            <span class="c1"># Run pdp3 as a blocking subprocess, capturing all output</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                <span class="n">command</span><span class="p">,</span>
+                <span class="n">cwd</span><span class="o">=</span><span class="n">tmpdir</span><span class="p">,</span>
+                <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Replay stdout/stderr through the logger for observability</span>
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+            <span class="c1"># pdp3 writes outputs as e.g. &quot;kin_2025254_ncc1&quot; (no extension).</span>
+            <span class="c1"># Search recursively in the working dir to find them.</span>
+            <span class="n">kin_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;kin_*_</span><span class="si">{</span><span class="n">site</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+            <span class="n">res_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;res_*_</span><span class="si">{</span><span class="n">site</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+
+            <span class="n">kin_out</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">res_out</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Move outputs to the final output directory with proper extensions</span>
+            <span class="k">if</span> <span class="n">kin_files</span><span class="p">:</span>
+                <span class="n">src</span> <span class="o">=</span> <span class="n">kin_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">dst</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.kin&quot;</span><span class="p">)</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">dst</span><span class="p">))</span>
+                <span class="n">kin_out</span> <span class="o">=</span> <span class="n">dst</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Generated kin file </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">res_files</span><span class="p">:</span>
+                <span class="n">src</span> <span class="o">=</span> <span class="n">res_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">dst</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.res&quot;</span><span class="p">)</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">dst</span><span class="p">))</span>
+                <span class="n">res_out</span> <span class="o">=</span> <span class="n">dst</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Generated res file </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">kin_out</span><span class="p">,</span> <span class="n">res_out</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_kin_res_paths</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="n">site</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct the expected ``.kin`` and ``.res`` output paths.</span>
+
+<span class="sd">        The naming convention mirrors what pdp3 produces:</span>
+<span class="sd">        ``kin_{YYYY}{DOY}_{site}.kin`` and ``res_{YYYY}{DOY}_{site}.res``.</span>
+<span class="sd">        These paths are used to check for pre-existing valid output</span>
+<span class="sd">        before launching a new pdp3 run.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            date: The observation date (used for YYYY and DOY components).</span>
+<span class="sd">            site: Lowercase 4-char site ID.</span>
+<span class="sd">            output_dir: Directory where outputs are stored.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``(kin_path, res_path)`` — both may point to non-existent files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">doy</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span>
+        <span class="n">kin_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;kin_</span><span class="si">{</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="si">}{</span><span class="n">doy</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">site</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">.kin&quot;</span>
+        <span class="n">res_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;res_</span><span class="si">{</span><span class="n">date</span><span class="o">.</span><span class="n">year</span><span class="si">}{</span><span class="n">doy</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">site</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">.res&quot;</span>
+        <span class="n">kin_path</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="n">kin_name</span>
+        <span class="n">res_path</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="n">res_name</span>
+        <span class="k">return</span> <span class="n">kin_path</span><span class="p">,</span> <span class="n">res_path</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_kinfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kin_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">override</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check whether a ``.kin`` output file already contains valid data.</span>
+
+<span class="sd">        When *override* is ``True`` the check is skipped entirely and the</span>
+<span class="sd">        method returns ``False`` (i.e. &quot;no valid cached result&quot;) so that</span>
+<span class="sd">        the caller always re-runs pdp3.</span>
+
+<span class="sd">        When *override* is ``False`` the method returns ``True`` only if</span>
+<span class="sd">        *kin_path* exists on disk **and** can be successfully parsed into</span>
+<span class="sd">        a non-empty DataFrame of kinematic positions.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            kin_path: Expected location of the ``.kin`` file.</span>
+<span class="sd">            override: Force re-processing regardless of existing output.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``True`` if a valid, parseable output already exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">override</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">kin_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="c1"># Attempt to parse the kinfile — only accept it if it yields data</span>
+            <span class="n">kin_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">kin_to_kin_position_df</span><span class="p">(</span><span class="n">kin_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">kin_df</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">kin_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># Public API</span>
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+
+<div class="viewcode-block" id="PrideProcessor.process">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PrideProcessor.process">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">rinex</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">site</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">override</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessingResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process one RINEX file end-to-end.</span>
+
+<span class="sd">        This is the primary single-file entry point.  The full pipeline is:</span>
+
+<span class="sd">        1. **Infer metadata** — site ID and observation date are extracted</span>
+<span class="sd">           from the RINEX filename / header if not provided explicitly.</span>
+<span class="sd">        2. **Resolve products** — :meth:`GNSSClient.resolve_dependencies` walks the</span>
+<span class="sd">           preference cascade (centre × timeliness) and downloads any</span>
+<span class="sd">           missing products to ``pride_dir``.</span>
+<span class="sd">        3. **Check cache** — if a valid ``.kin`` output already exists in</span>
+<span class="sd">           ``output_dir`` and *override* is ``False``, the run is skipped</span>
+<span class="sd">           and a cached ``ProcessingResult`` is returned immediately.</span>
+<span class="sd">        4. **Write config** — a ``config_file`` is written to</span>
+<span class="sd">           ``pride_dir/{year}/{doy}/``.</span>
+<span class="sd">        5. **Run pdp3** — the binary is executed with ``cwd`` set to the</span>
+<span class="sd">           same ``{year}/{doy}/`` directory.  Outputs are moved to</span>
+<span class="sd">           ``output_dir``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rinex: Path to the RINEX observation file.</span>
+<span class="sd">            site: 4-char site ID.  Inferred from the filename if omitted.</span>
+<span class="sd">            date: Override observation date.  When ``None`` the date is</span>
+<span class="sd">                  extracted from the RINEX header via</span>
+<span class="sd">                  ``rinex_get_time_range``.</span>
+<span class="sd">            override: When ``True``, re-run pdp3 even if a valid ``.kin``</span>
+<span class="sd">                      file already exists.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A ``ProcessingResult`` summarising the run outcome, including</span>
+<span class="sd">            paths to output files, the resolved products, and pdp3&#39;s</span>
+<span class="sd">            return code.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            FileNotFoundError: If *rinex* does not exist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rinex</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rinex</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">rinex</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RINEX file not found: </span><span class="si">{</span><span class="n">rinex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># --- 1. Infer metadata ------------------------------------------------</span>
+        <span class="k">if</span> <span class="n">site</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">site</span> <span class="o">=</span> <span class="n">_infer_site</span><span class="p">(</span><span class="n">rinex</span><span class="p">)</span>
+
+        <span class="c1"># Determine date</span>
+        <span class="k">if</span> <span class="n">date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ts_start</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">rinex_get_time_range</span><span class="p">(</span><span class="n">rinex</span><span class="p">)</span>
+            <span class="n">start_date</span> <span class="o">=</span> <span class="n">ts_start</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ts_start</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="k">else</span> <span class="n">ts_start</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start_date</span> <span class="o">=</span> <span class="n">date</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">)</span> <span class="k">else</span> <span class="n">date</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+        <span class="c1"># Normalise to midnight UTC for the resolver</span>
+        <span class="n">target_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
+            <span class="n">start_date</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+            <span class="n">start_date</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+            <span class="n">start_date</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+            <span class="n">tzinfo</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># --- 2. Resolve products ----------------------------------------------</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Resolving products for </span><span class="si">%s</span><span class="s2"> (site=</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">site</span><span class="p">)</span>
+        <span class="n">resolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve</span><span class="p">(</span><span class="n">target_dt</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">resolution</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+
+        <span class="c1"># --- 3. Check cache ---------------------------------------------------</span>
+        <span class="n">kin_file</span><span class="p">,</span> <span class="n">res_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_kin_res_paths</span><span class="p">(</span>
+            <span class="n">date</span><span class="o">=</span><span class="n">target_dt</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_kinfile</span><span class="p">(</span><span class="n">kin_file</span><span class="p">,</span> <span class="n">override</span><span class="o">=</span><span class="n">override</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Valid output already exists for </span><span class="si">%s</span><span class="s2"> on </span><span class="si">%s</span><span class="s2">, skipping pdp3 run&quot;</span><span class="p">,</span>
+                <span class="n">site</span><span class="p">,</span>
+                <span class="n">start_date</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">ProcessingResult</span><span class="p">(</span>
+                <span class="n">rinex_path</span><span class="o">=</span><span class="n">rinex</span><span class="p">,</span>
+                <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                <span class="n">date</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span>
+                <span class="n">kin_path</span><span class="o">=</span><span class="n">kin_file</span><span class="p">,</span>
+                <span class="n">res_path</span><span class="o">=</span><span class="n">res_file</span> <span class="k">if</span> <span class="n">res_file</span> <span class="ow">and</span> <span class="n">res_file</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">config_path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;(cached)&quot;</span><span class="p">),</span>
+                <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">resolution</span><span class="o">.</span><span class="n">all_required_fulfilled</span><span class="p">:</span>
+            <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">spec</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">resolution</span><span class="o">.</span><span class="n">missing</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">required</span><span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Missing required products: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">missing</span><span class="p">)</span>
+
+        <span class="c1"># --- 4. Write config --------------------------------------------------</span>
+        <span class="c1"># Config is persisted at pride_dir/{year}/{doy}/config_file so it can</span>
+        <span class="c1"># be inspected after the run and reused by subsequent pdp3 calls for</span>
+        <span class="c1"># the same date.</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_working_dir</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span>
+        <span class="n">sat_products</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_resolution_to_satellite_products</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span>
+        <span class="n">table_dir</span> <span class="o">=</span> <span class="n">_resolution_to_table_dir</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">_write_config</span><span class="p">(</span><span class="n">sat_products</span><span class="p">,</span> <span class="n">table_dir</span><span class="p">,</span> <span class="n">work_dir</span> <span class="o">/</span> <span class="s2">&quot;config_file&quot;</span><span class="p">)</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_pdp_command</span><span class="p">(</span><span class="n">rinex</span><span class="o">=</span><span class="n">rinex</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span> <span class="n">config_path</span><span class="o">=</span><span class="n">config_path</span><span class="p">)</span>
+
+        <span class="c1"># --- 5. Run pdp3 ------------------------------------------------------</span>
+        <span class="n">kin_path</span><span class="p">,</span> <span class="n">res_path</span><span class="p">,</span> <span class="n">returncode</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_pdp3</span><span class="p">(</span>
+            <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">,</span>
+            <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+            <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ProcessingResult</span><span class="p">(</span>
+            <span class="n">rinex_path</span><span class="o">=</span><span class="n">rinex</span><span class="p">,</span>
+            <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+            <span class="n">date</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span>
+            <span class="n">kin_path</span><span class="o">=</span><span class="n">kin_path</span><span class="p">,</span>
+            <span class="n">res_path</span><span class="o">=</span><span class="n">res_path</span><span class="p">,</span>
+            <span class="n">config_path</span><span class="o">=</span><span class="n">config_path</span><span class="p">,</span>
+            <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">,</span>
+            <span class="n">returncode</span><span class="o">=</span><span class="n">returncode</span><span class="p">,</span>
+            <span class="n">stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PrideProcessor.process_batch">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PrideProcessor.process_batch">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">rinex_files</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">sites</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">override</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ProcessingResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process multiple RINEX files, sharing product resolution per date.</span>
+
+<span class="sd">        This is the preferred entry point when processing many files.</span>
+<span class="sd">        The pipeline is structured to minimise redundant network calls:</span>
+
+<span class="sd">        1. **Group by date** — RINEX files are sorted by observation date</span>
+<span class="sd">           so that product resolution (the expensive step) happens exactly</span>
+<span class="sd">           once per unique date.</span>
+<span class="sd">        2. **Resolve &amp; write configs** — for each unique date, resolve</span>
+<span class="sd">           products and write a ``config_file`` to the year/doy working</span>
+<span class="sd">           directory under ``pride_dir``.</span>
+<span class="sd">        3. **Skip cached results** — any RINEX whose ``.kin`` output</span>
+<span class="sd">           already exists and validates is returned immediately without</span>
+<span class="sd">           running pdp3 (unless *override* is ``True``).</span>
+<span class="sd">        4. **Dispatch pdp3** — remaining jobs are dispatched to a</span>
+<span class="sd">           ``ThreadPoolExecutor`` for parallel subprocess execution.</span>
+<span class="sd">           Resolution and config generation are always single-threaded</span>
+<span class="sd">           (main thread) to avoid race conditions.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rinex_files: Paths to RINEX observation files.</span>
+<span class="sd">            sites: Per-file 4-char site IDs.  When ``None``, inferred from</span>
+<span class="sd">                   filenames via ``_infer_site``.</span>
+<span class="sd">            max_workers: Maximum number of concurrent pdp3 subprocesses.</span>
+<span class="sd">                         ``1`` means fully sequential execution.</span>
+<span class="sd">            override: Re-run pdp3 even when valid output already exists.</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            A ``ProcessingResult`` for each file as it completes.</span>
+<span class="sd">            Cached results are yielded first, then pdp3 results in</span>
+<span class="sd">            completion order.  Wrap in ``list()`` if you need all</span>
+<span class="sd">            results at once.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If *sites* length does not match *rinex_files*.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sites</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sites</span> <span class="o">=</span> <span class="p">[</span><span class="n">_infer_site</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rinex_files</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rinex_files</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sites (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span><span class="si">}</span><span class="s2">) must match rinex_files (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rinex_files</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+        <span class="c1"># --- Step 1: Gather metadata for each RINEX file ------------------------</span>
+        <span class="c1"># Build (rinex, site, date) tuples by reading each RINEX header.</span>
+        <span class="n">jobs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">rinex</span><span class="p">,</span> <span class="n">site</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rinex_files</span><span class="p">,</span> <span class="n">sites</span><span class="p">):</span>
+            <span class="n">rinex</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rinex</span><span class="p">)</span>
+            <span class="n">ts_start</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">rinex_get_time_range</span><span class="p">(</span><span class="n">rinex</span><span class="p">)</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">ts_start</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ts_start</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="k">else</span> <span class="n">ts_start</span>
+            <span class="n">jobs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">rinex</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+
+        <span class="c1"># --- Step 2: Resolve products once per unique date ----------------------</span>
+        <span class="c1"># Sorting + groupby ensures each date is visited exactly once.</span>
+        <span class="n">jobs_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">j</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">resolutions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">DependencyResolution</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">date_key</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">jobs_sorted</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">j</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+            <span class="n">target_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
+                <span class="n">date_key</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+                <span class="n">date_key</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+                <span class="n">date_key</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                <span class="n">tzinfo</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Resolving products for </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">date_key</span><span class="p">)</span>
+            <span class="n">resolutions</span><span class="p">[</span><span class="n">date_key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve</span><span class="p">(</span><span class="n">target_dt</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">resolutions</span><span class="p">[</span><span class="n">date_key</span><span class="p">]</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+
+        <span class="c1"># --- Step 3: Write per-date config files in year/doy dirs ---------------</span>
+        <span class="n">work_dirs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">config_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">date_key</span><span class="p">,</span> <span class="n">resolution</span> <span class="ow">in</span> <span class="n">resolutions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">sat_products</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_resolution_to_satellite_products</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span>
+            <span class="n">table_dir</span> <span class="o">=</span> <span class="n">_resolution_to_table_dir</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span>
+            <span class="n">work_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_working_dir</span><span class="p">(</span><span class="n">date_key</span><span class="p">)</span>
+            <span class="n">work_dirs</span><span class="p">[</span><span class="n">date_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">work_dir</span>
+            <span class="n">config_paths</span><span class="p">[</span><span class="n">date_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_write_config</span><span class="p">(</span>
+                <span class="n">sat_products</span><span class="p">,</span>
+                <span class="n">table_dir</span><span class="p">,</span>
+                <span class="n">work_dir</span> <span class="o">/</span> <span class="s2">&quot;config_file&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># --- Step 4: Build commands, skip cached results -------------------------</span>
+        <span class="n">pending</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">rinex</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">jobs</span><span class="p">):</span>
+            <span class="n">kin_file</span><span class="p">,</span> <span class="n">res_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_kin_res_paths</span><span class="p">(</span>
+                <span class="n">date</span><span class="o">=</span><span class="n">d</span><span class="p">,</span>
+                <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_kinfile</span><span class="p">(</span><span class="n">kin_file</span><span class="p">,</span> <span class="n">override</span><span class="o">=</span><span class="n">override</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Valid output already exists for </span><span class="si">%s</span><span class="s2"> on </span><span class="si">%s</span><span class="s2">, skipping&quot;</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">ProcessingResult</span><span class="p">(</span>
+                    <span class="n">rinex_path</span><span class="o">=</span><span class="n">rinex</span><span class="p">,</span>
+                    <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                    <span class="n">date</span><span class="o">=</span><span class="n">d</span><span class="p">,</span>
+                    <span class="n">kin_path</span><span class="o">=</span><span class="n">kin_file</span><span class="p">,</span>
+                    <span class="n">res_path</span><span class="o">=</span><span class="n">res_file</span> <span class="k">if</span> <span class="n">res_file</span> <span class="ow">and</span> <span class="n">res_file</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">config_path</span><span class="o">=</span><span class="n">config_paths</span><span class="p">[</span><span class="n">d</span><span class="p">],</span>
+                    <span class="n">resolution</span><span class="o">=</span><span class="n">resolutions</span><span class="p">[</span><span class="n">d</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">command</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_pdp_command</span><span class="p">(</span>
+                <span class="n">rinex</span><span class="o">=</span><span class="n">rinex</span><span class="p">,</span>
+                <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                <span class="n">config_path</span><span class="o">=</span><span class="n">config_paths</span><span class="p">[</span><span class="n">d</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">pending</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+
+        <span class="c1"># --- Step 5: Dispatch pdp3 subprocesses ---------------------------------</span>
+        <span class="c1"># Only the pdp3 calls are parallelised; resolution and config writing</span>
+        <span class="c1"># above are always single-threaded to avoid race conditions.</span>
+        <span class="k">if</span> <span class="n">max_workers</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">pending</span><span class="p">:</span>
+                <span class="n">kin_path</span><span class="p">,</span> <span class="n">res_path</span><span class="p">,</span> <span class="n">rc</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_pdp3</span><span class="p">(</span>
+                    <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">,</span>
+                    <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                    <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">rinex</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">jobs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+                <span class="k">yield</span> <span class="n">ProcessingResult</span><span class="p">(</span>
+                    <span class="n">rinex_path</span><span class="o">=</span><span class="n">rinex</span><span class="p">,</span>
+                    <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                    <span class="n">date</span><span class="o">=</span><span class="n">d</span><span class="p">,</span>
+                    <span class="n">kin_path</span><span class="o">=</span><span class="n">kin_path</span><span class="p">,</span>
+                    <span class="n">res_path</span><span class="o">=</span><span class="n">res_path</span><span class="p">,</span>
+                    <span class="n">config_path</span><span class="o">=</span><span class="n">config_paths</span><span class="p">[</span><span class="n">d</span><span class="p">],</span>
+                    <span class="n">resolution</span><span class="o">=</span><span class="n">resolutions</span><span class="p">[</span><span class="n">d</span><span class="p">],</span>
+                    <span class="n">returncode</span><span class="o">=</span><span class="n">rc</span><span class="p">,</span>
+                    <span class="n">stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+                <span class="n">future_to_idx</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_run_pdp3</span><span class="p">,</span>
+                        <span class="n">command</span><span class="o">=</span><span class="n">cmd</span><span class="p">,</span>
+                        <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                        <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
+                    <span class="p">):</span> <span class="n">idx</span>
+                    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">pending</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">future_to_idx</span><span class="p">):</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">future_to_idx</span><span class="p">[</span><span class="n">future</span><span class="p">]</span>
+                    <span class="n">kin_path</span><span class="p">,</span> <span class="n">res_path</span><span class="p">,</span> <span class="n">rc</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                    <span class="n">rinex</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">jobs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+                    <span class="k">yield</span> <span class="n">ProcessingResult</span><span class="p">(</span>
+                        <span class="n">rinex_path</span><span class="o">=</span><span class="n">rinex</span><span class="p">,</span>
+                        <span class="n">site</span><span class="o">=</span><span class="n">site</span><span class="p">,</span>
+                        <span class="n">date</span><span class="o">=</span><span class="n">d</span><span class="p">,</span>
+                        <span class="n">kin_path</span><span class="o">=</span><span class="n">kin_path</span><span class="p">,</span>
+                        <span class="n">res_path</span><span class="o">=</span><span class="n">res_path</span><span class="p">,</span>
+                        <span class="n">config_path</span><span class="o">=</span><span class="n">config_paths</span><span class="p">[</span><span class="n">d</span><span class="p">],</span>
+                        <span class="n">resolution</span><span class="o">=</span><span class="n">resolutions</span><span class="p">[</span><span class="n">d</span><span class="p">],</span>
+                        <span class="n">returncode</span><span class="o">=</span><span class="n">rc</span><span class="p">,</span>
+                        <span class="n">stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span>
+                    <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

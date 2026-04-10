@@ -1,0 +1,407 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss-product-management Class Dependency Graph &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Class Reference — gnss-product-management" href="class-reference.html" />
+    <link rel="prev" title="YAML Configuration Reference" href="config-reference.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">gnss-product-management Class Dependency Graph</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#layer-summary">Layer Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">gnss-product-management Class Dependency Graph</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/gnss-product-management-classes.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="gnss-product-management-class-dependency-graph">
+<h1>gnss-product-management Class Dependency Graph<a class="headerlink" href="#gnss-product-management-class-dependency-graph" title="Link to this heading"></a></h1>
+<div class="highlight-mermaid notranslate"><div class="highlight"><pre><span></span>classDiagram
+    namespace Specifications {
+        class Catalog {
+            &lt;&lt;abstract&gt;&gt;
+            +build()* classmethod
+        }
+        class Parameter {
+            +name str
+            +value Optional[str]
+            +derivation DerivationMethod
+        }
+        class ParameterCatalog {
+            +parameters dict
+        }
+        class PathTemplate {
+            +template str
+        }
+        class Product {
+            +name str
+            +parameters List[Parameter]
+            +directory PathTemplate
+            +filename PathTemplate
+        }
+        class VersionCatalog~T~ {
+            +versions dict
+        }
+        class VariantCatalog~T~ {
+            +variants dict
+        }
+        class ProductSpec {
+            +materialize() Product
+        }
+        class ProductSpecCatalog {
+            +from_yaml() classmethod
+        }
+        class ProductCatalog {
+            +build() classmethod
+        }
+        class FormatVariantSpec {
+            +materialize() Product
+        }
+        class FormatSpecCatalog {
+            +from_yaml() classmethod
+        }
+        class FormatCatalog {
+            +build() classmethod
+        }
+        class Server {
+            +host str
+        }
+        class ResourceProductSpec {
+            +parameters List[Parameter]
+            +directory PathTemplate
+        }
+        class ResourceSpec {
+            +servers List[Server]
+            +products List[ResourceProductSpec]
+        }
+        class SearchTarget {
+            +product Product
+            +server Server
+            +directory PathTemplate
+            +narrow() SearchTarget
+        }
+        class ResourceCatalog {
+            +queries List[SearchTarget]
+            +build() classmethod
+        }
+        class LocalCollection
+        class LocalResourceSpec {
+            +collections dict
+        }
+        class SearchPreference
+        class Dependency
+        class DependencySpec {
+            +from_yaml() classmethod
+        }
+        class ResolvedDependency
+        class DependencyResolution {
+            +resolved List[ResolvedDependency]
+        }
+    }
+
+    namespace Environments {
+        class ProductRegistry {
+            +load_parameters()
+            +load_formats()
+            +load_products()
+            +load_remote_resources()
+        }
+        class WorkSpace {
+            +register()
+        }
+        class RegisteredLocalResource {
+            +spec LocalResourceSpec
+            +server Server
+        }
+    }
+
+    namespace Lockfile {
+        class LockProductAlternative
+        class LockProduct {
+            +alternatives List[LockProductAlternative]
+        }
+        class DependencyLockFile {
+            +products List[LockProduct]
+        }
+        class LockfileManager
+    }
+
+    namespace Adapters {
+        class DirectoryAdapter {
+            &lt;&lt;protocol&gt;&gt;
+        }
+        class FTPAdapter
+        class HTTPAdapter
+        class LocalAdapter
+    }
+
+    namespace Factories {
+        class SourcePlanner {
+            &lt;&lt;protocol&gt;&gt;
+        }
+        class RemoteSearchPlanner {
+            -_product_catalog ProductCatalog
+            -_parameter_catalog ParameterCatalog
+            -_catalogs Dict[str, ResourceCatalog]
+        }
+        class LocalSearchPlanner {
+            -_workspace WorkSpace
+            -_product_registry ProductRegistry
+        }
+        class SearchPlanner {
+            -_env ProductRegistry
+            -_workspace WorkSpace
+            -_remote_search_planner RemoteSearchPlanner
+            -_local_search_planner LocalSearchPlanner
+        }
+        class ConnectionPool
+        class ConnectionPoolFactory {
+            +get() ConnectionPool
+        }
+        class WormHole {
+            -_connection_pool_factory ConnectionPoolFactory
+        }
+        class DependencyResolver {
+            +dep_spec DependencySpec
+            +resolve() DependencyResolution
+        }
+        class FindPipeline {
+            -_planner SearchPlanner
+            -_transport WormHole
+        }
+        class DownloadPipeline {
+            -_planner SearchPlanner
+            -_transport WormHole
+        }
+        class LockfileWriter {
+            -_manager LockfileManager
+        }
+        class ResolvePipeline {
+            -_finder FindPipeline
+            -_downloader DownloadPipeline
+            -_writer LockfileWriter
+        }
+    }
+
+    %% Inheritance
+    Catalog &lt;|-- ProductCatalog
+    Catalog &lt;|-- FormatCatalog
+    Catalog &lt;|-- ResourceCatalog
+    DirectoryAdapter &lt;|.. FTPAdapter
+    DirectoryAdapter &lt;|.. HTTPAdapter
+    DirectoryAdapter &lt;|.. LocalAdapter
+    SourcePlanner &lt;|.. RemoteSearchPlanner
+    SourcePlanner &lt;|.. LocalSearchPlanner
+
+    %% Specifications internal
+    ParameterCatalog --&gt; Parameter
+    PathTemplate --&gt; ParameterCatalog
+    Product --&gt; Parameter
+    Product --&gt; PathTemplate
+    VersionCatalog --&gt; VariantCatalog
+    ProductSpec --&gt; Product
+    ProductSpecCatalog --&gt; VersionCatalog
+    ProductSpecCatalog --&gt; ProductSpec
+    ProductCatalog --&gt; VersionCatalog
+    ProductCatalog --&gt; Product
+    ProductCatalog --&gt; ProductSpecCatalog
+    ProductCatalog --&gt; FormatCatalog
+    FormatVariantSpec --&gt; Product
+    FormatSpecCatalog --&gt; VersionCatalog
+    FormatSpecCatalog --&gt; FormatVariantSpec
+    FormatCatalog --&gt; FormatSpecCatalog
+    FormatCatalog --&gt; ParameterCatalog
+    ResourceProductSpec --&gt; PathTemplate
+    ResourceSpec --&gt; Server
+    ResourceSpec --&gt; ResourceProductSpec
+    SearchTarget --&gt; Product
+    SearchTarget --&gt; Server
+    SearchTarget --&gt; PathTemplate
+    ResourceCatalog --&gt; SearchTarget
+    ResourceCatalog --&gt; ResourceSpec
+    LocalResourceSpec --&gt; LocalCollection
+    DependencySpec --&gt; SearchPreference
+    DependencySpec --&gt; Dependency
+    DependencyResolution --&gt; ResolvedDependency
+    LockProduct --&gt; LockProductAlternative
+    DependencyLockFile --&gt; LockProduct
+    LockfileManager --&gt; DependencyLockFile
+
+    %% Environment
+    ProductRegistry --&gt; ParameterCatalog
+    ProductRegistry --&gt; FormatCatalog
+    ProductRegistry --&gt; ProductCatalog
+    ProductRegistry --&gt; RemoteSearchPlanner
+    ProductRegistry --&gt; ResourceSpec
+    RegisteredLocalResource --&gt; LocalResourceSpec
+    RegisteredLocalResource --&gt; Server
+    WorkSpace --&gt; RegisteredLocalResource
+    WorkSpace --&gt; LocalResourceSpec
+
+    %% Factories
+    RemoteSearchPlanner --&gt; ProductCatalog
+    RemoteSearchPlanner --&gt; ParameterCatalog
+    RemoteSearchPlanner --&gt; ResourceCatalog
+    RemoteSearchPlanner --&gt; SearchTarget
+    LocalSearchPlanner --&gt; WorkSpace
+    LocalSearchPlanner --&gt; ProductRegistry
+    LocalSearchPlanner --&gt; SearchTarget
+    SearchPlanner --&gt; ProductRegistry
+    SearchPlanner --&gt; WorkSpace
+    SearchPlanner --&gt; RemoteSearchPlanner
+    SearchPlanner --&gt; LocalSearchPlanner
+    ConnectionPoolFactory --&gt; ConnectionPool
+    WormHole --&gt; ConnectionPoolFactory
+    WormHole --&gt; SearchTarget
+    DependencyResolver --&gt; DependencySpec
+    DependencyResolver --&gt; SearchPlanner
+    DependencyResolver --&gt; WormHole
+    DependencyResolver --&gt; ProductRegistry
+    DependencyResolver --&gt; DependencyResolution
+    DependencyResolver --&gt; LockfileManager
+    FindPipeline --&gt; ProductRegistry
+    FindPipeline --&gt; SearchPlanner
+    FindPipeline --&gt; WormHole
+    DownloadPipeline --&gt; ProductRegistry
+    DownloadPipeline --&gt; SearchPlanner
+    DownloadPipeline --&gt; WormHole
+    DownloadPipeline --&gt; LocalSearchPlanner
+    LockfileWriter --&gt; LockfileManager
+    LockfileWriter --&gt; DependencyResolution
+    ResolvePipeline --&gt; FindPipeline
+    ResolvePipeline --&gt; DownloadPipeline
+    ResolvePipeline --&gt; LockfileWriter
+    ResolvePipeline --&gt; DependencySpec
+</pre></div>
+</div>
+<section id="layer-summary">
+<h2>Layer Summary<a class="headerlink" href="#layer-summary" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Namespace</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Specifications</strong></p></td>
+<td><p>Pure data models — <code class="docutils literal notranslate"><span class="pre">Parameter</span></code>, <code class="docutils literal notranslate"><span class="pre">Product</span></code>, <code class="docutils literal notranslate"><span class="pre">SearchTarget</span></code>, catalogs, specs</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Environments</strong></p></td>
+<td><p>Runtime registries — <code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> owns catalogs; <code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code> owns local resources</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Lockfile</strong></p></td>
+<td><p>Lock file data model + <code class="docutils literal notranslate"><span class="pre">LockfileManager</span></code> for persistence</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Adapters</strong></p></td>
+<td><p>Protocol + FTP/HTTP/Local implementations for directory listing</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Factories</strong></p></td>
+<td><p>Orchestration — planners build <code class="docutils literal notranslate"><span class="pre">SearchTarget</span></code> lists; pipelines (<code class="docutils literal notranslate"><span class="pre">Find</span></code>, <code class="docutils literal notranslate"><span class="pre">Download</span></code>, <code class="docutils literal notranslate"><span class="pre">Resolve</span></code>) drive the actual work; <code class="docutils literal notranslate"><span class="pre">DependencyResolver</span></code> ties it all together</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="config-reference.html" class="btn btn-neutral float-left" title="YAML Configuration Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="class-reference.html" class="btn btn-neutral float-right" title="Class Reference — gnss-product-management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

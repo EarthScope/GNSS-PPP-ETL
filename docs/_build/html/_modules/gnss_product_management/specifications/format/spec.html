@@ -1,0 +1,405 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.specifications.format.spec &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.specifications.format.spec</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.specifications.format.spec</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">Raw Pydantic models and registry for format specifications.</span>
+
+<span class="sd">Two distinct types live here:</span>
+
+<span class="sd">``FormatSpec`` / ``FormatVersionSpec`` / ``FormatFieldDef`` / ``FormatSpecCollection``</span>
+<span class="sd">    Describe the *shape* of a file format as a reusable library entry — e.g.</span>
+<span class="sd">    &quot;RINEX v3 has these metadata fields and these filename templates&quot;.</span>
+<span class="sd">    Loaded from the ``formats:`` section of the product spec YAML.</span>
+
+<span class="sd">``FormatRegistry``</span>
+<span class="sd">    Validates and indexes a :class:`FormatSpecCollection` against a</span>
+<span class="sd">    :class:`ParameterCatalog`, providing ``get_format()`` / ``get_version()``</span>
+<span class="sd">    look-ups.</span>
+
+<span class="sd">See :mod:`.format_spec` for the product-facing catalog that *resolves*</span>
+<span class="sd">format-variant bindings into :class:`~gnss_product_management.specifications.products.product.Product`</span>
+<span class="sd">objects.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.parameters.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterCatalog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_validator</span>
+
+
+<div class="viewcode-block" id="FormatFieldDef">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatFieldDef">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FormatFieldDef</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Properties of a metadata field declared inside a format version.&quot;&quot;&quot;</span>
+
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="FormatVersionSpec">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatVersionSpec">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FormatVersionSpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single version of a format (e.g. RINEX v3, PRODUCT v1).&quot;&quot;&quot;</span>
+
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">extra</span><span class="o">=</span><span class="s2">&quot;allow&quot;</span><span class="p">)</span>
+
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">notes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatFieldDef</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">file_templates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">compression</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">&quot;file_templates&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;before&quot;</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_unwrap_lists</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Accept both ``str`` and ``[str]`` from YAML.&quot;&quot;&quot;</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">val</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="FormatSpec">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatSpec">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FormatSpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A top-level format definition (e.g. RINEX, PRODUCT, TABLE).</span>
+
+<span class="sd">    Contains the format description and a mapping of *version* →</span>
+<span class="sd">    :class:`FormatVersionSpec`.  Each version in turn maps variant names</span>
+<span class="sd">    to filename templates and metadata field definitions.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        This is the *format-library* model.  For the *product-facing*</span>
+<span class="sd">        model that binds a specific format+version+variant to parameter</span>
+<span class="sd">        lists and filename templates, see</span>
+<span class="sd">        :class:`~gnss_product_management.specifications.format.format_spec.FormatVariantSpec`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">versions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatVersionSpec</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">compression</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="FormatSpecCollection">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatSpecCollection">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FormatSpecCollection</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collection of format specifications from the ``formats:`` YAML key.&quot;&quot;&quot;</span>
+
+    <span class="n">formats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatSpec</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FormatSpecCollection.from_yaml">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatSpecCollection.from_yaml">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_yaml</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FormatSpecCollection</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load from a YAML file.</span>
+
+<span class="sd">        Accepts two layouts:</span>
+
+<span class="sd">        1. **Wrapped** — a top-level ``formats:`` key whose value is a</span>
+<span class="sd">           mapping of format name → :class:`FormatSpec`-compatible dict.</span>
+
+<span class="sd">        2. **Flat** (``format_spec.yaml`` convention) — format names are</span>
+<span class="sd">           top-level keys; each entry has ``versions → variants →</span>
+<span class="sd">           {parameters, filename}`` which are converted to the</span>
+<span class="sd">           ``metadata`` / ``file_templates`` expected by</span>
+<span class="sd">           :class:`FormatVersionSpec`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path to the YAML file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`FormatSpecCollection` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span>
+
+        <span class="c1"># Layout 1: explicit `formats:` wrapper</span>
+        <span class="k">if</span> <span class="s2">&quot;formats&quot;</span> <span class="ow">in</span> <span class="n">raw</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model_validate</span><span class="p">({</span><span class="s2">&quot;formats&quot;</span><span class="p">:</span> <span class="n">raw</span><span class="p">[</span><span class="s2">&quot;formats&quot;</span><span class="p">]})</span>
+
+        <span class="c1"># Layout 2: flat — convert variants/filename → metadata/file_templates</span>
+        <span class="n">formats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">fmt_name</span><span class="p">,</span> <span class="n">fmt_data</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fmt_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;versions&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fmt_data</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">versions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatVersionSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">ver_name</span><span class="p">,</span> <span class="n">ver_data</span> <span class="ow">in</span> <span class="p">(</span><span class="n">fmt_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;versions&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ver_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;variants&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ver_data</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">all_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatFieldDef</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">file_templates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">variant_name</span><span class="p">,</span> <span class="n">variant_data</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ver_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variants&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variant_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                        <span class="k">continue</span>
+                    <span class="k">if</span> <span class="n">filename</span> <span class="o">:=</span> <span class="n">variant_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filename&quot;</span><span class="p">):</span>
+                        <span class="n">file_templates</span><span class="p">[</span><span class="n">variant_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span>
+                    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">variant_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parameters&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
+                        <span class="n">pname</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">pname</span> <span class="ow">or</span> <span class="n">pname</span> <span class="ow">in</span> <span class="n">all_metadata</span><span class="p">:</span>
+                            <span class="k">continue</span>
+                        <span class="n">pattern</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pattern&quot;</span><span class="p">)</span>
+                        <span class="n">all_metadata</span><span class="p">[</span><span class="n">pname</span><span class="p">]</span> <span class="o">=</span> <span class="n">FormatFieldDef</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span> <span class="k">if</span> <span class="n">pattern</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">versions</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ver_name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">FormatVersionSpec</span><span class="p">(</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="n">all_metadata</span><span class="p">,</span>
+                    <span class="n">file_templates</span><span class="o">=</span><span class="n">file_templates</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">formats</span><span class="p">[</span><span class="n">fmt_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">FormatSpec</span><span class="p">(</span><span class="n">versions</span><span class="o">=</span><span class="n">versions</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">formats</span><span class="o">=</span><span class="n">formats</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="FormatRegistry">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatRegistry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FormatRegistry</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read-only registry of reusable format definitions.</span>
+
+<span class="sd">    Built from a :class:`FormatSpecCollection` by resolving every metadata</span>
+<span class="sd">    field&#39;s default value against a :class:`ParameterCatalog`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        formats: Mapping of format name to resolved :class:`FormatSpec`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">formats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatSpec</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FormatRegistry.get_format">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatRegistry.get_format">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FormatSpec</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a format by name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: Format name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The matching :class:`FormatSpec`.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            KeyError: If *name* is not registered.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">formats</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Format </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> not found. Available: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">formats</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FormatRegistry.get_version">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatRegistry.get_version">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">version</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FormatVersionSpec</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a specific version of a format.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            format_name: Format name.</span>
+<span class="sd">            version: Version identifier.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The matching :class:`FormatVersionSpec`.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            KeyError: If the format or version is not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_format</span><span class="p">(</span><span class="n">format_name</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">versions</span><span class="p">[</span><span class="n">version</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Version </span><span class="si">{</span><span class="n">version</span><span class="si">!r}</span><span class="s2"> not found in format </span><span class="si">{</span><span class="n">format_name</span><span class="si">!r}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Available: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">fmt</span><span class="o">.</span><span class="n">versions</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FormatRegistry.build">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.FormatRegistry.build">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">:</span> <span class="n">FormatSpecCollection</span><span class="p">,</span> <span class="n">metadata_catalog</span><span class="p">:</span> <span class="n">ParameterCatalog</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FormatRegistry</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a :class:`FormatRegistry` by resolving metadata field defaults.</span>
+
+<span class="sd">        Verifies that every metadata field referenced in a format version</span>
+<span class="sd">        has either a pattern value or an entry in *metadata_catalog*.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            format_spec: Raw format specification collection.</span>
+<span class="sd">            metadata_catalog: Global parameter catalog for field defaults.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`FormatRegistry` with all fields resolved.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AssertionError: If a field is missing both a pattern and</span>
+<span class="sd">                a catalog entry.</span>
+<span class="sd">            ValueError: If a file template placeholder has no</span>
+<span class="sd">                corresponding metadata field.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">format_spec_collection</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatSpec</span><span class="p">]</span> <span class="o">=</span> <span class="n">format_spec</span><span class="o">.</span><span class="n">formats</span>
+        <span class="n">format_spec_collection_resolved</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">format_spec_name</span><span class="p">,</span> <span class="n">format_spec_entry</span> <span class="ow">in</span> <span class="n">format_spec_collection</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">format_version_spec_collection_resolved</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FormatVersionSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">for</span> <span class="n">version_name</span><span class="p">,</span> <span class="n">version_spec</span> <span class="ow">in</span> <span class="n">format_spec_entry</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">resolved_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">if</span> <span class="n">version_spec</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_def</span> <span class="ow">in</span> <span class="n">version_spec</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">pattern</span> <span class="o">=</span> <span class="n">field_def</span><span class="o">.</span><span class="n">pattern</span> <span class="k">if</span> <span class="n">field_def</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                    <span class="n">default</span> <span class="o">=</span> <span class="n">field_def</span><span class="o">.</span><span class="n">default</span> <span class="k">if</span> <span class="n">field_def</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                    <span class="n">field_default</span> <span class="o">=</span> <span class="n">pattern</span> <span class="ow">or</span> <span class="n">default</span>
+                    <span class="k">if</span> <span class="n">field_default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">assert</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">metadata_catalog</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Field </span><span class="si">{</span><span class="n">field_name</span><span class="si">!r}</span><span class="s2"> not found in parameter catalog &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;for format </span><span class="si">{</span><span class="n">format_spec_name</span><span class="si">!r}</span><span class="s2"> version </span><span class="si">{</span><span class="n">version_name</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="n">field_default</span> <span class="o">=</span> <span class="n">metadata_catalog</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span><span class="o">.</span><span class="n">pattern</span>
+
+                    <span class="n">resolved_metadata</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">FormatFieldDef</span><span class="p">(</span>
+                        <span class="n">pattern</span><span class="o">=</span><span class="n">field_default</span><span class="p">,</span>
+                        <span class="n">description</span><span class="o">=</span><span class="n">field_def</span><span class="o">.</span><span class="n">description</span> <span class="k">if</span> <span class="n">field_def</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">for</span> <span class="n">variant_name</span><span class="p">,</span> <span class="n">file_template</span> <span class="ow">in</span> <span class="n">version_spec</span><span class="o">.</span><span class="n">file_templates</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\{(.*?)\}&quot;</span><span class="p">,</span> <span class="n">file_template</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">match</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">resolved_metadata</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;Placeholder </span><span class="si">{</span><span class="n">match</span><span class="si">!r}</span><span class="s2"> in file template &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file_template</span><span class="si">!r}</span><span class="s2"> for format </span><span class="si">{</span><span class="n">format_spec_name</span><span class="si">!r}</span><span class="s2"> &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;version </span><span class="si">{</span><span class="n">version_name</span><span class="si">!r}</span><span class="s2"> variant </span><span class="si">{</span><span class="n">variant_name</span><span class="si">!r}</span><span class="s2"> &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;does not have a corresponding metadata field.&quot;</span>
+                            <span class="p">)</span>
+
+                <span class="n">format_version_spec_collection_resolved</span><span class="p">[</span><span class="n">version_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">FormatVersionSpec</span><span class="p">(</span>
+                    <span class="n">description</span><span class="o">=</span><span class="n">version_spec</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+                    <span class="n">notes</span><span class="o">=</span><span class="n">version_spec</span><span class="o">.</span><span class="n">notes</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="n">resolved_metadata</span><span class="p">,</span>
+                    <span class="n">file_templates</span><span class="o">=</span><span class="n">version_spec</span><span class="o">.</span><span class="n">file_templates</span><span class="p">,</span>
+                    <span class="n">compression</span><span class="o">=</span><span class="n">version_spec</span><span class="o">.</span><span class="n">compression</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">format_spec_collection_resolved</span><span class="p">[</span><span class="n">format_spec_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">FormatSpec</span><span class="p">(</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">format_spec_entry</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+                <span class="n">versions</span><span class="o">=</span><span class="n">format_version_spec_collection_resolved</span><span class="p">,</span>
+                <span class="n">compression</span><span class="o">=</span><span class="n">format_spec_entry</span><span class="o">.</span><span class="n">compression</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">FormatRegistry</span><span class="p">(</span><span class="n">formats</span><span class="o">=</span><span class="n">format_spec_collection_resolved</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

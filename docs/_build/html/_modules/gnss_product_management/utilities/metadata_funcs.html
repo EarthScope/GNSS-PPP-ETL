@@ -1,0 +1,266 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.utilities.metadata_funcs &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.utilities.metadata_funcs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.utilities.metadata_funcs</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">Computed metadata field registrations for a :class:`ParameterCatalog`.</span>
+
+<span class="sd">Defines date-to-metadata transformations (``DDD``, ``GPSWEEK``, ``YYYY``,</span>
+<span class="sd">``REFFRAME``, etc.) and :func:`register_computed_fields` which wires</span>
+<span class="sd">them onto a catalog so that parameter values can be derived from a</span>
+<span class="sd">processing date at query time.</span>
+
+<span class="sd">Usage::</span>
+
+<span class="sd">    from gnss_product_management.specifications.parameters.parameter import ParameterCatalog</span>
+<span class="sd">    from gnss_product_management.utilities.metadata_funcs import register_computed_fields</span>
+
+<span class="sd">    cat = ParameterCatalog.from_yaml(&quot;meta_spec.yaml&quot;)</span>
+<span class="sd">    register_computed_fields(cat)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+
+<span class="c1"># GPS epoch used for GPS-week calculations.</span>
+<span class="n">GNSS_START_TIME</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1980</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="IGSAntexReferenceFrameType">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.utilities.IGSAntexReferenceFrameType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IGSAntexReferenceFrameType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;IGS ANTEX reference frame identifiers.</span>
+
+<span class="sd">    Maps each IGS reference frame to its canonical lowercase string</span>
+<span class="sd">    used in ANTEX filenames (e.g. ``igs20.atx``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">IGS05</span> <span class="o">=</span> <span class="s2">&quot;igs05&quot;</span>
+    <span class="n">IGS08</span> <span class="o">=</span> <span class="s2">&quot;igs08&quot;</span>
+    <span class="n">IGS14</span> <span class="o">=</span> <span class="s2">&quot;igs14&quot;</span>
+    <span class="n">IGS20</span> <span class="o">=</span> <span class="s2">&quot;igs20&quot;</span>
+    <span class="n">IGSR3</span> <span class="o">=</span> <span class="s2">&quot;igsR3&quot;</span></div>
+
+
+
+<span class="c1"># ------------------------------------------------------------------</span>
+<span class="c1"># Helper functions (pure — no registry dependency)</span>
+<span class="c1"># ------------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_date_to_doy</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a datetime to a zero-padded day-of-year string (001–366).&quot;&quot;&quot;</span>
+    <span class="n">doy</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span>
+    <span class="k">if</span> <span class="n">doy</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;00</span><span class="si">{</span><span class="n">doy</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">elif</span> <span class="n">doy</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;0</span><span class="si">{</span><span class="n">doy</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">doy</span><span class="p">)</span>
+
+
+<span class="c1"># ------------------------------------------------------------------</span>
+<span class="c1"># Computed field functions</span>
+<span class="c1"># ------------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ddd</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute day-of-year (``DDD``) from *date*.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_date_to_doy</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_gpsweek</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the GPS week number from *date*.&quot;&quot;&quot;</span>
+    <span class="n">time_since_epoch</span> <span class="o">=</span> <span class="n">date</span> <span class="o">-</span> <span class="n">GNSS_START_TIME</span>
+    <span class="n">gps_week</span> <span class="o">=</span> <span class="n">time_since_epoch</span><span class="o">.</span><span class="n">days</span> <span class="o">//</span> <span class="mi">7</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">gps_week</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_yyyy</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return four-digit year (``YYYY``).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_day</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return zero-padded day of month (``DD``).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_month</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return zero-padded month (``MM``).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_yy</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return two-digit year (``YY``).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%y&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hh</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return zero-padded hour (``HH``).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%H&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mm</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return zero-padded minute (``MM``).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%M&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_refframe</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the IGS ANTEX reference frame string for *date*.&quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="k">else</span> <span class="n">date</span>
+    <span class="k">if</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="mi">2022</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">27</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">IGSAntexReferenceFrameType</span><span class="o">.</span><span class="n">IGS20</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">elif</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="mi">2017</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">29</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">IGSAntexReferenceFrameType</span><span class="o">.</span><span class="n">IGS14</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">elif</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="mi">2011</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">17</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">IGSAntexReferenceFrameType</span><span class="o">.</span><span class="n">IGS08</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">elif</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="mi">2006</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">IGSAntexReferenceFrameType</span><span class="o">.</span><span class="n">IGS05</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+
+<span class="c1"># ------------------------------------------------------------------</span>
+<span class="c1"># Registration entry-point</span>
+<span class="c1"># ------------------------------------------------------------------</span>
+
+
+<span class="c1"># (name, compute_function, pattern) triples registered onto every ParameterCatalog.</span>
+<span class="n">_COMPUTED_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;DDD&quot;</span><span class="p">,</span> <span class="n">_ddd</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;GPSWEEK&quot;</span><span class="p">,</span> <span class="n">_gpsweek</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;YYYY&quot;</span><span class="p">,</span> <span class="n">_yyyy</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;DAY&quot;</span><span class="p">,</span> <span class="n">_day</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;MONTH&quot;</span><span class="p">,</span> <span class="n">_month</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;YY&quot;</span><span class="p">,</span> <span class="n">_yy</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;HH&quot;</span><span class="p">,</span> <span class="n">_hh</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;MM&quot;</span><span class="p">,</span> <span class="n">_mm</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;REFFRAME&quot;</span><span class="p">,</span> <span class="n">_refframe</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="register_computed_fields">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.utilities.register_computed_fields">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_computed_fields</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Register all date-derived computed fields onto *registry*.</span>
+
+<span class="sd">    Iterates over the built-in ``_COMPUTED_FIELDS`` list and calls</span>
+<span class="sd">    ``registry.computed()`` for each one, wiring the pure date</span>
+<span class="sd">    transformation functions into the catalog.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        registry: A :class:`ParameterCatalog` instance to extend.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">_COMPUTED_FIELDS</span><span class="p">:</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">computed</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)(</span><span class="n">func</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

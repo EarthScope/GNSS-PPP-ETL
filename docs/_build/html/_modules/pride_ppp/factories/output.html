@@ -1,0 +1,476 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pride_ppp.factories.output &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pride_ppp.factories.output</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for pride_ppp.factories.output</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">PRIDE-PPP output parsing and validation.</span>
+
+<span class="sd">Helpers for reading ``.kin`` / ``.res`` files into DataFrames and</span>
+<span class="sd">validating pdp3 output.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pride_ppp.specifications.output</span><span class="w"> </span><span class="kn">import</span> <span class="n">PridePPP</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># RES file helpers</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="get_wrms_from_res">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.get_wrms_from_res">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_wrms_from_res</span><span class="p">(</span><span class="n">res_path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get WRMS from a RES file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    res_path : str</span>
+<span class="sd">        The path to the RES file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        A DataFrame with the WRMS data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">res_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">res_file</span><span class="p">:</span>
+        <span class="n">timestamps</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">wrms</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">sumOfSquares</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">sumOfWeights</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">res_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>  <span class="c1"># first line is header</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">line_data</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;TIM&quot;</span><span class="p">:</span>
+                <span class="n">sumOfSquares</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">sumOfWeights</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="n">seconds_str</span> <span class="o">=</span> <span class="n">line_data</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">seconds_str</span><span class="p">:</span>
+                    <span class="n">SS</span><span class="p">,</span> <span class="n">fractional</span> <span class="o">=</span> <span class="n">seconds_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                    <span class="n">SS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">SS</span><span class="p">)</span>
+                    <span class="n">fractional</span> <span class="o">=</span> <span class="n">fractional</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)[:</span><span class="mi">6</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">SS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">seconds_str</span><span class="p">)</span>
+                    <span class="n">fractional</span> <span class="o">=</span> <span class="s2">&quot;000000&quot;</span>
+
+                <span class="n">isodate</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">line_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">line_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">line_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;T</span><span class="si">{</span><span class="n">line_data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">line_data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">SS</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">fractional</span><span class="si">}</span><span class="s2">+00:00&quot;</span>
+                <span class="p">)</span>
+
+                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">isodate</span><span class="p">)</span>
+                <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
+
+                <span class="n">line</span> <span class="o">=</span> <span class="n">res_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="n">line_data</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">while</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;TIM&quot;</span><span class="p">):</span>
+                    <span class="n">phase_residual</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">phase_weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">))</span>
+                    <span class="n">sumOfSquares</span> <span class="o">+=</span> <span class="n">phase_residual</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">phase_weight</span>
+                    <span class="n">sumOfWeights</span> <span class="o">+=</span> <span class="n">phase_weight</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">res_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                        <span class="k">break</span>
+                    <span class="n">line_data</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">wrms</span> <span class="o">=</span> <span class="p">(</span><span class="n">sumOfSquares</span> <span class="o">/</span> <span class="n">sumOfWeights</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="mi">1000</span>  <span class="c1"># in mm</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wrms</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">res_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="n">wrms_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">timestamps</span><span class="p">,</span> <span class="s2">&quot;wrms&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">wrms_df</span></div>
+
+
+
+<div class="viewcode-block" id="plot_kin_results_wrms">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.plot_kin_results_wrms">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_kin_results_wrms</span><span class="p">(</span><span class="n">kin_df</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot kinematic results with WRMS in a 6-panel figure.</span>
+
+<span class="sd">    Subplots (top → bottom): Latitude, Longitude, Height,</span>
+<span class="sd">    Nsat (red = ≤ 4), PDOP on log scale (red = ≥ 5), WRMS (mm).</span>
+
+<span class="sd">    Expects DataFrame columns: ``Latitude``, ``Longitude``, ``Height``,</span>
+<span class="sd">    ``Nsat``, ``PDOP``, ``wrms``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    kin_df : pd.DataFrame</span>
+<span class="sd">        Output from ``read_kin_data`` merged with WRMS residuals.</span>
+<span class="sd">    title : str, optional</span>
+<span class="sd">        RINEX filename or label used in the figure title.</span>
+<span class="sd">    save_as : str, optional</span>
+<span class="sd">        If provided, save the figure to this path.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+    <span class="n">size</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">bad_nsat</span> <span class="o">=</span> <span class="n">kin_df</span><span class="p">[</span><span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;Nsat&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">]</span>
+    <span class="n">bad_pdop</span> <span class="o">=</span> <span class="n">kin_df</span><span class="p">[</span><span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;PDOP&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">]</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">kin_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Latitude&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">kin_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Longitude&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">kin_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;Height&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Height&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">kin_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;Nsat&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">bad_nsat</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">bad_nsat</span><span class="p">[</span><span class="s2">&quot;Nsat&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Nsat&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">kin_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;PDOP&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">bad_pdop</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">bad_pdop</span><span class="p">[</span><span class="s2">&quot;PDOP&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;log PDOP&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">kin_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;wrms&quot;</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;wrms mm&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ticklabel_format</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">useOffset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;plain&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ticklabel_format</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">useOffset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;plain&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axs</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;lightgrey&quot;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="mi">70</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PRIDE-PPPAR results for </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">title</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">save_as</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">save_as</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># KIN file reading</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="kin_to_kin_position_df">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.kin_to_kin_position_df">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">kin_to_kin_position_df</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse a pdp3 ``.kin`` file into a DataFrame with optional WRMS residuals.</span>
+
+<span class="sd">    Reads the kinematic position records after the ``END OF HEADER`` marker</span>
+<span class="sd">    and converts them to a DataFrame indexed by UTC timestamp.  Attempts to</span>
+<span class="sd">    merge WRMS residuals from a co-located ``.res`` file (same directory,</span>
+<span class="sd">    stem derived from the ``.kin`` filename); the ``wrms`` column will be</span>
+<span class="sd">    ``None`` if the ``.res`` file is missing or cannot be parsed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source : str | Path</span>
+<span class="sd">        Path to the pdp3 ``.kin`` output file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame | None</span>
+<span class="sd">        DataFrame with columns including ``time``, ``latitude``,</span>
+<span class="sd">        ``longitude``, ``height``, ``pdop``, and ``wrms``, indexed by</span>
+<span class="sd">        record number.  Returns ``None`` if the file has no header or</span>
+<span class="sd">        contains no valid data records.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parsing KIN file: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+    <span class="n">end_header_index</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;END OF HEADER&quot;</span><span class="p">),</span> <span class="kc">None</span>
+    <span class="p">)</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">end_header_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GNSS: No header found in FILE </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">end_header_index</span> <span class="o">+</span> <span class="mi">2</span> <span class="p">:]):</span>
+        <span class="n">split_line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">selected_columns</span> <span class="o">=</span> <span class="n">split_line</span><span class="p">[:</span><span class="mi">9</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">split_line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ppp</span><span class="p">:</span> <span class="n">PridePPP</span> <span class="o">|</span> <span class="n">ValidationError</span> <span class="o">=</span> <span class="n">PridePPP</span><span class="o">.</span><span class="n">from_kin_file</span><span class="p">(</span><span class="n">selected_columns</span><span class="p">)</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ppp</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GNSS: No data found in FILE </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">dataframe</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="nb">dict</span><span class="p">(</span><span class="n">pride_ppp</span><span class="p">)</span> <span class="k">for</span> <span class="n">pride_ppp</span> <span class="ow">in</span> <span class="n">data</span><span class="p">])</span>
+    <span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">&quot;UTC&quot;</span><span class="p">)</span>
+    <span class="n">dataframe</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parsed </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataframe</span><span class="p">)</span><span class="si">}</span><span class="s2"> records from KIN file </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Add residuals data</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">source_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="n">res_pattern</span> <span class="o">=</span> <span class="n">source_path</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;kin_&quot;</span><span class="p">,</span> <span class="s2">&quot;res_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.kin&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">res_file</span> <span class="o">=</span> <span class="n">source_path</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">res_pattern</span><span class="si">}</span><span class="s2">.res&quot;</span>
+
+        <span class="k">if</span> <span class="n">res_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adding residuals from </span><span class="si">{</span><span class="n">res_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">wrms_df</span> <span class="o">=</span> <span class="n">get_wrms_from_res</span><span class="p">(</span><span class="n">res_file</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">wrms_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                <span class="n">wrms_df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">dataframe_sorted</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+                <span class="n">wrms_sorted</span> <span class="o">=</span> <span class="n">wrms_df</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+                <span class="n">dataframe</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge_asof</span><span class="p">(</span>
+                    <span class="n">dataframe_sorted</span><span class="p">,</span>
+                    <span class="n">wrms_sorted</span><span class="p">,</span>
+                    <span class="n">left_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">,</span>
+                    <span class="n">tolerance</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Added WRMS residuals for </span><span class="si">{</span><span class="n">dataframe</span><span class="p">[</span><span class="s1">&#39;wrms&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dataframe</span><span class="p">)</span><span class="si">}</span><span class="s2"> records&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No WRMS data found in </span><span class="si">{</span><span class="n">res_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;wrms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No corresponding RES file found for </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;wrms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error adding residuals: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;wrms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">dataframe</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;modified_julian_date&quot;</span><span class="p">,</span> <span class="s2">&quot;second_of_day&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+    <span class="n">dataframe</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GNSS Parser: </span><span class="si">{</span><span class="n">dataframe</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> shots from FILE </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dataframe</span></div>
+
+
+
+<div class="viewcode-block" id="read_kin_data">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.read_kin_data">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_kin_data</span><span class="p">(</span><span class="n">kin_path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a ``.kin`` file into a DataFrame using fixed-width column specs.</span>
+
+<span class="sd">    The column widths match the pdp3 output format (PRIDE-PPPAR 3).</span>
+<span class="sd">    The resulting DataFrame is indexed by UTC timestamps derived from</span>
+<span class="sd">    MJD + seconds-of-day.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    kin_path : str</span>
+<span class="sd">        Path to the ``.kin`` file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        Fixed-width columns: Mjd, Sod, *, X, Y, Z, Latitude, Longitude,</span>
+<span class="sd">        Height, Nsat, G (GPS sats), R (GLONASS), E (Galileo), C2 (BDS-2),</span>
+<span class="sd">        C3 (BDS-3), J (QZSS), PDOP.  Indexed by UTC datetime derived from</span>
+<span class="sd">        MJD + seconds-of-day.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">kin_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">kin_file</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">kin_file</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;END OF HEADER&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">end_of_header</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">break</span>
+
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Mjd&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Sod&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;X&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Y&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Z&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Latitude&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Longitude&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Height&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Nsat&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;G&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;R&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;E&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;C2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;C3&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;J&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;PDOP&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">colspecs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">18</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">46</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">46</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">77</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">77</span><span class="p">,</span> <span class="mi">94</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">94</span><span class="p">,</span> <span class="mi">108</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">108</span><span class="p">,</span> <span class="mi">114</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">114</span><span class="p">,</span> <span class="mi">117</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">117</span><span class="p">,</span> <span class="mi">120</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="mi">123</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">123</span><span class="p">,</span> <span class="mi">126</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">126</span><span class="p">,</span> <span class="mi">129</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">129</span><span class="p">,</span> <span class="mi">132</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">132</span><span class="p">,</span> <span class="mi">140</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">kin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_fwf</span><span class="p">(</span>
+        <span class="n">kin_path</span><span class="p">,</span>
+        <span class="n">header</span><span class="o">=</span><span class="n">end_of_header</span><span class="p">,</span>
+        <span class="n">colspecs</span><span class="o">=</span><span class="n">colspecs</span><span class="p">,</span>
+        <span class="n">names</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span>
+        <span class="n">on_bad_lines</span><span class="o">=</span><span class="s2">&quot;skip&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">kin_df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;Mjd&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mf">2400000.5</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;julian&quot;</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_timedelta</span><span class="p">(</span><span class="n">kin_df</span><span class="p">[</span><span class="s2">&quot;Sod&quot;</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;sec&quot;</span><span class="p">),</span>
+        <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">kin_df</span></div>
+
+
+
+<div class="viewcode-block" id="validate_kin_file">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.validate_kin_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_kin_file</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a kin file.</span>
+
+<span class="sd">    This is done by checking if it can be parsed into a DataFrame and</span>
+<span class="sd">    contains data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source : str | Path</span>
+<span class="sd">        The path to the kin file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True if the kin file is valid, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid source type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">source</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">source</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">kin_to_kin_position_df</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Kin file </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2"> is invalid or contains no data&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

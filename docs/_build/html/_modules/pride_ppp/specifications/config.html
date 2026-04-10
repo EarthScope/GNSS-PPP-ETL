@@ -1,0 +1,933 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pride_ppp.specifications.config &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pride_ppp.specifications.config</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for pride_ppp.specifications.config</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">PRIDE PPP-AR configuration file models.</span>
+
+<span class="sd">Read/write the ``config_file`` format consumed by the ``pdp3`` binary.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_validator</span>
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Default satellite table (all active GNSS PRNs, variance = 1)</span>
+<span class="c1"># Keys follow the format &quot;{constellation}{PRN:02d}&quot;, e.g. &quot;G01&quot; for GPS PRN 1.</span>
+<span class="c1"># Values are PRN variance weights used by pdp3 (1 = nominal, higher = down-weighted).</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="n">pride_default_satellites</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;G01&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G02&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G03&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G04&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G05&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G06&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G07&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G08&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G09&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G10&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G11&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G12&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G13&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G14&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G15&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G16&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G17&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G18&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G19&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G20&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G21&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G22&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G23&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G24&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G25&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G26&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G27&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G28&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G29&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G30&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G31&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;G32&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R01&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R02&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R03&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R04&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R05&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R06&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R07&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R08&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R09&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R10&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R11&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R12&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R13&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R14&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R15&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R16&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R17&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R18&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R19&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R20&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R21&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R22&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R23&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;R24&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E01&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E02&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E03&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E04&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E05&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E06&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E07&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E08&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E09&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E10&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E11&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E12&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E13&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E14&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E15&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E16&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E17&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E18&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E19&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E20&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E21&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E22&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E23&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E24&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E25&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E26&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E27&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E28&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E29&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E30&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E31&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E32&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E33&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E34&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E35&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;E36&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C06&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C07&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C08&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C09&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C10&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C11&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C12&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C13&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C14&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C15&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C16&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C17&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C18&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;C19&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C20&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C21&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C22&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C23&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C24&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C25&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C26&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C27&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C28&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C29&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C30&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C31&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C32&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C33&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C34&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C35&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C36&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C37&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C38&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C39&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C40&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C41&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C42&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C43&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C44&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C45&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C46&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C47&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C48&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C56&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C57&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;C58&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;J01&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;J02&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;J03&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Configuration models</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ObservationConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Observation section of the pdp3 config file.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table_directory : str</span>
+<span class="sd">        Path to the directory containing ANTEX, leap-second, and</span>
+<span class="sd">        satellite metadata tables required by pdp3.</span>
+<span class="sd">    frequency_combination : str</span>
+<span class="sd">        Frequency combination string (e.g. ``&quot;Default&quot;``).</span>
+<span class="sd">    interval : str</span>
+<span class="sd">        Processing interval in seconds, or ``&quot;Default&quot;`` for auto.</span>
+<span class="sd">    time_window : float</span>
+<span class="sd">        Observation time window tolerance in seconds.</span>
+<span class="sd">    session_time : datetime | str</span>
+<span class="sd">        Session time template.  When a string, pdp3 substitutes</span>
+<span class="sd">        date/time placeholders at runtime.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">table_directory</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">frequency_combination</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">interval</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">time_window</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span>
+    <span class="n">session_time</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;-YYYY- -MM- -DD- -HH- -MI- -SS- -SE-&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="SatelliteProducts">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.SatelliteProducts">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SatelliteProducts</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Satellite product file paths for the pdp3 config file.</span>
+
+<span class="sd">    Each field holds the filename (not full path) of a specific GNSS</span>
+<span class="sd">    product.  ``product_directory`` is the common parent directory.</span>
+<span class="sd">    When set to ``&quot;Default&quot;``, pdp3 resolves the file automatically.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    product_directory : str, optional</span>
+<span class="sd">        Directory containing all satellite product files.</span>
+<span class="sd">    satellite_orbit : str, optional</span>
+<span class="sd">        SP3 precise orbit filename (must end in ``.SP3``).</span>
+<span class="sd">    satellite_clock : str, optional</span>
+<span class="sd">        CLK precise clock filename (must end in ``.CLK``).</span>
+<span class="sd">    erp : str, optional</span>
+<span class="sd">        Earth rotation parameters filename (must end in ``.ERP``).</span>
+<span class="sd">    quaternions : str, optional</span>
+<span class="sd">        Satellite attitude quaternions filename (must end in ``.OBX``).</span>
+<span class="sd">    code_phase_bias : str, optional</span>
+<span class="sd">        Observable-specific signal bias filename (must end in ``.BIA``).</span>
+<span class="sd">    leo_quaternions : str, optional</span>
+<span class="sd">        LEO satellite quaternions filename.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">product_directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Directory for satellite products&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">satellite_orbit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;.*\.SP3&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;File name of SP3 file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">satellite_clock</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;.*\.CLK&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;File name of CLK file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">erp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;.*\.ERP&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;File name of ERP file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">quaternions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;.*\.OBX&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;File name of quaternions file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">code_phase_bias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;.*\.BIA&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;File name of code/phase bias file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">leo_quaternions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;File name of LEO quaternions file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="SatelliteProducts.override_patternmatch">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.SatelliteProducts.override_patternmatch">[docs]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span>
+        <span class="s2">&quot;satellite_orbit&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;satellite_clock&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;erp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;quaternions&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;code_phase_bias&quot;</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;before&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">override_patternmatch</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set default file extension when value is ``&#39;Default&#39;``.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="s2">&quot;Default&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+        <span class="k">match</span> <span class="n">field</span><span class="o">.</span><span class="n">field_name</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;satellite_orbit&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;Default.SP3&quot;</span>
+            <span class="k">case</span> <span class="s2">&quot;satellite_clock&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;Default.CLK&quot;</span>
+            <span class="k">case</span> <span class="s2">&quot;erp&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;Default.ERP&quot;</span>
+            <span class="k">case</span> <span class="s2">&quot;quaternions&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;Default.OBX&quot;</span>
+            <span class="k">case</span> <span class="s2">&quot;code_phase_bias&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;Default.BIA&quot;</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">value</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DataProcessingStrategies</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Data processing strategy defaults for the pdp3 config file.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    strict_editing : str</span>
+<span class="sd">        ``&quot;YES&quot;``/``&quot;NO&quot;``/``&quot;Default&quot;``.  Set to ``&quot;NO&quot;`` for</span>
+<span class="sd">        high-dynamic data with poor quality.</span>
+<span class="sd">    rck_model : str</span>
+<span class="sd">        Receiver clock model: ``&quot;WNO&quot;`` (white noise) or ``&quot;STO&quot;``</span>
+<span class="sd">        (random walk).</span>
+<span class="sd">    ztd_model : str</span>
+<span class="sd">        Zenith troposphere delay model: ``&quot;PWC:60&quot;`` (piece-wise</span>
+<span class="sd">        constant, 60 min) or ``&quot;STO&quot;`` (random walk).</span>
+<span class="sd">    htg_model : str</span>
+<span class="sd">        Horizontal troposphere gradient model: ``&quot;PWC&quot;``/``&quot;STO&quot;``/``&quot;NON&quot;``.</span>
+<span class="sd">    iono_2nd : str</span>
+<span class="sd">        ``&quot;YES&quot;`` to correct 2nd-order ionospheric delays.</span>
+<span class="sd">    tides : str</span>
+<span class="sd">        Tidal corrections to apply (e.g. ``&quot;SOLID/OCEAN/POLE&quot;``).</span>
+<span class="sd">    multipath : str</span>
+<span class="sd">        ``&quot;YES&quot;``/``&quot;NO&quot;`` — enable multipath correction model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">strict_editing</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">rck_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">ztd_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">htg_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">iono_2nd</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">tides</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;SOLID/OCEAN/POLE&quot;</span>
+    <span class="n">multipath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AmbiguityFixingOptions</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ambiguity resolution parameters for the pdp3 config file.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ambiguity_co_var : str</span>
+<span class="sd">        ``&quot;YES&quot;`` to use LAMBDA method for ambiguity fixing.</span>
+<span class="sd">    ambiguity_duration : int</span>
+<span class="sd">        Minimum time duration in seconds for a resolvable ambiguity.</span>
+<span class="sd">    cutoff_elevation : int</span>
+<span class="sd">        Cutoff mean elevation angle (degrees) for eligible ambiguities.</span>
+<span class="sd">    pco_on_wide_lane : str</span>
+<span class="sd">        ``&quot;YES&quot;``/``&quot;NO&quot;`` — apply PCO corrections on Melbourne-Wübbena.</span>
+<span class="sd">    widelane_decision : List[float]</span>
+<span class="sd">        ``[deviation, sigma, threshold]`` in cycles for wide-lane ambiguities.</span>
+<span class="sd">    narrowlane_decision : List[float]</span>
+<span class="sd">        ``[deviation, sigma, threshold]`` in cycles for narrow-lane ambiguities.</span>
+<span class="sd">    critical_search : List[float]</span>
+<span class="sd">        ``[max_exclude, min_reserve, fixed_float, ratio_threshold]``.</span>
+<span class="sd">    truncate_at_midnight : str</span>
+<span class="sd">        ``&quot;YES&quot;`` to truncate ambiguities at midnight (avoids day-boundary</span>
+<span class="sd">        discontinuities).</span>
+<span class="sd">    verbose_output : str</span>
+<span class="sd">        ``&quot;YES&quot;``/``&quot;NO&quot;`` — output detailed ambiguity resolution info.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ambiguity_co_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">ambiguity_duration</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">600</span>
+    <span class="n">cutoff_elevation</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span>
+    <span class="n">pco_on_wide_lane</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;YES&quot;</span>
+    <span class="n">widelane_decision</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">])</span>
+    <span class="n">narrowlane_decision</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">])</span>
+    <span class="n">critical_search</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mf">1.8</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span>
+    <span class="n">truncate_at_midnight</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Default&quot;</span>
+    <span class="n">verbose_output</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;NO&quot;</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SatelliteList</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;List of active GNSS satellites and their PRN variances.&quot;&quot;&quot;</span>
+
+    <span class="n">satellites</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">pride_default_satellites</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Dictionary of satellites with their respective codes and PRN variances. &quot;</span>
+            <span class="s2">&quot;Keys are satellite codes (e.g., &#39;G01&#39;, &#39;R01&#39;) and values are their PRN variances.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">StationUsed</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Station configuration entry in the pdp3 config file.</span>
+
+<span class="sd">    Each field corresponds to a column in the ``+Station used`` block</span>
+<span class="sd">    of the PRIDE-PPPAR config_file.  Default values are placeholder</span>
+<span class="sd">    tokens that pdp3 replaces at runtime.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        4-character station identifier.</span>
+<span class="sd">    tp : str</span>
+<span class="sd">        Positioning mode (``S`` static, ``P`` piece-wise, ``K`` kinematic,</span>
+<span class="sd">        ``F`` fixed).</span>
+<span class="sd">    map : str</span>
+<span class="sd">        Mapping function code (``NIE``, ``GMF``, ``VM1``, ``VM3``).</span>
+<span class="sd">    clkm : int</span>
+<span class="sd">        Receiver clock model noise in mm.</span>
+<span class="sd">    podm : str</span>
+<span class="sd">        Position/orbit determination mode.</span>
+<span class="sd">    ev : str</span>
+<span class="sd">        Elevation-dependent weighting strategy.</span>
+<span class="sd">    ztdm : float</span>
+<span class="sd">        Zenith troposphere delay model noise in m.</span>
+<span class="sd">    htgm : float</span>
+<span class="sd">        Horizontal troposphere gradient model noise in m.</span>
+<span class="sd">    ragm : float</span>
+<span class="sd">        Receiver antenna geocenter model noise in m.</span>
+<span class="sd">    phsc : float</span>
+<span class="sd">        Phase screen model noise in cycles.</span>
+<span class="sd">    polns : str</span>
+<span class="sd">        Pole / nutation series identifier.</span>
+<span class="sd">    poxem : float</span>
+<span class="sd">        A priori coordinate sigma in X/East direction (m).</span>
+<span class="sd">    poynm : float</span>
+<span class="sd">        A priori coordinate sigma in Y/North direction (m).</span>
+<span class="sd">    pozhm : float</span>
+<span class="sd">        A priori coordinate sigma in Z/Height direction (m).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;xxxx&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Station name&quot;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;TP value&quot;</span><span class="p">)</span>
+    <span class="nb">map</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;XXX&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;MAP value&quot;</span><span class="p">)</span>
+    <span class="n">clkm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">9000</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;CLKM value&quot;</span><span class="p">)</span>
+    <span class="n">podm</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;xxxxx&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;PODM value&quot;</span><span class="p">)</span>
+    <span class="n">ev</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;xx&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;EV value&quot;</span><span class="p">)</span>
+    <span class="n">ztdm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.20</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ZTDM value&quot;</span><span class="p">)</span>
+    <span class="n">htgm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;HTGM value&quot;</span><span class="p">)</span>
+    <span class="n">ragm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;RAGM value&quot;</span><span class="p">)</span>
+    <span class="n">phsc</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;PHSC value&quot;</span><span class="p">)</span>
+    <span class="n">polns</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;xxxxx&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;POLNS value&quot;</span><span class="p">)</span>
+    <span class="n">poxem</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">10.00</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;POXEM value&quot;</span><span class="p">)</span>
+    <span class="n">poynm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">10.00</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;POYNM value&quot;</span><span class="p">)</span>
+    <span class="n">pozhm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">10.00</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;POZHM value&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PRIDEPPPFileConfig">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PRIDEPPPFileConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PRIDEPPPFileConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Top-level pdp3 ``config_file`` model with read/write support.</span>
+
+<span class="sd">    Mirrors every section of the PRIDE-PPPAR 3 config template.  Instances</span>
+<span class="sd">    can be serialised to disk via ``write_config_file`` and deserialised</span>
+<span class="sd">    with ``read_config_file`` or ``load_default``.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    observation : ObservationConfig</span>
+<span class="sd">        Observation-related settings (table dir, interval, time window).</span>
+<span class="sd">    satellite_products : SatelliteProducts</span>
+<span class="sd">        Paths to resolved GNSS product files (SP3, CLK, ERP, …).</span>
+<span class="sd">    processing : DataProcessingStrategies</span>
+<span class="sd">        Processing strategy flags (clock model, tides, troposphere).</span>
+<span class="sd">    ambiguity : AmbiguityFixingOptions</span>
+<span class="sd">        Ambiguity resolution thresholds and decision criteria.</span>
+<span class="sd">    satellites : SatelliteList</span>
+<span class="sd">        Active satellite PRNs and their variance weights.</span>
+<span class="sd">    station_used : List[StationUsed]</span>
+<span class="sd">        Per-station processing parameters.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; cfg = PRIDEPPPFileConfig.load_default()</span>
+<span class="sd">    &gt;&gt;&gt; cfg.write_config_file(&quot;/tmp/config_file&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">observation</span><span class="p">:</span> <span class="n">ObservationConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Observation configuration for the PRIDE PPP processing.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">satellite_products</span><span class="p">:</span> <span class="n">SatelliteProducts</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Satellite product configuration for the PRIDE PPP processing.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">processing</span><span class="p">:</span> <span class="n">DataProcessingStrategies</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">DataProcessingStrategies</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Data processing strategies for the PRIDE PPP configuration.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ambiguity</span><span class="p">:</span> <span class="n">AmbiguityFixingOptions</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">AmbiguityFixingOptions</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Options for ambiguity fixing in the processing.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">satellites</span><span class="p">:</span> <span class="n">SatelliteList</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">SatelliteList</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;List of satellites used in the processing.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">station_used</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">StationUsed</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="n">StationUsed</span><span class="p">()],</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;List of stations used in the processing.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Write</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="PRIDEPPPFileConfig.write_config_file">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PRIDEPPPFileConfig.write_config_file">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_config_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write the PRIDE PPP configuration to a file.</span>
+
+<span class="sd">        Parent directories are created automatically.  Note: modifies</span>
+<span class="sd">        ``self.ambiguity.critical_search`` in-place, converting the first</span>
+<span class="sd">        two elements to integers before serialising.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filepath : str | Path</span>
+<span class="sd">            Destination path.  Parent directories are created if needed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">filepath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+        <span class="n">filepath</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># fix critical search params so first 2 values in the list are integers</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ambiguity</span><span class="o">.</span><span class="n">critical_search</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ambiguity</span><span class="o">.</span><span class="n">critical_search</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Configuration template for PRIDE PPP-AR 3</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Observation configuration</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;## Observation configuration</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Frequency combination  = </span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">frequency_combination</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Interval               = </span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">interval</span><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time window            = </span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">time_window</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Session time           = </span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">session_time</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table directory        = </span><span class="si">{</span><span class="n">obs</span><span class="o">.</span><span class="n">table_directory</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Satellite product</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;## Satellite product</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite_products</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Product directory      = </span><span class="si">{</span><span class="n">sat</span><span class="o">.</span><span class="n">product_directory</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Satellite orbit        = </span><span class="si">{</span><span class="n">sat</span><span class="o">.</span><span class="n">satellite_orbit</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Satellite clock        = </span><span class="si">{</span><span class="n">sat</span><span class="o">.</span><span class="n">satellite_clock</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERP                    = </span><span class="si">{</span><span class="n">sat</span><span class="o">.</span><span class="n">erp</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Quaternions            = </span><span class="si">{</span><span class="n">sat</span><span class="o">.</span><span class="n">quaternions</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Code/phase bias        = </span><span class="si">{</span><span class="n">sat</span><span class="o">.</span><span class="n">code_phase_bias</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LEO quaternions        = </span><span class="si">{</span><span class="n">sat</span><span class="o">.</span><span class="n">leo_quaternions</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Data processing strategies</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;## Data processing strategies</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">proc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">processing</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Strict editing         = </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">strict_editing</span><span class="si">}</span><span class="s2">                 ! change to NO if using high-dynamic data with bad quality</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;RCK model              = </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">rck_model</span><span class="si">}</span><span class="s2">                 ! receiver clock (WNO/STO). WNO, white noise</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ZTD model              = </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">ztd_model</span><span class="si">}</span><span class="s2">                 ! zenith troposphere delay (PWC/STO). PWC:60, piece-wise constant for 60 min. STO, random walk</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;HTG model              = </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">htg_model</span><span class="si">}</span><span class="s2">                 ! horizontal troposphere gradient (PWC/STO/NON)</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Iono 2nd               = </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">iono_2nd</span><span class="si">}</span><span class="s2">                 ! change to YES if correcting 2-order ionospheric delays</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Tides                  = </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">tides</span><span class="si">}</span><span class="s2">        ! remove any to shut it down, or changed to NON if not correcting tidal errors</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Multipath              = </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">multipath</span><span class="si">}</span><span class="s2">                 ! use the multipath correction model (YES/NO)</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Ambiguity fixing options</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;## Ambiguity fixing options</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">amb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ambiguity</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Ambiguity co-var       = </span><span class="si">{</span><span class="n">amb</span><span class="o">.</span><span class="n">ambiguity_co_var</span><span class="si">}</span><span class="s2">                 ! change to YES if the Ambiguity fixing method is LAMBDA</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Ambiguity duration     = </span><span class="si">{</span><span class="n">amb</span><span class="o">.</span><span class="n">ambiguity_duration</span><span class="si">}</span><span class="s2">                     ! time duration in seconds for a resolvable ambiguity</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cutoff elevation       = </span><span class="si">{</span><span class="n">amb</span><span class="o">.</span><span class="n">cutoff_elevation</span><span class="si">}</span><span class="s2">                      ! cutoff mean elevation for eligible ambiguities to be resolved</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;PCO on wide-lane       = </span><span class="si">{</span><span class="n">amb</span><span class="o">.</span><span class="n">pco_on_wide_lane</span><span class="si">}</span><span class="s2">                     ! pco corrections on Melbourne-Wubbena or not</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Widelane decision      = </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">amb</span><span class="o">.</span><span class="n">widelane_decision</span><span class="p">))</span><span class="si">}</span><span class="s2">         ! deviation (cycle), sigma (cycle) and decision threshold for WL ambiguities</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Narrowlane decision    = </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">amb</span><span class="o">.</span><span class="n">narrowlane_decision</span><span class="p">))</span><span class="si">}</span><span class="s2">        ! deviation (cycle), sigma (cycle) and decision threshold for NL ambiguities</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Critical search        = </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">amb</span><span class="o">.</span><span class="n">critical_search</span><span class="p">))</span><span class="si">}</span><span class="s2">             ! highest number of ambiguities to be excluded, lowest number to be reserved, fixed/float, ratio threshold</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Truncate at midnight   = </span><span class="si">{</span><span class="n">amb</span><span class="o">.</span><span class="n">truncate_at_midnight</span><span class="si">}</span><span class="s2">                 ! truncate all ambiguities at midnight to avoid day boundary discontinuity</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Verbose output         = </span><span class="si">{</span><span class="n">amb</span><span class="o">.</span><span class="n">verbose_output</span><span class="si">}</span><span class="s2">                      ! output detailed information of ambiguity resolution</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Satellite list</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;## Satellite list</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;# Inserting `#&#39; at the beginning of individual GNSS PRN means not to use this satellite</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+GNSS satellites</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;*PRN variance</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="o">.</span><span class="n">satellites</span>
+            <span class="k">for</span> <span class="n">satellite</span><span class="p">,</span> <span class="n">prn_variance</span> <span class="ow">in</span> <span class="n">sats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">satellite</span><span class="si">:</span><span class="s2">&gt;3</span><span class="si">}</span><span class="s2">   </span><span class="si">{</span><span class="n">prn_variance</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;-GNSS satellites</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Option line header</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;## Option line</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# There should be only one option line to be processed</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Arguments can be replaced by command-line automatically</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Available positioning mode:  S -- static</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#                              P -- piec-wise</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#                              K -- kinematic</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#                              F -- fixed</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Available mapping function:  NIE -- Niell Mapping Function (NMF)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#                              GMF -- Global Mapping Function (GMF)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#                              VM1 -- Vienna Mapping Function (VMF1)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#                              VM3 -- Vienna Mapping Function (VMF3)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# Other arguments can be kept if you are not familiar with them</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Station used</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">station_used</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+Station used</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s2">&quot;*NAME TP MAP CLKm  PoDm EV ZTDm  PoDm HTGm  PoDm RAGm PHSc PoLns PoXEm PoYNm PoZHm</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">station</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">station_used</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">tp</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">map</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">clkm</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">podm</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">ev</span><span class="si">}</span><span class="s2"> &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">ztdm</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">podm</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">htgm</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">podm</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">ragm</span><span class="si">}</span><span class="s2"> &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">phsc</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">polns</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">poxem</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">poynm</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">station</span><span class="o">.</span><span class="n">pozhm</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;-Station used</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Read / parse</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="PRIDEPPPFileConfig.read_config_file">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PRIDEPPPFileConfig.read_config_file">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_config_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PRIDEPPPFileConfig&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse a PRIDE PPP ``config_file`` from disk.</span>
+
+<span class="sd">        Note: the ``station_used`` section is not fully parsed; a single</span>
+<span class="sd">        default :class:`StationUsed` instance is always returned regardless</span>
+<span class="sd">        of the file contents.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file_path : str</span>
+<span class="sd">            Path to an existing PRIDE-PPPAR config file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PRIDEPPPFileConfig</span>
+<span class="sd">            Populated config model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;!&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">parse_satellite_list</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+            <span class="n">satellites</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">prn</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">satellites</span><span class="p">[</span><span class="n">prn</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">var</span>
+            <span class="k">return</span> <span class="n">satellites</span>
+
+        <span class="c1"># Split into sections</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="n">sections</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">current_section</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">section_lines</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;##&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">current_section</span><span class="p">:</span>
+                    <span class="n">sections</span><span class="p">[</span><span class="n">current_section</span><span class="p">]</span> <span class="o">=</span> <span class="n">section_lines</span>
+                <span class="n">current_section</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;# &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+                <span class="n">section_lines</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">section_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">current_section</span><span class="p">:</span>
+            <span class="n">sections</span><span class="p">[</span><span class="n">current_section</span><span class="p">]</span> <span class="o">=</span> <span class="n">section_lines</span>
+
+        <span class="c1"># Parse Observation configuration</span>
+        <span class="n">obs_lines</span> <span class="o">=</span> <span class="n">sections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;observation_configuration&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">obs_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">obs_lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;Frequency combination&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">obs_kwargs</span><span class="p">[</span><span class="s2">&quot;frequency_combination&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Interval&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">obs_kwargs</span><span class="p">[</span><span class="s2">&quot;interval&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Time window&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">obs_kwargs</span><span class="p">[</span><span class="s2">&quot;time_window&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="s2">&quot;Session time&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">obs_kwargs</span><span class="p">[</span><span class="s2">&quot;session_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Table directory&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">obs_kwargs</span><span class="p">[</span><span class="s2">&quot;table_directory&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">ObservationConfig</span><span class="p">(</span><span class="o">**</span><span class="n">obs_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Parse Satellite product</span>
+        <span class="n">prod_lines</span> <span class="o">=</span> <span class="n">sections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;satellite_product&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">prod_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">prod_lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;Product directory&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">prod_kwargs</span><span class="p">[</span><span class="s2">&quot;product_directory&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Satellite orbit&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">prod_kwargs</span><span class="p">[</span><span class="s2">&quot;satellite_orbit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Satellite clock&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">prod_kwargs</span><span class="p">[</span><span class="s2">&quot;satellite_clock&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;ERP&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">and</span> <span class="s2">&quot;Quaternions&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">prod_kwargs</span><span class="p">[</span><span class="s2">&quot;erp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Quaternions&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">and</span> <span class="s2">&quot;LEO&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">prod_kwargs</span><span class="p">[</span><span class="s2">&quot;quaternions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Code/phase bias&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">prod_kwargs</span><span class="p">[</span><span class="s2">&quot;code_phase_bias&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;LEO quaternions&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">prod_kwargs</span><span class="p">[</span><span class="s2">&quot;leo_quaternions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">satellite_product</span> <span class="o">=</span> <span class="n">SatelliteProducts</span><span class="p">(</span><span class="o">**</span><span class="n">prod_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Parse Data processing strategies</span>
+        <span class="n">proc_lines</span> <span class="o">=</span> <span class="n">sections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data_processing_strategies&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">proc_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">proc_lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;Strict editing&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">proc_kwargs</span><span class="p">[</span><span class="s2">&quot;strict_editing&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;RCK model&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">proc_kwargs</span><span class="p">[</span><span class="s2">&quot;rck_model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;ZTD model&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">proc_kwargs</span><span class="p">[</span><span class="s2">&quot;ztd_model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;HTG model&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">proc_kwargs</span><span class="p">[</span><span class="s2">&quot;htg_model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Iono 2nd&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">proc_kwargs</span><span class="p">[</span><span class="s2">&quot;iono_2nd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Tides&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">proc_kwargs</span><span class="p">[</span><span class="s2">&quot;tides&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Multipath&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">proc_kwargs</span><span class="p">[</span><span class="s2">&quot;multipath&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">processing</span> <span class="o">=</span> <span class="n">DataProcessingStrategies</span><span class="p">(</span><span class="o">**</span><span class="n">proc_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Parse Ambiguity fixing options</span>
+        <span class="n">amb_lines</span> <span class="o">=</span> <span class="n">sections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ambiguity_fixing_options&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">amb_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">amb_lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;Ambiguity co-var&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;ambiguity_co_var&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Ambiguity duration&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;ambiguity_duration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="s2">&quot;Cutoff elevation&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;cutoff_elevation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="s2">&quot;PCO on wide-lane&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;pco_on_wide_lane&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Widelane decision&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;widelane_decision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span>
+            <span class="k">elif</span> <span class="s2">&quot;Narrowlane decision&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;narrowlane_decision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span>
+            <span class="k">elif</span> <span class="s2">&quot;Critical search&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;critical_search&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span>
+            <span class="k">elif</span> <span class="s2">&quot;Truncate at midnight&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;truncate_at_midnight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;Verbose output&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">amb_kwargs</span><span class="p">[</span><span class="s2">&quot;verbose_output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_value</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">ambiguity</span> <span class="o">=</span> <span class="n">AmbiguityFixingOptions</span><span class="p">(</span><span class="o">**</span><span class="n">amb_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Parse Satellite list</span>
+        <span class="n">sat_start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sat_end</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;+GNSS satellites&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">sat_start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span>  <span class="c1"># skip header lines</span>
+            <span class="k">if</span> <span class="s2">&quot;-GNSS satellites&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">sat_end</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="n">satellites</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">sat_start</span> <span class="ow">and</span> <span class="n">sat_end</span><span class="p">:</span>
+            <span class="n">satellites</span> <span class="o">=</span> <span class="n">parse_satellite_list</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">sat_start</span><span class="p">:</span><span class="n">sat_end</span><span class="p">])</span>
+        <span class="n">satellite_list</span> <span class="o">=</span> <span class="n">SatelliteList</span><span class="p">(</span><span class="n">satellites</span><span class="o">=</span><span class="n">satellites</span><span class="p">)</span>
+
+        <span class="c1"># Parse Station used (simple version)</span>
+        <span class="n">station_used</span> <span class="o">=</span> <span class="p">[</span><span class="n">StationUsed</span><span class="p">()]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">observation</span><span class="o">=</span><span class="n">observation</span><span class="p">,</span>
+            <span class="n">satellite_products</span><span class="o">=</span><span class="n">satellite_product</span><span class="p">,</span>
+            <span class="n">processing</span><span class="o">=</span><span class="n">processing</span><span class="p">,</span>
+            <span class="n">ambiguity</span><span class="o">=</span><span class="n">ambiguity</span><span class="p">,</span>
+            <span class="n">satellites</span><span class="o">=</span><span class="n">satellite_list</span><span class="p">,</span>
+            <span class="n">station_used</span><span class="o">=</span><span class="n">station_used</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PRIDEPPPFileConfig.load_default">
+<a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PRIDEPPPFileConfig.load_default">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PRIDEPPPFileConfig&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the default ``config_template`` shipped with PRIDE-PPPAR.</span>
+
+<span class="sd">        Searches ``~/.PRIDE_PPPAR_BIN/config_template`` first, then falls</span>
+<span class="sd">        back to ``/opt/PRIDE-PPPAR/.PRIDE_PPPAR_BIN/config_template``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PRIDEPPPFileConfig</span>
+<span class="sd">            Config populated from the template.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        FileNotFoundError</span>
+<span class="sd">            If neither installation path exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pdp_home</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.PRIDE_PPPAR_BIN&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pdp_home</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">pdp_home</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/opt/PRIDE-PPPAR/.PRIDE_PPPAR_BIN&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pdp_home</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PRIDE PPPAR directory not found: </span><span class="si">{</span><span class="n">pdp_home</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">pdp_home</span> <span class="o">/</span> <span class="s2">&quot;config_template&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PRIDE PPPAR config template not found: </span><span class="si">{</span><span class="n">config_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">read_config_file</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,255 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.specifications.remote.resource &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.specifications.remote.resource</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.specifications.remote.resource</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">Server, ResourceSpec, SearchTarget — remote resource models (Layer 1).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.parameters.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parameter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.products.product</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PathTemplate</span><span class="p">,</span>
+    <span class="n">Product</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">_PassthroughDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
+
+<div class="viewcode-block" id="Server">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.Server">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Server</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A remote or local server endpoint.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        id: Unique identifier for the server.</span>
+<span class="sd">        hostname: Server hostname or URL.</span>
+<span class="sd">        protocol: Protocol (``&#39;ftp&#39;``, ``&#39;http&#39;``, ``&#39;https&#39;``, etc.).</span>
+<span class="sd">        auth_required: Whether authentication is needed.</span>
+<span class="sd">        description: Human-readable server description.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">hostname</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">protocol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">auth_required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ResourceProductSpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A product offering within a resource/center.</span>
+
+<span class="sd">    Maps a catalog product to a server with parameter overrides.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        id: Unique identifier for the product offering.</span>
+<span class="sd">        server_id: Server that hosts this product.</span>
+<span class="sd">        available: Whether the product is currently available.</span>
+<span class="sd">        product_name: Catalog product name (e.g. ``&#39;ORBIT&#39;``).</span>
+<span class="sd">        product_version: Version filter(s) or ``None`` for all.</span>
+<span class="sd">        description: Human-readable description.</span>
+<span class="sd">        parameters: Parameter overrides (values pinned by this center).</span>
+<span class="sd">        directory: Directory template for this product.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">server_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">available</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">product_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">product_version</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Parameter</span><span class="p">]</span>
+    <span class="n">directory</span><span class="p">:</span> <span class="n">PathTemplate</span>
+
+
+<div class="viewcode-block" id="ResourceSpec">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ResourceSpec">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ResourceSpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Root resource specification for a data center.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        id: Unique center identifier.</span>
+<span class="sd">        name: Display name for the center.</span>
+<span class="sd">        description: Human-readable description.</span>
+<span class="sd">        website: Center website URL.</span>
+<span class="sd">        servers: Server endpoints for this center.</span>
+<span class="sd">        products: Product offerings hosted by this center.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">website</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">servers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Server</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">products</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ResourceProductSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="ResourceSpec.from_yaml">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ResourceSpec.from_yaml">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_yaml</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ResourceSpec&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a resource specification from a YAML file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path to the YAML file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`ResourceSpec` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SearchTarget">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.SearchTarget">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SearchTarget</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single concrete query target — one combination of parameter values.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        product: The product being queried.</span>
+<span class="sd">        server: The server endpoint to query.</span>
+<span class="sd">        directory: Directory path template for the product.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">product</span><span class="p">:</span> <span class="n">Product</span>
+    <span class="n">server</span><span class="p">:</span> <span class="n">Server</span>
+    <span class="n">directory</span><span class="p">:</span> <span class="n">PathTemplate</span>
+
+<div class="viewcode-block" id="SearchTarget.narrow">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.SearchTarget.narrow">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">narrow</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;SearchTarget&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Substitute already-known parameter values into directory/filename patterns.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self``, mutated in place.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">to_update</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="n">format_dict</span> <span class="o">=</span> <span class="n">_PassthroughDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">to_update</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">product</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span>
+                <span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">update</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">PathTemplate</span><span class="p">(</span>
+                        <span class="n">pattern</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">pattern</span><span class="o">.</span><span class="n">format_map</span><span class="p">(</span><span class="n">format_dict</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">},</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">PathTemplate</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">pattern</span><span class="o">.</span><span class="n">format_map</span><span class="p">(</span><span class="n">format_dict</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

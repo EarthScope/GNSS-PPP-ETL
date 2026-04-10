@@ -1,0 +1,773 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss-product-management: Layers &amp; Abstractions &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Class Reference — gnss-product-management" href="class-reference.html" />
+    <link rel="prev" title="YAML Configuration Reference" href="config-reference.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">gnss-product-management: Layers &amp; Abstractions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#application-boundaries">Application Boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-definitions">Layer Definitions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dependency-rule">Dependency Rule</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-0-configuration-static-data-i-o-adapters">Layer 0: Configuration (Static Data + I/O Adapters)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#modules">Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#abstractions">Abstractions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-rule">Key Rule</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-1-specification-data-models-yaml-loading">Layer 1: Specification (Data Models + YAML Loading)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#modules-key-abstractions">Modules &amp; Key Abstractions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interfaces">Interfaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Key Rule</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-2-catalog-resolution-registry">Layer 2: Catalog (Resolution + Registry)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Modules &amp; Key Abstractions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resolution-chain">Resolution Chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Interfaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Key Rule</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-3-orchestration-query-building-transport-resolution">Layer 3: Orchestration (Query Building + Transport + Resolution)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Modules &amp; Key Abstractions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-flow">Data Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cloud-local-filesystem-transparency">Cloud / Local Filesystem Transparency</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Interfaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Key Rule</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#layer-4-interface-entry-point">Layer 4: Interface (Entry Point)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id8">Modules &amp; Key Abstractions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">Interfaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">Key Rule</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#abstraction-inventory-by-layer">Abstraction Inventory by Layer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="class-reference.html">Class Reference — gnss-product-management</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">gnss-product-management: Layers &amp; Abstractions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/architecture.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="gnss-product-management-layers-abstractions">
+<h1>gnss-product-management: Layers &amp; Abstractions<a class="headerlink" href="#gnss-product-management-layers-abstractions" title="Link to this heading"></a></h1>
+<blockquote>
+<div><p>Architecture blueprint for <a class="reference internal" href="#../packages/gnss-product-management/src/gnss_product_management/"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">packages/gnss-product-management/src/gnss_product_management/</span></code></span></a></p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="application-boundaries">
+<h2>Application Boundaries<a class="headerlink" href="#application-boundaries" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Boundary</p></th>
+<th class="head"><p>Direction</p></th>
+<th class="head"><p>Modules</p></th>
+<th class="head"><p>Operations</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Network</strong> (FTP/FTPS)</p></td>
+<td><p>Outbound</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code></p></td>
+<td><p>List directories, download files</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Network</strong> (HTTP/HTTPS)</p></td>
+<td><p>Outbound</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code></p></td>
+<td><p>List directories (HTML parsing), download files</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Filesystem</strong> (bundled configs)</p></td>
+<td><p>Read</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gnss-management-specs</span></code> package</p></td>
+<td><p>Load YAML specs at startup</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Filesystem / Cloud</strong> (user workspace)</p></td>
+<td><p>Read/Write</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code>, <code class="docutils literal notranslate"><span class="pre">LockfileManager</span></code></p></td>
+<td><p>Search/store product files (local paths or <code class="docutils literal notranslate"><span class="pre">s3://</span></code> URIs)</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>User input</strong></p></td>
+<td><p>Inbound</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GNSSClient</span></code>, <code class="docutils literal notranslate"><span class="pre">ProductQuery</span></code></p></td>
+<td><p>Date, product name, constraints</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="layer-definitions">
+<h2>Layer Definitions<a class="headerlink" href="#layer-definitions" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌──────────────────────────────────────────────────────────────┐
+│  Layer 4: INTERFACE                                          │
+│  GNSSClient, ProductQuery — user-facing entry point          │
+│  ProductRegistry, WorkSpace — environment setup              │
+│  (client/, environments/)                                    │
+├──────────────────────────────────────────────────────────────┤
+│  Layer 3: ORCHESTRATION                                      │
+│  SearchPlanner, WormHole, ConnectionPoolFactory,             │
+│  LockfileManager                                             │
+│  Pipelines: DownloadPipeline, LockfileWriter,                │
+│             ResolvePipeline                                  │
+│  (factories/)                                                │
+├──────────────────────────────────────────────────────────────┤
+│  Layer 2: CATALOG (Resolution + Registry)                    │
+│  FormatCatalog, ProductCatalog, ResourceCatalog,             │
+│  SourcePlanner (Protocol)                                    │
+│  (specifications/format/, specifications/products/,          │
+│   specifications/remote/, factories/source_planner.py)       │
+├──────────────────────────────────────────────────────────────┤
+│  Layer 1: SPECIFICATION (Data Models + YAML Loading)         │
+│  ParameterCatalog, FormatSpec, ProductSpec, SearchTarget,    │
+│  LocalResourceSpec, DependencySpec, LockProduct              │
+│  (specifications/, lockfile/models.py)                       │
+├──────────────────────────────────────────────────────────────┤
+│  Layer 0: CONFIGURATION (Static Data + Utilities)            │
+│  Bundled YAML files,                                         │
+│  as_path(), hash_file(), decompress_gzip()                   │
+│  (utilities/, gnss-management-specs)                         │
+└──────────────────────────────────────────────────────────────┘
+</pre></div>
+</div>
+<section id="dependency-rule">
+<h3>Dependency Rule<a class="headerlink" href="#dependency-rule" title="Link to this heading"></a></h3>
+<p>Each layer may depend only on layers <strong>below</strong> it. No upward or lateral dependencies.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Layer 4 → Layer 3 → Layer 2 → Layer 1 → Layer 0
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-0-configuration-static-data-i-o-adapters">
+<h2>Layer 0: Configuration (Static Data + I/O Adapters)<a class="headerlink" href="#layer-0-configuration-static-data-i-o-adapters" title="Link to this heading"></a></h2>
+<p><strong>Responsibility:</strong> Provide static bundled data, path constants, protocol-level I/O, and shared utility functions. No business logic.</p>
+<section id="modules">
+<h3>Modules<a class="headerlink" href="#modules" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Module</p></th>
+<th class="head"><p>Concern</p></th>
+<th class="head"><p>Boundary</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gnss-management-specs</span></code></p></td>
+<td><p>Path constants (META_SPEC_YAML, etc.) and all bundled YAML files</p></td>
+<td><p>Filesystem (package resources)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">utilities/helpers.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hash_file</span></code>, <code class="docutils literal notranslate"><span class="pre">decompress_gzip</span></code>, <code class="docutils literal notranslate"><span class="pre">_PassthroughDict</span></code>, <code class="docutils literal notranslate"><span class="pre">_listify</span></code>, <code class="docutils literal notranslate"><span class="pre">expand_dict_combinations</span></code>, <code class="docutils literal notranslate"><span class="pre">_ensure_datetime</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">utilities/metadata_funcs.py</span></code></p></td>
+<td><p>Computed field registration (DDD, GPSWEEK, etc.)</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">utilities/paths.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">as_path(uri)</span> <span class="pre">-&gt;</span> <span class="pre">Path</span> <span class="pre">|</span> <span class="pre">CloudPath</span></code>, <code class="docutils literal notranslate"><span class="pre">AnyPath</span></code> type alias</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="abstractions">
+<h3>Abstractions<a class="headerlink" href="#abstractions" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">as_path(uri)</span></code></strong> (<code class="docutils literal notranslate"><span class="pre">utilities/paths.py</span></code>): Single dispatch point for path construction. Returns <code class="docutils literal notranslate"><span class="pre">cloudpathlib.CloudPath</span></code> for <code class="docutils literal notranslate"><span class="pre">s3://</span></code>, <code class="docutils literal notranslate"><span class="pre">gs://</span></code>, <code class="docutils literal notranslate"><span class="pre">az://</span></code> URIs and <code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code> for everything else. All filesystem operations throughout the package flow through this helper.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">AnyPath</span></code></strong>: <code class="docutils literal notranslate"><span class="pre">Union[Path,</span> <span class="pre">CloudPath]</span></code> type alias used in signatures throughout layers 2–4.</p></li>
+</ul>
+</section>
+<section id="key-rule">
+<h3>Key Rule<a class="headerlink" href="#key-rule" title="Link to this heading"></a></h3>
+<p>Layer 0 must not import from any other layer. Utility functions operate on primitive types (strings, paths), not domain models.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-1-specification-data-models-yaml-loading">
+<h2>Layer 1: Specification (Data Models + YAML Loading)<a class="headerlink" href="#layer-1-specification-data-models-yaml-loading" title="Link to this heading"></a></h2>
+<p><strong>Responsibility:</strong> Define the domain vocabulary as Pydantic models. Load specifications from YAML. No resolution, no query logic, no I/O beyond YAML parsing.</p>
+<section id="modules-key-abstractions">
+<h3>Modules &amp; Key Abstractions<a class="headerlink" href="#modules-key-abstractions" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Abstraction</p></th>
+<th class="head"><p>Module</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Parameter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/parameters/parameter.py</span></code></p></td>
+<td><p>Single metadata field (name, value, pattern, derivation)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ParameterCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/parameters/parameter.py</span></code></p></td>
+<td><p>Registry: parameter name → Parameter definition</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatFieldDef</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p>Field definition within a format version</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FormatVersionSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p>A format version with metadata fields + file templates</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p>Top-level format with versions</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FormatSpecCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/format_spec.py</span></code></p></td>
+<td><p>Loaded format specs from YAML</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatRegistry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/spec.py</span></code></p></td>
+<td><p>Read-only lookup of raw format specs</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Product</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p>Concrete product: name, parameters, directory/filename templates</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PathTemplate</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p>Template string with <code class="docutils literal notranslate"><span class="pre">{PARAM}</span></code> placeholders + resolved value</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">VariantCatalog[T]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p>Generic: variant name → T</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">VersionCatalog[T]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/product.py</span></code></p></td>
+<td><p>Generic: version name → VariantCatalog[T]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ProductSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/catalog.py</span></code></p></td>
+<td><p>Abstract binding: product name + format ref + parameter overrides</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ProductSpecCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/catalog.py</span></code></p></td>
+<td><p>Loaded product specs from YAML</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Server</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource.py</span></code></p></td>
+<td><p>Server endpoint (hostname, protocol, auth)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResourceSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource.py</span></code></p></td>
+<td><p>Root center spec: servers + product offerings</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SearchTarget</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource.py</span></code></p></td>
+<td><p>Concrete query target: product + server + directory + filename</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResourceCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource_catalog.py</span></code></p></td>
+<td><p>Resolved SearchTargets per center</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LocalCollection</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/local/local.py</span></code></p></td>
+<td><p>Group of product specs sharing a directory template</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LocalResourceSpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/local/local.py</span></code></p></td>
+<td><p>Root local storage spec</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Dependency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p>Single product dependency (spec name, required, constraints)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SearchPreference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p>Sort preference for a dependency resolution pass</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DependencySpec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p>Full dependency declaration for a processing task</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResolvedDependency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p>Resolution result (status, URI string, remote URL)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DependencyResolution</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/dependencies/dependencies.py</span></code></p></td>
+<td><p>Aggregated results for all dependencies in a spec</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LockProduct</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/models.py</span></code></p></td>
+<td><p>Per-file lock entry (hash, size, source URL, sink URI)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DependencyLockFile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/models.py</span></code></p></td>
+<td><p>Aggregate lockfile for one processing day</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="interfaces">
+<h3>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading"></a></h3>
+<p>Each spec type exposes a <code class="docutils literal notranslate"><span class="pre">from_yaml(path)</span> <span class="pre">-&gt;</span> <span class="pre">Self</span></code> classmethod for loading. All models are Pydantic <code class="docutils literal notranslate"><span class="pre">BaseModel</span></code> subclasses.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ResolvedDependency.local_path</span></code> is a <code class="docutils literal notranslate"><span class="pre">str</span></code> URI — pass it through <code class="docutils literal notranslate"><span class="pre">as_path()</span></code> to get a filesystem object for I/O.</p>
+</section>
+<section id="id1">
+<h3>Key Rule<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p>Layer 1 models are <strong>declarative data</strong>. They define <em>what exists</em>, not how to build or query it.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-2-catalog-resolution-registry">
+<h2>Layer 2: Catalog (Resolution + Registry)<a class="headerlink" href="#layer-2-catalog-resolution-registry" title="Link to this heading"></a></h2>
+<p><strong>Responsibility:</strong> Transform abstract specifications into concrete, queryable objects. Maintain registries for lookup. This is where specs <em>become</em> usable products.</p>
+<section id="id2">
+<h3>Modules &amp; Key Abstractions<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Abstraction</p></th>
+<th class="head"><p>Module</p></th>
+<th class="head"><p>Input → Output</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Catalog</span></code> (ABC)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/catalog.py</span></code></p></td>
+<td><p>Base class enforcing <code class="docutils literal notranslate"><span class="pre">&#64;classmethod</span> <span class="pre">build()</span></code> on all catalogs</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> (Protocol)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/source_planner.py</span></code></p></td>
+<td><p>Shared interface: <code class="docutils literal notranslate"><span class="pre">resource_ids</span></code>, <code class="docutils literal notranslate"><span class="pre">source_product()</span></code>, <code class="docutils literal notranslate"><span class="pre">sink_product()</span></code>, <code class="docutils literal notranslate"><span class="pre">register()</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FormatCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/format/format_spec.py</span></code></p></td>
+<td><p>FormatSpecCatalog + ParameterCatalog → resolved Products per format/version/variant</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ProductCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/products/catalog.py</span></code></p></td>
+<td><p>ProductSpecCatalog + FormatCatalog → resolved Products per product/version/variant</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResourceCatalog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">specifications/remote/resource_catalog.py</span></code></p></td>
+<td><p>ResourceSpec + ProductCatalog → expanded SearchTarget list</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="resolution-chain">
+<h3>Resolution Chain<a class="headerlink" href="#resolution-chain" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ParameterCatalog ──┐
+                   ├──► FormatCatalog ──► ProductCatalog ──► ResourceCatalog
+FormatSpecCatalog ─┘    ProductSpecCatalog ─┘                   ↑ ResourceSpec[]
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> (Layer 4 setup, Layer 2 usage) holds the built <code class="docutils literal notranslate"><span class="pre">ResourceCatalog</span></code> objects and implements the <code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> Protocol for remote resource lookup. <code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code> implements <code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> for local resource lookup. <code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code> (Layer 3) delegates to both.</p>
+</section>
+<section id="id3">
+<h3>Interfaces<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">FormatCatalog.build(format_spec_catalog,</span> <span class="pre">parameter_catalog)</span> <span class="pre">-&gt;</span> <span class="pre">FormatCatalog</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ProductCatalog.build(product_spec_catalog,</span> <span class="pre">format_catalog)</span> <span class="pre">-&gt;</span> <span class="pre">ProductCatalog</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ResourceCatalog.build(resource_spec,</span> <span class="pre">product_catalog)</span> <span class="pre">-&gt;</span> <span class="pre">ResourceCatalog</span></code></p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> and <code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code> satisfy the <code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> Protocol used by <code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code> (Layer 3):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">resource_ids</span> <span class="pre">-&gt;</span> <span class="pre">List[str]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_product(product,</span> <span class="pre">resource_id)</span> <span class="pre">-&gt;</span> <span class="pre">List[SearchTarget]</span></code></p></li>
+</ul>
+</section>
+<section id="id4">
+<h3>Key Rule<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>Catalogs are <strong>immutable after construction</strong>. Resolution happens once; the result is cached as data. No network I/O, no filesystem writes.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-3-orchestration-query-building-transport-resolution">
+<h2>Layer 3: Orchestration (Query Building + Transport + Resolution)<a class="headerlink" href="#layer-3-orchestration-query-building-transport-resolution" title="Link to this heading"></a></h2>
+<p><strong>Responsibility:</strong> Combine catalogs with user constraints to build, execute, and resolve queries. Touches external boundaries (network, filesystem, cloud storage).</p>
+<section id="id5">
+<h3>Modules &amp; Key Abstractions<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Abstraction</p></th>
+<th class="head"><p>Module</p></th>
+<th class="head"><p>Responsibility</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/search_planner.py</span></code></p></td>
+<td><p>Date + product + constraints → <code class="docutils literal notranslate"><span class="pre">List[SearchTarget]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">WormHole</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/remote_transport.py</span></code></p></td>
+<td><p>Directory listing + filename matching + file download</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/connection_pool.py</span></code></p></td>
+<td><p>fsspec-backed connection pools per host (FTP, FTPS, HTTP, HTTPS, file)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LockfileManager</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lockfile/manager.py</span></code></p></td>
+<td><p>Lockfile lifecycle: check, load, save</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DownloadPipeline</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/pipelines/download.py</span></code></p></td>
+<td><p>Pipeline: <code class="docutils literal notranslate"><span class="pre">FoundResource</span></code> → downloaded local/cloud path</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LockfileWriter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/pipelines/lockfile_writer.py</span></code></p></td>
+<td><p>Pipeline: write sidecar + aggregate lockfiles</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResolvePipeline</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/pipelines/resolve.py</span></code></p></td>
+<td><p>Pipeline: <code class="docutils literal notranslate"><span class="pre">DependencySpec</span></code> → <code class="docutils literal notranslate"><span class="pre">DependencyResolution</span></code> + lockfile</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="data-flow">
+<h3>Data Flow<a class="headerlink" href="#data-flow" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>User constraints (date, product, parameters...)
+        │
+        ▼
+   SearchPlanner
+   ├── Resolve product templates (ProductCatalog)
+   ├── Compute date fields (ParameterCatalog)
+   ├── Narrow parameters (user constraints)
+   ├── Expand combinations (cartesian product)
+   ├── Local targets (WorkSpace.source_product)
+   └── Remote targets (ProductRegistry.source_product)
+        │
+        ▼
+   List[SearchTarget]  (directory pattern + filename pattern)
+        │
+        ▼
+   WormHole
+   ├── Group by (hostname, directory)
+   ├── List directories in parallel (ConnectionPoolFactory)
+   ├── Match filename patterns (regex)
+   └── Optionally download (ConnectionPoolFactory.download_file)
+        │
+        ▼
+   List[SearchTarget]  (filename.value populated)
+</pre></div>
+</div>
+</section>
+<section id="cloud-local-filesystem-transparency">
+<h3>Cloud / Local Filesystem Transparency<a class="headerlink" href="#cloud-local-filesystem-transparency" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code> and <code class="docutils literal notranslate"><span class="pre">LockfileManager</span></code> accept base directories as URI strings, dispatched through <code class="docutils literal notranslate"><span class="pre">as_path()</span></code>:</p>
+<ul class="simple">
+<li><p>Local path: <code class="docutils literal notranslate"><span class="pre">/data/gnss</span></code> → <code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code></p></li>
+<li><p>S3 URI: <code class="docutils literal notranslate"><span class="pre">s3://bucket/gnss</span></code> → <code class="docutils literal notranslate"><span class="pre">cloudpathlib.S3Path</span></code></p></li>
+</ul>
+<p>All path operations (<code class="docutils literal notranslate"><span class="pre">.exists()</span></code>, <code class="docutils literal notranslate"><span class="pre">.iterdir()</span></code>, <code class="docutils literal notranslate"><span class="pre">.read_text()</span></code>, <code class="docutils literal notranslate"><span class="pre">.write_text()</span></code>, <code class="docutils literal notranslate"><span class="pre">.mkdir()</span></code>, <code class="docutils literal notranslate"><span class="pre">/</span></code> operator) are identical across backends. The <code class="docutils literal notranslate"><span class="pre">LockfileManager</span></code> stores aggregate lockfiles at the resource’s <code class="docutils literal notranslate"><span class="pre">base_dir</span> <span class="pre">/</span> <span class="pre">&quot;dependency_lockfiles&quot;</span></code>, enabling distributed workers to coordinate via shared cloud storage.</p>
+</section>
+<section id="id6">
+<h3>Interfaces<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SearchPlanner.get(date,</span> <span class="pre">product,</span> <span class="pre">parameters,</span> <span class="pre">...)</span> <span class="pre">-&gt;</span> <span class="pre">List[SearchTarget]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WormHole.search(List[SearchTarget])</span> <span class="pre">-&gt;</span> <span class="pre">List[SearchTarget]</span></code>  (one per matched file)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WormHole.download_one(query,</span> <span class="pre">local_resource_id,</span> <span class="pre">local_factory,</span> <span class="pre">date)</span> <span class="pre">-&gt;</span> <span class="pre">AnyPath</span> <span class="pre">|</span> <span class="pre">None</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ResolvePipeline.run(spec,</span> <span class="pre">date,</span> <span class="pre">sink_id,</span> <span class="pre">...)</span> <span class="pre">-&gt;</span> <span class="pre">Tuple[DependencyResolution,</span> <span class="pre">AnyPath</span> <span class="pre">|</span> <span class="pre">None]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LockfileManager(lockfile_dir:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">Path</span> <span class="pre">|</span> <span class="pre">CloudPath)</span></code> — storage-agnostic</p></li>
+</ul>
+</section>
+<section id="id7">
+<h3>Key Rule<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>Orchestration modules coordinate between catalogs and I/O. They <strong>do not define</strong> domain models — they consume them. Network/filesystem operations are delegated to <code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code> (via <code class="docutils literal notranslate"><span class="pre">fsspec</span></code>) or <code class="docutils literal notranslate"><span class="pre">cloudpathlib</span></code>.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="layer-4-interface-entry-point">
+<h2>Layer 4: Interface (Entry Point)<a class="headerlink" href="#layer-4-interface-entry-point" title="Link to this heading"></a></h2>
+<p><strong>Responsibility:</strong> Provide user-facing APIs that wire all layers together. Hide internal complexity behind clean, fluent interfaces.</p>
+<section id="id8">
+<h3>Modules &amp; Key Abstractions<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Abstraction</p></th>
+<th class="head"><p>Module</p></th>
+<th class="head"><p>Responsibility</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GNSSClient</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">client/gnss_client.py</span></code></p></td>
+<td><p>Primary entry point: search, download, resolve dependencies</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ProductQuery</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">client/product_query.py</span></code></p></td>
+<td><p>Fluent query builder (<code class="docutils literal notranslate"><span class="pre">.for_product()</span></code>, <code class="docutils literal notranslate"><span class="pre">.on()</span></code>, <code class="docutils literal notranslate"><span class="pre">.where()</span></code>, <code class="docutils literal notranslate"><span class="pre">.sources()</span></code>, <code class="docutils literal notranslate"><span class="pre">.prefer()</span></code>, <code class="docutils literal notranslate"><span class="pre">.on_range()</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FoundResource</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">factories/models.py</span></code></p></td>
+<td><p>User-facing search result (hostname, filename, parameters, local_path)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/environment.py</span></code></p></td>
+<td><p>Loads YAML specs, builds catalog chain, holds registered resource catalogs</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/workspace.py</span></code></p></td>
+<td><p>Registers local/cloud storage directories against <code class="docutils literal notranslate"><span class="pre">LocalResourceSpec</span></code> layouts</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RegisteredLocalResource</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">environments/workspace.py</span></code></p></td>
+<td><p>Bound spec + <code class="docutils literal notranslate"><span class="pre">base_dir</span></code> URI (local path or cloud URI) + <code class="docutils literal notranslate"><span class="pre">base_path</span></code> property</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id9">
+<h3>Interfaces<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Construct from bundled defaults</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;/data/gnss&quot;</span><span class="p">)</span>          <span class="c1"># local</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://bucket/gnss&quot;</span><span class="p">)</span>   <span class="c1"># S3</span>
+
+<span class="c1"># Fluent query builder</span>
+<span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+          <span class="o">.</span><span class="n">for_product</span><span class="p">(</span><span class="s2">&quot;ORBIT&quot;</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="s2">&quot;FIN&quot;</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">sources</span><span class="p">(</span><span class="s2">&quot;COD&quot;</span><span class="p">,</span> <span class="s2">&quot;WUM&quot;</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">prefer</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FIN&quot;</span><span class="p">,</span> <span class="s2">&quot;RAP&quot;</span><span class="p">])</span>
+          <span class="o">.</span><span class="n">search</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="c1"># Date-range query (searches each day in parallel)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+          <span class="o">.</span><span class="n">for_product</span><span class="p">(</span><span class="s2">&quot;ORBIT&quot;</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">on_range</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="s2">&quot;FIN&quot;</span><span class="p">)</span>
+          <span class="o">.</span><span class="n">search</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="c1"># Download</span>
+<span class="n">paths</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">)</span>
+
+<span class="c1"># Full dependency resolution</span>
+<span class="n">resolution</span><span class="p">,</span> <span class="n">lockfile_path</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">resolve_dependencies</span><span class="p">(</span><span class="n">dep_spec</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For advanced use, construct manually:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">registry</span> <span class="o">=</span> <span class="n">ProductRegistry</span><span class="p">()</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">add_parameter_spec</span><span class="p">(</span><span class="n">META_SPEC_YAML</span><span class="p">)</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">add_format_spec</span><span class="p">(</span><span class="n">FORMAT_SPEC_YAML</span><span class="p">)</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">add_product_spec</span><span class="p">(</span><span class="n">PRODUCT_SPEC_YAML</span><span class="p">)</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">add_resource_spec</span><span class="p">(</span><span class="n">center_yaml</span><span class="p">)</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+<span class="n">workspace</span> <span class="o">=</span> <span class="n">WorkSpace</span><span class="p">()</span>
+<span class="n">workspace</span><span class="o">.</span><span class="n">add_resource_spec</span><span class="p">(</span><span class="n">local_spec_yaml</span><span class="p">)</span>
+<span class="n">workspace</span><span class="o">.</span><span class="n">register_spec</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://my-bucket/gnss&quot;</span><span class="p">,</span> <span class="n">spec_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;local_config&quot;</span><span class="p">])</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="p">(</span><span class="n">env</span><span class="o">=</span><span class="n">registry</span><span class="p">,</span> <span class="n">workspace</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id10">
+<h3>Key Rule<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>All standard user code should interact through <code class="docutils literal notranslate"><span class="pre">GNSSClient</span></code> or <code class="docutils literal notranslate"><span class="pre">ProductQuery</span></code>. <code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> and <code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code> are setup objects; the pipelines and planners are internal implementation details.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="abstraction-inventory-by-layer">
+<h2>Abstraction Inventory by Layer<a class="headerlink" href="#abstraction-inventory-by-layer" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Layer 0 (Configuration)         Layer 1 (Specification)
+─────────────────────           ───────────────────────
+as_path() / AnyPath             Parameter
+hash_file()                     ParameterCatalog
+decompress_gzip()               FormatFieldDef
+_ensure_datetime()              FormatVersionSpec
+register_computed_fields()      FormatSpec
+gnss-management-specs YAMLs     FormatSpecCatalog
+                                FormatRegistry
+                                Product
+                                PathTemplate
+                                VariantCatalog[T]
+                                VersionCatalog[T]
+                                ProductSpec
+                                ProductSpecCatalog
+                                Server
+                                ResourceSpec
+                                SearchTarget
+                                ResourceCatalog
+                                LocalCollection
+                                LocalResourceSpec
+                                Dependency
+                                SearchPreference
+                                DependencySpec
+                                ResolvedDependency
+                                DependencyResolution
+                                LockProduct
+                                DependencyLockFile
+
+Layer 2 (Catalog)               Layer 3 (Orchestration)
+─────────────────               ───────────────────────
+Catalog (ABC base)              SearchPlanner
+SourcePlanner (Protocol)        WormHole
+FormatCatalog                   ConnectionPoolFactory
+ProductCatalog                  LockfileManager
+ResourceCatalog                 DownloadPipeline
+                                LockfileWriter
+                                ResolvePipeline
+
+Layer 4 (Interface)
+───────────────────
+GNSSClient
+ProductQuery
+FoundResource
+ProductRegistry
+WorkSpace
+RegisteredLocalResource
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Layer</p></th>
+<th class="head"><p>Purpose</p></th>
+<th class="head"><p>Depends On</p></th>
+<th class="head"><p>Boundary</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0 — Configuration</p></td>
+<td><p>Static data, path utilities, bundled YAMLs</p></td>
+<td><p>Nothing</p></td>
+<td><p>Filesystem</p></td>
+</tr>
+<tr class="row-odd"><td><p>1 — Specification</p></td>
+<td><p>Domain models, YAML loading</p></td>
+<td><p>Layer 0</p></td>
+<td><p>Filesystem (YAML reads)</p></td>
+</tr>
+<tr class="row-even"><td><p>2 — Catalog</p></td>
+<td><p>Resolve specs → concrete objects, registries</p></td>
+<td><p>Layer 1</p></td>
+<td><p>None (pure computation)</p></td>
+</tr>
+<tr class="row-odd"><td><p>3 — Orchestration</p></td>
+<td><p>Build queries, execute fetches, resolve deps, manage lockfiles</p></td>
+<td><p>Layers 0, 1, 2</p></td>
+<td><p>Network, Filesystem, Cloud</p></td>
+</tr>
+<tr class="row-even"><td><p>4 — Interface</p></td>
+<td><p>User-facing API, environment wiring</p></td>
+<td><p>Layers 1, 2, 3</p></td>
+<td><p>User input</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="config-reference.html" class="btn btn-neutral float-left" title="YAML Configuration Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="class-reference.html" class="btn btn-neutral float-right" title="Class Reference — gnss-product-management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

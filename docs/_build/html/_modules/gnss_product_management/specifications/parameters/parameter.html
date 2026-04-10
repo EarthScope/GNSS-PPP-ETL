@@ -1,0 +1,393 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.specifications.parameters.parameter &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.specifications.parameters.parameter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.specifications.parameters.parameter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">Parameter model and ParameterCatalog — replaces MetadataField + MetadataCatalog.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DerivationMethod</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;How a parameter value is obtained.&quot;&quot;&quot;</span>
+
+    <span class="n">ENUM</span> <span class="o">=</span> <span class="s2">&quot;enum&quot;</span>
+    <span class="n">COMPUTED</span> <span class="o">=</span> <span class="s2">&quot;computed&quot;</span>
+
+
+<div class="viewcode-block" id="Parameter">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.Parameter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Parameter</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single metadata parameter with optional regex pattern and compute function.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;The name of the parameter.&quot;</span><span class="p">)</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;The value of the parameter.&quot;</span><span class="p">)</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;A regex pattern to match the parameter value.&quot;</span><span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;A description of the parameter.&quot;</span><span class="p">)</span>
+    <span class="n">derivation</span><span class="p">:</span> <span class="n">DerivationMethod</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">DerivationMethod</span><span class="o">.</span><span class="n">ENUM</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;The method used to derive the parameter value.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">compute</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;A callable that computes the parameter value from a datetime.&quot;</span><span class="p">,</span>
+        <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="Parameter.Config">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.Parameter.Config">[docs]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+        <span class="n">arbitrary_types_allowed</span> <span class="o">=</span> <span class="kc">True</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_template_fields</span><span class="p">(</span><span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract parameter names from ``{NAME}``-style placeholders.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;{(\w+)}&quot;</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ParameterCatalog">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParameterCatalog</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Registry of parameters with pattern defaults and computed-field support.</span>
+
+<span class="sd">    Replaces ``MetadataCatalog``.  Compatible with</span>
+<span class="sd">    :func:`~gnss_product_management.utilities.metadata_funcs.register_computed_fields`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        parameters: Mapping of parameter names to :class:`Parameter` objects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Parameter</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="n">parameter</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">parameter</span> <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">}</span>
+
+<div class="viewcode-block" id="ParameterCatalog.get">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Parameter</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a parameter by name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: Parameter name.</span>
+<span class="sd">            default: Value returned when *name* is not found.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The :class:`Parameter` or *default*.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check whether a parameter name is registered.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a parameter by name, raising ``KeyError`` if absent.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="c1"># -- registration (compatible with register_computed_fields) -----</span>
+
+<div class="viewcode-block" id="ParameterCatalog.register">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">compute</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Parameter</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register or update a parameter, optionally adding a compute function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: Parameter name.</span>
+<span class="sd">            pattern: Regex pattern for the parameter value.</span>
+<span class="sd">            compute: Callable that derives the value from a datetime.</span>
+<span class="sd">            description: Human-readable description.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The newly created or updated :class:`Parameter`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">updates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">pattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">updates</span><span class="p">[</span><span class="s2">&quot;pattern&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pattern</span>
+            <span class="k">if</span> <span class="n">compute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">updates</span><span class="p">[</span><span class="s2">&quot;compute&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute</span>
+            <span class="k">if</span> <span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">updates</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">description</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">existing</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="n">updates</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
+                <span class="n">compute</span><span class="o">=</span><span class="n">compute</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+                <span class="n">derivation</span><span class="o">=</span><span class="n">DerivationMethod</span><span class="o">.</span><span class="n">COMPUTED</span> <span class="k">if</span> <span class="n">compute</span> <span class="k">else</span> <span class="n">DerivationMethod</span><span class="o">.</span><span class="n">ENUM</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="ParameterCatalog.computed">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.computed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">computed</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decorator that registers a computed parameter field.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: Parameter name.</span>
+<span class="sd">            pattern: Regex pattern for the parameter value.</span>
+<span class="sd">            description: Human-readable description.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A decorator that wraps the compute function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">],</span> <span class="nb">str</span><span class="p">]):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">compute</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">fn</span>
+
+        <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+    <span class="c1"># -- bulk operations --------------------------------------------</span>
+
+<div class="viewcode-block" id="ParameterCatalog.defaults">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.defaults">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return ``{name: pattern}`` for every parameter with a pattern.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Mapping of parameter names to their regex patterns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">pattern</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="ParameterCatalog.resolve_params">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.resolve_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_params</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set ``.value`` on computed parameters from *date*.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params: List of :class:`Parameter`-like objects.</span>
+<span class="sd">            date: Reference datetime for computed fields.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The same *params* list with computed values filled in.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">compute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span></div>
+
+
+<div class="viewcode-block" id="ParameterCatalog.interpolate">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.interpolate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">interpolate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">computed_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Substitute ``{NAME}`` placeholders in *template*.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            template: String containing ``{NAME}``-style placeholders.</span>
+<span class="sd">            date: Reference datetime for computed fields.</span>
+<span class="sd">            computed_only: If ``True``, only replace computed parameters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The interpolated string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">_extract_template_fields</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+        <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">compute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">computed_only</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">pattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pattern</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;{&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">template</span></div>
+
+
+    <span class="c1"># -- YAML loader ------------------------------------------------</span>
+
+<div class="viewcode-block" id="ParameterCatalog.from_yaml">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.from_yaml">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_yaml</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yaml_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ParameterCatalog&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load parameter definitions from a meta-spec YAML file.</span>
+
+<span class="sd">        Does **not** register computed fields — call</span>
+<span class="sd">        :func:`~gnss_product_management.utilities.metadata_funcs.register_computed_fields`</span>
+<span class="sd">        separately after loading.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">yaml_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Parameter</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">entries</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">kw</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+            <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Parameter</span><span class="p">(</span><span class="o">**</span><span class="n">kw</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ParameterCatalog.merge">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ParameterCatalog.merge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;ParameterCatalog&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ParameterCatalog&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge another catalog into this one.</span>
+
+<span class="sd">        Duplicate names are overwritten by *other* with a warning.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other: Catalog to merge.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new :class:`ParameterCatalog` with combined parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">merged</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Warning: Duplicate parameter name &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; found. Overwriting with new value.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span>
+        <span class="k">return</span> <span class="n">ParameterCatalog</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">merged</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

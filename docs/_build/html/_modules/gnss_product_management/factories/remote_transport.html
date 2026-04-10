@@ -1,0 +1,462 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.factories.remote_transport &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.factories.remote_transport</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.factories.remote_transport</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">WormHole — protocol-agnostic file search and download.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.utils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.environments</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkSpace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.factories.connection_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectionPoolFactory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.products.product</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.remote.resource</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchTarget</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">decompress_gzip</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">as_path</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Type alias for (hostname, directory) grouping key</span>
+<span class="n">_DirKey</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="WormHole">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.factories.WormHole">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WormHole</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Search for files described by :class:`SearchTarget` objects.</span>
+
+<span class="sd">    For each target, lists the remote (FTP/HTTP) or local directory, matches</span>
+<span class="sd">    ``product.filename.pattern`` against the listing, and populates</span>
+<span class="sd">    ``directory.value`` and ``filename.value`` on the target.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        _connection_pool_factory: Factory managing per-host connection pools.</span>
+<span class="sd">        _env: Optional product registry for parameter back-filling.</span>
+
+<span class="sd">    Usage::</span>
+
+<span class="sd">        targets = sp.get(date=..., product=..., parameters=...)</span>
+<span class="sd">        transport = WormHole()</span>
+<span class="sd">        results = transport.search(targets)</span>
+
+<span class="sd">        for st in results:</span>
+<span class="sd">            print(st.server.hostname, st.product.filename.value)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WormHole.__init__">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.factories.WormHole.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">max_connections</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">product_registry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialise the transport.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            max_connections: Maximum connections per host pool.</span>
+<span class="sd">            product_registry: Optional :class:`ProductRegistry` for parameter back-filling</span>
+<span class="sd">                after a filename match.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_connection_pool_factory</span> <span class="o">=</span> <span class="n">ConnectionPoolFactory</span><span class="p">(</span><span class="n">max_connections</span><span class="o">=</span><span class="n">max_connections</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product_registry</span> <span class="o">=</span> <span class="n">product_registry</span></div>
+
+
+    <span class="c1"># -- Public API ------------------------------------------------</span>
+
+<div class="viewcode-block" id="WormHole.search">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.factories.WormHole.search">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search every target&#39;s server/directory for matching files.</span>
+
+<span class="sd">        Targets are grouped by ``(hostname, directory)`` so each unique</span>
+<span class="sd">        remote directory is listed exactly once.  Pattern matching for</span>
+<span class="sd">        every target in the group runs against the shared listing.</span>
+<span class="sd">        The ``filename.value`` field is set on each returned target.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            targets: SearchTarget objects to search.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of :class:`SearchTarget` objects with ``filename.value``</span>
+<span class="sd">            already populated — one per matched filename.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">groups</span><span class="p">,</span> <span class="n">rejected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_targets</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+
+        <span class="c1"># Ensure connection pools exist for every hostname we&#39;ll contact.</span>
+        <span class="k">for</span> <span class="n">hostname</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_connection_pool_factory</span><span class="o">.</span><span class="n">add_connection</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span>
+
+        <span class="c1"># List each unique directory in parallel.</span>
+        <span class="n">dir_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">groups</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dir_keys</span><span class="p">),</span> <span class="mi">25</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+            <span class="n">listings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">dir_keys</span><span class="p">,</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_list_dir</span><span class="p">,</span> <span class="n">dir_keys</span><span class="p">)))</span>
+
+        <span class="c1"># Match every target&#39;s file pattern against the pre-fetched listing.</span>
+        <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rejected</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">group_targets</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">listing</span> <span class="o">=</span> <span class="n">listings</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">group_targets</span><span class="p">:</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># type: ignore[union-attr]</span>
+                <span class="n">matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_match_files</span><span class="p">(</span><span class="n">listing</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+                    <span class="n">expanded</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">expanded</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">filename</span>  <span class="c1"># type: ignore[union-attr]</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">results</span></div>
+
+
+    <span class="c1"># -- Grouping --------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_group_targets</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="n">_DirKey</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]],</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Group targets by ``(hostname, directory)``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            targets: SearchTarget objects to group.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A tuple of (grouped targets, rejected targets).</span>
+<span class="sd">            Grouped targets map each unique key to the targets and</span>
+<span class="sd">            file patterns for that directory. Rejected targets are</span>
+<span class="sd">            those missing directory or pattern.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">_DirKey</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">rejected</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SearchTarget</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+            <span class="n">directory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_directory</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="n">file_pattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_file_pattern</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">directory</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">file_pattern</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;Skipping target with missing directory or file pattern: dir=</span><span class="si">%r</span><span class="s2">, pat=</span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">directory</span><span class="p">,</span>
+                    <span class="n">file_pattern</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_protocol</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">hostname</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;file&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">hostname</span><span class="p">)</span> <span class="o">/</span> <span class="n">directory</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Local directory does not exist: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">hostname</span><span class="p">)</span>
+                    <span class="k">continue</span>
+            <span class="n">key</span><span class="p">:</span> <span class="n">_DirKey</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">hostname</span><span class="p">,</span> <span class="n">directory</span><span class="p">)</span>
+            <span class="n">groups</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">t</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">groups</span><span class="p">,</span> <span class="n">rejected</span>
+
+    <span class="c1"># -- Directory listing -----------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_list_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">_DirKey</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List a single ``(hostname, directory)`` pair.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            key: A ``(hostname, directory)`` tuple.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of filenames, or ``[]`` on failure.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hostname</span><span class="p">,</span> <span class="n">directory</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection_pool_factory</span><span class="o">.</span><span class="n">list_directory</span><span class="p">(</span><span class="n">hostname</span><span class="p">,</span> <span class="n">directory</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Listing failed for </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># -- Pattern matching ------------------------------------------</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_match_files</span><span class="p">(</span><span class="n">listing</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">file_pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Match filenames in a directory listing against a regex pattern.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            listing: Filenames from a directory listing.</span>
+<span class="sd">            file_pattern: Regex pattern to match.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Matching filenames (excluding ``.lock`` files).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># remove lockfile sidecars and .lock files from listing before matching</span>
+        <span class="n">listing</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">listing</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.lock&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_lock.json&quot;</span><span class="p">)]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">rx</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">listing</span> <span class="k">if</span> <span class="n">rx</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+        <span class="k">except</span> <span class="n">re</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">listing</span> <span class="k">if</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">f</span><span class="p">]</span>
+
+    <span class="c1"># -- Helpers ---------------------------------------------------</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_directory</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="n">SearchTarget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract the resolved directory string from a target.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            target: The target to inspect.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The directory string, or ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">directory</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">PathTemplate</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">value</span> <span class="ow">or</span> <span class="n">d</span><span class="o">.</span><span class="n">pattern</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">d</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_file_pattern</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="n">SearchTarget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract the file regex pattern from a target.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            target: The target to inspect.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The file pattern string, or ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">PathTemplate</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">fn</span><span class="o">.</span><span class="n">pattern</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">fn</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">search_target</span><span class="p">:</span> <span class="n">SearchTarget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SearchTarget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update a SearchTarget&#39;s parameters by re-interpolating patterns.</span>
+
+<span class="sd">        Uses :func:`infer_from_regex` and ``self._env.classify``</span>
+<span class="sd">        to fill in parameter values from the matched filename.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            search_target: The target to update.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A deep copy of the target with updated parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.products.product</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">infer_from_regex</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">updated</span> <span class="o">=</span> <span class="n">search_target</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">updated_params</span> <span class="o">=</span> <span class="n">infer_from_regex</span><span class="p">(</span>
+            <span class="n">regex</span><span class="o">=</span><span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span>  <span class="c1"># type: ignore</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>  <span class="c1"># type: ignore</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">updated_params</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_product_registry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">classification_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_product_registry</span><span class="o">.</span><span class="n">classify</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">classification_results</span><span class="p">:</span>
+                <span class="n">class_parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">classification_results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parameters&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="k">if</span> <span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">updated</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">class_parameters</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">class_parameters</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">updated</span>
+
+<div class="viewcode-block" id="WormHole.download_one">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.factories.WormHole.download_one">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download_one</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="n">SearchTarget</span><span class="p">,</span>
+        <span class="n">local_resource_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">local_factory</span><span class="p">:</span> <span class="n">WorkSpace</span><span class="p">,</span>
+        <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synchronously download matched files for one search target.</span>
+
+<span class="sd">        Skips the download if the destination file already exists and</span>
+<span class="sd">        is non-empty.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            query: The resolved search target with filename value.</span>
+<span class="sd">            local_resource_id: Target local resource identifier.</span>
+<span class="sd">            local_factory: Planner for resolving local sink paths.</span>
+<span class="sd">            date: Target date for computing sink directory.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path (local or cloud) to the downloaded file, or ``None`` on failure.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">hostname</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">hostname</span>
+
+        <span class="n">destination_resource</span> <span class="o">=</span> <span class="n">local_factory</span><span class="o">.</span><span class="n">sink_product</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">product</span><span class="p">,</span> <span class="n">local_resource_id</span><span class="p">,</span> <span class="n">date</span><span class="p">)</span>
+        <span class="n">destination_dir</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">as_path</span><span class="p">(</span><span class="n">destination_resource</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">hostname</span><span class="p">)</span> <span class="o">/</span> <span class="n">destination_resource</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">)</span>  <span class="c1"># type: ignore[union-attr]</span>
+        <span class="n">destination_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">destination_path</span> <span class="o">=</span> <span class="n">destination_dir</span> <span class="o">/</span> <span class="n">query</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">value</span>  <span class="c1"># type: ignore[union-attr]</span>
+
+        <span class="c1"># Prefer an already-decompressed version on disk</span>
+        <span class="k">if</span> <span class="n">destination_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.gz&quot;</span><span class="p">:</span>
+            <span class="n">decompressed_path</span> <span class="o">=</span> <span class="n">destination_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">decompressed_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">decompressed_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;Skipping download, decompressed file already exists: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">decompressed_path</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="n">decompressed_path</span>
+
+        <span class="c1"># Skip download if the file already exists and is non-empty</span>
+        <span class="k">if</span> <span class="n">destination_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">destination_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping download, file already exists: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">destination_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">destination_path</span>
+
+        <span class="n">remote_file_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+            <span class="n">Path</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="n">query</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">value</span>  <span class="c1"># type: ignore[union-attr]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Skip download if the remote file is zero bytes (stale/incomplete upload).</span>
+        <span class="n">remote_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection_pool_factory</span><span class="o">.</span><span class="n">get_file_size</span><span class="p">(</span><span class="n">hostname</span><span class="p">,</span> <span class="n">remote_file_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">remote_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">remote_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Skipping zero-byte remote file: </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">,</span> <span class="n">remote_file_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection_pool_factory</span><span class="o">.</span><span class="n">download_file</span><span class="p">(</span>
+                <span class="n">hostname</span><span class="o">=</span><span class="n">hostname</span><span class="p">,</span>
+                <span class="n">remote_path</span><span class="o">=</span><span class="n">remote_file_path</span><span class="p">,</span>
+                <span class="n">target_dir</span><span class="o">=</span><span class="n">destination_dir</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Download failed for </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">hostname</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">e</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Decompress gzip files after download</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.gz&quot;</span><span class="p">:</span>
+            <span class="n">decompressed</span> <span class="o">=</span> <span class="n">decompress_gzip</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">decompressed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">decompressed</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Decompression failed for </span><span class="si">%s</span><span class="s2">, returning compressed file&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

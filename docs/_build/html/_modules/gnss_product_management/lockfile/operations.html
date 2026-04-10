@@ -1,0 +1,463 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.lockfile.operations &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.lockfile.operations</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.lockfile.operations</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Author: Franklyn Dunbar</span>
+
+<span class="sd">Read, write, build, and validate lockfile entries.</span>
+
+<span class="sd">Provides pure-function helpers for the lockfile lifecycle:</span>
+
+<span class="sd">* **Validate** — verify that a lock-product&#39;s sink file still exists</span>
+<span class="sd">  and that its hash matches.</span>
+<span class="sd">* **Build** — construct a :class:`LockProduct` from a local or cloud file,</span>
+<span class="sd">  computing its SHA-256 hash and byte size.</span>
+<span class="sd">* **Read / Write** — serialize and deserialize individual</span>
+<span class="sd">  :class:`LockProduct` sidecar JSON files and date-scoped</span>
+<span class="sd">  :class:`DependencyLockFile` manifests.</span>
+
+<span class="sd">All path arguments accept local :class:`~pathlib.Path` objects and cloud</span>
+<span class="sd">URIs / :class:`~cloudpathlib.CloudPath` objects interchangeably via</span>
+<span class="sd">:func:`~gnss_product_management.utilities.paths.as_path`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span> <span class="k">as</span> <span class="n">_get_package_version</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.lockfile.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DependencyLockFile</span><span class="p">,</span>
+    <span class="n">LockProduct</span><span class="p">,</span>
+    <span class="n">LockProductAlternative</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_file</span> <span class="k">as</span> <span class="n">_hash_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">as_path</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_package_version">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.get_package_version">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_package_version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the installed gnss-product-management version.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_get_package_version</span><span class="p">(</span><span class="s2">&quot;gnss-product-management&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;0.0.0-dev&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="HashMismatchMode">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.HashMismatchMode">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HashMismatchMode</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;How to handle hash mismatches during lockfile validation.&quot;&quot;&quot;</span>
+
+    <span class="n">WARN</span> <span class="o">=</span> <span class="s2">&quot;warn&quot;</span>
+    <span class="n">STRICT</span> <span class="o">=</span> <span class="s2">&quot;strict&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="validate_lock_product">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.validate_lock_product">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_lock_product</span><span class="p">(</span>
+    <span class="n">product</span><span class="p">:</span> <span class="n">LockProduct</span><span class="p">,</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="n">HashMismatchMode</span> <span class="o">=</span> <span class="n">HashMismatchMode</span><span class="o">.</span><span class="n">WARN</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check that a lock-product&#39;s sink file exists and its hash matches.</span>
+
+<span class="sd">    Also accepts the decompressed version of a ``.gz`` sink</span>
+<span class="sd">    (e.g. ``foo.SP3`` when the lock records ``foo.SP3.gz``).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        product: The lock-product entry to validate.</span>
+<span class="sd">        mode: How to handle hash mismatches.</span>
+<span class="sd">            ``WARN`` logs a warning but returns ``True``.</span>
+<span class="sd">            ``STRICT`` returns ``False`` so the caller can re-download.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``True`` if the sink file (or its decompressed counterpart)</span>
+<span class="sd">        exists and (when a hash is recorded) the file&#39;s current</span>
+<span class="sd">        SHA-256 matches the stored hash (or mode is WARN).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sink_path</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">sink</span><span class="p">)</span>
+
+    <span class="c1"># Accept the decompressed version when the .gz is gone</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sink_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">sink_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.gz&quot;</span><span class="p">:</span>
+        <span class="n">decompressed</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sink_path</span><span class="p">)[:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s2">&quot;.gz&quot;</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="n">decompressed</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="c1"># Update the lock product to point to the decompressed file</span>
+            <span class="n">product</span><span class="o">.</span><span class="n">sink</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">decompressed</span><span class="p">)</span>
+            <span class="n">product</span><span class="o">.</span><span class="n">hash</span> <span class="o">=</span> <span class="n">_hash_file</span><span class="p">(</span><span class="n">decompressed</span><span class="p">)</span>
+            <span class="n">product</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">decompressed</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sink_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Lock product validation failed: sink file does not exist: </span><span class="si">{</span><span class="n">sink_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">product</span><span class="o">.</span><span class="n">hash</span><span class="p">:</span>
+        <span class="n">actual_hash</span> <span class="o">=</span> <span class="n">_hash_file</span><span class="p">(</span><span class="n">sink_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">actual_hash</span> <span class="o">!=</span> <span class="n">product</span><span class="o">.</span><span class="n">hash</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="n">HashMismatchMode</span><span class="o">.</span><span class="n">STRICT</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Hash mismatch for </span><span class="si">{</span><span class="n">sink_path</span><span class="si">}</span><span class="s2"> (strict mode): &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;expected </span><span class="si">{</span><span class="n">product</span><span class="o">.</span><span class="n">hash</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">actual_hash</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Hash mismatch for </span><span class="si">{</span><span class="n">sink_path</span><span class="si">}</span><span class="s2"> (warn mode): &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;expected </span><span class="si">{</span><span class="n">product</span><span class="o">.</span><span class="n">hash</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">actual_hash</span><span class="si">}</span><span class="s2">. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Continuing with existing file.&quot;</span>
+                <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="build_lock_product">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.build_lock_product">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_lock_product</span><span class="p">(</span>
+    <span class="n">sink</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">alternative_urls</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LockProduct</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a :class:`LockProduct` from a local or cloud file.</span>
+
+<span class="sd">    Computes the SHA-256 hash and byte size of *sink* and packages</span>
+<span class="sd">    them into a new ``LockProduct`` model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sink: Path or URI to the file (local or cloud).</span>
+<span class="sd">        url: Primary remote URL the file was downloaded from.</span>
+<span class="sd">        name: Human-readable product name (e.g. ``&#39;ORBIT&#39;``).</span>
+<span class="sd">        description: Free-text description of the product.</span>
+<span class="sd">        alternative_urls: Optional mirror / fallback URLs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A fully-populated :class:`LockProduct`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        FileNotFoundError: If *sink* does not exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sink_path</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sink</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sink_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sink path does not exist: </span><span class="si">{</span><span class="n">sink_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">hash_value</span> <span class="o">=</span> <span class="n">_hash_file</span><span class="p">(</span><span class="n">sink_path</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">sink_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
+    <span class="k">return</span> <span class="n">LockProduct</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+        <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
+        <span class="n">sink</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">sink_path</span><span class="p">),</span>
+        <span class="nb">hash</span><span class="o">=</span><span class="n">hash_value</span><span class="p">,</span>
+        <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+        <span class="n">alternatives</span><span class="o">=</span><span class="p">[</span><span class="n">LockProductAlternative</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">alt_url</span><span class="p">)</span> <span class="k">for</span> <span class="n">alt_url</span> <span class="ow">in</span> <span class="p">(</span><span class="n">alternative_urls</span> <span class="ow">or</span> <span class="p">[])],</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_lock_product_path">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.get_lock_product_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_lock_product_path</span><span class="p">(</span><span class="n">sink</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyPath</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the ``_lock.json`` sidecar path for a sink file.</span>
+
+<span class="sd">    Works for both local paths and cloud URIs — the sidecar is placed</span>
+<span class="sd">    alongside the data file in the same storage backend.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sink: Path or URI to the downloaded product file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A path (local or cloud) pointing to the companion lock JSON</span>
+<span class="sd">        (``&lt;sink&gt;_lock.json``).</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        FileNotFoundError: If *sink* does not exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sink_path</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sink</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sink_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sink path does not exist: </span><span class="si">{</span><span class="n">sink_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sink_path</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_lock.json&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_lock_product">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.get_lock_product">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_lock_product</span><span class="p">(</span><span class="n">sink</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LockProduct</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read the :class:`LockProduct` sidecar JSON for *sink*.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sink: Path or URI to the downloaded product file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The deserialized :class:`LockProduct`, or ``None`` if the</span>
+<span class="sd">        sidecar file does not exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lock_product_path</span> <span class="o">=</span> <span class="n">get_lock_product_path</span><span class="p">(</span><span class="n">sink</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">lock_product_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="n">lock_product_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lock_product_data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">LockProduct</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">lock_product_data</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="write_lock_product">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.write_lock_product">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_lock_product</span><span class="p">(</span><span class="n">lock_product</span><span class="p">:</span> <span class="n">LockProduct</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyPath</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write a :class:`LockProduct` to its sidecar ``_lock.json`` file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lock_product: The lock entry to persist.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path (local or cloud) to the written sidecar file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lock_product_path</span> <span class="o">=</span> <span class="n">get_lock_product_path</span><span class="p">(</span><span class="n">lock_product</span><span class="o">.</span><span class="n">sink</span><span class="p">)</span>
+    <span class="n">lock_product_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">lock_product</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lock_product_path</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Dependency lockfile (collection of LockProducts for one processing day)</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="get_dependency_lockfile_name">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.get_dependency_lockfile_name">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_dependency_lockfile_name</span><span class="p">(</span>
+    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Derive the canonical filename for a dependency lockfile.</span>
+
+<span class="sd">    The filename encodes package, task, year, day-of-year, and version</span>
+<span class="sd">    so that each processing day gets its own file.  Station is **not**</span>
+<span class="sd">    part of the identity.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        package: Processing package name (e.g. ``&#39;PRIDE&#39;``).</span>
+<span class="sd">        task: Processing task name (e.g. ``&#39;PPP&#39;``).</span>
+<span class="sd">        date: Processing date as a ``datetime`` or ``&#39;YYYY-MM-DD&#39;`` string.</span>
+<span class="sd">        version: gnss-product-management package version.  Defaults to the</span>
+<span class="sd">            installed version.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A filename string like ``PRIDE_PPP_2025_015_0.1.0_lock.json``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If *date* cannot be parsed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">get_package_version</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Invalid date format: </span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s2">. Expected YYYY-MM-DD or ISO format.&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">YYYY</span><span class="p">,</span> <span class="n">DOY</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y&quot;</span><span class="p">),</span> <span class="n">date</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Invalid date value: </span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s2">. Expected datetime or string in YYYY-MM-DD format.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="k">return</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">package</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">YYYY</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">DOY</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">version</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;_lock.json&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="get_dependency_lockfile">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.get_dependency_lockfile">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_dependency_lockfile</span><span class="p">(</span>
+    <span class="n">directory</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">package</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">DependencyLockFile</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a :class:`DependencyLockFile` from *directory*.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        directory: Folder (local or cloud) containing lockfile JSON files.</span>
+<span class="sd">        package: Processing package name.</span>
+<span class="sd">        task: Processing task name.</span>
+<span class="sd">        date: Processing date used to derive the filename.</span>
+<span class="sd">        version: gnss-product-management package version.  Defaults to</span>
+<span class="sd">            the installed version.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``(lockfile, path)`` tuple.  If the file does not exist,</span>
+<span class="sd">        ``lockfile`` is ``None`` but ``path`` is still returned so</span>
+<span class="sd">        the caller knows where to write a new one.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dir_path</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">directory</span><span class="p">))</span>
+    <span class="n">lockfile_name</span> <span class="o">=</span> <span class="n">get_dependency_lockfile_name</span><span class="p">(</span>
+        <span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span>
+    <span class="p">)</span>
+    <span class="n">lockfile_path</span> <span class="o">=</span> <span class="n">dir_path</span> <span class="o">/</span> <span class="n">lockfile_name</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">lockfile_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">lockfile_path</span>
+
+    <span class="n">dep_lockfile_data</span> <span class="o">=</span> <span class="n">lockfile_path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">DependencyLockFile</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">dep_lockfile_data</span><span class="p">),</span> <span class="n">lockfile_path</span></div>
+
+
+
+<div class="viewcode-block" id="write_dependency_lockfile">
+<a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.lockfile.write_dependency_lockfile">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_dependency_lockfile</span><span class="p">(</span>
+    <span class="n">lockfile</span><span class="p">:</span> <span class="n">DependencyLockFile</span><span class="p">,</span>
+    <span class="n">directory</span><span class="p">:</span> <span class="n">AnyPath</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyPath</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write a :class:`DependencyLockFile` to *directory*.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lockfile: The lockfile model to persist.</span>
+<span class="sd">        directory: Target directory (local path or cloud URI).</span>
+<span class="sd">        update: If ``True``, overwrite an existing file.  Otherwise</span>
+<span class="sd">            raise :class:`FileExistsError`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path (local or cloud) to the written lockfile.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        FileExistsError: If the lockfile already exists and *update*</span>
+<span class="sd">            is ``False``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dir_path</span> <span class="o">=</span> <span class="n">as_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">directory</span><span class="p">))</span>
+    <span class="n">lockfile_name</span> <span class="o">=</span> <span class="n">get_dependency_lockfile_name</span><span class="p">(</span>
+        <span class="n">package</span><span class="o">=</span><span class="n">lockfile</span><span class="o">.</span><span class="n">package</span><span class="p">,</span>
+        <span class="n">task</span><span class="o">=</span><span class="n">lockfile</span><span class="o">.</span><span class="n">task</span><span class="p">,</span>
+        <span class="n">date</span><span class="o">=</span><span class="n">lockfile</span><span class="o">.</span><span class="n">date</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="n">lockfile</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">lockfile_path</span> <span class="o">=</span> <span class="n">dir_path</span> <span class="o">/</span> <span class="n">lockfile_name</span>
+    <span class="k">if</span> <span class="n">lockfile_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">update</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Lockfile already exists: </span><span class="si">{</span><span class="n">lockfile_path</span><span class="si">}</span><span class="s2">, consider incrementing the version.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">dir_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">lockfile_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">lockfile</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lockfile_path</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

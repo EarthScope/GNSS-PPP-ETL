@@ -1,0 +1,343 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gnss_product_management.specifications.products.catalog &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="../../../../index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">gnss_product_management.specifications.products.catalog</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <h1>Source code for gnss_product_management.specifications.products.catalog</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
+
+<span class="sd">ProductSpec and ProductCatalog — resolve product specs against FormatCatalog.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">Catalog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.format.format_spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormatCatalog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.parameters.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parameter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.products.product</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PathTemplate</span><span class="p">,</span>
+    <span class="n">Product</span><span class="p">,</span>
+    <span class="n">VariantCatalog</span><span class="p">,</span>
+    <span class="n">VersionCatalog</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ProductSpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A product specification that binds to a format variant with parameter overrides.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">variant</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Parameter</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Product-level filename override (takes precedence over format filename).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">materialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_catalog</span><span class="p">:</span> <span class="n">FormatCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Product</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Materialize against a FormatCatalog to produce a fully-merged Product.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            format_catalog: Resolved format catalog.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`Product` with format-level parameters overlaid by</span>
+<span class="sd">            product-spec overrides.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">format_spec</span><span class="p">:</span> <span class="n">Product</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">format_catalog</span><span class="o">.</span><span class="n">formats</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">]</span><span class="o">.</span><span class="n">versions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">]</span><span class="o">.</span><span class="n">variants</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">variant</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Start with ALL format parameters, then overlay product spec overrides</span>
+        <span class="n">resolved_parameters</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">format_spec</span><span class="o">.</span><span class="n">parameters</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">resolved_parameters</span><span class="p">:</span>
+                <span class="n">resolved_parameters</span><span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">resolved_parameters</span><span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span>
+                    <span class="n">update</span><span class="o">=</span><span class="n">param</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_none</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">deep</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">resolved_parameters</span><span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span>
+
+        <span class="n">update</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">resolved_parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())}</span>
+        <span class="c1"># Product-level filename overrides the format filename</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="n">update</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">PathTemplate</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">format_spec</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span>
+            <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span>
+            <span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="ProductSpecCatalog">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ProductSpecCatalog">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProductSpecCatalog</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collection of raw product specifications loaded from YAML.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        products: Mapping of product name to version/variant spec hierarchy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">products</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VersionCatalog</span><span class="p">[</span><span class="n">ProductSpec</span><span class="p">]]</span>
+
+<div class="viewcode-block" id="ProductSpecCatalog.from_yaml">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ProductSpecCatalog.from_yaml">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_yaml</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ProductSpecCatalog&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load product specs from a YAML file, extracting the ``products:`` section.</span>
+
+<span class="sd">        Transforms the YAML structure into nested Pydantic models by injecting</span>
+<span class="sd">        ``name`` from dict keys and converting ``formats`` lists into version/variant dicts.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">prod_name</span><span class="p">,</span> <span class="n">prod_data</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;products&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">versions</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">fmt_entry</span> <span class="ow">in</span> <span class="n">prod_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;formats&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fmt_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">))</span>
+                <span class="n">variant</span> <span class="o">=</span> <span class="n">fmt_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="s2">&quot;default&quot;</span><span class="p">)</span>
+                <span class="n">format_name</span> <span class="o">=</span> <span class="n">fmt_entry</span><span class="p">[</span><span class="s2">&quot;format&quot;</span><span class="p">]</span>
+                <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">c_name</span><span class="p">,</span> <span class="n">c_value</span> <span class="ow">in</span> <span class="p">(</span><span class="n">fmt_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;constraints&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[\[\]</span><span class="se">\\</span><span class="s2">()</span><span class="si">{}</span><span class="s2">|*+?^$]&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">c_value</span><span class="p">)):</span>
+                        <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">c_name</span><span class="p">,</span> <span class="s2">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">c_value</span><span class="p">})</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">c_name</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">c_value</span><span class="p">})</span>
+                <span class="n">variant_dict</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">prod_name</span><span class="p">,</span>
+                    <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="n">format_name</span><span class="p">,</span>
+                    <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="n">version</span><span class="p">,</span>
+                    <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="n">variant</span><span class="p">,</span>
+                    <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="n">parameters</span><span class="p">,</span>
+                <span class="p">}</span>
+                <span class="n">templates</span> <span class="o">=</span> <span class="n">fmt_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file_templates&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">templates</span><span class="p">:</span>
+                    <span class="n">variant_dict</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">versions</span><span class="p">:</span>
+                    <span class="n">versions</span><span class="p">[</span><span class="n">version</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;variants&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+                <span class="n">versions</span><span class="p">[</span><span class="n">version</span><span class="p">][</span><span class="s2">&quot;variants&quot;</span><span class="p">][</span><span class="n">variant</span><span class="p">]</span> <span class="o">=</span> <span class="n">variant_dict</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">prod_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;versions&quot;</span><span class="p">:</span> <span class="n">versions</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">products</span><span class="o">=</span><span class="n">result</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ProductSpecCatalog.merge">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ProductSpecCatalog.merge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;ProductSpecCatalog&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ProductSpecCatalog&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge another catalog into this one.</span>
+
+<span class="sd">        Duplicate entries are overwritten by *other* with a warning.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other: Catalog to merge.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new :class:`ProductSpecCatalog` with combined entries.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">product</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">version_name</span><span class="p">,</span> <span class="n">variant_cat</span> <span class="ow">in</span> <span class="n">product</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">variant_name</span><span class="p">,</span> <span class="n">prod</span> <span class="ow">in</span> <span class="n">variant_cat</span><span class="o">.</span><span class="n">variants</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">merged</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">VersionCatalog</span><span class="p">(</span><span class="n">versions</span><span class="o">=</span><span class="p">{}))</span>
+                        <span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">version_name</span><span class="p">,</span> <span class="n">VariantCatalog</span><span class="p">(</span><span class="n">variants</span><span class="o">=</span><span class="p">{}))</span>
+                        <span class="o">.</span><span class="n">variants</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">variant_name</span><span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Warning: Duplicate product spec </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> version </span><span class="si">{</span><span class="n">version_name</span><span class="si">!r}</span><span class="s2"> variant </span><span class="si">{</span><span class="n">variant_name</span><span class="si">!r}</span><span class="s2"> found. Overwriting with new value.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">merged</span><span class="p">:</span>
+                        <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">VersionCatalog</span><span class="p">(</span><span class="n">versions</span><span class="o">=</span><span class="p">{})</span>
+                    <span class="k">if</span> <span class="n">version_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">versions</span><span class="p">:</span>
+                        <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">versions</span><span class="p">[</span><span class="n">version_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">VariantCatalog</span><span class="p">(</span><span class="n">variants</span><span class="o">=</span><span class="p">{})</span>
+                    <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">versions</span><span class="p">[</span><span class="n">version_name</span><span class="p">]</span><span class="o">.</span><span class="n">variants</span><span class="p">[</span><span class="n">variant_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">prod</span>
+        <span class="k">return</span> <span class="n">ProductSpecCatalog</span><span class="p">(</span><span class="n">products</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">merged</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ProductCatalog">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ProductCatalog">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProductCatalog</span><span class="p">(</span><span class="n">Catalog</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolved product catalog — maps product names to VersionCatalog[VariantCatalog[Product]].</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        products: Mapping of product name to version/variant product hierarchy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">products</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VersionCatalog</span><span class="p">[</span><span class="n">Product</span><span class="p">]]</span>
+
+<div class="viewcode-block" id="ProductCatalog.build">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ProductCatalog.build">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">product_spec_catalog</span><span class="p">:</span> <span class="n">ProductSpecCatalog</span><span class="p">,</span> <span class="n">format_catalog</span><span class="p">:</span> <span class="n">FormatCatalog</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ProductCatalog&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build concrete Products from abstract product specs and a FormatCatalog.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            product_spec_catalog: Raw product spec definitions.</span>
+<span class="sd">            format_catalog: Resolved format catalog.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A :class:`ProductCatalog` with all products materialized.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">products</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">product_name</span><span class="p">,</span> <span class="n">product_spec_cat</span> <span class="ow">in</span> <span class="n">product_spec_catalog</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">versions</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">version_name</span><span class="p">,</span> <span class="n">version_spec</span> <span class="ow">in</span> <span class="n">product_spec_cat</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">variants</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">variant_name</span><span class="p">,</span> <span class="n">product_spec</span> <span class="ow">in</span> <span class="n">version_spec</span><span class="o">.</span><span class="n">variants</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">product</span><span class="p">:</span> <span class="n">Product</span> <span class="o">=</span> <span class="n">product_spec</span><span class="o">.</span><span class="n">materialize</span><span class="p">(</span><span class="n">format_catalog</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;derive&quot;</span><span class="p">):</span>
+                        <span class="n">product</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">derive</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+                    <span class="n">variants</span><span class="p">[</span><span class="n">variant_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">product</span>
+                <span class="n">versions</span><span class="p">[</span><span class="n">version_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">VariantCatalog</span><span class="p">(</span><span class="n">variants</span><span class="o">=</span><span class="n">variants</span><span class="p">)</span>
+            <span class="n">products</span><span class="p">[</span><span class="n">product_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">VersionCatalog</span><span class="p">(</span><span class="n">versions</span><span class="o">=</span><span class="n">versions</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">products</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">products</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span></div>
+
+
+<div class="viewcode-block" id="ProductCatalog.merge">
+<a class="viewcode-back" href="../../../../api/gnss-product-management.html#gnss_product_management.specifications.ProductCatalog.merge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;ProductCatalog&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ProductCatalog&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge another catalog into this one.</span>
+
+<span class="sd">        Duplicate entries are overwritten by *other* with a warning.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other: Catalog to merge.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new :class:`ProductCatalog` with combined entries.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">product</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">version_name</span><span class="p">,</span> <span class="n">variant_cat</span> <span class="ow">in</span> <span class="n">product</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">variant_name</span><span class="p">,</span> <span class="n">prod</span> <span class="ow">in</span> <span class="n">variant_cat</span><span class="o">.</span><span class="n">variants</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">merged</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">VersionCatalog</span><span class="p">(</span><span class="n">versions</span><span class="o">=</span><span class="p">{}))</span>
+                        <span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">version_name</span><span class="p">,</span> <span class="n">VariantCatalog</span><span class="p">(</span><span class="n">variants</span><span class="o">=</span><span class="p">{}))</span>
+                        <span class="o">.</span><span class="n">variants</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">variant_name</span><span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Warning: Duplicate format </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> version </span><span class="si">{</span><span class="n">version_name</span><span class="si">!r}</span><span class="s2"> variant </span><span class="si">{</span><span class="n">variant_name</span><span class="si">!r}</span><span class="s2"> found. Overwriting with new value.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">merged</span><span class="p">:</span>
+                        <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">VersionCatalog</span><span class="p">(</span><span class="n">versions</span><span class="o">=</span><span class="p">{})</span>
+                    <span class="k">if</span> <span class="n">version_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">versions</span><span class="p">:</span>
+                        <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">versions</span><span class="p">[</span><span class="n">version_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">VariantCatalog</span><span class="p">(</span><span class="n">variants</span><span class="o">=</span><span class="p">{})</span>
+                    <span class="n">merged</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">versions</span><span class="p">[</span><span class="n">version_name</span><span class="p">]</span><span class="o">.</span><span class="n">variants</span><span class="p">[</span><span class="n">variant_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">prod</span>
+        <span class="k">return</span> <span class="n">ProductCatalog</span><span class="p">(</span><span class="n">products</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">merged</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

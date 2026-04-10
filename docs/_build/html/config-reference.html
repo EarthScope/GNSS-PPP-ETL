@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YAML Configuration Reference &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="gnss-product-management Class Dependency Graph" href="gnss-product-management-classes.html" />
+    <link rel="prev" title="GNSS PPP Product Reference" href="ppp-products.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            GNSS-PPP-ETL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">YAML Configuration Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#meta-metadata-field-specifications"><code class="docutils literal notranslate"><span class="pre">meta/</span></code> — Metadata Field Specifications</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#computed-metadata-values">Computed metadata values</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#products-product-format-specifications"><code class="docutils literal notranslate"><span class="pre">products/</span></code> — Product &amp; Format Specifications</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#product-spec-yaml"><code class="docutils literal notranslate"><span class="pre">product_spec.yaml</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#format-spec-yaml"><code class="docutils literal notranslate"><span class="pre">format_spec.yaml</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#centers-analysis-center-configurations"><code class="docutils literal notranslate"><span class="pre">centers/</span></code> — Analysis Center Configurations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#local-local-storage-configuration"><code class="docutils literal notranslate"><span class="pre">local/</span></code> — Local Storage Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies-product-dependency-specifications"><code class="docutils literal notranslate"><span class="pre">dependencies/</span></code> — Product Dependency Specifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#query-product-query-specifications"><code class="docutils literal notranslate"><span class="pre">query/</span></code> — Product Query Specifications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="INDEX.html">Documentation Index</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/gnss-product-management.html">gnss-product-management API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/pride-ppp.html">pride-ppp API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GNSS-PPP-ETL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">YAML Configuration Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/config-reference.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="yaml-configuration-reference">
+<h1>YAML Configuration Reference<a class="headerlink" href="#yaml-configuration-reference" title="Link to this heading"></a></h1>
+<p>The GNSS product management system is driven entirely by YAML configuration
+files bundled in the <a class="reference internal" href="#../packages/gnss-product-management/"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">gnss-product-management</span></code></span></a> package.
+This document describes every configuration directory and what each controls.</p>
+<blockquote>
+<div><p>Source path: <code class="docutils literal notranslate"><span class="pre">packages/gnss-product-management/src/gnss_product_management/configs/</span></code></p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="meta-metadata-field-specifications">
+<h2><code class="docutils literal notranslate"><span class="pre">meta/</span></code> — Metadata Field Specifications<a class="headerlink" href="#meta-metadata-field-specifications" title="Link to this heading"></a></h2>
+<p><strong>File:</strong> <code class="docutils literal notranslate"><span class="pre">meta_spec.yaml</span></code></p>
+<p>The master glossary of all metadata fields used across GNSS product filenames
+(<code class="docutils literal notranslate"><span class="pre">SSSS</span></code>, <code class="docutils literal notranslate"><span class="pre">YYYY</span></code>, <code class="docutils literal notranslate"><span class="pre">AAA</span></code>, <code class="docutils literal notranslate"><span class="pre">FMT</span></code>, <code class="docutils literal notranslate"><span class="pre">GPSWEEK</span></code>, etc.). For each field it defines:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">pattern</span></code></strong> — Regular expression defining the expected format. Used to
+parse metadata out of existing filenames and to construct valid patterns when
+generating file paths.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">description</span></code></strong> — Plain-English explanation of what the field represents.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">derivation</span></code></strong> — How the value is obtained: <code class="docutils literal notranslate"><span class="pre">enum</span></code> (chosen from a list) or
+<code class="docutils literal notranslate"><span class="pre">computed</span></code> (dynamically derived, typically from a <code class="docutils literal notranslate"><span class="pre">datetime</span></code> object).</p></li>
+</ul>
+<section id="computed-metadata-values">
+<h3>Computed metadata values<a class="headerlink" href="#computed-metadata-values" title="Link to this heading"></a></h3>
+<p>Fields with <code class="docutils literal notranslate"><span class="pre">derivation:</span> <span class="pre">computed</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">YYYY</span></code>, <code class="docutils literal notranslate"><span class="pre">DDD</span></code>, <code class="docutils literal notranslate"><span class="pre">GPSWEEK</span></code>,
+<code class="docutils literal notranslate"><span class="pre">REFFRAME</span></code>) are calculated on the fly. Python functions registered with the
+<code class="docutils literal notranslate"><span class="pre">ParameterCatalog</span></code> know how to generate these values from a <code class="docutils literal notranslate"><span class="pre">datetime</span></code>, so the
+<code class="docutils literal notranslate"><span class="pre">QueryFactory</span></code> can build date-specific filename patterns automatically.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="products-product-format-specifications">
+<h2><code class="docutils literal notranslate"><span class="pre">products/</span></code> — Product &amp; Format Specifications<a class="headerlink" href="#products-product-format-specifications" title="Link to this heading"></a></h2>
+<p><strong>Files:</strong> <code class="docutils literal notranslate"><span class="pre">product_spec.yaml</span></code>, <code class="docutils literal notranslate"><span class="pre">format_spec.yaml</span></code></p>
+<section id="product-spec-yaml">
+<h3><code class="docutils literal notranslate"><span class="pre">product_spec.yaml</span></code><a class="headerlink" href="#product-spec-yaml" title="Link to this heading"></a></h3>
+<p>High-level catalogue of all recognized GNSS product <em>types</em> (<code class="docutils literal notranslate"><span class="pre">ORBIT</span></code>, <code class="docutils literal notranslate"><span class="pre">CLOCK</span></code>,
+<code class="docutils literal notranslate"><span class="pre">BIA</span></code>, <code class="docutils literal notranslate"><span class="pre">IONEX</span></code>, <code class="docutils literal notranslate"><span class="pre">VMF</span></code>, …). Each entry defines:</p>
+<ul class="simple">
+<li><p>Allowed <code class="docutils literal notranslate"><span class="pre">formats</span></code> (linking to <code class="docutils literal notranslate"><span class="pre">format_spec.yaml</span></code>)</p></li>
+<li><p>Parameter constraints (e.g. an <code class="docutils literal notranslate"><span class="pre">ORBIT</span></code> must have <code class="docutils literal notranslate"><span class="pre">CNT=ORB</span></code>, <code class="docutils literal notranslate"><span class="pre">FMT=SP3</span></code>)</p></li>
+</ul>
+</section>
+<section id="format-spec-yaml">
+<h3><code class="docutils literal notranslate"><span class="pre">format_spec.yaml</span></code><a class="headerlink" href="#format-spec-yaml" title="Link to this heading"></a></h3>
+<p>Concrete filename structures for each data format:</p>
+<ul class="simple">
+<li><p><strong>Versions and variants</strong> — e.g. RINEX 2 vs 3, observation vs navigation</p></li>
+<li><p><strong>Filename templates</strong> — e.g. <code class="docutils literal notranslate"><span class="pre">{SSSS}{DDD}0.{YY}{T}</span></code> for RINEX 2
+observation</p></li>
+<li><p><strong>Parameters</strong> — metadata fields (from <code class="docutils literal notranslate"><span class="pre">meta/</span></code>) that populate each template</p></li>
+</ul>
+<p>Together these two files let the <code class="docutils literal notranslate"><span class="pre">QueryFactory</span></code> dynamically construct and
+deconstruct filenames for any product type.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="centers-analysis-center-configurations">
+<h2><code class="docutils literal notranslate"><span class="pre">centers/</span></code> — Analysis Center Configurations<a class="headerlink" href="#centers-analysis-center-configurations" title="Link to this heading"></a></h2>
+<p><strong>Files:</strong> One YAML per center (e.g. <code class="docutils literal notranslate"><span class="pre">igs_config.yaml</span></code>, <code class="docutils literal notranslate"><span class="pre">gfz_config.yaml</span></code>,
+<code class="docutils literal notranslate"><span class="pre">wuhan_config.yaml</span></code>)</p>
+<p>Each file defines a single IGS analysis center:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">id</span></code> / <code class="docutils literal notranslate"><span class="pre">name</span></code></strong> — Short and long identifiers</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">description</span></code> / <code class="docutils literal notranslate"><span class="pre">website</span></code></strong> — Background and documentation link</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">servers</span></code></strong> — FTP/HTTP endpoints with hostnames, protocols, and
+authentication details</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">products</span></code></strong> — Every product the center offers, with <code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">directory</span></code> templates needed to construct valid remote file paths</p></li>
+</ul>
+<p>These configs are the blueprints for how the system interacts with each data
+provider.</p>
+</section>
+<hr class="docutils" />
+<section id="local-local-storage-configuration">
+<h2><code class="docutils literal notranslate"><span class="pre">local/</span></code> — Local Storage Configuration<a class="headerlink" href="#local-local-storage-configuration" title="Link to this heading"></a></h2>
+<p><strong>File:</strong> <code class="docutils literal notranslate"><span class="pre">local_config.yaml</span></code></p>
+<p>Dictates how downloaded products are organized on disk:</p>
+<ul class="simple">
+<li><p><strong>Directory layout</strong> — Time-dependent products go under <code class="docutils literal notranslate"><span class="pre">{YYYY}/{DDD}/</span></code>;
+static reference files go in <code class="docutils literal notranslate"><span class="pre">table/</span></code>.</p></li>
+<li><p><strong>Temporal categories</strong> — <code class="docutils literal notranslate"><span class="pre">daily</span></code>, <code class="docutils literal notranslate"><span class="pre">hourly</span></code>, or <code class="docutils literal notranslate"><span class="pre">static</span></code>, controlling how
+date information maps to storage paths.</p></li>
+<li><p><strong>Product collections:</strong></p></li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Collection</p></th>
+<th class="head"><p>Contents</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">products</span></code></p></td>
+<td><p>Orbits, clocks, biases, attitude data</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rinex</span></code></p></td>
+<td><p>Observation, navigation, meteorological RINEX</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">common</span></code></p></td>
+<td><p>Ionosphere maps, troposphere grids</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">table</span></code></p></td>
+<td><p>Leap seconds, satellite parameters, antenna calibrations</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lockfiles</span></code></p></td>
+<td><p>Provenance / version tracking for downloaded dependencies</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">leo</span></code></p></td>
+<td><p>Level-1B instrument data from LEO satellites</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="dependencies-product-dependency-specifications">
+<h2><code class="docutils literal notranslate"><span class="pre">dependencies/</span></code> — Product Dependency Specifications<a class="headerlink" href="#dependencies-product-dependency-specifications" title="Link to this heading"></a></h2>
+<p><strong>Files:</strong> One YAML per processing task (e.g. <code class="docutils literal notranslate"><span class="pre">pride_pppar.yaml</span></code>)</p>
+<p>Bundles all GNSS products required for a specific processing engine:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">name</span></code> / <code class="docutils literal notranslate"><span class="pre">description</span></code></strong> — What the dependency set covers</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">package</span></code> / <code class="docutils literal notranslate"><span class="pre">task</span></code></strong> — The broader package or task it serves</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">preferences</span></code></strong> — A cascade of choices the resolver uses when multiple
+options exist (e.g. prefer <code class="docutils literal notranslate"><span class="pre">WUM</span></code> over others, prefer <code class="docutils literal notranslate"><span class="pre">FIN</span></code> solutions before
+<code class="docutils literal notranslate"><span class="pre">RAP</span></code> or <code class="docutils literal notranslate"><span class="pre">ULT</span></code>)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">dependencies</span></code></strong> — The list of required products, each referencing a
+product <code class="docutils literal notranslate"><span class="pre">spec</span></code> (like <code class="docutils literal notranslate"><span class="pre">ORBIT</span></code>, <code class="docutils literal notranslate"><span class="pre">CLOCK</span></code>, <code class="docutils literal notranslate"><span class="pre">BIA</span></code>)</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">DependencyResolver</span></code> uses these specs to find, download, and cache a
+complete, prioritized dataset for any processing run.</p>
+</section>
+<hr class="docutils" />
+<section id="query-product-query-specifications">
+<h2><code class="docutils literal notranslate"><span class="pre">query/</span></code> — Product Query Specifications<a class="headerlink" href="#query-product-query-specifications" title="Link to this heading"></a></h2>
+<p><strong>File:</strong> <code class="docutils literal notranslate"><span class="pre">query_config.yaml</span></code></p>
+<p>Defines the searchable dimensions (“axes”) for product queries:</p>
+<ul class="simple">
+<li><p><strong>Axis definitions</strong> — <code class="docutils literal notranslate"><span class="pre">date</span></code>, <code class="docutils literal notranslate"><span class="pre">spec</span></code>, <code class="docutils literal notranslate"><span class="pre">center</span></code>, <code class="docutils literal notranslate"><span class="pre">campaign</span></code>, <code class="docutils literal notranslate"><span class="pre">solution</span></code>,
+<code class="docutils literal notranslate"><span class="pre">sampling</span></code>. Each axis has a <code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">type</span></code> (<code class="docutils literal notranslate"><span class="pre">enum</span></code> or <code class="docutils literal notranslate"><span class="pre">computed</span></code>),
+whether it’s <code class="docutils literal notranslate"><span class="pre">required</span></code>, which metadata fields it <code class="docutils literal notranslate"><span class="pre">maps_to</span></code>, and usage
+<code class="docutils literal notranslate"><span class="pre">notes</span></code>.</p></li>
+<li><p><strong>Product query profiles</strong> — Per-product configurations listing:</p>
+<ul>
+<li><p>Applicable axes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extra_axes</span></code> for product-specific parameters (e.g. <code class="docutils literal notranslate"><span class="pre">constellation</span></code> for
+broadcast navigation)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">format_key</span></code> linking to <code class="docutils literal notranslate"><span class="pre">format_spec.yaml</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">temporal</span></code> type (<code class="docutils literal notranslate"><span class="pre">daily</span></code>, <code class="docutils literal notranslate"><span class="pre">hourly</span></code>, <code class="docutils literal notranslate"><span class="pre">static</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">local_collection</span></code> mapping to <code class="docutils literal notranslate"><span class="pre">local_config.yaml</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>This file defines the API for requesting GNSS products — it ensures queries are
+valid and directs the system to the right resources.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ppp-products.html" class="btn btn-neutral float-left" title="GNSS PPP Product Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gnss-product-management-classes.html" class="btn btn-neutral float-right" title="gnss-product-management Class Dependency Graph" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>
