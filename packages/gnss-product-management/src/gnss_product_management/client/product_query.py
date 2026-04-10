@@ -7,6 +7,7 @@ from __future__ import annotations
 import copy
 import datetime
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, cast
 
@@ -68,6 +69,9 @@ class ProductQuery:
         self._search_planner = search_planner
         self._product: Optional[dict] = None
         self._date: Optional[datetime.datetime] = None
+        self._date_range: Optional[
+            Tuple[datetime.datetime, datetime.datetime, datetime.timedelta]
+        ] = None
         self._parameters: dict = {}
         self._source_ids: Optional[tuple] = None  # None = all sources
         self._preferences: List[SearchPreference] = []
@@ -97,6 +101,39 @@ class ProductQuery:
         """
         clone = copy.copy(self)
         clone._date = date
+        return clone
+
+    def on_range(
+        self,
+        start: datetime.datetime,
+        end: datetime.datetime,
+        *,
+        step: datetime.timedelta = datetime.timedelta(days=1),
+    ) -> "ProductQuery":
+        """Set a date range for the query.
+
+        Searches are run for every date from *start* to *end* (inclusive)
+        with the given *step* (default: 1 day).  Results from all dates are
+        merged into a single flat list from :meth:`search`.
+
+        Args:
+            start: First date to query (inclusive).
+            end: Last date to query (inclusive).
+            step: Interval between consecutive dates (default: 1 day).
+
+        Returns:
+            ``self`` for chaining.
+
+        Raises:
+            ValueError: If *start* is after *end*.
+        """
+        if start > end:
+            raise ValueError(
+                f"start ({start.date()}) must not be after end ({end.date()})"
+            )
+        clone = copy.copy(self)
+        clone._date = None
+        clone._date_range = (start, end, step)
         return clone
 
     def where(self, **parameters) -> "ProductQuery":
@@ -215,6 +252,46 @@ class ProductQuery:
             expanded = sort_by_preferences(expanded, self._preferences)
         return sort_by_protocol(expanded)
 
+    def _search_range(self) -> List[FoundResource]:
+        """Execute a search for every date in the configured range.
+
+        Runs one :meth:`search` call per date in parallel using a
+        :class:`~concurrent.futures.ThreadPoolExecutor` (max 8 workers) and
+        merges all results into a single flat list.
+
+        Returns:
+            Combined list of :class:`FoundResource` objects from all dates.
+        """
+        assert self._date_range is not None
+        start, end, step = self._date_range
+
+        dates: List[datetime.datetime] = []
+        current = start
+        while current <= end:
+            dates.append(current)
+            current += step
+
+        logger.debug(
+            "on_range(): %d dates from %s to %s",
+            len(dates),
+            start.date(),
+            end.date(),
+        )
+
+        all_results: List[FoundResource] = []
+        with ThreadPoolExecutor(max_workers=min(len(dates), 8)) as executor:
+            future_to_date = {
+                executor.submit(self.on(date).search): date for date in dates
+            }
+            for future in as_completed(future_to_date):
+                date = future_to_date[future]
+                try:
+                    all_results.extend(future.result())
+                except Exception as exc:
+                    logger.warning("Search failed for date %s: %s", date.date(), exc)
+
+        return all_results
+
     def search(self) -> List[FoundResource]:
         """Execute the query and return ranked results.
 
@@ -222,15 +299,20 @@ class ProductQuery:
             Ranked list of :class:`FoundResource` objects, best first.
             Local/file results precede remote ones; within each protocol
             tier results are ordered by *preferences*.
+            When :meth:`on_range` was used, results from all dates are
+            returned as a flat combined list.
 
         Raises:
-            ValueError: If :meth:`on` has not been called.
+            ValueError: If neither :meth:`on` nor :meth:`on_range` has been called.
         """
         if self._product is None:
             raise ValueError("Call .for_product(product) before .search()")
 
+        if self._date_range is not None:
+            return self._search_range()
+
         if self._date is None:
-            raise ValueError("Call .on(date) before .search()")
+            raise ValueError("Call .on(date) or .on_range(start, end) before .search()")
 
         logger.debug(
             "search() product=%s date=%s parameters=%s sources=%s",

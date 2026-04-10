@@ -272,6 +272,35 @@ class ConnectionPoolFactory:
             # Pool failed to initialise (e.g. FTP host unreachable).
             return []
 
+    def get_file_size(self, hostname: str, remote_path: str) -> Optional[int]:
+        """Return the size of a remote file in bytes, or ``None`` if unavailable.
+
+        Uses ``fsspec.info()`` which is a metadata-only call — no data is
+        transferred.  Returns ``None`` on any error so callers can treat an
+        unknown size as "proceed with download".
+
+        Args:
+            hostname: Server address.
+            remote_path: Relative path on the remote host.
+
+        Returns:
+            File size in bytes, or ``None`` if the size cannot be determined.
+        """
+        pool = self._pools.get(hostname)
+        if pool is None:
+            return None
+
+        full_path = pool.full_path(remote_path)
+        try:
+            with pool.get_connection() as conn:
+                info = conn.info(full_path)
+                return info.get("size")
+        except Exception as e:
+            logger.debug(
+                "Could not get file size for %s/%s: %s", hostname, remote_path, e
+            )
+            return None
+
     def download_file(
         self, hostname: str, remote_path: str, target_dir: str
     ) -> Optional[Path]:

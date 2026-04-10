@@ -55,7 +55,7 @@ class PridePPP(BaseModel):
     longitude : float
         Geodetic longitude in decimal degrees (0–360, east-positive).
     height : float
-        Ellipsoidal height in metres (−101–100, relative to ref).
+        WGS-84 ellipsoidal height in metres.
     number_of_satellites : int
         Number of satellites used in the solution.
     pdop : float
@@ -74,7 +74,7 @@ class PridePPP(BaseModel):
     up: float = Field(ge=-6378100, le=6378100)
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=0, le=360)
-    height: float = Field(ge=-101, le=100)
+    height: float = Field(ge=-1000, le=10000)
     number_of_satellites: int = Field(default=1, ge=0, le=125)
     pdop: float = Field(default=0, ge=0, le=1000)
     time: Optional[datetime] = None

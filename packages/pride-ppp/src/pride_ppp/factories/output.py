@@ -184,7 +184,7 @@ def kin_to_kin_position_df(source: str | Path) -> Union[pd.DataFrame, None]:
                 selected_columns
             )
             data.append(ppp)
-        except:
+        except Exception:
             pass
 
     if not data:

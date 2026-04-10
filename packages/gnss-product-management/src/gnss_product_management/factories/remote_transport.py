@@ -293,7 +293,6 @@ class WormHole:
             Path (local or cloud) to the downloaded file, or ``None`` on failure.
         """
 
-        # TODO use fsspec ls to get file size in bytes, and skip download if size is zero.
         hostname = query.server.hostname
 
         destination_resource = local_factory.sink_product(
@@ -321,12 +320,24 @@ class WormHole:
             logger.debug("Skipping download, file already exists: %s", destination_path)
             return destination_path
 
+        remote_file_path = str(
+            Path(query.directory.value) / query.product.filename.value  # type: ignore[union-attr]
+        )
+
+        # Skip download if the remote file is zero bytes (stale/incomplete upload).
+        remote_size = self._connection_pool_factory.get_file_size(
+            hostname, remote_file_path
+        )
+        if remote_size is not None and remote_size == 0:
+            logger.warning(
+                "Skipping zero-byte remote file: %s/%s", hostname, remote_file_path
+            )
+            return None
+
         try:
             result = self._connection_pool_factory.download_file(
                 hostname=hostname,
-                remote_path=str(
-                    Path(query.directory.value) / query.product.filename.value
-                ),  # type: ignore[union-attr]
+                remote_path=remote_file_path,
                 target_dir=destination_dir,
             )
         except Exception as e:
