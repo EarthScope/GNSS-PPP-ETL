@@ -21,6 +21,9 @@ htmlcov/
 # Tooling caches
 .ruff_cache/
 
+# Sphinx build output
+docs/_build/
+
 # Project-specific
 .github/skills/*
 .claude/*

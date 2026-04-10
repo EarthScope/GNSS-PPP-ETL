@@ -27,6 +27,12 @@ dev = [
 test = [
   "pytest>=8",
 ]
+docs = [
+    "sphinx>=7",
+    "sphinx-rtd-theme>=2",
+    "myst-parser>=3",
+    "sphinx-autodoc-typehints>=2",
+]
 
 [tool.ruff]
 target-version = "py310"
