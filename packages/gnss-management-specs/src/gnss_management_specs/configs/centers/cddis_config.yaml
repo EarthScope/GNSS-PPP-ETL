@@ -1,7 +1,7 @@
 id: CDDIS
 name: NASA CDDIS
 description: >
-  NASA's Crustal Dynamics Data Information System archives and 
+  NASA's Crustal Dynamics Data Information System archives and
   distributes space geodesy data including GNSS, SLR, VLBI, and DORIS.
   Mirrors products from all IGS analysis centers.
 website: https://cddis.nasa.gov/

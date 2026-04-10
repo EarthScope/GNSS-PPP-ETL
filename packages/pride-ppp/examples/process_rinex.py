@@ -11,14 +11,15 @@ Prerequisites:
 """
 
 from pathlib import Path
-from pride_ppp import PrideProcessor, PrideCLIConfig
+
+from pride_ppp import PrideCLIConfig, PrideProcessor
 
 # --- 1. Configure the processor -----------------------------------------
 # pride_dir:  local product storage (orbits, clocks, etc.)
 # output_dir: where .kin and .res files are written
 processor = PrideProcessor(
-    pride_dir=Path("/data/pride"),
-    output_dir=Path("/data/output"),
+    pride_dir=Path.home() / "data" / "pride",  # update for your environment
+    output_dir=Path.home() / "data" / "output",  # update for your environment
     cli_config=PrideCLIConfig(),  # defaults: kinematic mode, 30s interval
 )
 

@@ -75,7 +75,7 @@ products:
           T: M
           D: \b[GRECEJSM]\b
         variant: meteorological
-  
+
   ORBIT:
     description: >
       Satellite orbit products providing precise ephemerides. ex: WMC0DEMFIN_20252270000_01D_05M_ORB.SP3
@@ -118,7 +118,7 @@ products:
           CNT: "ERP"
           SMP: "01D"
         variant: default
-  
+
   BIA:
     description: >
       Bias products providing differential code and/or phase biases.
@@ -133,7 +133,7 @@ products:
           LEN: "01D"
           CNT: "OSB"
         variant: default
-  
+
   ATTOBX:
     description: >
       ORBEX format products providing satellite orbit and/or attitude information.
@@ -178,7 +178,7 @@ products:
           DDU: "01D"
           S: "R"
         variant: navigation
-  
+
   LEAP_SEC:
     description: >
       Leap second table providing scheduled and historical leap second information.
@@ -208,7 +208,7 @@ products:
       - format: VIENNA_MAPPING_FUNCTIONS
         version: "1"
         variant: default
-  
+
   OROGRAPHY:
     description: >
       Ellipsoidal terrain height grid (5x5) for VMF interpolation

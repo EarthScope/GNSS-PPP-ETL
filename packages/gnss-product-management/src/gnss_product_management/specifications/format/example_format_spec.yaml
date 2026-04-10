@@ -27,7 +27,7 @@ formats:
 
           observation:
             - "{SSSS}{DDD}0.{YY}{T}"
-         
+
 
           navigation:
             - "{SSSS}{DDD}0.{YY}{T}"
@@ -127,9 +127,9 @@ formats:
     description: >
       Generic product format for various GNSS data types (SP3, CLK, ERP, etc.)
       with flexible metadata and filename file_templates.
-    versions: 
+    versions:
       "1":
-      
+
         metadata:
           AAA:
             description: analysis center code (e.g., "WUM", "COD")
@@ -236,7 +236,7 @@ formats:
           REFFRAME:
             description: full IGS frame name (e.g., "igs20", "igs14")
           GPSWEEK:
-          
+
         file_templates:
           archive:
             - "{REFFRAME}_{GPSWEEK}.atx"

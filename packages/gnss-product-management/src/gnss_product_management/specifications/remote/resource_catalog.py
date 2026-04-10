@@ -4,14 +4,12 @@ ResourceCatalog — resolve a ResourceSpec against a ProductCatalog into queryab
 """
 
 from itertools import product as iterproduct
-from typing import List, Optional
-
 
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.remote.resource import (
-    ResourceQuery,
     ResourceSpec,
+    SearchTarget,
     Server,
 )
 
@@ -35,9 +33,9 @@ def _cartesian_product(
 
 
 def _merge_parameters(
-    base_params: List[Parameter],
-    overrides: List[Parameter],
-) -> List[Parameter]:
+    base_params: list[Parameter],
+    overrides: list[Parameter],
+) -> list[Parameter]:
     """Return base params with overrides applied by name.
 
     Args:
@@ -67,15 +65,15 @@ class ResourceCatalog(Catalog):
         description: Human-readable description.
         website: Center website URL.
         servers: Server endpoints for this center.
-        queries: Expanded :class:`ResourceQuery` objects.
+        queries: Expanded :class:`SearchTarget` objects.
     """
 
     id: str
     name: str
-    description: Optional[str] = None
-    website: Optional[str] = None
-    servers: List[Server]
-    queries: List[ResourceQuery]
+    description: str | None = None
+    website: str | None = None
+    servers: list[Server]
+    queries: list[SearchTarget]
 
     @classmethod
     def build(cls, resource_spec: ResourceSpec, product_catalog) -> "ResourceCatalog":
@@ -115,9 +113,7 @@ class ResourceCatalog(Catalog):
                     continue
                 for variant_name, base_product in variant_catalog.variants.items():
                     for combo in combos:
-                        merged_params = _merge_parameters(
-                            base_product.parameters, combo
-                        )
+                        merged_params = _merge_parameters(base_product.parameters, combo)
                         pinned_product = base_product.model_copy(
                             update={
                                 "parameters": merged_params,
@@ -126,7 +122,7 @@ class ResourceCatalog(Catalog):
                             deep=True,
                         )
                         queries.append(
-                            ResourceQuery(
+                            SearchTarget(
                                 product=pinned_product,
                                 server=server,
                                 directory=rp_spec.directory,

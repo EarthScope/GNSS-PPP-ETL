@@ -1,35 +1,39 @@
 """Author: Franklyn Dunbar
 
-Format specifications and FormatCatalog — resolves FormatSpec → Product.
+Format-variant specifications and FormatCatalog — resolves FormatVariantSpec → Product.
 """
 
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
-from pydantic import BaseModel, Field
-
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
     ParameterCatalog,
 )
 from gnss_product_management.specifications.products.product import (
+    PathTemplate,
     Product,
-    ProductPath,
     VariantCatalog,
     VersionCatalog,
 )
+from pydantic import BaseModel, Field
 
 
-class FormatSpec(BaseModel):
-    """A single file-format definition with parameter overrides and filename template."""
+class FormatVariantSpec(BaseModel):
+    """A single file-format variant binding: name × version × variant → parameters + filename.
+
+    This is a resolved "leaf" entry in the format spec YAML — it names
+    which format (e.g. ``RINEX``), which version (``"3"``), which variant
+    (``observation``), and lists the parameters and filename template that
+    together define a concrete file shape.
+    """
 
     name: str
-    version: Optional[str] = None
-    variant: Optional[str] = None
-    parameters: Optional[List[dict]] = Field(default_factory=list)
-    filename: Optional[str] = None
+    version: str | None = None
+    variant: str | None = None
+    parameters: list[dict] | None = Field(default_factory=list)
+    filename: str | None = None
 
     def materialize(self, parameter_catalog: ParameterCatalog) -> Product:
         """Materialize against a ParameterCatalog to produce a Product.
@@ -53,14 +57,14 @@ class FormatSpec(BaseModel):
         return Product(
             name=self.name,
             parameters=list(resolved_parameters.values()),
-            filename=ProductPath(pattern=self.filename) if self.filename else None,
+            filename=PathTemplate(pattern=self.filename) if self.filename else None,
         )
 
 
 class FormatSpecCatalog(BaseModel):
-    """Collection of raw format specifications loaded from YAML."""
+    """Collection of raw format-variant specifications loaded from YAML."""
 
-    formats: dict[str, VersionCatalog[FormatSpec]]
+    formats: dict[str, VersionCatalog[FormatVariantSpec]]
 
     @classmethod
     def from_yaml(cls, path: Path) -> "FormatSpecCatalog":
@@ -82,7 +86,7 @@ class FormatSpecCatalog(BaseModel):
                         - name: PARAM
                       filename: "{PARAM}..."
         """
-        with open(path, "r") as f:
+        with open(path) as f:
             data = yaml.safe_load(f)
 
         result = {}
@@ -162,8 +166,6 @@ class FormatCatalog(Catalog):
                     if name not in merged:
                         merged[name] = VersionCatalog(versions={})
                     if version_name not in merged[name].versions:
-                        merged[name].versions[version_name] = VariantCatalog(
-                            variants={}
-                        )
+                        merged[name].versions[version_name] = VariantCatalog(variants={})
                     merged[name].versions[version_name].variants[variant_name] = product
         return FormatCatalog(formats={k: v.model_dump() for k, v in merged.items()})

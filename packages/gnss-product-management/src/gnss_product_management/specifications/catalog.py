@@ -30,7 +30,7 @@ class Catalog(BaseModel):
 
     @classmethod
     @abstractmethod
-    def build(cls, *args: Any, **kwargs: Any) -> "Catalog":
+    def build(cls, *args: Any, **kwargs: Any) -> Catalog:
         """Build a concrete catalog instance from lower-layer specs.
 
         Args:

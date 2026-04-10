@@ -1,7 +1,7 @@
 """
 Tests: Full dependency resolution workflow.
 
-End-to-end: DependencySpec → DependencyResolver → DependencyResolution → lockfile.
+End-to-end: DependencySpec → ResolvePipeline → DependencyResolution → lockfile.
 
 Uses the multi-centre environment (Wuhan + CODE + CDDIS) with the
 PRIDE-PPPAR dependency spec.
@@ -13,23 +13,14 @@ from pathlib import Path
 
 import pytest
 
-from gnss_product_management.factories import (
-    WorkSpace,
-    QueryFactory,
-    ResourceFetcher,
-)
+# ── Paths ──────────────────────────────────────────────────────────
+from gnss_management_specs.configs import LOCAL_SPEC_DIR
+from gnss_product_management.environments import WorkSpace
+from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
     ResolvedDependency,
 )
-from gnss_product_management.factories.dependency_resolver import (
-    DependencyResolver,
-)
-
-
-# ── Paths ──────────────────────────────────────────────────────────
-
-from gnss_management_specs.configs import LOCAL_SPEC_DIR
 
 _TEST_RESOURCES = Path(__file__).resolve().parent / "resources"
 PRIDE_PPPAR_SPEC = _TEST_RESOURCES / "pride_pppar.yaml"
@@ -45,21 +36,14 @@ def dep_spec() -> DependencySpec:
 
 
 @pytest.fixture(scope="module")
-def resolver(multi_env, workspace, dep_spec, tmp_path_factory) -> DependencyResolver:
-    """DependencyResolver wired to the multi-centre environment."""
+def pipeline(multi_env, tmp_path_factory) -> ResolvePipeline:
+    """ResolvePipeline wired to the multi-centre environment."""
     base = tmp_path_factory.mktemp("resolve_test")
     ws = WorkSpace()
     for path in Path(LOCAL_SPEC_DIR).glob("*.yaml"):
         ws.add_resource_spec(path)
     ws.register_spec(base_dir=base, spec_ids=["local_config"])
-    qf = QueryFactory(product_environment=multi_env, workspace=ws)
-    fetcher = ResourceFetcher()
-    return DependencyResolver(
-        dep_spec,
-        query_factory=qf,
-        product_environment=multi_env,
-        fetcher=fetcher,
-    )
+    return ResolvePipeline(env=multi_env, workspace=ws)
 
 
 # ===================================================================
@@ -107,14 +91,13 @@ class TestDependencySpecLoading:
 
 
 # ===================================================================
-# Unit: Resolver construction (no network)
+# Unit: Pipeline construction (no network)
 # ===================================================================
 
 
-class TestResolverConstruction:
-    def test_resolver_builds(self, resolver) -> None:
-        assert resolver is not None
-        assert resolver.dep_spec.name == "pride-pppar"
+class TestPipelineConstruction:
+    def test_pipeline_builds(self, pipeline) -> None:
+        assert pipeline is not None
 
 
 # ===================================================================
@@ -123,19 +106,27 @@ class TestResolverConstruction:
 
 
 class TestResolverWithFetcher:
+    # Products with confirmed HTTP sources at geodetic data centres.
+    _REMOTELY_AVAILABLE = {"ORBIT", "CLOCK", "ERP", "BIA", "ATTATX", "RNX3_BRDC"}
+
     @pytest.mark.integration
     def test_resolve_finds_remote_products(
         self,
-        resolver,
+        pipeline,
+        dep_spec,
         test_date,
     ) -> None:
-        """At least some products should be found remotely."""
-        resolution, lockfile_path = resolver.resolve(
-            test_date, local_sink_id="local_config"
+        """All products with known HTTP sources should be resolved."""
+        resolution, lockfile_path = pipeline.run(dep_spec, test_date, sink_id="local_config")
+        by_spec = {r.spec: r for r in resolution.resolved}
+        missing_core = [
+            spec
+            for spec in self._REMOTELY_AVAILABLE
+            if by_spec.get(spec, None) and by_spec[spec].status == "missing"
+        ]
+        assert not missing_core, (
+            f"Core products could not be resolved: {missing_core}\n{resolution.table()}"
         )
-        found = [r.status != "missing" for r in resolution.resolved]
-
-        assert all(found), f"Expected no missing product.\n{resolution.table()}"
         print(f"\nResolution table for {test_date.isoformat()}:\n")
         print(resolution.table())
         print(f"{'-' * 60}\n")
@@ -143,25 +134,26 @@ class TestResolverWithFetcher:
     @pytest.mark.integration
     def test_resolve_populates_remote_url(
         self,
-        resolver,
+        pipeline,
+        dep_spec,
         test_date,
     ) -> None:
-        """Found products should have a remote_url set."""
-        resolution, _ = resolver.resolve(test_date, local_sink_id="local_config")
+        """Downloaded products should have a remote_url set."""
+        resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         for r in resolution.resolved:
-            if r.status != "missing":
+            if r.status == "downloaded":
                 assert r.remote_url, f"{r.spec} has empty remote_url"
 
     @pytest.mark.integration
-    def test_resolution_summary(self, resolver, test_date) -> None:
-        resolution, _ = resolver.resolve(test_date, local_sink_id="local_config")
+    def test_resolution_summary(self, pipeline, dep_spec, test_date) -> None:
+        resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         summary = resolution.summary()
         assert "pride-pppar" in summary
-        assert "9 deps" in summary
+        assert "15 deps" in summary
 
     @pytest.mark.integration
-    def test_resolution_table(self, resolver, test_date) -> None:
-        resolution, _ = resolver.resolve(test_date, local_sink_id="local_config")
+    def test_resolution_table(self, pipeline, dep_spec, test_date) -> None:
+        resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         table = resolution.table()
         assert "ORBIT" in table
         assert "CLOCK" in table

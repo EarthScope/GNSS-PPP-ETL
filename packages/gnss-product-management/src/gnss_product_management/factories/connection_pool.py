@@ -8,7 +8,7 @@ import os
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 import fsspec
@@ -36,13 +36,13 @@ class ConnectionPool:
         self.hostname = hostname
         self.protocol = fsspec.utils.get_protocol(hostname) or "file"
         self.max_connections = max_connections
-        self._pool: List[fsspec.AbstractFileSystem] = []
-        self._semaphore: Optional[threading.Semaphore] = None
+        self._pool: list[fsspec.AbstractFileSystem] = []
+        self._semaphore: threading.Semaphore | None = None
         self._pool_lock = threading.Lock()
         self._initialized = False
         self._failed = False
 
-    def _connect(self) -> Optional[fsspec.AbstractFileSystem]:
+    def _connect(self) -> fsspec.AbstractFileSystem | None:
         """Create a single fsspec filesystem connection.
 
         Returns:
@@ -52,7 +52,7 @@ class ConnectionPool:
             try:
                 return fsspec.filesystem("file")
             except Exception as e:
-                logger.error(f"Error creating local filesystem: {e}")
+                logger.warning("Error creating local filesystem: %s", e)
                 return None
 
         if self.protocol == "ftp":
@@ -70,7 +70,7 @@ class ConnectionPool:
                     )
                 except Exception:
                     continue
-            logger.error(f"FTP/FTPS connection failed for {self.hostname}")
+            logger.warning("FTP/FTPS connection failed for %s", self.hostname)
             return None
 
         # HTTP, HTTPS, and other protocols
@@ -78,7 +78,7 @@ class ConnectionPool:
             fs, _ = fsspec.core.url_to_fs(self.hostname, skip_instance_cache=True)
             return fs
         except Exception as e:
-            logger.error(f"Error creating filesystem for {self.hostname}: {e}")
+            logger.warning("Error creating filesystem for %s: %s", self.hostname, e)
             return None
 
     def _initialize_pool(self):
@@ -100,7 +100,7 @@ class ConnectionPool:
                 self._pool.append(conn)
             self._semaphore = threading.Semaphore(len(self._pool))
             self._initialized = True
-            logger.debug(f"Pool for {self.hostname}: {len(self._pool)} connections")
+            logger.debug("Pool for %s: %d connections", self.hostname, len(self._pool))
 
     @contextmanager
     def get_connection(self):
@@ -130,9 +130,15 @@ class ConnectionPool:
     ) -> Optional["fsspec.AbstractFileSystem"]:
         """Swap a dead connection for a fresh one in the pool.
 
-        Returns the new connection, or *None* if reconnection fails.
         The caller must already hold a semaphore slot (i.e. be inside
         ``get_connection``).
+
+        Args:
+            dead: The stale filesystem instance to remove and replace.
+
+        Returns:
+            A fresh :class:`fsspec.AbstractFileSystem`, or ``None`` if
+            reconnection fails (the pool will be one slot smaller).
         """
         with self._pool_lock:
             try:
@@ -145,11 +151,22 @@ class ConnectionPool:
                 self._pool.append(fresh)
         else:
             # Give back the semaphore slot since we can't replace it
-            logger.warning(f"Reconnect failed for {self.hostname}; pool shrunk by 1")
+            logger.warning("Reconnect failed for %s; pool shrunk by 1", self.hostname)
         return fresh
 
     def full_path(self, directory: str) -> str:
-        """Combine hostname base with a relative directory."""
+        """Combine hostname base with a relative directory.
+
+        Behaviour differs by protocol: ``file`` uses :func:`os.path.join`,
+        ``http``/``https`` concatenates with forward slashes, and ``ftp``
+        treats the directory as an already-absolute server path.
+
+        Args:
+            directory: Relative directory path (or absolute for FTP).
+
+        Returns:
+            Full path string suitable for passing to fsspec operations.
+        """
         if self.protocol == "file":
             return os.path.join(self.hostname, directory)
         if self.protocol in ("http", "https"):
@@ -172,9 +189,9 @@ class ConnectionPoolFactory:
             max_connections: Default maximum connections per host pool.
         """
         self.max_connections = max_connections
-        self._pools: Dict[str, ConnectionPool] = {}
+        self._pools: dict[str, ConnectionPool] = {}
         self._factory_lock = threading.Lock()
-        self._listing_cache: Dict[str, List[str]] = {}
+        self._listing_cache: dict[str, list[str]] = {}
         self._listing_cache_lock = threading.Lock()
 
     def add_connection(self, hostname: str):
@@ -205,7 +222,7 @@ class ConnectionPoolFactory:
         with self._pools[hostname].get_connection() as connection:
             yield connection
 
-    def list_directory(self, hostname: str, directory: str) -> List[str]:
+    def list_directory(self, hostname: str, directory: str) -> list[str]:
         """List a remote or local directory with caching.
 
         Results (including empty lists for failed lookups) are cached
@@ -232,13 +249,16 @@ class ConnectionPoolFactory:
 
         full_path = pool.full_path(directory)
 
-        def _ls(conn: "fsspec.AbstractFileSystem") -> List[str]:
+        def _ls(conn: "fsspec.AbstractFileSystem") -> list[str]:
             raw = conn.ls(full_path, detail=False)
             return [Path(p).name for p in raw]
 
-        def _cache(listing: List[str]) -> List[str]:
-            with self._listing_cache_lock:
-                self._listing_cache[cache_key] = listing
+        def _cache(listing: list[str]) -> list[str]:
+            # Only cache non-empty results — a transient failure (empty list)
+            # should not poison the cache for the lifetime of the session.
+            if listing:
+                with self._listing_cache_lock:
+                    self._listing_cache[cache_key] = listing
             return listing
 
         try:
@@ -247,29 +267,52 @@ class ConnectionPoolFactory:
                     return _cache(_ls(conn))
                 except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
                     if pool.protocol == "file":
-                        # Local dir doesn't exist — cache the miss silently.
-                        return _cache([])
-                    logger.debug(f"Stale connection for {hostname}, reconnecting: {e}")
+                        # Local dir doesn't exist — not a transient failure, no retry.
+                        return []
+                    logger.debug("Stale connection for %s, reconnecting: %s", hostname, e)
                     fresh = pool.replace_connection(conn)
                     if fresh is None:
-                        return _cache([])
+                        return []
                     try:
                         return _cache(_ls(fresh))
                     except Exception as e2:
-                        logger.error(
-                            f"Retry failed listing {directory} on {hostname}: {e2}"
-                        )
-                        return _cache([])
+                        logger.warning("Retry failed listing %s on %s: %s", directory, hostname, e2)
+                        return []
                 except Exception as e:
-                    logger.error(f"Error listing {directory} on {hostname}: {e}")
-                    return _cache([])
+                    logger.warning("Error listing %s on %s: %s", directory, hostname, e)
+                    return []
         except ConnectionError:
             # Pool failed to initialise (e.g. FTP host unreachable).
-            return _cache([])
+            return []
 
-    def download_file(
-        self, hostname: str, remote_path: str, target_dir: str
-    ) -> Optional[Path]:
+    def get_file_size(self, hostname: str, remote_path: str) -> int | None:
+        """Return the size of a remote file in bytes, or ``None`` if unavailable.
+
+        Uses ``fsspec.info()`` which is a metadata-only call — no data is
+        transferred.  Returns ``None`` on any error so callers can treat an
+        unknown size as "proceed with download".
+
+        Args:
+            hostname: Server address.
+            remote_path: Relative path on the remote host.
+
+        Returns:
+            File size in bytes, or ``None`` if the size cannot be determined.
+        """
+        pool = self._pools.get(hostname)
+        if pool is None:
+            return None
+
+        full_path = pool.full_path(remote_path)
+        try:
+            with pool.get_connection() as conn:
+                info = conn.info(full_path)
+                return info.get("size")
+        except Exception as e:
+            logger.debug("Could not get file size for %s/%s: %s", hostname, remote_path, e)
+            return None
+
+    def download_file(self, hostname: str, remote_path: str, target_dir: str) -> Path | None:
         """Download a file from a remote or local host.
 
         Retries once with a fresh connection on broken-pipe errors.
@@ -293,11 +336,11 @@ class ConnectionPoolFactory:
         filename = Path(remote_path).name
         local_path = Path(target_dir) / filename
 
-        def _get(conn: "fsspec.AbstractFileSystem") -> Optional[Path]:
+        def _get(conn: "fsspec.AbstractFileSystem") -> Path | None:
             conn.get(full_path, str(local_path))
             if local_path.exists() and local_path.stat().st_size > 0:
                 return local_path
-            logger.error(f"Downloaded file is missing or empty: {local_path}")
+            logger.error("Downloaded file is missing or empty: %s", local_path)
             local_path.unlink(missing_ok=True)
             return None
 
@@ -305,17 +348,20 @@ class ConnectionPoolFactory:
             try:
                 return _get(conn)
             except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
-                logger.debug(f"Stale connection for {hostname}, reconnecting: {e}")
+                logger.debug("Stale connection for %s, reconnecting: %s", hostname, e)
                 fresh = pool.replace_connection(conn)
                 if fresh is None:
                     return None
                 try:
                     return _get(fresh)
                 except Exception as e2:
-                    logger.error(
-                        f"Retry failed downloading {remote_path} from {hostname}: {e2}"
+                    logger.warning(
+                        "Retry failed downloading %s from %s: %s",
+                        remote_path,
+                        hostname,
+                        e2,
                     )
                     return None
             except Exception as e:
-                logger.error(f"Download failed {remote_path} from {hostname}: {e}")
+                logger.warning("Download failed %s from %s: %s", remote_path, hostname, e)
                 return None

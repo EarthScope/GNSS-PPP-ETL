@@ -21,7 +21,6 @@ from __future__ import annotations
 import datetime
 from enum import Enum
 
-
 # GPS epoch used for GPS-week calculations.
 GNSS_START_TIME = datetime.datetime(1980, 1, 6, tzinfo=datetime.timezone.utc)
 

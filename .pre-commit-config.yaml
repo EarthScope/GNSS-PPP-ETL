@@ -1,6 +1,35 @@
 repos:
   - repo: local
     hooks:
+      - id: trailing-whitespace
+        name: trailing whitespace
+        entry: uv run trailing-whitespace-fixer
+        language: system
+        types: [text]
+
+      - id: end-of-file-fixer
+        name: end of file fixer
+        entry: uv run end-of-file-fixer
+        language: system
+        types: [text]
+
+      - id: check-yaml
+        name: check yaml
+        entry: uv run check-yaml
+        language: system
+        types: [yaml]
+
+      - id: check-toml
+        name: check toml
+        entry: uv run check-toml
+        language: system
+        types: [toml]
+
+      - id: ruff-check
+        name: ruff lint
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
 
       - id: ruff-format
         name: ruff format
