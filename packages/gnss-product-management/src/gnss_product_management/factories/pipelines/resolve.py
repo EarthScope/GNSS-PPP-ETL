@@ -18,7 +18,6 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
-from gnss_product_management.client.product_query import ProductQuery
 from gnss_product_management.environments import ProductRegistry, WorkSpace
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.pipelines.download import DownloadPipeline
@@ -67,6 +66,8 @@ class ResolvePipeline:
         max_connections: int = 4,
         transport: WormHole | None = None,
     ) -> None:
+        from gnss_product_management.client.product_query import ProductQuery
+
         self._env = env
         self._workspace = workspace
         transport = transport or WormHole(max_connections=max_connections, product_registry=env)

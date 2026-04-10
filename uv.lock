@@ -761,6 +761,9 @@ dev = [
     { name = "pre-commit-hooks" },
     { name = "ruff" },
 ]
+test = [
+    { name = "pytest" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -775,6 +778,7 @@ dev = [
     { name = "pre-commit-hooks", specifier = ">=4.6.0" },
     { name = "ruff", specifier = ">=0.15.8" },
 ]
+test = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]
 name = "gnss-product-management"

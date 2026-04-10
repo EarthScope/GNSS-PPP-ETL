@@ -23,6 +23,9 @@ dev = [
     "pre-commit-hooks>=4.6.0",
     "ruff>=0.15.8",
 ]
+test = [
+  "pytest>=8",
+]
 
 [tool.ruff]
 target-version = "py310"
