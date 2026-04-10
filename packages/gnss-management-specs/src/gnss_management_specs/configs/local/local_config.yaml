@@ -36,7 +36,7 @@ name: local_config
 description: >
   Local storage configuration for organizing downloaded GNSS products on disk.
   Defines directory structure and naming conventions for products, as well as metadata for each product type.
-  
+
 collections:
 
   # ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ collections:
       - RINEX_NAV
       - RINEX_MET
       - RINEX_OBS
- 
+
   # ---------------------------------------------------------------------------
   # Common / shared products
   # ---------------------------------------------------------------------------

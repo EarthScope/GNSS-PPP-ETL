@@ -1,15 +1,15 @@
 """Resolve GNSS products for RINEX files and run PRIDE-PPPAR processing."""
 
 import logging
-from pathlib import Path
 import time
+from pathlib import Path
+
+from pride_ppp import PrideProcessor, ProcessingMode
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(levelname)-8s %(name)s — %(message)s",
 )
-
-from pride_ppp import PrideProcessor, ProcessingMode
 
 pride_dir = Path("/Volumes/DunbarSSD/Project/SeafloorGeodesy/SFGMain/Pride")
 output_dir = Path(

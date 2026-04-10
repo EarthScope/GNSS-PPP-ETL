@@ -4,21 +4,21 @@ Environments — setup and configuration for product resolution.
 
 Provides the two core configuration objects:
 
-- :class:`ProductEnvironment` — loads YAML specs and builds the full catalog
-  chain (parameters → formats → products → remote resource factory).
+- :class:`ProductRegistry` — loads YAML specs and builds the full catalog
+  chain (parameters → formats → products → remote search planner).
 - :class:`WorkSpace` — registers local storage directories and maps them
   to :class:`LocalResourceSpec` layouts.
 """
 
-from gnss_product_management.environments.environment import ProductEnvironment
+from gnss_product_management.environments.environment import ProductRegistry
 from gnss_product_management.environments.workspace import (
-    WorkSpace,
     RegisteredLocalResource,
+    WorkSpace,
     paths_overlap,
 )
 
 __all__ = [
-    "ProductEnvironment",
+    "ProductRegistry",
     "WorkSpace",
     "RegisteredLocalResource",
     "paths_overlap",

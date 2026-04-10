@@ -4,19 +4,17 @@ ProductSpec and ProductCatalog — resolve product specs against FormatCatalog.
 """
 
 import re
-from typing import List, Optional
-
-from pydantic import BaseModel, Field
 
 from gnss_product_management.specifications.catalog import Catalog
+from gnss_product_management.specifications.format.format_spec import FormatCatalog
 from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.products.product import (
+    PathTemplate,
     Product,
-    ProductPath,
     VariantCatalog,
     VersionCatalog,
 )
-from gnss_product_management.specifications.format.format_spec import FormatCatalog
+from pydantic import BaseModel, Field
 
 
 class ProductSpec(BaseModel):
@@ -26,8 +24,8 @@ class ProductSpec(BaseModel):
     format: str
     version: str
     variant: str
-    parameters: Optional[List[Parameter]] = Field(default_factory=list)
-    filename: Optional[str] = Field(
+    parameters: list[Parameter] | None = Field(default_factory=list)
+    filename: str | None = Field(
         default=None,
         description="Product-level filename override (takes precedence over format filename).",
     )
@@ -43,27 +41,23 @@ class ProductSpec(BaseModel):
             product-spec overrides.
         """
         format_spec: Product = (
-            format_catalog.formats[self.format]
-            .versions[self.version]
-            .variants[self.variant]
+            format_catalog.formats[self.format].versions[self.version].variants[self.variant]
         )
 
         # Start with ALL format parameters, then overlay product spec overrides
-        resolved_parameters = {
-            p.name: p.model_copy(deep=True) for p in format_spec.parameters
-        }
+        resolved_parameters = {p.name: p.model_copy(deep=True) for p in format_spec.parameters}
         for param in self.parameters:
             if param.name in resolved_parameters:
-                resolved_parameters[param.name] = resolved_parameters[
-                    param.name
-                ].model_copy(update=param.model_dump(exclude_none=True), deep=True)
+                resolved_parameters[param.name] = resolved_parameters[param.name].model_copy(
+                    update=param.model_dump(exclude_none=True), deep=True
+                )
             else:
                 resolved_parameters[param.name] = param
 
         update = {"name": self.name, "parameters": list(resolved_parameters.values())}
         # Product-level filename overrides the format filename
         if self.filename:
-            update["filename"] = ProductPath(pattern=self.filename)
+            update["filename"] = PathTemplate(pattern=self.filename)
 
         return format_spec.model_copy(
             update=update,
@@ -89,7 +83,7 @@ class ProductSpecCatalog(BaseModel):
         """
         import yaml
 
-        with open(path, "r") as f:
+        with open(path) as f:
             data = yaml.safe_load(f)
         result = {}
         for prod_name, prod_data in data.get("products", {}).items():
@@ -146,13 +140,9 @@ class ProductSpecCatalog(BaseModel):
                     if name not in merged:
                         merged[name] = VersionCatalog(versions={})
                     if version_name not in merged[name].versions:
-                        merged[name].versions[version_name] = VariantCatalog(
-                            variants={}
-                        )
+                        merged[name].versions[version_name] = VariantCatalog(variants={})
                     merged[name].versions[version_name].variants[variant_name] = prod
-        return ProductSpecCatalog(
-            products={k: v.model_dump() for k, v in merged.items()}
-        )
+        return ProductSpecCatalog(products={k: v.model_dump() for k, v in merged.items()})
 
 
 class ProductCatalog(Catalog):
@@ -185,9 +175,7 @@ class ProductCatalog(Catalog):
                 variants = {}
                 for variant_name, product_spec in version_spec.variants.items():
                     product: Product = product_spec.materialize(format_catalog)
-                    if hasattr(product, "filename") and hasattr(
-                        product.filename, "derive"
-                    ):
+                    if hasattr(product, "filename") and hasattr(product.filename, "derive"):
                         product.filename.derive(product.parameters)
                     variants[variant_name] = product
                 versions[version_name] = VariantCatalog(variants=variants)
@@ -221,8 +209,6 @@ class ProductCatalog(Catalog):
                     if name not in merged:
                         merged[name] = VersionCatalog(versions={})
                     if version_name not in merged[name].versions:
-                        merged[name].versions[version_name] = VariantCatalog(
-                            variants={}
-                        )
+                        merged[name].versions[version_name] = VariantCatalog(variants={})
                     merged[name].versions[version_name].variants[variant_name] = prod
         return ProductCatalog(products={k: v.model_dump() for k, v in merged.items()})

@@ -6,11 +6,11 @@ Pure Pydantic models for local storage specifications.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
 
-from pydantic import BaseModel, Field
 import yaml
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ class LocalCollection(BaseModel):
     """A group of product specs sharing a directory template."""
 
     directory: str
-    description: Optional[str] = None
-    items: List = Field(default_factory=list)
+    description: str | None = None
+    items: list = Field(default_factory=list)
 
 
 class LocalResourceSpec(BaseModel):
@@ -33,12 +33,12 @@ class LocalResourceSpec(BaseModel):
     """
 
     name: str = "default"
-    description: Optional[str] = None
-    collections: Dict[str, LocalCollection] = Field(default_factory=dict)
-    source_file: Optional[Path] = None
+    description: str | None = None
+    collections: dict[str, LocalCollection] = Field(default_factory=dict)
+    source_file: Path | None = None
 
     @classmethod
-    def from_yaml(cls, path: Union[str, Path]) -> "LocalResourceSpec":
+    def from_yaml(cls, path: str | Path) -> LocalResourceSpec:
         """Load from a YAML file.
 
         Accepts either a top-level ``local:`` wrapper or a flat file
@@ -58,7 +58,7 @@ class LocalResourceSpec(BaseModel):
         return class_instance
 
     @classmethod
-    def merge(cls, specs: Sequence["LocalResourceSpec"]) -> "LocalResourceSpec":
+    def merge(cls, specs: Sequence[LocalResourceSpec]) -> LocalResourceSpec:
         """Merge multiple local storage specs into one.
 
         Later specs override collections with the same name.  Items
@@ -70,7 +70,7 @@ class LocalResourceSpec(BaseModel):
         Returns:
             A new :class:`LocalResourceSpec` with combined collections.
         """
-        merged_collections: Dict[str, LocalCollection] = {}
+        merged_collections: dict[str, LocalCollection] = {}
         name = "_".join(spec.name for spec in specs)
         for spec in specs:
             for coll_name, coll in spec.collections.items():

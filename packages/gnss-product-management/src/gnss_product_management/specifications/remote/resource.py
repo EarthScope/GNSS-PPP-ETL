@@ -1,17 +1,18 @@
 """Author: Franklyn Dunbar
 
-Server, ResourceSpec, ResourceQuery — remote resource models (Layer 1).
+Server, ResourceSpec, SearchTarget — remote resource models (Layer 1).
 """
 
 from pathlib import Path
-from typing import List, Optional, Union
 
-from pydantic import BaseModel
-
-from gnss_product_management.specifications.parameters.parameter import Parameter
-from gnss_product_management.specifications.products.product import Product, ProductPath
-from gnss_product_management.utilities.helpers import _PassthroughDict
 import yaml
+from gnss_product_management.specifications.parameters.parameter import Parameter
+from gnss_product_management.specifications.products.product import (
+    PathTemplate,
+    Product,
+)
+from gnss_product_management.utilities.helpers import _PassthroughDict
+from pydantic import BaseModel
 
 
 class Server(BaseModel):
@@ -27,9 +28,9 @@ class Server(BaseModel):
 
     id: str
     hostname: str
-    protocol: Optional[str] = None
-    auth_required: Optional[bool] = False
-    description: Optional[str] = None
+    protocol: str | None = None
+    auth_required: bool | None = False
+    description: str | None = None
 
 
 class ResourceProductSpec(BaseModel):
@@ -52,10 +53,10 @@ class ResourceProductSpec(BaseModel):
     server_id: str
     available: bool = True
     product_name: str
-    product_version: Optional[List[str] | str] = None
-    description: Optional[str] = None
-    parameters: List[Parameter]
-    directory: ProductPath
+    product_version: list[str] | str | None = None
+    description: str | None = None
+    parameters: list[Parameter]
+    directory: PathTemplate
 
 
 class ResourceSpec(BaseModel):
@@ -72,13 +73,13 @@ class ResourceSpec(BaseModel):
 
     id: str
     name: str
-    description: Optional[str] = None
-    website: Optional[str] = None
-    servers: List[Server] = []
-    products: List[ResourceProductSpec] = []
+    description: str | None = None
+    website: str | None = None
+    servers: list[Server] = []
+    products: list[ResourceProductSpec] = []
 
     @classmethod
-    def from_yaml(cls, path: Union[str, Path]) -> "ResourceSpec":
+    def from_yaml(cls, path: str | Path) -> "ResourceSpec":
         """Load a resource specification from a YAML file.
 
         Args:
@@ -92,7 +93,7 @@ class ResourceSpec(BaseModel):
         return cls.model_validate(raw)
 
 
-class ResourceQuery(BaseModel):
+class SearchTarget(BaseModel):
     """A single concrete query target — one combination of parameter values.
 
     Attributes:
@@ -103,9 +104,9 @@ class ResourceQuery(BaseModel):
 
     product: Product
     server: Server
-    directory: ProductPath
+    directory: PathTemplate
 
-    def narrow(self) -> "ResourceQuery":
+    def narrow(self) -> "SearchTarget":
         """Substitute already-known parameter values into directory/filename patterns.
 
         Returns:
@@ -118,13 +119,11 @@ class ResourceQuery(BaseModel):
             self.product = self.product.model_copy(
                 deep=True,
                 update={
-                    "filename": ProductPath(
+                    "filename": PathTemplate(
                         pattern=self.product.filename.pattern.format_map(format_dict)
                     )
                 },
             )
-        self.directory = ProductPath(
-            pattern=self.directory.pattern.format_map(format_dict)
-        )
+        self.directory = PathTemplate(pattern=self.directory.pattern.format_map(format_dict))
 
         return self

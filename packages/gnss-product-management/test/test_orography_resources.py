@@ -1,5 +1,5 @@
 """
-Tests: Orography grid products via QueryFactory.
+Tests: Orography grid products via SearchPlanner.
 
 Products: OROGRAPHY
 Centers : VMF / TU Wien (HTTPS)
@@ -9,17 +9,12 @@ from __future__ import annotations
 
 import pytest
 
-
 pytestmark = pytest.mark.integration
 
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [
-        q
-        for q in queries
-        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-    ]
+    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -28,10 +23,10 @@ def _search_remote(qf, fetcher, date, product_name, parameters=None):
 
 
 def _assert_found(results, product_name, min_matches=1):
-    found = [r for r in results if r.found]
+    found = [r for r in results if r.product.filename and r.product.filename.value]
     assert len(found) >= min_matches, (
-        f"{product_name}: expected >= {min_matches} found, got {len(found)}. "
-        f"Errors: {[r.error for r in results if r.error]}"
+        f"{product_name}: expected >= {min_matches} found, got {len(found)} "
+        f"out of {len(results)} results."
     )
     return found
 

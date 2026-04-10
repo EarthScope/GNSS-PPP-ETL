@@ -2,7 +2,7 @@
 
 ## Observation configuration
 Frequency combination  = Default
-Interval               = Default 
+Interval               = Default
 Time window            = 0.01
 Session time           = -YYYY- -MM- -DD- -HH- -MI- -SS- -SE-
 Table directory        = Default

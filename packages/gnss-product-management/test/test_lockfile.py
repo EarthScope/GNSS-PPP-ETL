@@ -11,15 +11,14 @@ import datetime
 from pathlib import Path
 
 import pytest
-
 from gnss_product_management.lockfile import (
     DependencyLockFile,
-    LockProduct,
-    LockfileManager,
     HashMismatchMode,
+    LockfileManager,
+    LockProduct,
     build_lock_product,
-    get_dependency_lockfile_name,
     get_dependency_lockfile,
+    get_dependency_lockfile_name,
     get_lock_product,
     get_package_version,
     validate_lock_product,
@@ -115,9 +114,7 @@ class TestDependencyLockFileModel:
 class TestLockfileNaming:
     def test_filename_no_station(self) -> None:
         """Filename should NOT contain a station prefix."""
-        name = get_dependency_lockfile_name(
-            package=PKG, task=TASK, date=TEST_DATE, version="0.1.0"
-        )
+        name = get_dependency_lockfile_name(package=PKG, task=TASK, date=TEST_DATE, version="0.1.0")
         assert name == "PRIDE_PPP_2025_015_0.1.0_lock.json"
 
     def test_filename_default_version(self) -> None:
@@ -133,9 +130,7 @@ class TestLockfileNaming:
 
     def test_invalid_date_raises(self) -> None:
         with pytest.raises(ValueError):
-            get_dependency_lockfile_name(
-                package=PKG, task=TASK, date="not-a-date", version="0.1.0"
-            )
+            get_dependency_lockfile_name(package=PKG, task=TASK, date="not-a-date", version="0.1.0")
 
 
 # ===================================================================

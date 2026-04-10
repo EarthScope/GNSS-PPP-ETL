@@ -8,7 +8,7 @@ and merge RINEX 2 broadcast ephemerides into RINEX 3 BRDM format.
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import IO, Optional, Tuple
+from typing import IO
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def epoch_get_time(line: str) -> datetime:
     )
 
 
-def rinex_get_time_range(source: str | Path) -> Tuple[datetime, datetime]:
+def rinex_get_time_range(source: str | Path) -> tuple[datetime, datetime]:
     """
     Extract the time range from a RINEX observation file.
 
@@ -256,8 +256,13 @@ def merge_broadcast_files(
     brdn: Path,
     brdg: Path,
     output_folder: Path,
-) -> Optional[Path]:
+) -> Path | None:
     """Merge GPS and GLONASS RINEX 2 broadcast files into a RINEX 3 BRDM file.
+
+    Both input files must have matching day-of-year (characters 4–6) and
+    year (characters 9–10) in their filenames — e.g. ``brdn0200.25n`` and
+    ``brdg0200.25g``.  A mismatch causes the function to return ``None``
+    with an error log.
 
     Inspired by ``PrideLab/PRIDE-PPPAR/scripts/merge2brdm.py``.
 
@@ -274,16 +279,13 @@ def merge_broadcast_files(
     ddd = brdn.name[4:7]
     yy = brdn.name[9:11]
     if brdg.name[4:7] != ddd or brdg.name[9:11] != yy:
-        logger.error(
-            "Inconsistent file names: %s vs %s (DOY or year mismatch)", brdn, brdg
-        )
+        logger.error("Inconsistent file names: %s vs %s (DOY or year mismatch)", brdn, brdg)
         return None
 
     brdm = output_folder / f"brdm{ddd}0.{yy}p"
     with open(brdm, "w") as fm:
         fm.write(
-            "     3.04           NAVIGATION DATA     "
-            "M (Mixed)           RINEX VERSION / TYPE\n"
+            "     3.04           NAVIGATION DATA     M (Mixed)           RINEX VERSION / TYPE\n"
         )
         _write_brdn(brdn, "G", fm)
         _write_brdg(brdg, "R", fm)

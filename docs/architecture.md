@@ -8,11 +8,11 @@
 
 | Boundary | Direction | Modules | Operations |
 |---|---|---|---|
-| **Network** (FTP/FTPS) | Outbound | `server/ftp.py` | List directories, download files |
-| **Network** (HTTP/HTTPS) | Outbound | `server/http.py` | List directories (HTML parsing), download files |
-| **Filesystem** (bundled configs) | Read | `configs/` | Load YAML specs at startup |
-| **Filesystem** (user workspace) | Read/Write | `LocalResourceFactory`, `DependencyResolver` | Search/store product files |
-| **User input** | Inbound | `ProductEnvironment`, `QueryFactory`, `DependencyResolver` | Date, product name, constraints |
+| **Network** (FTP/FTPS) | Outbound | `server/ftp.py`, `ConnectionPoolFactory` | List directories, download files |
+| **Network** (HTTP/HTTPS) | Outbound | `server/http.py`, `ConnectionPoolFactory` | List directories (HTML parsing), download files |
+| **Filesystem** (bundled configs) | Read | `gnss-management-specs` package | Load YAML specs at startup |
+| **Filesystem / Cloud** (user workspace) | Read/Write | `WorkSpace`, `LockfileManager` | Search/store product files (local paths or `s3://` URIs) |
+| **User input** | Inbound | `GNSSClient`, `ProductQuery` | Date, product name, constraints |
 
 ---
 
@@ -21,37 +21,32 @@
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Layer 4: INTERFACE                                          │
-│  ProductEnvironment — unified entry point                    │
-│  (factories/environment.py, factories/models.py)             │
+│  GNSSClient, ProductQuery — user-facing entry point          │
+│  ProductRegistry, WorkSpace — environment setup              │
+│  (client/, environments/)                                    │
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 3: ORCHESTRATION                                      │
-│  QueryFactory, DependencyResolver, ResourceFetcher           │
-│  (factories/query_factory.py, resource_fetcher.py,           │
-│   specifications/dependencies/dependency_resolver.py)        │
+│  SearchPlanner, WormHole, ConnectionPoolFactory,             │
+│  LockfileManager                                             │
+│  Pipelines: DownloadPipeline, LockfileWriter,                │
+│             ResolvePipeline                                  │
+│  (factories/)                                                │
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 2: CATALOG (Resolution + Registry)                    │
 │  FormatCatalog, ProductCatalog, ResourceCatalog,             │
-│  RemoteResourceFactory, LocalResourceFactory                 │
-│  (specifications/format/format_spec.py,                      │
-│   specifications/products/catalog.py,                        │
-│   specifications/remote/resource.py,                         │
-│   factories/remote_factory.py,                               │
-│   specifications/local/factory.py)                           │
+│  RemoteSearchPlanner, SourcePlanner (Protocol)               │
+│  (specifications/format/, specifications/products/,          │
+│   specifications/remote/, factories/remote_search_planner.py)│
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 1: SPECIFICATION (Data Models + YAML Loading)         │
-│  ParameterCatalog, FormatSpec, ProductSpec, ResourceSpec,     │
-│  LocalResourceSpec, DependencySpec, AxisDef                  │
-│  (specifications/parameters/, specifications/format/spec.py, │
-│   specifications/products/product.py,                        │
-│   specifications/remote/resource.py,                         │
-│   specifications/local/local.py,                             │
-│   specifications/dependencies/dependencies.py,               │
-│   specifications/queries/query.py)                           │
+│  ParameterCatalog, FormatSpec, ProductSpec, SearchTarget,    │
+│  LocalResourceSpec, DependencySpec, LockProduct              │
+│  (specifications/, lockfile/models.py)                       │
 ├──────────────────────────────────────────────────────────────┤
 │  Layer 0: CONFIGURATION (Static Data + I/O Adapters)         │
-│  Bundled YAML files, path constants, protocol handlers       │
-│  (configs/, server/ftp.py, server/http.py,                   │
-│   utilities/helpers.py, utilities/metadata_funcs.py)         │
+│  Bundled YAML files, DirectoryAdapter implementations,       │
+│  as_path(), hash_file(), decompress_gzip()                   │
+│  (server/, utilities/, gnss-management-specs)                │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,24 +68,20 @@ Layer 4 → Layer 3 → Layer 2 → Layer 1 → Layer 0
 
 | Module | Concern | Boundary |
 |---|---|---|
-| `configs/__init__.py` | Path constants (META_SPEC_YAML, PRODUCT_SPEC_YAML, etc.) | Filesystem (package resources) |
-| `configs/meta/` | Parameter definitions YAML | — |
-| `configs/products/` | Format + product spec YAML | — |
-| `configs/centers/` | Remote center spec YAML | — |
-| `configs/local/` | Local storage spec YAML | — |
-| `configs/dependencies/` | Dependency spec YAML | — |
-| `configs/query/` | Query axis spec YAML | — |
+| `gnss-management-specs` | Path constants (META_SPEC_YAML, etc.) and all bundled YAML files | Filesystem (package resources) |
 | `server/protocol.py` | `DirectoryAdapter` Protocol interface | — |
-| `server/ftp.py` | FTP/FTPS protocol adapter + `FTPAdapter` | Network |
-| `server/http.py` | HTTP/HTTPS protocol adapter + `HTTPAdapter` | Network |
-| `server/local.py` | Local filesystem adapter + `LocalAdapter` | Filesystem |
-| `utilities/helpers.py` | `_PassthroughDict`, `_listify`, `expand_dict_combinations` | — |
+| `server/ftp.py` | FTP/FTPS protocol adapter (`FTPAdapter`) | Network |
+| `server/http.py` | HTTP/HTTPS protocol adapter (`HTTPAdapter`) | Network |
+| `server/local.py` | Local filesystem adapter (`LocalAdapter`) | Filesystem |
+| `utilities/helpers.py` | `hash_file`, `decompress_gzip`, `_PassthroughDict`, `_listify`, `expand_dict_combinations`, `_ensure_datetime` | — |
 | `utilities/metadata_funcs.py` | Computed field registration (DDD, GPSWEEK, etc.) | — |
+| `utilities/paths.py` | `as_path(uri) -> Path \| CloudPath`, `AnyPath` type alias | — |
 
 ### Abstractions
 
-- **DirectoryAdapter** (`server/protocol.py`): `typing.Protocol` defining `can_connect()`, `list_directory()`, `download_file()`. Implemented by `FTPAdapter`, `HTTPAdapter`, `LocalAdapter`.
-- **Config Paths**: Constants provide stable entry points for YAML loading.
+- **`DirectoryAdapter`** (`server/protocol.py`): `typing.Protocol` defining `can_connect()`, `list_directory()`, `download_file()`. Implemented by `FTPAdapter`, `HTTPAdapter`, `LocalAdapter`.
+- **`as_path(uri)`** (`utilities/paths.py`): Single dispatch point for path construction. Returns `cloudpathlib.CloudPath` for `s3://`, `gs://`, `az://` URIs and `pathlib.Path` for everything else. All filesystem operations throughout the package flow through this helper.
+- **`AnyPath`**: `Union[Path, CloudPath]` type alias used in signatures throughout layers 2–4.
 
 ### Key Rule
 Layer 0 must not import from any other layer. Protocol adapters operate on primitive types (strings, paths), not domain models.
@@ -113,31 +104,33 @@ Layer 0 must not import from any other layer. Protocol adapters operate on primi
 | `FormatSpecCatalog` | `specifications/format/format_spec.py` | Loaded format specs from YAML |
 | `FormatRegistry` | `specifications/format/format_catalog.py` | Read-only lookup of raw format specs |
 | `Product` | `specifications/products/product.py` | Concrete product: name, parameters, directory/filename templates |
-| `ProductPath` | `specifications/products/product.py` | Template string with `{PARAM}` placeholders |
+| `PathTemplate` | `specifications/products/product.py` | Template string with `{PARAM}` placeholders + resolved value |
 | `VariantCatalog[T]` | `specifications/products/product.py` | Generic: variant name → T |
 | `VersionCatalog[T]` | `specifications/products/product.py` | Generic: version name → VariantCatalog[T] |
 | `ProductSpec` | `specifications/products/catalog.py` | Abstract binding: product name + format ref + parameter overrides |
 | `ProductSpecCatalog` | `specifications/products/catalog.py` | Loaded product specs from YAML |
 | `Server` | `specifications/remote/resource.py` | Server endpoint (hostname, protocol, auth) |
-| `ResourceProductSpec` | `specifications/remote/resource.py` | Product offering at a center (product_name, parameters, directory) |
 | `ResourceSpec` | `specifications/remote/resource.py` | Root center spec: servers + product offerings |
-| `ResourceQuery` | `specifications/remote/resource.py` | Concrete query target: product + server + directory |
+| `SearchTarget` | `specifications/remote/resource.py` | Concrete query target: product + server + directory + filename |
+| `ResourceCatalog` | `specifications/remote/resource_catalog.py` | Resolved SearchTargets per center |
 | `LocalCollection` | `specifications/local/local.py` | Group of product specs sharing a directory template |
 | `LocalResourceSpec` | `specifications/local/local.py` | Root local storage spec |
 | `Dependency` | `specifications/dependencies/dependencies.py` | Single product dependency (spec name, required, constraints) |
-| `SearchPreference` | `specifications/dependencies/dependencies.py` | Sort preference for a search axis |
-| `DependencySpec` | `specifications/dependencies/dependencies.py` | Full dependency declaration for a task |
-| `ResolvedDependency` | `specifications/dependencies/dependencies.py` | Resolution result (status, path, URL) |
-| `DependencyResolution` | `specifications/dependencies/dependencies.py` | Aggregated resolution results |
-| `AxisDef` | `specifications/queries/query.py` | Global search axis definition |
-| `ProductQueryProfile` | `specifications/queries/query.py` | Per-product query configuration |
+| `SearchPreference` | `specifications/dependencies/dependencies.py` | Sort preference for a dependency resolution pass |
+| `DependencySpec` | `specifications/dependencies/dependencies.py` | Full dependency declaration for a processing task |
+| `ResolvedDependency` | `specifications/dependencies/dependencies.py` | Resolution result (status, URI string, remote URL) |
+| `DependencyResolution` | `specifications/dependencies/dependencies.py` | Aggregated results for all dependencies in a spec |
+| `LockProduct` | `lockfile/models.py` | Per-file lock entry (hash, size, source URL, sink URI) |
+| `DependencyLockFile` | `lockfile/models.py` | Aggregate lockfile for one processing day |
 
 ### Interfaces
 
-Each spec type exposes a `from_yaml(path) -> Self` classmethod for loading. All models are Pydantic BaseModel subclasses exposing standard `.model_dump()`, `.model_validate()`, `.model_copy()`.
+Each spec type exposes a `from_yaml(path) -> Self` classmethod for loading. All models are Pydantic `BaseModel` subclasses.
+
+`ResolvedDependency.local_path` is a `str` URI — pass it through `as_path()` to get a filesystem object for I/O.
 
 ### Key Rule
-Layer 1 models are **declarative data**. They define *what exists*, not how to build or query it. The `from_yaml()` classmethods are the only I/O allowed (reading config files).
+Layer 1 models are **declarative data**. They define *what exists*, not how to build or query it.
 
 ---
 
@@ -150,124 +143,169 @@ Layer 1 models are **declarative data**. They define *what exists*, not how to b
 | Abstraction | Module | Input → Output |
 |---|---|---|
 | `Catalog` (ABC) | `specifications/catalog.py` | Base class enforcing `@classmethod resolve()` on all catalogs |
-| `ResourceFactory` (Protocol) | `factories/resource_factory.py` | Shared query-side interface for resource factories |
+| `SourcePlanner` (Protocol) | `factories/source_planner.py` | Shared interface: `resource_ids`, `source_product()` |
 | `FormatCatalog` | `specifications/format/format_spec.py` | FormatSpecCatalog + ParameterCatalog → resolved Products per format/version/variant |
 | `ProductCatalog` | `specifications/products/catalog.py` | ProductSpecCatalog + FormatCatalog → resolved Products per product/version/variant |
-| `ResourceCatalog` | `specifications/remote/resource_catalog.py` | ResourceSpec + ProductCatalog → expanded ResourceQuery list |
-| `RemoteResourceFactory` | `factories/remote_factory.py` | Registry of ResourceCatalogs per center; satisfies `ResourceFactory` |
-| `LocalResourceFactory` | `factories/local_factory.py` | Registry of local storage specs; satisfies `ResourceFactory` |
+| `ResourceCatalog` | `specifications/remote/resource_catalog.py` | ResourceSpec + ProductCatalog → expanded SearchTarget list |
+| `RemoteSearchPlanner` | `factories/remote_search_planner.py` | Registry of ResourceCatalogs per center; satisfies `SourcePlanner` |
 
 ### Resolution Chain
 
 ```
 ParameterCatalog ──┐
-                   ├──► FormatCatalog ──► ProductCatalog ──┬──► RemoteResourceFactory
-FormatSpecCatalog ─┘    ProductSpecCatalog ─┘              │        ↑ ResourceSpec[]
-                                                           └──► LocalResourceFactory
-                                                                    ↑ LocalResourceSpec[]
+                   ├──► FormatCatalog ──► ProductCatalog ──► ResourceCatalog
+FormatSpecCatalog ─┘    ProductSpecCatalog ─┘                   ↑ ResourceSpec[]
 ```
 
 ### Interfaces
-
-All three catalog classes inherit from `Catalog(BaseModel)` (in `specifications/catalog.py`), which enforces an abstract `@classmethod resolve()`. Concrete signatures:
 
 - `FormatCatalog.resolve(format_spec_catalog, parameter_catalog) -> FormatCatalog`
 - `ProductCatalog.resolve(product_spec_catalog, format_catalog) -> ProductCatalog`
 - `ResourceCatalog.resolve(resource_spec, product_catalog) -> ResourceCatalog`
 
-Both resource factories satisfy the `ResourceFactory(Protocol)` (in `factories/resource_factory.py`), which defines the query-side interface:
-
-- `resource_ids -> List[str]` — identifiers for all registered resources
-- `resolve_product(product, resource_id) -> List[ResourceQuery]` — resolve a product against a named resource
-
-`QueryFactory` depends only on the `ResourceFactory` Protocol, not on concrete factory classes.
-
-Factory registration is **not** part of the protocol (different spec types at setup time):
-
-- `RemoteResourceFactory.register(ResourceSpec) -> ResourceCatalog`
-- `LocalResourceFactory.register(LocalResourceSpec, base_dir)`
+`SearchPlanner` (Layer 3) consumes `ResourceCatalog` objects and satisfies the `SourcePlanner` Protocol:
+- `resource_ids -> List[str]`
+- `source_product(product, resource_id) -> List[SearchTarget]`
 
 ### Key Rule
 Catalogs are **immutable after construction**. Resolution happens once; the result is cached as data. No network I/O, no filesystem writes.
 
 ---
 
-## Layer 3: Orchestration (Query Building + Fetching + Resolution)
+## Layer 3: Orchestration (Query Building + Transport + Resolution)
 
-**Responsibility:** Combine catalogs with user constraints to build, execute, and resolve queries. This layer touches external boundaries (network, filesystem).
+**Responsibility:** Combine catalogs with user constraints to build, execute, and resolve queries. Touches external boundaries (network, filesystem, cloud storage).
 
 ### Modules & Key Abstractions
 
 | Abstraction | Module | Responsibility |
 |---|---|---|
-| `QueryFactory` | `factories/query_factory.py` | Lazy narrowing: date + product + constraints → List[ResourceQuery] |
-| `ResourceFetcher` | `factories/resource_fetcher.py` | Execute queries against remote servers (FTP/HTTP) |
-| `DependencyResolver` | `specifications/dependencies/dependency_resolver.py` | Two-phase local+remote resolution with preference cascade |
+| `SearchPlanner` | `factories/search_planner.py` | Date + product + constraints → `List[SearchTarget]` |
+| `WormHole` | `factories/remote_transport.py` | Directory listing + filename matching + file download |
+| `ConnectionPoolFactory` | `factories/connection_pool.py` | fsspec-backed connection pools per host (FTP, FTPS, HTTP, HTTPS, file) |
+| `LockfileManager` | `lockfile/manager.py` | Lockfile lifecycle: check, load, save |
+| `DownloadPipeline` | `factories/pipelines/download.py` | Pipeline: `FoundResource` → downloaded local/cloud path |
+| `LockfileWriter` | `factories/pipelines/lockfile_writer.py` | Pipeline: write sidecar + aggregate lockfiles |
+| `ResolvePipeline` | `factories/pipelines/resolve.py` | Pipeline: `DependencySpec` → `DependencyResolution` + lockfile |
 
 ### Data Flow
 
 ```
-User constraints (date, product, center, quality...)
+User constraints (date, product, parameters...)
         │
         ▼
-   QueryFactory
-   ├── Resolve product templates (via ProductCatalog)
-   ├── Compute date fields (via ParameterCatalog)
+   SearchPlanner
+   ├── Resolve product templates (ProductCatalog)
+   ├── Compute date fields (ParameterCatalog)
    ├── Narrow parameters (user constraints)
    ├── Expand combinations (cartesian product)
-   ├── Resolve local paths (via LocalResourceFactory)
-   └── Resolve remote queries (via RemoteResourceFactory)
+   ├── Local targets (LocalSearchPlanner.source_product)
+   └── Remote targets (RemoteSearchPlanner.source_product)
         │
         ▼
-   List[ResourceQuery]
+   List[SearchTarget]  (directory pattern + filename pattern)
         │
         ▼
-   ResourceFetcher
-   ├── List remote directories (via server/ftp.py, server/http.py)
-   ├── Match filenames against regex patterns
-   └── Optionally download matched files
+   WormHole
+   ├── Group by (hostname, directory)
+   ├── List directories in parallel (ConnectionPoolFactory)
+   ├── Match filename patterns (regex)
+   └── Optionally download (ConnectionPoolFactory.download_file)
         │
         ▼
-   List[FoundResource]
+   List[SearchTarget]  (filename.value populated)
 ```
+
+### Cloud / Local Filesystem Transparency
+
+`WorkSpace` and `LockfileManager` accept base directories as URI strings, dispatched through `as_path()`:
+
+- Local path: `/data/gnss` → `pathlib.Path`
+- S3 URI: `s3://bucket/gnss` → `cloudpathlib.S3Path`
+
+All path operations (`.exists()`, `.iterdir()`, `.read_text()`, `.write_text()`, `.mkdir()`, `/` operator) are identical across backends. The `LockfileManager` stores aggregate lockfiles at the resource's `base_dir / "dependency_lockfiles"`, enabling distributed workers to coordinate via shared cloud storage.
 
 ### Interfaces
 
-- `QueryFactory.get(date, product, parameters, ...) -> List[ResourceQuery]`
-- `ResourceFetcher.search(List[ResourceQuery]) -> List[FetchResult]`
-- `ResourceFetcher.download(List[FetchResult], local_factory, date)`
-- `DependencyResolver.resolve(date, download=False) -> DependencyResolution`
+- `SearchPlanner.get(date, product, parameters, ...) -> List[SearchTarget]`
+- `WormHole.search(List[SearchTarget]) -> List[SearchTarget]`  (one per matched file)
+- `WormHole.download_one(query, local_resource_id, local_factory, date) -> AnyPath | None`
+- `ResolvePipeline.run(spec, date, sink_id, ...) -> Tuple[DependencyResolution, AnyPath | None]`
+- `LockfileManager(lockfile_dir: str | Path | CloudPath)` — storage-agnostic
 
 ### Key Rule
-Orchestration modules coordinate between catalogs and I/O adapters. They **do not define** domain models — they consume them. Network/filesystem operations are delegated to Layer 0 adapters.
+Orchestration modules coordinate between catalogs and I/O adapters. They **do not define** domain models — they consume them. Network/filesystem operations are delegated to Layer 0 adapters or `cloudpathlib`.
 
 ---
 
 ## Layer 4: Interface (Entry Point)
 
-**Responsibility:** Provide a single, user-facing API that wires all layers together. Hide internal complexity.
+**Responsibility:** Provide user-facing APIs that wire all layers together. Hide internal complexity behind clean, fluent interfaces.
 
 ### Modules & Key Abstractions
 
 | Abstraction | Module | Responsibility |
 |---|---|---|
-| `ProductEnvironment` | `factories/environment.py` | Unified container: loads specs, builds catalogs, exposes factories |
-| `FoundResource` | `factories/models.py` | User-facing result type |
-| `Resolution` | `factories/models.py` | Aggregated resolution result |
-| `DiscoveryReport` | `factories/models.py` | Summary of available products |
+| `GNSSClient` | `client/gnss_client.py` | Primary entry point: search, download, resolve dependencies |
+| `ProductQuery` | `client/product_query.py` | Fluent query builder (`.for_product()`, `.on()`, `.where()`, `.sources()`, `.prefer()`, `.on_range()`) |
+| `FoundResource` | `factories/models.py` | User-facing search result (hostname, filename, parameters, local_path) |
+| `ProductRegistry` | `environments/environment.py` | Loads YAML specs, builds catalog chain, holds registered resource catalogs |
+| `WorkSpace` | `environments/workspace.py` | Registers local/cloud storage directories against `LocalResourceSpec` layouts |
+| `RegisteredLocalResource` | `environments/workspace.py` | Bound spec + `base_dir` URI (local path or cloud URI) + `base_path` property |
 
 ### Interfaces
 
-- `ProductEnvironment(workspace=path)` — Primary constructor (auto-loads bundled specs)
-- `ProductEnvironment.from_yaml(...)` — Explicit constructor
-- `.product_catalog` — Access resolved product catalog
-- `.remote_factory` — Access remote center registry
-- `.local_factory` — Access local storage factory
-- `.query_factory` — Access query builder
-- `.classify(filename) -> dict` — Identify a product from its filename
+```python
+# Construct from bundled defaults
+client = GNSSClient.from_defaults(base_dir="/data/gnss")          # local
+client = GNSSClient.from_defaults(base_dir="s3://bucket/gnss")   # S3
+
+# Fluent query builder
+results = (
+    client.query()
+          .for_product("ORBIT")
+          .on(date)
+          .where(TTT="FIN")
+          .sources("COD", "WUM")
+          .prefer(TTT=["FIN", "RAP"])
+          .search()
+)
+
+# Date-range query (searches each day in parallel)
+results = (
+    client.query()
+          .for_product("ORBIT")
+          .on_range(start_date, end_date)
+          .where(TTT="FIN")
+          .search()
+)
+
+# Download
+paths = client.download(results, sink_id="local")
+
+# Full dependency resolution
+resolution, lockfile_path = client.resolve_dependencies(dep_spec, date, sink_id="local")
+```
+
+For advanced use, construct manually:
+
+```python
+registry = ProductRegistry()
+registry.add_parameter_spec(META_SPEC_YAML)
+registry.add_format_spec(FORMAT_SPEC_YAML)
+registry.add_product_spec(PRODUCT_SPEC_YAML)
+registry.add_resource_spec(center_yaml)
+registry.build()
+
+workspace = WorkSpace()
+workspace.add_resource_spec(local_spec_yaml)
+workspace.register_spec(base_dir="s3://my-bucket/gnss", spec_ids=["local_config"])
+
+client = GNSSClient(env=registry, workspace=workspace)
+```
 
 ### Key Rule
-All user code should interact through `ProductEnvironment`. Internal layer details (catalogs, specs, factories) are implementation concerns.
+All standard user code should interact through `GNSSClient` or `ProductQuery`. `ProductRegistry` and `WorkSpace` are setup objects; the pipelines and planners are internal implementation details.
 
 ---
 
@@ -276,23 +314,23 @@ All user code should interact through `ProductEnvironment`. Internal layer detai
 ```
 Layer 0 (Configuration)         Layer 1 (Specification)
 ─────────────────────           ───────────────────────
-configs/__init__.py             Parameter
-server/ftp.py                   ParameterCatalog
-server/http.py                  FormatFieldDef
-utilities/helpers.py            FormatVersionSpec
-utilities/metadata_funcs.py     FormatSpec
-                                FormatSpecCatalog
-                                FormatRegistry
-                                Product
-                                ProductPath
-                                VariantCatalog[T]
+DirectoryAdapter (Protocol)     Parameter
+FTPAdapter                      ParameterCatalog
+HTTPAdapter                     FormatFieldDef
+LocalAdapter                    FormatVersionSpec
+as_path() / AnyPath             FormatSpec
+hash_file()                     FormatSpecCatalog
+decompress_gzip()               FormatRegistry
+_ensure_datetime()              Product
+register_computed_fields()      PathTemplate
+gnss-management-specs YAMLs     VariantCatalog[T]
                                 VersionCatalog[T]
                                 ProductSpec
                                 ProductSpecCatalog
                                 Server
-                                ResourceProductSpec
                                 ResourceSpec
-                                ResourceQuery
+                                SearchTarget
+                                ResourceCatalog
                                 LocalCollection
                                 LocalResourceSpec
                                 Dependency
@@ -300,22 +338,27 @@ utilities/metadata_funcs.py     FormatSpec
                                 DependencySpec
                                 ResolvedDependency
                                 DependencyResolution
+                                LockProduct
+                                DependencyLockFile
 
 Layer 2 (Catalog)               Layer 3 (Orchestration)
 ─────────────────               ───────────────────────
-Catalog (ABC base)              QueryFactory
-FormatCatalog                   ResourceFetcher
-ProductCatalog                  DependencyResolver
-ResourceCatalog
-RemoteResourceFactory
-LocalResourceFactory
+Catalog (ABC base)              SearchPlanner
+SourcePlanner (Protocol)        WormHole
+FormatCatalog                   ConnectionPoolFactory
+ProductCatalog                  LockfileManager
+ResourceCatalog                 DownloadPipeline
+                                LockfileWriter
+                                ResolvePipeline
 
 Layer 4 (Interface)
 ───────────────────
-ProductEnvironment
+GNSSClient
+ProductQuery
 FoundResource
-Resolution
-DiscoveryReport
+ProductRegistry
+WorkSpace
+RegisteredLocalResource
 ```
 
 ---
@@ -324,8 +367,8 @@ DiscoveryReport
 
 | Layer | Purpose | Depends On | Boundary |
 |---|---|---|---|
-| 0 — Configuration | Static data, I/O adapters, utilities | Nothing | Filesystem, Network |
+| 0 — Configuration | Static data, I/O adapters, path utilities | Nothing | Filesystem, Network, Cloud |
 | 1 — Specification | Domain models, YAML loading | Layer 0 | Filesystem (YAML reads) |
 | 2 — Catalog | Resolve specs → concrete objects, registries | Layer 1 | None (pure computation) |
-| 3 — Orchestration | Build queries, execute fetches, resolve deps | Layers 0, 1, 2 | Network, Filesystem |
-| 4 — Interface | User-facing API, container wiring | Layers 1, 2, 3 | User input |
+| 3 — Orchestration | Build queries, execute fetches, resolve deps, manage lockfiles | Layers 0, 1, 2 | Network, Filesystem, Cloud |
+| 4 — Interface | User-facing API, environment wiring | Layers 1, 2, 3 | User input |

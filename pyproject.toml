@@ -3,9 +3,10 @@ name = "gnss-ppp-etl"
 version = "0.1.0"
 requires-python = ">=3.10,<3.15"
 dependencies = [
+    "cloudpathlib>=0.23.0",
     "gnss-product-management>=0.1.0",
     "pride-ppp>=0.1.0",
-    "ruff>=0.15.8",
+    "pytest>=9.0.2",
 ]
 
 [tool.uv.sources]
@@ -20,4 +21,17 @@ members = ["packages/*"]
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.1",
+    "pre-commit-hooks>=4.6.0",
+    "ruff>=0.15.8",
 ]
+test = [
+  "pytest>=8",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]

@@ -1,14 +1,17 @@
 """Author: Franklyn Dunbar
 
-Public return types and exceptions for the ProductEnvironment API.
+Public return types and exceptions for the ProductRegistry API.
 """
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, PrivateAttr
+from gnss_product_management.utilities.paths import AnyPath
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 if TYPE_CHECKING:
     from gnss_product_management.lockfile import ProductLockfile
@@ -17,17 +20,33 @@ if TYPE_CHECKING:
 class FoundResource(BaseModel):
     """A discovered product resource — either a local file or a remote URI."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     product: str = Field(..., description="Product name (e.g. 'ORBIT', 'CLOCK').")
     source: str = Field(..., description="'local' or 'remote'.")
     uri: str = Field(..., description="Local file path or remote URL.")
-    center: str = Field("", description="Analysis center identifier (e.g. 'WUM').")
-    quality: str = Field("", description="Solution type (e.g. 'FIN', 'RAP', 'ULT').")
-    parameters: Dict[str, str] = Field(
+    parameters: dict[str, str] = Field(
         default_factory=dict, description="All resolved parameter values."
     )
+    date: datetime.datetime | None = Field(
+        default=None, description="Target date this resource was resolved for."
+    )
+    local_path: AnyPath | None = Field(
+        default=None, description="Local filesystem path after a successful download."
+    )
 
-    # Internal: original ResourceQuery, not serialized. Used by DownloadPipeline.
-    _query: Optional[object] = PrivateAttr(default=None)
+    # Internal: original SearchTarget, not serialized. Used by DownloadPipeline.
+    _query: object | None = PrivateAttr(default=None)
+
+    @property
+    def center(self) -> str:
+        """Analysis center identifier (e.g. ``'WUM'``), or ``''`` if not applicable."""
+        return self.parameters.get("AAA", "")
+
+    @property
+    def quality(self) -> str:
+        """Solution quality/type (e.g. ``'FIN'``, ``'RAP'``), or ``''`` if not applicable."""
+        return self.parameters.get("TTT", "")
 
     @property
     def is_local(self) -> bool:
@@ -35,21 +54,48 @@ class FoundResource(BaseModel):
         return self.source == "local"
 
     @property
-    def path(self) -> Optional[Path]:
+    def path(self) -> Path | None:
         """Return the local :class:`Path` if this is a local resource, else ``None``."""
         if self.is_local:
             return Path(self.uri)
         return None
+
+    @property
+    def hostname(self) -> str:
+        """Server hostname, or ``''`` for local resources."""
+        return "" if self.is_local else (urlparse(self.uri).hostname or "")
+
+    @property
+    def protocol(self) -> str:
+        """Transport protocol (e.g. ``'ftp'``, ``'https'``, ``'file'``)."""
+        return "file" if self.is_local else (urlparse(self.uri).scheme or "")
+
+    @property
+    def directory(self) -> str:
+        """Parent directory of the resource file."""
+        raw = self.uri if self.is_local else urlparse(self.uri).path
+        return str(Path(raw).parent)
+
+    @property
+    def filename(self) -> str:
+        """Filename (basename) of the resource."""
+        raw = self.uri if self.is_local else urlparse(self.uri).path
+        return Path(raw).name
+
+    @property
+    def downloaded(self) -> bool:
+        """``True`` if the file has been downloaded and exists on disk."""
+        return self.local_path is not None and Path(self.local_path).exists()
 
 
 class Resolution(BaseModel):
     """Result of resolving all dependencies for a task."""
 
     task: str = Field(..., description="Dependency spec name (e.g. 'pride-pppar').")
-    paths: List[Path] = Field(
+    paths: list[Path] = Field(
         default_factory=list, description="Local paths of all resolved products."
     )
-    lockfile: Optional["ProductLockfile"] = None
+    lockfile: ProductLockfile | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -67,21 +113,19 @@ class DiscoveryEntry(BaseModel):
 class DiscoveryReport(BaseModel):
     """Structured summary of available products for a date."""
 
-    entries: List[DiscoveryEntry] = Field(default_factory=list)
+    entries: list[DiscoveryEntry] = Field(default_factory=list)
 
     @property
-    def products(self) -> List[str]:
+    def products(self) -> list[str]:
         """Sorted list of unique product names in this report."""
         return sorted(set(e.product for e in self.entries))
 
     @property
-    def centers(self) -> List[str]:
+    def centers(self) -> list[str]:
         """Sorted list of unique center identifiers in this report."""
         return sorted(set(e.center for e in self.entries if e.center))
 
-    def filter(
-        self, product: Optional[str] = None, center: Optional[str] = None
-    ) -> List[DiscoveryEntry]:
+    def filter(self, product: str | None = None, center: str | None = None) -> list[DiscoveryEntry]:
         """Filter entries by product name and/or center.
 
         Args:
@@ -102,7 +146,7 @@ class DiscoveryReport(BaseModel):
 class MissingProductError(Exception):
     """Raised when a required product cannot be found during resolve()."""
 
-    def __init__(self, missing: List[str], task: str = ""):
+    def __init__(self, missing: list[str], task: str = ""):
         """Initialise with the list of missing product names.
 
         Args:

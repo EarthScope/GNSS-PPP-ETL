@@ -1,10 +1,18 @@
 """Author: Franklyn Dunbar"""
 
 from .product import (
+    PathTemplate as PathTemplate,
+)
+from .product import (
     Product as Product,
-    ProductPath as ProductPath,
+)
+from .product import (
     VariantCatalog as VariantCatalog,
+)
+from .product import (
     VersionCatalog as VersionCatalog,
+)
+from .product import (
     infer_from_regex as infer_from_regex,
 )
 

@@ -5,9 +5,10 @@ Parameter model and ParameterCatalog — replaces MetadataField + MetadataCatalo
 
 import datetime
 import re
+from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -24,18 +25,14 @@ class Parameter(BaseModel):
     """A single metadata parameter with optional regex pattern and compute function."""
 
     name: str = Field(..., description="The name of the parameter.")
-    value: Optional[str] = Field(None, description="The value of the parameter.")
-    pattern: Optional[str] = Field(
-        None, description="A regex pattern to match the parameter value."
-    )
-    description: Optional[str] = Field(
-        None, description="A description of the parameter."
-    )
-    derivation: Optional[DerivationMethod] = Field(
+    value: str | None = Field(None, description="The value of the parameter.")
+    pattern: str | None = Field(None, description="A regex pattern to match the parameter value.")
+    description: str | None = Field(None, description="A description of the parameter.")
+    derivation: DerivationMethod | None = Field(
         DerivationMethod.ENUM,
         description="The method used to derive the parameter value.",
     )
-    compute: Optional[Callable[[datetime.datetime], str]] = Field(
+    compute: Callable[[datetime.datetime], str] | None = Field(
         None,
         description="A callable that computes the parameter value from a datetime.",
         exclude=True,
@@ -60,10 +57,10 @@ class ParameterCatalog:
         parameters: Mapping of parameter names to :class:`Parameter` objects.
     """
 
-    def __init__(self, parameters: List[Parameter]):
+    def __init__(self, parameters: list[Parameter]):
         self.parameters = {parameter.name: parameter for parameter in parameters}
 
-    def get(self, name: str, default=None) -> Optional[Parameter]:
+    def get(self, name: str, default=None) -> Parameter | None:
         """Retrieve a parameter by name.
 
         Args:
@@ -88,10 +85,10 @@ class ParameterCatalog:
     def register(
         self,
         name: str,
-        pattern: Optional[str] = None,
+        pattern: str | None = None,
         *,
-        compute: Optional[Callable[[datetime.datetime], str]] = None,
-        description: Optional[str] = None,
+        compute: Callable[[datetime.datetime], str] | None = None,
+        description: str | None = None,
     ) -> Parameter:
         """Register or update a parameter, optionally adding a compute function.
 
@@ -106,7 +103,7 @@ class ParameterCatalog:
         """
         existing = self.parameters.get(name)
         if existing is not None:
-            updates: Dict[str, Any] = {}
+            updates: dict[str, Any] = {}
             if pattern is not None:
                 updates["pattern"] = pattern
             if compute is not None:
@@ -120,9 +117,7 @@ class ParameterCatalog:
                 pattern=pattern,
                 compute=compute,
                 description=description,
-                derivation=DerivationMethod.COMPUTED
-                if compute
-                else DerivationMethod.ENUM,
+                derivation=DerivationMethod.COMPUTED if compute else DerivationMethod.ENUM,
             )
         self.parameters[name] = p
         return p
@@ -130,9 +125,9 @@ class ParameterCatalog:
     def computed(
         self,
         name: str,
-        pattern: Optional[str] = None,
+        pattern: str | None = None,
         *,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         """Decorator that registers a computed parameter field.
 
@@ -153,19 +148,17 @@ class ParameterCatalog:
 
     # -- bulk operations --------------------------------------------
 
-    def defaults(self) -> Dict[str, str]:
+    def defaults(self) -> dict[str, str]:
         """Return ``{name: pattern}`` for every parameter with a pattern.
 
         Returns:
             Mapping of parameter names to their regex patterns.
         """
-        return {
-            p.name: p.pattern for p in self.parameters.values() if p.pattern is not None
-        }
+        return {p.name: p.pattern for p in self.parameters.values() if p.pattern is not None}
 
     def resolve_params(
         self,
-        params: List[Any],
+        params: list[Any],
         date: datetime.datetime,
     ) -> Any:
         """Set ``.value`` on computed parameters from *date*.
@@ -201,7 +194,7 @@ class ParameterCatalog:
             The interpolated string.
         """
         fields = _extract_template_fields(template)
-        values: Dict[str, str] = {}
+        values: dict[str, str] = {}
         for key in fields:
             p = self.parameters.get(key)
             if p is None:
@@ -217,18 +210,18 @@ class ParameterCatalog:
     # -- YAML loader ------------------------------------------------
 
     @classmethod
-    def from_yaml(cls, yaml_path: Union[str, Path]) -> "ParameterCatalog":
+    def from_yaml(cls, yaml_path: str | Path) -> "ParameterCatalog":
         """Load parameter definitions from a meta-spec YAML file.
 
         Does **not** register computed fields — call
         :func:`~gnss_product_management.utilities.metadata_funcs.register_computed_fields`
         separately after loading.
         """
-        with open(yaml_path, "r") as f:
+        with open(yaml_path) as f:
             data = yaml.safe_load(f)
-        params: List[Parameter] = []
+        params: list[Parameter] = []
         for name, entries in data.items():
-            kw: Dict[str, Any] = {"name": name}
+            kw: dict[str, Any] = {"name": name}
             for entry in entries:
                 if isinstance(entry, dict):
                     kw.update(entry)

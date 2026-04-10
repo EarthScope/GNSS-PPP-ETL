@@ -1,25 +1,23 @@
-"""Tests for ProductEnvironment — construction, build, and classify."""
+"""Tests for ProductRegistry — construction, build, and classify."""
 
 from pathlib import Path
 
 import pytest
-
-from gnss_product_management.factories import ProductEnvironment
 from gnss_management_specs.configs import (
-    META_SPEC_YAML,
-    FORMAT_SPEC_YAML,
-    PRODUCT_SPEC_YAML,
     CENTERS_RESOURCE_DIR,
+    FORMAT_SPEC_YAML,
+    META_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
 )
-
+from gnss_product_management.factories import ProductRegistry
 
 # ── Fixtures ──────────────────────────────────────────────────────
 
 
 @pytest.fixture(scope="module")
 def env():
-    """A fully built ProductEnvironment with all bundled specs."""
-    e = ProductEnvironment()
+    """A fully built ProductRegistry with all bundled specs."""
+    e = ProductRegistry()
     e.add_parameter_spec(META_SPEC_YAML)
     e.add_format_spec(FORMAT_SPEC_YAML)
     e.add_product_spec(PRODUCT_SPEC_YAML)
@@ -47,22 +45,22 @@ class TestIncrementalConstruction:
         assert env._format_catalog is not None
 
     def test_has_remote_resource_factory(self, env):
-        assert env._remote_resource_factory is not None
+        assert env._catalogs is not None
 
     def test_duplicate_parameter_spec_raises(self):
-        e = ProductEnvironment()
+        e = ProductRegistry()
         e.add_parameter_spec(META_SPEC_YAML)
         with pytest.raises(AssertionError, match="already exists"):
             e.add_parameter_spec(META_SPEC_YAML)
 
     def test_duplicate_format_spec_raises(self):
-        e = ProductEnvironment()
+        e = ProductRegistry()
         e.add_format_spec(FORMAT_SPEC_YAML)
         with pytest.raises(AssertionError, match="already exists"):
             e.add_format_spec(FORMAT_SPEC_YAML)
 
     def test_nonexistent_spec_raises(self):
-        e = ProductEnvironment()
+        e = ProductRegistry()
         with pytest.raises(AssertionError, match="not found"):
             e.add_parameter_spec("/nonexistent/path.yaml")
 
@@ -140,9 +138,7 @@ class TestClassify:
         assert result["parameters"]["AAA"] == "IGS"
 
     def test_classify_strips_path(self, env):
-        result = env.classify(
-            "/data/products/WUM/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz"
-        )
+        result = env.classify("/data/products/WUM/WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz")
         assert result is not None
         assert result["product"] == "ORBIT"
         assert result["parameters"]["AAA"] == "WUM"
@@ -153,9 +149,7 @@ class TestClassify:
         )
 
         params = [Parameter(name="CNT", value="ORB")]
-        result = env.classify(
-            "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params
-        )
+        result = env.classify("WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params)
         assert result is not None
         assert result["product"] == "ORBIT"
 
@@ -165,7 +159,5 @@ class TestClassify:
         )
 
         params = [Parameter(name="CNT", value="CLK")]
-        result = env.classify(
-            "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params
-        )
+        result = env.classify("WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", parameters=params)
         assert result is None

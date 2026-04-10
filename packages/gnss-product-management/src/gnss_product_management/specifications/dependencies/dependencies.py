@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
+# Path is kept for DependencySpec.from_yaml signature compatibility
 import yaml
 from pydantic import BaseModel, Field
 
@@ -17,7 +17,7 @@ class SearchPreference(BaseModel):
     """One slot in the preference cascade."""
 
     parameter: str
-    sorting: List[str] = Field(
+    sorting: list[str] = Field(
         default_factory=list,
         description="List of product parameters to sort by for this preference.",
     )
@@ -30,7 +30,7 @@ class Dependency(BaseModel):
     spec: str
     required: bool = True
     description: str = ""
-    constraints: Dict[str, str] = Field(default_factory=dict)
+    constraints: dict[str, str] = Field(default_factory=dict)
 
 
 class DependencySpec(BaseModel):
@@ -38,13 +38,13 @@ class DependencySpec(BaseModel):
 
     name: str
     description: str = ""
-    preferences: List[SearchPreference] = Field(default_factory=list)
-    dependencies: List[Dependency] = Field(default_factory=list)
+    preferences: list[SearchPreference] = Field(default_factory=list)
+    dependencies: list[Dependency] = Field(default_factory=list)
     package: str
     task: str
 
     @classmethod
-    def from_yaml(cls, path: Union[str, Path]) -> "DependencySpec":
+    def from_yaml(cls, path: str | Path) -> DependencySpec:
         """Load a dependency specification from a YAML file.
 
         Args:
@@ -65,10 +65,14 @@ class ResolvedDependency(BaseModel):
     required: bool
     status: str  # "local" | "downloaded" | "remote" | "missing"
 
-    local_path: Optional[Path] = None
+    # Stored as a URI string so it works for both local paths and cloud
+    # URIs (e.g. ``s3://bucket/path/file.sp3``).  Use
+    # ``gnss_product_management.utilities.paths.as_path(local_path)``
+    # to obtain a path object for filesystem operations.
+    local_path: str | None = None
 
     # Lockfile fields — populated during resolution for later export
-    remote_url: Optional[str] = None
+    remote_url: str | None = None
 
 
 @dataclass
@@ -81,15 +85,15 @@ class DependencyResolution:
     """
 
     spec_name: str
-    resolved: List[ResolvedDependency] = field(default_factory=list)
+    resolved: list[ResolvedDependency] = field(default_factory=list)
 
     @property
-    def fulfilled(self) -> List[ResolvedDependency]:
+    def fulfilled(self) -> list[ResolvedDependency]:
         """Dependencies that have been resolved (not missing)."""
         return [r for r in self.resolved if r.status != "missing"]
 
     @property
-    def missing(self) -> List[ResolvedDependency]:
+    def missing(self) -> list[ResolvedDependency]:
         """Dependencies that could not be resolved."""
         return [r for r in self.resolved if r.status == "missing"]
 
@@ -98,11 +102,16 @@ class DependencyResolution:
         """``True`` if every required dependency has been resolved."""
         return all(r.status != "missing" for r in self.resolved if r.required)
 
-    def product_paths(self) -> Dict[str, Path]:
-        """Return a ``{spec: path}`` mapping for resolved local files.
+    def product_paths(self) -> dict[str, str]:
+        """Return a ``{spec: uri}`` mapping for resolved local files.
+
+        Values are URI strings that work for both local paths and cloud
+        locations.  Pass them through
+        ``gnss_product_management.utilities.paths.as_path()`` to get a
+        path object suitable for filesystem operations.
 
         Returns:
-            Dict mapping spec names to their local paths.
+            Dict mapping spec names to their local-path or cloud URIs.
         """
         return {r.spec: r.local_path for r in self.resolved if r.local_path is not None}
 
@@ -130,15 +139,11 @@ class DependencyResolution:
             Multi-line string with columns for spec, required,
             status, and path.
         """
-        lines = [
-            f"{'spec':<14s} {'required':<10s} {'status':<12s} "
-            f"{'preference':<20s} {'path'}"
-        ]
+        lines = [f"{'spec':<14s} {'required':<10s} {'status':<12s} {'preference':<20s} {'path'}"]
         lines.append("-" * 90)
         for r in self.resolved:
             path_str = str(r.local_path) if r.local_path else "(none)"
             lines.append(
-                f"{r.spec:<14s} {'yes' if r.required else 'no':<10s} "
-                f"{r.status:<12s} {path_str}"
+                f"{r.spec:<14s} {'yes' if r.required else 'no':<10s} {r.status:<12s} {path_str}"
             )
         return "\n".join(lines)

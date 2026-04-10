@@ -21,17 +21,20 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def hash_file(path: Path) -> str:
+def hash_file(path) -> str:
     """Return the SHA-256 hex digest of a file.
 
+    Accepts both local :class:`~pathlib.Path` and cloud
+    :class:`~cloudpathlib.CloudPath` objects.
+
     Args:
-        path: Filesystem path to the file to hash.
+        path: Filesystem or cloud path to the file to hash.
 
     Returns:
         A string in the form ``sha256:<hex_digest>``.
     """
     h = hashlib.sha256()
-    with open(path, "rb") as f:
+    with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1 << 16), b""):
             h.update(chunk)
     return f"sha256:{h.hexdigest()}"
@@ -79,9 +82,7 @@ def _ensure_datetime(date: datetime.date | datetime.datetime) -> datetime.dateti
         A timezone-aware :class:`~datetime.datetime` in UTC.
     """
     if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
-        return datetime.datetime(
-            date.year, date.month, date.day, tzinfo=datetime.timezone.utc
-        )
+        return datetime.datetime(date.year, date.month, date.day, tzinfo=datetime.timezone.utc)
     if date.tzinfo is None:
         return date.replace(tzinfo=datetime.timezone.utc)
     return date

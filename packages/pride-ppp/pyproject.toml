@@ -29,3 +29,12 @@ raw-options = { root = "../.." }
 [tool.uv.sources]
 gnss-management-specs = { workspace = true }
 gnss-product-management = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v -s"
+log_cli = true
+log_cli_level = "INFO"
+markers = [
+    "integration: marks tests that require a running pdp3 binary",
+]

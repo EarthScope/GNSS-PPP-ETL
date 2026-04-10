@@ -6,7 +6,6 @@ Read/write the ``config_file`` format consumed by the ``pdp3`` binary.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -15,7 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 # Keys follow the format "{constellation}{PRN:02d}", e.g. "G01" for GPS PRN 1.
 # Values are PRN variance weights used by pdp3 (1 = nominal, higher = down-weighted).
 # ---------------------------------------------------------------------------
-pride_default_satellites: Dict[str, int] = {
+pride_default_satellites: dict[str, int] = {
     "G01": 1,
     "G02": 1,
     "G03": 1,
@@ -218,36 +217,36 @@ class SatelliteProducts(BaseModel):
         LEO satellite quaternions filename.
     """
 
-    product_directory: Optional[str] = Field(
+    product_directory: str | None = Field(
         default="Default",
         description="Directory for satellite products",
     )
-    satellite_orbit: Optional[str] = Field(
+    satellite_orbit: str | None = Field(
         default="Default",
         pattern=r".*\.SP3",
         description="File name of SP3 file",
     )
-    satellite_clock: Optional[str] = Field(
+    satellite_clock: str | None = Field(
         default="Default",
         pattern=r".*\.CLK",
         description="File name of CLK file",
     )
-    erp: Optional[str] = Field(
+    erp: str | None = Field(
         default="Default",
         pattern=r".*\.ERP",
         description="File name of ERP file",
     )
-    quaternions: Optional[str] = Field(
+    quaternions: str | None = Field(
         default="Default",
         pattern=r".*\.OBX",
         description="File name of quaternions file",
     )
-    code_phase_bias: Optional[str] = Field(
+    code_phase_bias: str | None = Field(
         default="Default",
         pattern=r".*\.BIA",
         description="File name of code/phase bias file",
     )
-    leo_quaternions: Optional[str] = Field(
+    leo_quaternions: str | None = Field(
         default="Default",
         description="File name of LEO quaternions file",
     )
@@ -342,11 +341,9 @@ class AmbiguityFixingOptions(BaseModel):
     ambiguity_duration: int = 600
     cutoff_elevation: int = 15
     pco_on_wide_lane: str = "YES"
-    widelane_decision: List[float] = Field(default_factory=lambda: [0.20, 0.15, 1000.0])
-    narrowlane_decision: List[float] = Field(
-        default_factory=lambda: [0.15, 0.15, 1000.0]
-    )
-    critical_search: List[float] = Field(default_factory=lambda: [3, 4, 1.8, 3.0])
+    widelane_decision: list[float] = Field(default_factory=lambda: [0.20, 0.15, 1000.0])
+    narrowlane_decision: list[float] = Field(default_factory=lambda: [0.15, 0.15, 1000.0])
+    critical_search: list[float] = Field(default_factory=lambda: [3, 4, 1.8, 3.0])
     truncate_at_midnight: str = "Default"
     verbose_output: str = "NO"
 
@@ -354,7 +351,7 @@ class AmbiguityFixingOptions(BaseModel):
 class SatelliteList(BaseModel):
     """List of active GNSS satellites and their PRN variances."""
 
-    satellites: Dict[str, int] = Field(
+    satellites: dict[str, int] = Field(
         default_factory=lambda: pride_default_satellites,
         description=(
             "Dictionary of satellites with their respective codes and PRN variances. "
@@ -465,7 +462,7 @@ class PRIDEPPPFileConfig(BaseModel):
         default_factory=SatelliteList,
         description="List of satellites used in the processing.",
     )
-    station_used: List[StationUsed] = Field(
+    station_used: list[StationUsed] = Field(
         default_factory=lambda: [StationUsed()],
         description="List of stations used in the processing.",
     )
@@ -476,6 +473,10 @@ class PRIDEPPPFileConfig(BaseModel):
 
     def write_config_file(self, filepath: str | Path):
         """Write the PRIDE PPP configuration to a file.
+
+        Parent directories are created automatically.  Note: modifies
+        ``self.ambiguity.critical_search`` in-place, converting the first
+        two elements to integers before serialising.
 
         Parameters
         ----------
@@ -588,18 +589,10 @@ class PRIDEPPPFileConfig(BaseModel):
             f.write("#                              P -- piec-wise\n")
             f.write("#                              K -- kinematic\n")
             f.write("#                              F -- fixed\n")
-            f.write(
-                "# Available mapping function:  NIE -- Niell Mapping Function (NMF)\n"
-            )
-            f.write(
-                "#                              GMF -- Global Mapping Function (GMF)\n"
-            )
-            f.write(
-                "#                              VM1 -- Vienna Mapping Function (VMF1)\n"
-            )
-            f.write(
-                "#                              VM3 -- Vienna Mapping Function (VMF3)\n"
-            )
+            f.write("# Available mapping function:  NIE -- Niell Mapping Function (NMF)\n")
+            f.write("#                              GMF -- Global Mapping Function (GMF)\n")
+            f.write("#                              VM1 -- Vienna Mapping Function (VMF1)\n")
+            f.write("#                              VM3 -- Vienna Mapping Function (VMF3)\n")
             f.write("# Other arguments can be kept if you are not familiar with them\n")
 
             # Station used
@@ -624,6 +617,10 @@ class PRIDEPPPFileConfig(BaseModel):
     def read_config_file(cls, file_path: str) -> "PRIDEPPPFileConfig":
         """Parse a PRIDE PPP ``config_file`` from disk.
 
+        Note: the ``station_used`` section is not fully parsed; a single
+        default :class:`StationUsed` instance is always returned regardless
+        of the file contents.
+
         Parameters
         ----------
         file_path : str
@@ -634,7 +631,7 @@ class PRIDEPPPFileConfig(BaseModel):
         PRIDEPPPFileConfig
             Populated config model.
         """
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             text = file.read()
 
         def get_value(line):
@@ -659,7 +656,7 @@ class PRIDEPPPFileConfig(BaseModel):
 
         # Split into sections
         lines = text.splitlines()
-        sections: Dict[str, list] = {}
+        sections: dict[str, list] = {}
         current_section = None
         section_lines: list = []
         for line in lines:
@@ -742,17 +739,11 @@ class PRIDEPPPFileConfig(BaseModel):
             elif "PCO on wide-lane" in line:
                 amb_kwargs["pco_on_wide_lane"] = get_value(line)
             elif "Widelane decision" in line:
-                amb_kwargs["widelane_decision"] = [
-                    float(x) for x in get_value(line).split()
-                ]
+                amb_kwargs["widelane_decision"] = [float(x) for x in get_value(line).split()]
             elif "Narrowlane decision" in line:
-                amb_kwargs["narrowlane_decision"] = [
-                    float(x) for x in get_value(line).split()
-                ]
+                amb_kwargs["narrowlane_decision"] = [float(x) for x in get_value(line).split()]
             elif "Critical search" in line:
-                amb_kwargs["critical_search"] = [
-                    float(x) for x in get_value(line).split()
-                ]
+                amb_kwargs["critical_search"] = [float(x) for x in get_value(line).split()]
             elif "Truncate at midnight" in line:
                 amb_kwargs["truncate_at_midnight"] = get_value(line)
             elif "Verbose output" in line:
@@ -809,7 +800,5 @@ class PRIDEPPPFileConfig(BaseModel):
 
         config_path = pdp_home / "config_template"
         if not config_path.exists():
-            raise FileNotFoundError(
-                f"PRIDE PPPAR config template not found: {config_path}"
-            )
+            raise FileNotFoundError(f"PRIDE PPPAR config template not found: {config_path}")
         return cls.read_config_file(config_path)

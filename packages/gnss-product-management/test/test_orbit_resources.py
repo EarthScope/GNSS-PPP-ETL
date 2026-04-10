@@ -1,5 +1,5 @@
 """
-Tests: Orbit/Clock products via QueryFactory.
+Tests: Orbit/Clock products via SearchPlanner.
 
 Products: ORBIT, CLOCK, ERP, BIA, ATTOBX
 Centers : Wuhan (FTP), CODE (FTP), CDDIS (FTPS)
@@ -11,17 +11,12 @@ import datetime
 
 import pytest
 
-
 pytestmark = pytest.mark.integration
 
 
 def _get_remote_queries(qf, date, product_name, parameters=None):
     queries = qf.get(date=date, product={"name": product_name}, parameters=parameters)
-    return [
-        q
-        for q in queries
-        if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")
-    ]
+    return [q for q in queries if (q.server.protocol or "").upper() not in ("FILE", "LOCAL", "")]
 
 
 def _search_remote(qf, fetcher, date, product_name, parameters=None):
@@ -30,10 +25,10 @@ def _search_remote(qf, fetcher, date, product_name, parameters=None):
 
 
 def _assert_found(results, product_name, min_matches=1):
-    found = [r for r in results if r.found]
+    found = [r for r in results if r.product.filename and r.product.filename.value]
     assert len(found) >= min_matches, (
-        f"{product_name}: expected >= {min_matches} found, got {len(found)}. "
-        f"Errors: {[r.error for r in results if r.error]}"
+        f"{product_name}: expected >= {min_matches} found, got {len(found)} "
+        f"out of {len(results)} results."
     )
     return found
 
@@ -171,13 +166,13 @@ class TestWuhanOrbitProbe:
         results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
         found = _assert_found(results, "ORBIT")
         for r in found:
-            assert any("SP3" in f.upper() for f in r.matched_filenames)
+            assert any("SP3" in f.upper() for f in [r.product.filename.value])
 
     def test_orbit_filenames_match_date(self, wuhan_qf, fetcher, test_date) -> None:
         results = _search_remote(wuhan_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
         found = _assert_found(results, "ORBIT")
         for r in found:
-            for fn in r.matched_filenames:
+            for fn in [r.product.filename.value]:
                 assert "WUM" in fn or "wum" in fn.lower()
 
     def test_clock_found(self, wuhan_qf, fetcher, test_date) -> None:
@@ -223,7 +218,7 @@ class TestCODOrbitProbe:
         results = _search_remote(cod_qf, fetcher, test_date, "ORBIT")
         found = _assert_found(results, "ORBIT")
         for r in found:
-            assert any("COD" in f for f in r.matched_filenames)
+            assert any("COD" in f for f in [r.product.filename.value])
 
 
 # ---------------------------------------------------------------------------
@@ -243,4 +238,4 @@ class TestCDDISOrbitProbe:
     def test_ftps_protocol_used(self, cddis_qf, fetcher, test_date) -> None:
         results = _search_remote(cddis_qf, fetcher, test_date, "ORBIT", {"AAA": "WUM"})
         for r in results:
-            assert r.query.server.protocol.lower() == "ftps"
+            assert r.server.protocol.lower() == "ftps"

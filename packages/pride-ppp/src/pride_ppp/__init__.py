@@ -24,9 +24,6 @@ Example
 ...     df = result.positions()
 """
 
-from .specifications.cli import PrideCLIConfig
-from .specifications.config import PRIDEPPPFileConfig, SatelliteProducts
-from .specifications.output import PridePPP
 from .factories.output import (
     get_wrms_from_res,
     kin_to_kin_position_df,
@@ -36,6 +33,9 @@ from .factories.output import (
 )
 from .factories.processor import PrideProcessor, ProcessingMode, ProcessingResult
 from .factories.rinex import merge_broadcast_files, rinex_get_time_range
+from .specifications.cli import PrideCLIConfig
+from .specifications.config import PRIDEPPPFileConfig, SatelliteProducts
+from .specifications.output import PridePPP
 
 __all__ = [
     # Primary API

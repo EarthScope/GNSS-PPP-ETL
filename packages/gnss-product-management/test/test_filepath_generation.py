@@ -2,7 +2,7 @@
 Tests: Product filepath generation.
 
 Verifies that the catalog chain (ParameterCatalog → FormatCatalog →
-ProductCatalog) and the QueryFactory produce correct file-path patterns
+ProductCatalog) and the SearchPlanner produce correct file-path patterns
 for all product types at each stage of resolution.
 
 These tests are purely offline (no network access).
@@ -15,26 +15,23 @@ import re
 from pathlib import Path
 
 import pytest
-
-from gnss_product_management.specifications.parameters.parameter import (
-    Parameter,
-)
-from gnss_product_management.specifications.products.product import ProductPath
-from gnss_product_management.specifications.products.catalog import (
-    ProductCatalog,
+from conftest import (
+    TEST_DATE,
+    format_spec_catalog,
+    parameter_catalog,
+    product_spec_catalog,
 )
 from gnss_product_management.specifications.format.format_spec import (
     FormatCatalog,
 )
-from gnss_product_management.utilities.metadata_funcs import register_computed_fields
-
-from conftest import (
-    TEST_DATE,
-    parameter_catalog,
-    format_spec_catalog,
-    product_spec_catalog,
+from gnss_product_management.specifications.parameters.parameter import (
+    Parameter,
 )
-
+from gnss_product_management.specifications.products.catalog import (
+    ProductCatalog,
+)
+from gnss_product_management.specifications.products.product import PathTemplate
+from gnss_product_management.utilities.metadata_funcs import register_computed_fields
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -60,17 +57,15 @@ PARAM_CAT, FORMAT_CAT, PRODUCT_CAT = _build_catalogs()
 
 
 # ---------------------------------------------------------------------------
-# Unit: ProductPath.derive
+# Unit: PathTemplate.derive
 # ---------------------------------------------------------------------------
 
 
-class TestProductPathDerive:
-    """Verify ProductPath template substitution."""
+class TestPathTemplateDerive:
+    """Verify PathTemplate template substitution."""
 
     def test_simple_substitution(self) -> None:
-        pp = ProductPath(
-            pattern="{AAA}0{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*"
-        )
+        pp = PathTemplate(pattern="{AAA}0{PPP}{TTT}_{YYYY}{DDD}{HH}{MM}_{LEN}_{SMP}_{CNT}.{FMT}.*")
         params = [
             Parameter(name="AAA", value="WUM"),
             Parameter(name="PPP", value="MGX"),
@@ -89,7 +84,7 @@ class TestProductPathDerive:
 
     def test_partial_substitution(self) -> None:
         """Unresolved placeholders (value=None) stay as {NAME}."""
-        pp = ProductPath(pattern="{AAA}0{PPP}{TTT}_{YYYY}")
+        pp = PathTemplate(pattern="{AAA}0{PPP}{TTT}_{YYYY}")
         params = [
             Parameter(name="AAA", value="WUM"),
             Parameter(name="PPP", value=None),
@@ -102,12 +97,12 @@ class TestProductPathDerive:
 
     def test_no_double_derive(self) -> None:
         """Once .value is set, derive() is a no-op."""
-        pp = ProductPath(pattern="{AAA}", value="FROZEN")
+        pp = PathTemplate(pattern="{AAA}", value="FROZEN")
         pp.derive([Parameter(name="AAA", value="WUM")])
         assert pp.value == "FROZEN"
 
     def test_directory_template(self) -> None:
-        pp = ProductPath(pattern="pub/whu/phasebias/{YYYY}/orbit/")
+        pp = PathTemplate(pattern="pub/whu/phasebias/{YYYY}/orbit/")
         params = [Parameter(name="YYYY", value="2025")]
         pp.derive(params)
         assert pp.pattern == "pub/whu/phasebias/2025/orbit/"
@@ -241,12 +236,12 @@ class TestProductCatalogResolution:
 
 
 # ---------------------------------------------------------------------------
-# Unit: QueryFactory — filepath generation for each product type
+# Unit: SearchPlanner — filepath generation for each product type
 # ---------------------------------------------------------------------------
 
 
-class TestQueryFactoryFilepaths:
-    """Verify QueryFactory.get() produces correct resolved directory and filename patterns."""
+class TestSearchPlannerFilepaths:
+    """Verify SearchPlanner.get() produces correct resolved directory and filename patterns."""
 
     def test_orbit_directory_resolved(self, wuhan_qf, test_date) -> None:
         gpsweek = str((test_date.date() - datetime.date(1980, 1, 6)).days // 7)
@@ -255,11 +250,7 @@ class TestQueryFactoryFilepaths:
         assert len(remote) > 0
         for q in remote:
             # Directory should have 2025 or GPS week resolved (computed)
-            d = (
-                q.directory.pattern
-                if hasattr(q.directory, "pattern")
-                else str(q.directory)
-            )
+            d = q.directory.pattern if hasattr(q.directory, "pattern") else str(q.directory)
             assert "2025" in d or gpsweek in d  # Either year or GPS week
 
     def test_orbit_filename_has_sp3(self, wuhan_qf, test_date) -> None:
@@ -370,12 +361,10 @@ class TestQueryFactoryFilepaths:
         remote = [q for q in queries if q.server.protocol != "file"]
         dirs = [q.directory.pattern for q in remote]
         # CDDIS uses gnss/products/{GPSWEEK}/ — should have the GPS week resolved
-        assert any(gpsweek in d for d in dirs), (
-            f"No directory with GPS week {gpsweek}: {dirs}"
-        )
+        assert any(gpsweek in d for d in dirs), f"No directory with GPS week {gpsweek}: {dirs}"
 
     def test_filename_is_valid_regex(self, wuhan_qf, test_date) -> None:
-        """Generated filename patterns should be valid regex (for ResourceFetcher matching)."""
+        """Generated filename patterns should be valid regex (for WormHole matching)."""
         queries = wuhan_qf.get(date=test_date, product={"name": "ORBIT"})
         for q in queries:
             if q.product.filename:

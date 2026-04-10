@@ -1,24 +1,21 @@
 """Tests for infer_from_regex — reverse-parsing filenames via FormatRegistry."""
 
-from typing import List
-
 import pytest
 
-from gnss_product_management.specifications.format.format_catalog import FormatRegistry
-from gnss_product_management.specifications.format.spec import FormatSpecCollection
+# ── Paths ──────────────────────────────────────────────────────────
+from gnss_management_specs.configs import FORMAT_SPEC_YAML, META_SPEC_YAML
+from gnss_product_management.specifications.format.spec import (
+    FormatRegistry,
+    FormatSpecCollection,
+)
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
     ParameterCatalog,
 )
 from gnss_product_management.specifications.products.product import (
-    ProductPath,
+    PathTemplate,
     infer_from_regex,
 )
-
-
-# ── Paths ──────────────────────────────────────────────────────────
-from gnss_management_specs.configs import META_SPEC_YAML, PRODUCT_SPEC_YAML
-
 
 # ── Fixtures ───────────────────────────────────────────────────────
 
@@ -30,7 +27,7 @@ def parameter_catalog() -> ParameterCatalog:
 
 @pytest.fixture(scope="module")
 def format_catalog(parameter_catalog) -> FormatRegistry:
-    fsc = FormatSpecCollection.from_yaml(PRODUCT_SPEC_YAML)
+    fsc = FormatSpecCollection.from_yaml(FORMAT_SPEC_YAML)
     return FormatRegistry.build(fsc, parameter_catalog)
 
 
@@ -40,10 +37,10 @@ def _build_regex_and_params(
     version: str,
     variant: str,
     **overrides: str,
-) -> tuple[str, List[Parameter]]:
+) -> tuple[str, list[Parameter]]:
     """Build a derived regex and parameter list from a FormatCatalog entry.
 
-    Simulates what QueryFactory does: starts from the template, fills in
+    Simulates what SearchPlanner does: starts from the template, fills in
     *overrides* as concrete values and leaves the rest as their regex
     patterns, then derives to produce the final regex string.
 
@@ -51,13 +48,13 @@ def _build_regex_and_params(
     """
     ver = format_catalog.get_version(format_name, version)
     template = ver.file_templates[variant]
-    params: List[Parameter] = []
+    params: list[Parameter] = []
     for name, field in ver.metadata.items():
         if field is None or not field.pattern:
             continue
         value = overrides.get(name, field.pattern)
         params.append(Parameter(name=name, value=value, pattern=field.pattern))
-    pp = ProductPath(pattern=template)
+    pp = PathTemplate(pattern=template)
     pp.derive(params)
     return pp.pattern, params
 
@@ -86,9 +83,7 @@ class TestProductDefaultInfer:
             CNT="ORB",
             FMT="SP3",
         )
-        result = infer_from_regex(
-            regex, "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", params
-        )
+        result = infer_from_regex(regex, "WUM0MGXFIN_20240010000_01D_05M_ORB.SP3.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "WUM"
@@ -122,9 +117,7 @@ class TestProductDefaultInfer:
             CNT="CLK",
             FMT="CLK",
         )
-        result = infer_from_regex(
-            regex, "COD0OPSRAP_20251000000_01D_30S_CLK.CLK.gz", params
-        )
+        result = infer_from_regex(regex, "COD0OPSRAP_20251000000_01D_30S_CLK.CLK.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "COD"
@@ -150,9 +143,7 @@ class TestProductDefaultInfer:
             CNT="ORB",
             FMT="SP3",
         )
-        result = infer_from_regex(
-            regex, "IGS0OPSRAP_20251000000_01D_15M_ORB.SP3", params
-        )
+        result = infer_from_regex(regex, "IGS0OPSRAP_20251000000_01D_15M_ORB.SP3", params)
         assert result is not None
         assert next(p for p in result if p.name == "AAA").value == "IGS"
 
@@ -194,9 +185,7 @@ class TestProductDefaultInfer:
             CNT="ABS",
             FMT="BIA",
         )
-        result = infer_from_regex(
-            regex, "WUM0MGXFIN_20240010000_01D_01D_ABS.BIA.gz", params
-        )
+        result = infer_from_regex(regex, "WUM0MGXFIN_20240010000_01D_01D_ABS.BIA.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["CNT"] == "ABS"
@@ -220,9 +209,7 @@ class TestProductDefaultInfer:
             CNT="ERP",
             FMT="ERP",
         )
-        result = infer_from_regex(
-            regex, "GFZ0MGXRAP_20251000000_01D_01D_ERP.ERP.gz", params
-        )
+        result = infer_from_regex(regex, "GFZ0MGXRAP_20251000000_01D_01D_ERP.ERP.gz", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["AAA"] == "GFZ"
@@ -364,9 +351,7 @@ class TestRinex3Infer:
             FRU="30S",
             D="M",
         )
-        result = infer_from_regex(
-            regex, "ALIC00AUS_R_20250150000_01D_30S_MO.rnx", params
-        )
+        result = infer_from_regex(regex, "ALIC00AUS_R_20250150000_01D_30S_MO.rnx", params)
         assert result is not None
         values = {p.name: p.value for p in result}
         assert values["SSSS"] == "ALIC"
