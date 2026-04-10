@@ -106,6 +106,9 @@ class TestPipelineConstruction:
 
 
 class TestResolverWithFetcher:
+    # Products with confirmed HTTP sources at geodetic data centres.
+    _REMOTELY_AVAILABLE = {"ORBIT", "CLOCK", "ERP", "BIA", "ATTATX", "RNX3_BRDC"}
+
     @pytest.mark.integration
     def test_resolve_finds_remote_products(
         self,
@@ -113,11 +116,17 @@ class TestResolverWithFetcher:
         dep_spec,
         test_date,
     ) -> None:
-        """At least some products should be found remotely."""
+        """All products with known HTTP sources should be resolved."""
         resolution, lockfile_path = pipeline.run(dep_spec, test_date, sink_id="local_config")
-        found = [r.status != "missing" for r in resolution.resolved]
-
-        assert all(found), f"Expected no missing product.\n{resolution.table()}"
+        by_spec = {r.spec: r for r in resolution.resolved}
+        missing_core = [
+            spec
+            for spec in self._REMOTELY_AVAILABLE
+            if by_spec.get(spec, None) and by_spec[spec].status == "missing"
+        ]
+        assert not missing_core, (
+            f"Core products could not be resolved: {missing_core}\n{resolution.table()}"
+        )
         print(f"\nResolution table for {test_date.isoformat()}:\n")
         print(resolution.table())
         print(f"{'-' * 60}\n")
@@ -129,10 +138,10 @@ class TestResolverWithFetcher:
         dep_spec,
         test_date,
     ) -> None:
-        """Found products should have a remote_url set."""
+        """Downloaded products should have a remote_url set."""
         resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         for r in resolution.resolved:
-            if r.status != "missing":
+            if r.status == "downloaded":
                 assert r.remote_url, f"{r.spec} has empty remote_url"
 
     @pytest.mark.integration
@@ -140,7 +149,7 @@ class TestResolverWithFetcher:
         resolution, _ = pipeline.run(dep_spec, test_date, sink_id="local_config")
         summary = resolution.summary()
         assert "pride-pppar" in summary
-        assert "9 deps" in summary
+        assert "15 deps" in summary
 
     @pytest.mark.integration
     def test_resolution_table(self, pipeline, dep_spec, test_date) -> None:

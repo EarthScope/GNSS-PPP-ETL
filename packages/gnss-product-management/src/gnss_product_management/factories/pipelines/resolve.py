@@ -108,7 +108,13 @@ class ResolvePipeline:
         manager = LockfileManager(lockfile_dir)
 
         # --- Fast path: return immediately if aggregate lockfile exists -----
-        existing, lf_path = manager.load(
+        lf_path = manager.lockfile_path(
+            package=spec.package,
+            task=spec.task,
+            date=date,
+            version=version,
+        )
+        existing = manager.load(
             package=spec.package,
             task=spec.task,
             date=date,

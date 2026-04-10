@@ -87,7 +87,18 @@ class FormatSpecCollection(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> FormatSpecCollection:
-        """Load from a YAML file, extracting the ``formats:`` section.
+        """Load from a YAML file.
+
+        Accepts two layouts:
+
+        1. **Wrapped** — a top-level ``formats:`` key whose value is a
+           mapping of format name → :class:`FormatSpec`-compatible dict.
+
+        2. **Flat** (``format_spec.yaml`` convention) — format names are
+           top-level keys; each entry has ``versions → variants →
+           {parameters, filename}`` which are converted to the
+           ``metadata`` / ``file_templates`` expected by
+           :class:`FormatVersionSpec`.
 
         Args:
             path: Path to the YAML file.
@@ -97,7 +108,39 @@ class FormatSpecCollection(BaseModel):
         """
         with open(path) as fh:
             raw = yaml.safe_load(fh)
-        return cls.model_validate({"formats": raw.get("formats", {})})
+
+        # Layout 1: explicit `formats:` wrapper
+        if "formats" in raw:
+            return cls.model_validate({"formats": raw["formats"]})
+
+        # Layout 2: flat — convert variants/filename → metadata/file_templates
+        formats: dict[str, FormatSpec] = {}
+        for fmt_name, fmt_data in raw.items():
+            if not isinstance(fmt_data, dict) or "versions" not in fmt_data:
+                continue
+            versions: dict[str, FormatVersionSpec] = {}
+            for ver_name, ver_data in (fmt_data.get("versions") or {}).items():
+                if not isinstance(ver_data, dict) or "variants" not in ver_data:
+                    continue
+                all_metadata: dict[str, FormatFieldDef | None] = {}
+                file_templates: dict[str, str] = {}
+                for variant_name, variant_data in (ver_data.get("variants") or {}).items():
+                    if not isinstance(variant_data, dict):
+                        continue
+                    if filename := variant_data.get("filename"):
+                        file_templates[variant_name] = filename
+                    for param in variant_data.get("parameters") or []:
+                        pname = param.get("name")
+                        if not pname or pname in all_metadata:
+                            continue
+                        pattern = param.get("pattern")
+                        all_metadata[pname] = FormatFieldDef(pattern=pattern) if pattern else None
+                versions[str(ver_name)] = FormatVersionSpec(
+                    metadata=all_metadata,
+                    file_templates=file_templates,
+                )
+            formats[fmt_name] = FormatSpec(versions=versions)
+        return cls(formats=formats)
 
 
 class FormatRegistry(BaseModel):

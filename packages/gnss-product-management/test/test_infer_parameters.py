@@ -3,7 +3,7 @@
 import pytest
 
 # ── Paths ──────────────────────────────────────────────────────────
-from gnss_management_specs.configs import META_SPEC_YAML, PRODUCT_SPEC_YAML
+from gnss_management_specs.configs import FORMAT_SPEC_YAML, META_SPEC_YAML
 from gnss_product_management.specifications.format.spec import (
     FormatRegistry,
     FormatSpecCollection,
@@ -27,7 +27,7 @@ def parameter_catalog() -> ParameterCatalog:
 
 @pytest.fixture(scope="module")
 def format_catalog(parameter_catalog) -> FormatRegistry:
-    fsc = FormatSpecCollection.from_yaml(PRODUCT_SPEC_YAML)
+    fsc = FormatSpecCollection.from_yaml(FORMAT_SPEC_YAML)
     return FormatRegistry.build(fsc, parameter_catalog)
 
 
