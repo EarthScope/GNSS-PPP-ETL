@@ -19,7 +19,7 @@ from gnss_product_management import GNSSClient
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
-base_dir = Path("/Users/franklyndunbar/Project/SeaFloorGeodesy/Data/GNSS-DATA")
+base_dir = Path.home() / "gnss-data"  # update for your environment
 client = GNSSClient.from_defaults(base_dir=base_dir)
 client.display()
 date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)

@@ -9,25 +9,22 @@ from gnss_product_management.defaults import DefaultProductEnvironment, DefaultW
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 # logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
-workspace = DefaultWorkSpace
-workspace.add_resource_spec(
-    "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/packages/pride-ppp/src/pride_ppp/configs/local/pride_config.yaml"
-)
+# Paths to pride-ppp config files (relative to this dev script)
+_pride_ppp_configs = Path(__file__).parents[2] / "pride-ppp" / "src" / "pride_ppp" / "configs"
 
-base_dir = Path("/Users/franklyndunbar/Project/SeaFloorGeodesy/Data/GNSS-DATA/")
-pride_dir = Path("/Users/franklyndunbar/Project/SeaFloorGeodesy/Data/SFGMain2/Pride/")
+workspace = DefaultWorkSpace
+workspace.add_resource_spec(_pride_ppp_configs / "local" / "pride_config.yaml")
+
+base_dir = Path.home() / "gnss-data"  # update for your environment
+pride_dir = Path.home() / "pride"  # update for your environment
 workspace.register_spec(base_dir=base_dir, spec_ids=["local_config"], alias="local")
 workspace.register_spec(base_dir=pride_dir, spec_ids=["pride_config"], alias="pride")
 
 DefaultProductEnvironment.add_resource_spec(
-    Path(
-        "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/packages/pride-ppp/src/pride_ppp/configs/centers/pride_table_config.yaml"
-    )
+    _pride_ppp_configs / "centers" / "pride_table_config.yaml"
 )
 DefaultProductEnvironment.add_product_spec(
-    Path(
-        "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/packages/pride-ppp/src/pride_ppp/configs/products/pride_product_spec.yaml"
-    ),
+    _pride_ppp_configs / "products" / "pride_product_spec.yaml",
     id="pride_products",
 )
 DefaultProductEnvironment.build()
@@ -38,7 +35,7 @@ client = GNSSClient(
     max_connections=10,
 )
 
-dep_spec_path = "/Users/franklyndunbar/Project/SeaFloorGeodesy/GNSS-PPP-ETL/packages/pride-ppp/src/pride_ppp/configs/dependencies/pride_pppar.yaml"
+dep_spec_path = str(_pride_ppp_configs / "dependencies" / "pride_pppar.yaml")
 
 station = "TEST"
 years = [2023, 2024, 2025]

@@ -11,12 +11,12 @@ from pride_ppp import PrideProcessor
 
 # --- 1. Configure the processor -----------------------------------------
 processor = PrideProcessor(
-    pride_dir=Path("/data/pride"),
-    output_dir=Path("/data/output"),
+    pride_dir=Path.home() / "data" / "pride",  # update for your environment
+    output_dir=Path.home() / "data" / "output",  # update for your environment
 )
 
 # --- 2. Collect RINEX files ----------------------------------------------
-rinex_dir = Path("/data/rinex")
+rinex_dir = Path.home() / "data" / "rinex"  # update for your environment
 rinex_files = sorted(rinex_dir.glob("*.rnx"))
 print(f"Found {len(rinex_files)} RINEX files")
 
