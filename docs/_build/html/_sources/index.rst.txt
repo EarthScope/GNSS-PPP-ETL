@@ -1,27 +1,23 @@
 GNSS-PPP-ETL
 ============
 
-Automated retrieval and dependency resolution for IGS GNSS products, with an
-integrated `PRIDE-PPPAR <https://pride.whu.edu.cn/pppar/>`_ processing pipeline.
+A Python monorepo for GNSS Precise Point Positioning (PPP) product management and processing.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Getting Started
+   :caption: User Guide
 
-   overview
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Reference
-
+   architecture
    ppp-products
    config-reference
-   architecture
+   data-centers
+   gnss-product-management-classes
    class-reference
+   INDEX
 
 .. toctree::
    :maxdepth: 2
-   :caption: API
+   :caption: API Reference
 
    api/gnss-product-management
    api/pride-ppp

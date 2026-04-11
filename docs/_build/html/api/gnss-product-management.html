@@ -651,7 +651,17 @@
 <dt class="sig sig-object py" id="gnss_product_management.client.FoundResource">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gnss_product_management.client.</span></span><span class="sig-name descname"><span class="pre">FoundResource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">product</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">CloudPath</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gnss_product_management/factories/models.html#FoundResource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gnss_product_management.client.FoundResource" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
-<p>A discovered product resource — either a local file or a remote URI.</p>
+<p>A discovered IGS product — either a local file or a remote URI.</p>
+<p>Returned by <a class="reference internal" href="#gnss_product_management.client.GNSSClient.search" title="gnss_product_management.client.GNSSClient.search"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GNSSClient.search()</span></code></a> and <a class="reference internal" href="#gnss_product_management.client.ProductQuery.search" title="gnss_product_management.client.ProductQuery.search"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ProductQuery.search()</span></code></a>.
+The most useful properties for geodetic workflows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">r.center</span></code> — analysis center code (<code class="docutils literal notranslate"><span class="pre">AAA</span></code> field, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;WUM&quot;</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r.quality</span></code> — timeliness code (<code class="docutils literal notranslate"><span class="pre">TTT</span></code> field: <code class="docutils literal notranslate"><span class="pre">&quot;FIN&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;RAP&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ULT&quot;</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r.filename</span></code> — bare IGS long filename</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r.uri</span></code> — full remote URL (<code class="docutils literal notranslate"><span class="pre">ftp://...</span></code>) or local path</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r.is_local</span></code> — <code class="docutils literal notranslate"><span class="pre">True</span></code> if already on disk</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r.downloaded</span></code> — <code class="docutils literal notranslate"><span class="pre">True</span></code> after a successful download</p></li>
+</ul>
 <dl class="py property">
 <dt class="sig sig-object py" id="gnss_product_management.client.FoundResource.center">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">center</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#gnss_product_management.client.FoundResource.center" title="Link to this definition"></a></dt>
@@ -763,32 +773,38 @@
 <dt class="sig sig-object py" id="gnss_product_management.client.GNSSClient">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gnss_product_management.client.</span></span><span class="sig-name descname"><span class="pre">GNSSClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">product_registry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#gnss_product_management.environments.ProductRegistry" title="gnss_product_management.environments.ProductRegistry"><span class="pre">ProductRegistry</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">workspace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#gnss_product_management.environments.WorkSpace" title="gnss_product_management.environments.WorkSpace"><span class="pre">WorkSpace</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_connections</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gnss_product_management/client/gnss_client.html#GNSSClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gnss_product_management.client.GNSSClient" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>High-level client for searching and downloading GNSS products.</p>
-<p><code class="docutils literal notranslate"><span class="pre">GNSSClient</span></code> is the single entry point for all product retrieval.
-It wraps <a class="reference internal" href="#gnss_product_management.client.ProductQuery" title="gnss_product_management.client.ProductQuery"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProductQuery</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">DownloadPipeline</span></code>, and
-<code class="xref py py-class docutils literal notranslate"><span class="pre">ResolvePipeline</span></code> as internal implementation details.</p>
-<p>Use <a class="reference internal" href="#gnss_product_management.client.GNSSClient.from_defaults" title="gnss_product_management.client.GNSSClient.from_defaults"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_defaults()</span></code></a> to get started with the bundled specs:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Search only — no local sink needed</span>
+<p>Single entry point for IGS product search, download, and dependency resolution.</p>
+<p>Wraps <a class="reference internal" href="#gnss_product_management.client.ProductQuery" title="gnss_product_management.client.ProductQuery"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProductQuery</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">DownloadPipeline</span></code>, and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ResolvePipeline</span></code>. All user-facing operations go through this class.</p>
+<p>Use <a class="reference internal" href="#gnss_product_management.client.GNSSClient.from_defaults" title="gnss_product_management.client.GNSSClient.from_defaults"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_defaults()</span></code></a> to build from the bundled IGS center and product
+specs. Pass a <code class="docutils literal notranslate"><span class="pre">base_dir</span></code> to enable downloads and local-first resolution:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Search only (no local sink)</span>
 <span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">()</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">product</span><span class="o">=</span><span class="s2">&quot;ORBIT&quot;</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">product</span><span class="o">=</span><span class="s2">&quot;ORBIT&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;TTT&quot;</span><span class="p">:</span> <span class="s2">&quot;FIN&quot;</span><span class="p">})</span>
 
-<span class="c1"># Search and download</span>
+<span class="c1"># Search and download to a local directory</span>
 <span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;/data/gnss&quot;</span><span class="p">)</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">product</span><span class="o">=</span><span class="s2">&quot;CLOCK&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;TTT&quot;</span><span class="p">:</span> <span class="s2">&quot;FIN&quot;</span><span class="p">})</span>
-<span class="n">paths</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">)</span>
+<span class="n">paths</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">results</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">)</span>
 
-<span class="c1"># Full dependency resolution</span>
-<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;/data/gnss&quot;</span><span class="p">)</span>
+<span class="c1"># Search and download to S3</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://my-bucket/gnss&quot;</span><span class="p">)</span>
+<span class="n">paths</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">results</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">)</span>
+
+<span class="c1"># Full dependency resolution (orbit + clock + bias + ERP + ...)</span>
 <span class="n">resolution</span><span class="p">,</span> <span class="n">lockfile</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">resolve_dependencies</span><span class="p">(</span><span class="s2">&quot;spec.yaml&quot;</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">max_connections</span></code> sets the per-host FTP/HTTPS connection pool size.
+CDDIS (NASA FTPS) enforces strict anonymous connection limits; keep it at
+2–4 for CDDIS-heavy queries. FTP centers (COD, WUM, GFZ) generally
+tolerate 6–8.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>product_registry</strong> – Configured <code class="xref py py-class docutils literal notranslate"><span class="pre">ProductRegistry</span></code> with loaded product and
-center specs.</p></li>
+<li><p><strong>product_registry</strong> – Built <code class="xref py py-class docutils literal notranslate"><span class="pre">ProductRegistry</span></code> with loaded product
+and center specs.</p></li>
 <li><p><strong>workspace</strong> – <code class="xref py py-class docutils literal notranslate"><span class="pre">WorkSpace</span></code> with registered local directories.</p></li>
-<li><p><strong>max_connections</strong> – Maximum concurrent connections per host.</p></li>
+<li><p><strong>max_connections</strong> – Maximum concurrent connections per host (default 4).</p></li>
 </ul>
 </dd>
 </dl>
@@ -828,6 +844,16 @@ workspace, e.g. <code class="docutils literal notranslate"><span class="pre">&qu
 fresh <code class="xref py py-class docutils literal notranslate"><span class="pre">WorkSpace</span></code> from the bundled local layout specs.  If
 <em>base_dir</em> is provided, all local specs are registered against that
 directory, enabling downloads and local-first resolution.</p>
+<p><em>base_dir</em> may be a local path <strong>or</strong> a cloud storage URI supported
+by <a class="reference external" href="https://cloudpathlib.drivendata.org/">cloudpathlib</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Local</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;/data/gnss&quot;</span><span class="p">)</span>
+<span class="c1"># Amazon S3</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://my-bucket/gnss&quot;</span><span class="p">)</span>
+<span class="c1"># Google Cloud Storage</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;gs://my-bucket/gnss&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -836,7 +862,8 @@ the client operates in search-only mode (no local sink).</p></li>
 <li><p><strong>local_alias</strong> – Alias for the registered local resource (default
 <code class="docutils literal notranslate"><span class="pre">&quot;local&quot;</span></code>).  Used as the <code class="docutils literal notranslate"><span class="pre">sink_id</span></code> in
 <a class="reference internal" href="#gnss_product_management.client.GNSSClient.download" title="gnss_product_management.client.GNSSClient.download"><code class="xref py py-meth docutils literal notranslate"><span class="pre">download()</span></code></a> and <a class="reference internal" href="#gnss_product_management.client.GNSSClient.resolve_dependencies" title="gnss_product_management.client.GNSSClient.resolve_dependencies"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve_dependencies()</span></code></a>.</p></li>
-<li><p><strong>max_connections</strong> – Maximum concurrent connections per host.</p></li>
+<li><p><strong>max_connections</strong> – Maximum concurrent connections per host.
+Keep at 2–4 for CDDIS; 6–8 for COD, WUM, GFZ.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -874,20 +901,26 @@ or <a class="reference internal" href="#gnss_product_management.client.ProductQu
 <span class="sig-name descname"><span class="pre">resolve_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dep_spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#gnss_product_management.specifications.DependencySpec" title="gnss_product_management.specifications.dependencies.dependencies.DependencySpec"><span class="pre">DependencySpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sink_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gnss_product_management.specifications.DependencyResolution" title="gnss_product_management.specifications.dependencies.dependencies.DependencyResolution"><span class="pre">DependencyResolution</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">CloudPath</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/gnss_product_management/client/gnss_client.html#GNSSClient.resolve_dependencies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gnss_product_management.client.GNSSClient.resolve_dependencies" title="Link to this definition"></a></dt>
 <dd><p>Resolve all dependencies in a spec for the given date.</p>
 <p>Accepts a <code class="xref py py-class docutils literal notranslate"><span class="pre">DependencySpec</span></code> object or a path to a YAML file.
-Checks local disk first, then downloads missing files.  Returns
-immediately if a lockfile already exists for
-<code class="docutils literal notranslate"><span class="pre">(package,</span> <span class="pre">task,</span> <span class="pre">date,</span> <span class="pre">version)</span></code>.</p>
+Checks local disk first, then downloads any missing files.  If a
+<code class="docutils literal notranslate"><span class="pre">DependencyLockFile</span></code> already exists for <code class="docutils literal notranslate"><span class="pre">(package,</span> <span class="pre">task,</span> <span class="pre">date,</span>
+<span class="pre">version)</span></code>, resolution returns immediately without any network calls.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dep_spec</strong> – Dependency specification — a <code class="xref py py-class docutils literal notranslate"><span class="pre">DependencySpec</span></code>
-instance, or a path (<code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>) to a YAML file.</p></li>
-<li><p><strong>date</strong> – Target date (timezone-aware datetime).</p></li>
-<li><p><strong>sink_id</strong> – Local resource identifier for storing resolved files.</p></li>
+instance, or a path (<code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code>) to a YAML file.
+The spec encodes which products are required, the center/
+timeliness preference cascade, and per-product constraints.</p></li>
+<li><p><strong>date</strong> – Target date (timezone-aware datetime, midnight UTC).</p></li>
+<li><p><strong>sink_id</strong> – Local resource alias for storing resolved files
+(e.g. <code class="docutils literal notranslate"><span class="pre">&quot;local&quot;</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">(DependencyResolution,</span> <span class="pre">lockfile_path)</span></code> tuple.</p>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">(DependencyResolution,</span> <span class="pre">lockfile_path)</span></code> tuple.
+<code class="docutils literal notranslate"><span class="pre">DependencyResolution</span></code> exposes <code class="docutils literal notranslate"><span class="pre">.summary()</span></code>, <code class="docutils literal notranslate"><span class="pre">.table()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">.product_paths()</span></code>, <code class="docutils literal notranslate"><span class="pre">.missing</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">.all_required_fulfilled</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -895,28 +928,43 @@ instance, or a path (<code class="docutils literal notranslate"><span class="pre
 <dl class="py method">
 <dt class="sig sig-object py" id="gnss_product_management.client.GNSSClient.search">
 <span class="sig-name descname"><span class="pre">search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">product</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preferences</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gnss_product_management.specifications.SearchPreference" title="gnss_product_management.specifications.dependencies.dependencies.SearchPreference"><span class="pre">SearchPreference</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_resources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_resources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#gnss_product_management.client.FoundResource" title="gnss_product_management.factories.models.FoundResource"><span class="pre">FoundResource</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/gnss_product_management/client/gnss_client.html#GNSSClient.search"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gnss_product_management.client.GNSSClient.search" title="Link to this definition"></a></dt>
-<dd><p>Search for products matching the given criteria.</p>
-<p>Delegates to <a class="reference internal" href="#gnss_product_management.client.ProductQuery" title="gnss_product_management.client.ProductQuery"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProductQuery</span></code></a> internally: builds queries,
-lists remote directories, expands matches, infers parameters,
-and ranks by preference and protocol.</p>
+<dd><p>Search for IGS products matching the given criteria.</p>
+<p>Builds <code class="xref py py-class docutils literal notranslate"><span class="pre">SearchTarget</span></code> objects from the product catalog, lists
+remote directories via the connection pool, matches filenames by regex,
+and ranks results by preference and protocol.</p>
+<p>Key <code class="docutils literal notranslate"><span class="pre">parameters</span></code> keys follow the IGS long filename convention:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TTT</span></code> — solution timeliness: <code class="docutils literal notranslate"><span class="pre">&quot;FIN&quot;</span></code> (final, ≥13 d),
+<code class="docutils literal notranslate"><span class="pre">&quot;RAP&quot;</span></code> (rapid, ≤17 h), <code class="docutils literal notranslate"><span class="pre">&quot;ULT&quot;</span></code> (ultra-rapid, ≤3 h)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AAA</span></code> — analysis center: <code class="docutils literal notranslate"><span class="pre">&quot;COD&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ESA&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;GFZ&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;WUM&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;IGS&quot;</span></code>, …</p></li>
+</ul>
+<p>For the full fluent interface (including date-range searches) use
+<a class="reference internal" href="#gnss_product_management.client.GNSSClient.query" title="gnss_product_management.client.GNSSClient.query"><code class="xref py py-meth docutils literal notranslate"><span class="pre">query()</span></code></a> instead.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>date</strong> – Target date (timezone-aware datetime).</p></li>
-<li><p><strong>product</strong> – Product name as a string (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;ORBIT&quot;</span></code>) or a dict
-with <code class="docutils literal notranslate"><span class="pre">name</span></code>, and optionally <code class="docutils literal notranslate"><span class="pre">version</span></code> / <code class="docutils literal notranslate"><span class="pre">variant</span></code>.</p></li>
-<li><p><strong>parameters</strong> – Parameter constraints, e.g. <code class="docutils literal notranslate"><span class="pre">{&quot;TTT&quot;:</span> <span class="pre">&quot;FIN&quot;}</span></code>.</p></li>
-<li><p><strong>preferences</strong> – Optional preference cascade for ranking results.
-Each <code class="xref py py-class docutils literal notranslate"><span class="pre">SearchPreference</span></code> specifies a parameter and
-an ordered list of preferred values.</p></li>
-<li><p><strong>local_resources</strong> – Restrict to these local resource IDs.</p></li>
+<li><p><strong>product</strong> – Product name (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;ORBIT&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;CLOCK&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;BIA&quot;</span></code>)
+or a dict with <code class="docutils literal notranslate"><span class="pre">name</span></code>, and optionally <code class="docutils literal notranslate"><span class="pre">version</span></code> /
+<code class="docutils literal notranslate"><span class="pre">variant</span></code>.</p></li>
+<li><p><strong>parameters</strong> – Parameter constraints, e.g.
+<code class="docutils literal notranslate"><span class="pre">{&quot;TTT&quot;:</span> <span class="pre">&quot;FIN&quot;,</span> <span class="pre">&quot;AAA&quot;:</span> <span class="pre">&quot;WUM&quot;}</span></code>.</p></li>
+<li><p><strong>preferences</strong> – Preference cascade for ranking.  Each
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SearchPreference</span></code> names a parameter and an ordered
+list of preferred values, e.g.
+<code class="docutils literal notranslate"><span class="pre">SearchPreference(parameter=&quot;TTT&quot;,</span> <span class="pre">sorting=[&quot;FIN&quot;,&quot;RAP&quot;])</span></code>.</p></li>
+<li><p><strong>local_resources</strong> – Restrict to these local resource aliases.</p></li>
 <li><p><strong>remote_resources</strong> – Restrict to these remote center IDs.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Ranked list of <a class="reference internal" href="#gnss_product_management.client.FoundResource" title="gnss_product_management.client.FoundResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">FoundResource</span></code></a> objects, best first.
-Local/file results precede remote ones; within each protocol
-tier results are ordered by <em>preferences</em>.</p>
+<dd class="field-even"><p>//)
+results precede remote ones; within each protocol tier results
+are ordered by <em>preferences</em>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Ranked list of <a class="reference internal" href="#gnss_product_management.client.FoundResource" title="gnss_product_management.client.FoundResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">FoundResource</span></code></a> objects.  Local (file</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1038,16 +1086,23 @@ merged into a single flat list from <a class="reference internal" href="#gnss_pr
 <dl class="py method">
 <dt class="sig sig-object py" id="gnss_product_management.client.ProductQuery.prefer">
 <span class="sig-name descname"><span class="pre">prefer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gnss_product_management.client.ProductQuery" title="gnss_product_management.client.product_query.ProductQuery"><span class="pre">ProductQuery</span></a></span></span><a class="reference internal" href="../_modules/gnss_product_management/client/product_query.html#ProductQuery.prefer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gnss_product_management.client.ProductQuery.prefer" title="Link to this definition"></a></dt>
-<dd><p>Define a preference cascade for ranking results.</p>
-<p>Keyword arguments map parameter names to an ordered list of
-preferred values.  The first entry is most preferred:</p>
+<dd><p>Rank results by a preference cascade without hard-filtering.</p>
+<p>Unlike <a class="reference internal" href="#gnss_product_management.client.ProductQuery.where" title="gnss_product_management.client.ProductQuery.where"><code class="xref py py-meth docutils literal notranslate"><span class="pre">where()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">prefer</span></code> keeps all matching products in the
+result list but sorts them so the most-preferred appear first.  The
+standard IGS timeliness cascade is:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">.</span><span class="n">prefer</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FIN&quot;</span><span class="p">,</span> <span class="s2">&quot;RAP&quot;</span><span class="p">,</span> <span class="s2">&quot;ULT&quot;</span><span class="p">])</span>
 </pre></div>
 </div>
-<p>Multiple calls accumulate preferences in call order.</p>
+<p>Center preference can be layered on top:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">.</span><span class="n">prefer</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FIN&quot;</span><span class="p">,</span> <span class="s2">&quot;RAP&quot;</span><span class="p">,</span> <span class="s2">&quot;ULT&quot;</span><span class="p">],</span> <span class="n">AAA</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;WUM&quot;</span><span class="p">,</span> <span class="s2">&quot;COD&quot;</span><span class="p">,</span> <span class="s2">&quot;GFZ&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Multiple <a class="reference internal" href="#gnss_product_management.client.ProductQuery.prefer" title="gnss_product_management.client.ProductQuery.prefer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prefer()</span></code></a> calls accumulate in call order; later calls
+do not override earlier ones.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>**kwargs</strong> – Parameter name → ordered list of preferred values.</p>
+<dd class="field-odd"><p><strong>**kwargs</strong> – IGS field name → ordered list of preferred values,
+most preferred first.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">self</span></code> for chaining.</p>
@@ -1099,12 +1154,21 @@ call entirely to search all available sources.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="gnss_product_management.client.ProductQuery.where">
 <span class="sig-name descname"><span class="pre">where</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">parameters</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gnss_product_management.client.ProductQuery" title="gnss_product_management.client.product_query.ProductQuery"><span class="pre">ProductQuery</span></a></span></span><a class="reference internal" href="../_modules/gnss_product_management/client/product_query.html#ProductQuery.where"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gnss_product_management.client.ProductQuery.where" title="Link to this definition"></a></dt>
-<dd><p>Constrain product parameters.</p>
-<p>Keyword arguments map parameter names to required values, e.g.
-<code class="docutils literal notranslate"><span class="pre">where(TTT=&quot;FIN&quot;)</span></code> or <code class="docutils literal notranslate"><span class="pre">where(TTT=[&quot;FIN&quot;,</span> <span class="pre">&quot;RAP&quot;])</span></code>.</p>
+<dd><p>Constrain product parameters (hard filter).</p>
+<p>Keyword arguments use IGS long filename field codes as keys.
+Common constraints:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TTT=&quot;FIN&quot;</span></code> — final solutions only (≥13 days latency)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TTT=&quot;RAP&quot;</span></code> — rapid solutions only (≤17 hours latency)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TTT=&quot;ULT&quot;</span></code> — ultra-rapid solutions only (≤3 hours latency)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AAA=&quot;WUM&quot;</span></code> — Wuhan University products only</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AAA=[&quot;WUM&quot;,</span> <span class="pre">&quot;COD&quot;]</span></code> — WUM or COD only</p></li>
+</ul>
+<p>Use <a class="reference internal" href="#gnss_product_management.client.ProductQuery.prefer" title="gnss_product_management.client.ProductQuery.prefer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prefer()</span></code></a> instead of <a class="reference internal" href="#gnss_product_management.client.ProductQuery.where" title="gnss_product_management.client.ProductQuery.where"><code class="xref py py-meth docutils literal notranslate"><span class="pre">where()</span></code></a> when you want to rank
+results without excluding alternatives.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>**parameters</strong> – Parameter name → value (or list of values).</p>
+<dd class="field-odd"><p><strong>**parameters</strong> – IGS field name → required value or list of values.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">self</span></code> for chaining.</p>

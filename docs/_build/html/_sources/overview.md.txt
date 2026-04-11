@@ -1,29 +1,126 @@
 # Overview
 
-## What is GNSS-PPP-ETL?
-
-Running Precise Point Positioning (PPP or PPP-AR) requires a constellation of auxiliary products before a single epoch can be processed: satellite orbits (SP3), clocks (CLK), phase biases (BIA), Earth rotation parameters (ERP), ionosphere maps (IONEX), troposphere grids, and antenna calibrations (ATX). These files are scattered across FTP/FTPS/HTTP servers maintained by seven IGS analysis centers, each with its own directory layout, naming convention, and update cadence.
-
-**GNSS-PPP-ETL** eliminates that bookkeeping. Given a date and a processing task definition, it:
-
-1. Resolves every required product across all registered analysis centers
-2. Downloads and decompresses the files into a structured local workspace
-3. Tracks what was fetched and from where in reproducible lock files
-4. Optionally runs PRIDE-PPPAR end-to-end and returns parsed position output
-
-The library is YAML-driven: products, centers, formats, and storage layouts are pure data. Adding a new analysis center or product type requires only a new YAML file — no Python changes.
+GNSS-PPP-ETL automates the retrieval of IGS analysis center products required
+for Precise Point Positioning. Given a date and a product dependency
+specification, it resolves every required file across all registered centers,
+downloads and decompresses them into a structured local workspace, and records
+provenance in lock files. For PRIDE-PPPAR users a companion package
+(`pride-ppp`) wraps product resolution, `pdp3` config generation, and output
+parsing into a single call.
 
 ---
 
-## Packages
+## If you work with GNSS products
 
-This is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with three packages:
+The query engine speaks IGS parameter codes directly. `TTT` is the solution
+timeliness code — `FIN` (final, available ≥13 days after observation),
+`RAP` (rapid, ≤17 hours), `ULT` (ultra-rapid, ≤3 hours). `AAA` is the
+analysis center code.
 
-| Package | Role |
-|---|---|
-| `gnss-management-specs` | Pluggable YAML data bundle — centers, products, formats, storage layouts |
-| `gnss-product-management` | Discovery, resolution, and download engine |
-| `pride-ppp` | PRIDE-PPPAR integration — RINEX in, kinematic positions out |
+```python
+from datetime import datetime, timezone
+from gnss_product_management import GNSSClient
+
+client = GNSSClient.from_defaults()
+date = datetime(2025, 1, 15, tzinfo=timezone.utc)
+
+# Find all final SP3 orbits from COD and WUM for 2025-015
+results = (
+    client.query()
+    .for_product("ORBIT")
+    .on(date)
+    .where(TTT="FIN")
+    .sources("COD", "WUM", "GFZ")
+    .prefer(TTT=["FIN", "RAP", "ULT"], AAA=["WUM", "COD", "GFZ"])
+    .search()
+)
+for r in results:
+    print(r.center, r.quality, r.filename)
+    # COD  FIN  COD0OPSFIN_2025015000_01D_05M_ORB.SP3
+    # WUM  FIN  WUM0OPSFIN_2025015000_01D_05M_ORB.SP3
+```
+
+Products are named using the [IGS long filename
+convention](https://igs.org/formats-and-standards/):
+`AC0TYPE_YYYYDDDHHMM_LEN_SMP_CNT.FMT`. The parameter catalog maps `YYYY`,
+`DDD`, `GPSWEEK`, and related fields automatically from the query date —
+you only need to specify the dimensions you want to constrain.
+
+For full dependency resolution (orbit + clock + bias + ERP + tables in one
+call), see [Dependency resolution](#dependency-resolution) below.
+
+---
+
+## If you are building a processing pipeline
+
+`GNSSClient` is stateless after construction and safe to reuse across calls.
+`max_connections` controls the per-host FTP/HTTPS connection pool — tune it
+against the rate limits of the centers you query (CDDIS enforces strict limits;
+most FTP centers tolerate 4–8 connections).
+
+```python
+client = GNSSClient.from_defaults(
+    base_dir="s3://my-bucket/gnss-products",   # S3 workspace
+    max_connections=6,
+)
+```
+
+Cloud paths (`s3://`, `gs://`, `az://`) work identically to local paths
+throughout — search, download, and lockfile I/O all route through
+[cloudpathlib](https://cloudpathlib.drivendata.org/). Multiple workers
+sharing the same S3 prefix coordinate via lock files: a worker that finds an
+existing `DependencyLockFile` for `(package, task, date)` returns immediately.
+
+For date-range searches the query builder parallelises internally:
+
+```python
+results = (
+    client.query()
+    .for_product("CLOCK")
+    .on_range(start_date, end_date)   # parallel across dates, up to 8 workers
+    .where(TTT="FIN")
+    .search()
+)
+```
+
+See [Architecture](#architecture) for the connection pool and pipeline
+internals, and [Cloud workspace](#cloud-workspace) for S3 setup details.
+
+---
+
+## If you are processing RINEX with PRIDE-PPPAR
+
+`PrideProcessor` is the single entry point. It owns product resolution, config
+generation, and `pdp3` invocation. Construct it once, call `process_batch()`
+for a full station-year.
+
+```python
+from pride_ppp import PrideProcessor, ProcessingMode
+from pathlib import Path
+
+processor = PrideProcessor(
+    pride_dir=Path("/data/pride"),        # products + working dirs land here
+    output_dir=Path("/data/output"),      # .kin and .res files land here
+    mode=ProcessingMode.FINAL,            # only accept FIN products
+)
+
+rinex_files = sorted(Path("/data/rinex/SITE").glob("*.rnx"))
+for result in processor.process_batch(rinex_files, max_workers=4):
+    if result.success:
+        df = result.positions()           # DataFrame: epoch, X, Y, Z, σ
+        print(f"{result.date}  {len(df)} epochs")
+    else:
+        print(f"{result.date}  FAILED  rc={result.returncode}")
+```
+
+`process_batch` resolves products **once per unique date** across all RINEX
+files for that date before dispatching `pdp3`, so a year of data from a
+single station requires at most 365 product resolution calls rather than
+one per file.
+
+For `ProcessingMode.DEFAULT` the resolver cascades through FIN → RAP → ULT,
+using the best available solution at run time. Use `FINAL` for post-processing
+where reproducibility matters.
 
 ---
 
@@ -35,123 +132,32 @@ cd GNSS-PPP-ETL
 uv sync --all-packages
 ```
 
-Or install individual packages:
+Standalone:
 
 ```bash
-uv add gnss-product-management
-uv add pride-ppp
+uv add gnss-product-management          # product retrieval only
+uv add pride-ppp                        # includes gnss-product-management
 ```
 
-> **PRIDE-PPPAR prerequisite:** the `pdp3` binary from [PRIDE-PPPAR](https://pride.whu.edu.cn/pppar/) must be on `$PATH` to use `pride-ppp`.
+> `pdp3` from [PRIDE-PPPAR](https://github.com/PrideLab/PRIDE-PPPAR) must be
+> on `$PATH` to use `pride-ppp`.
 
 ---
 
-## Quick start
+## Packages
 
-### Search across all centers
-
-```python
-from datetime import datetime, timezone
-from gnss_product_management import GNSSClient
-
-client = GNSSClient.from_defaults()
-date = datetime(2025, 1, 2, tzinfo=timezone.utc)
-
-results = (
-    client.query()
-    .for_product("ORBIT")
-    .on(date)
-    .where(TTT="FIN")                       # final solutions only
-    .sources("COD", "ESA", "GFZ")          # restrict to these centers
-    .prefer(TTT=["FIN", "RAP", "ULT"])      # rank by timeliness
-    .search()
-)
-
-for r in results:
-    print(r.center, r.quality, r.filename, r.uri)
-```
-
-### Download products
-
-```python
-client = GNSSClient.from_defaults(base_dir="/data/gnss-products")
-
-paths = (
-    client.query()
-    .for_product("ORBIT")
-    .on(date)
-    .where(TTT="FIN")
-    .sources("COD")
-    .download(sink_id="local")
-)
-```
-
-### Resolve all dependencies for a processing task
-
-```python
-resolution, lockfile_path = client.resolve_dependencies(
-    "path/to/pride_pppar.yaml",
-    date,
-    sink_id="local",
-)
-print(resolution.summary())
-print(resolution.table())
-
-if resolution.all_required_fulfilled:
-    for spec_name, path in resolution.product_paths().items():
-        print(f"{spec_name}: {path}")
-```
-
-The resolver checks the local workspace first via lock files — subsequent calls for the same date return immediately without any network activity.
-
-### Run PRIDE-PPPAR end-to-end
-
-```python
-from pride_ppp import PrideProcessor
-from pathlib import Path
-
-processor = PrideProcessor(
-    pride_dir=Path("/data/pride"),
-    output_dir=Path("/data/output"),
-)
-result = processor.process(Path("SITE00USA_R_20250010000_01D_30S_MO.rnx"))
-
-if result.success:
-    print(result.positions().head())   # kinematic positions as DataFrame
-    print(result.residuals().head())   # residuals as DataFrame
-```
-
----
-
-## Key concepts
-
-### Product parameters
-
-Every GNSS product filename encodes a set of named metadata fields. The two most important query parameters are:
-
-| Parameter | Meaning | Common values |
-|---|---|---|
-| `TTT` | Solution timeliness | `FIN` (final), `RAP` (rapid), `ULT` (ultra-rapid) |
-| `AAA` | Analysis center | `COD`, `ESA`, `GFZ`, `WUM`, `IGS`, … |
-
-Other parameters — `YYYY`, `DDD`, `GPSWEEK`, `FMT`, `SMP` — are computed automatically from the query date. Use `.where()` to pin values and `.prefer()` to rank without hard-filtering.
-
-### FoundResource
-
-`search()` returns a list of `FoundResource` objects. Each represents a single candidate file — either on a remote server or already in local storage:
-
-| Property | Description |
+| Package | Role |
 |---|---|
-| `r.center` | Analysis center (`"COD"`, `"ESA"`, …) |
-| `r.quality` | Solution tier (`"FIN"`, `"RAP"`, …) |
-| `r.filename` | Bare filename |
-| `r.uri` | Full remote URL or local path |
-| `r.protocol` | `"ftp"`, `"ftps"`, `"https"`, or `"file"` |
-| `r.is_local` | `True` if already on disk |
+| `gnss-management-specs` | YAML data bundle — centers, products, formats, storage layouts |
+| `gnss-product-management` | Discovery, resolution, and download engine |
+| `pride-ppp` | PRIDE-PPPAR integration — RINEX in, kinematic positions out |
 
-### DependencySpec
+---
 
-A YAML file that lists every product a processing task requires, which centers to prefer, and how to rank alternatives. Example structure:
+## Dependency resolution
+
+A `DependencySpec` YAML lists every product a processing task requires and
+encodes the timeliness/center preference cascade:
 
 ```yaml
 name: pride_pppar
@@ -168,92 +174,109 @@ dependencies:
   - spec: CLOCK
     required: true
   - spec: BIA
-    required: false
+    required: false   # Float PPP runs without BIA; PPP-AR integer fixing requires it
   - spec: ERP
+    required: true
+  - spec: ATTATX
     required: true
 ```
 
-Pass the path to `client.resolve_dependencies()` and the library handles everything else.
+```python
+client = GNSSClient.from_defaults(base_dir="/data/gnss-products")
 
-### Lock files
+resolution, lockfile_path = client.resolve_dependencies(
+    "pride_pppar.yaml", date, sink_id="local"
+)
+print(resolution.summary())
+# ORBIT  FIN  WUM  downloaded  /data/gnss-products/2025/015/WUM0OPSFIN...SP3
+# CLOCK  FIN  WUM  downloaded  /data/gnss-products/2025/015/WUM0OPSFIN...CLK
+# BIA    FIN  WUM  downloaded  ...
+# ERP    FIN  WUM  downloaded  ...
+# ATTATX ---  IGS  downloaded  ...
 
-Every resolved product is tracked in a sidecar `<filename>_lock.json` containing the source URL, SHA-256 hash, file size, and local sink path. An aggregate `DependencyLockFile` is written after a full dependency resolution, enabling:
+if resolution.all_required_fulfilled:
+    for spec, path in resolution.product_paths().items():
+        print(f"{spec:10s} {path}")
+```
 
-- **Fast re-runs** — if the lockfile already exists for a `(package, task, date)` triple, resolution returns immediately
-- **Reproducibility** — exact provenance for every file used in a processing run
-- **Integrity checks** — hash verification on reload
+The resolver checks the local workspace first. If a `DependencyLockFile` for
+`(package, task, date, version)` already exists, resolution returns
+immediately — no network calls.
+
+---
+
+## Cloud workspace
+
+Any `base_dir` URI supported by
+[cloudpathlib](https://cloudpathlib.drivendata.org/) works as a workspace:
+
+```python
+# S3
+client = GNSSClient.from_defaults(base_dir="s3://my-bucket/gnss/products")
+
+# Google Cloud Storage
+client = GNSSClient.from_defaults(base_dir="gs://my-bucket/gnss/products")
+```
+
+Lock files are written under `base_dir/dependency_lockfiles/`, giving
+distributed workers a shared coordination point. A worker that detects a
+valid lockfile for the requested date skips all network activity.
 
 ---
 
 ## Architecture
 
-The `gnss-product-management` package is organized into five layers. Each layer depends only on layers below it.
-
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Layer 4 — Interface                                    │
-│  GNSSClient, ProductQuery                               │
-│  ProductRegistry, WorkSpace  (environment setup)        │
-├─────────────────────────────────────────────────────────┤
-│  Layer 3 — Orchestration                                │
-│  SearchPlanner, WormHole, ConnectionPoolFactory         │
-│  DownloadPipeline, ResolvePipeline, LockfileWriter      │
-├─────────────────────────────────────────────────────────┤
-│  Layer 2 — Catalog                                      │
-│  FormatCatalog, ProductCatalog, ResourceCatalog         │
-│  SourcePlanner (Protocol)                               │
-├─────────────────────────────────────────────────────────┤
-│  Layer 1 — Specification                                │
-│  Pydantic models: FormatSpec, ProductSpec, SearchTarget │
-│  DependencySpec, DependencyResolution, LockProduct      │
-├─────────────────────────────────────────────────────────┤
-│  Layer 0 — Configuration                                │
-│  Bundled YAML files, as_path(), hash_file(), utilities  │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│  Layer 4 — Interface                           │
+│  GNSSClient · ProductQuery                     │
+│  ProductRegistry · WorkSpace (setup)           │
+├────────────────────────────────────────────────┤
+│  Layer 3 — Orchestration                       │
+│  SearchPlanner · WormHole                      │
+│  ConnectionPoolFactory (fsspec-backed)         │
+│  DownloadPipeline · ResolvePipeline            │
+│  LockfileWriter · LockfileManager              │
+├────────────────────────────────────────────────┤
+│  Layer 2 — Catalog                             │
+│  FormatCatalog · ProductCatalog                │
+│  ResourceCatalog · SourcePlanner (Protocol)    │
+├────────────────────────────────────────────────┤
+│  Layer 1 — Specification (Pydantic)            │
+│  FormatSpec · ProductSpec · SearchTarget       │
+│  DependencySpec · LockProduct                  │
+├────────────────────────────────────────────────┤
+│  Layer 0 — Configuration                       │
+│  Bundled YAML · as_path() · hash_file()        │
+└────────────────────────────────────────────────┘
 ```
 
-**`GNSSClient`** is the single user-facing entry point. `ProductRegistry` loads YAML specs and builds the catalog chain; `WorkSpace` registers local storage directories. Both satisfy the `SourcePlanner` protocol, giving `SearchPlanner` a uniform interface to remote and local resources.
+Each layer depends only on layers below it. `ProductRegistry` and `WorkSpace`
+both satisfy the `SourcePlanner` protocol, giving `SearchPlanner` a uniform
+interface to remote and local resources. All local/cloud path operations route
+through `as_path()`, which dispatches to `pathlib.Path` or `cloudpathlib`
+based on the URI scheme.
 
-Connection pooling (`ConnectionPoolFactory`) uses [fsspec](https://filesystem-spec.readthedocs.io/) for FTP, FTPS, and HTTP. Cloud storage (`s3://`, `gs://`, `az://`) is supported transparently through [cloudpathlib](https://cloudpathlib.drivendata.org/).
-
-See [Architecture](architecture.md) and [Class Reference](class-reference.md) for full detail.
-
----
-
-## Extensibility
-
-Because the specification layer is pure YAML data, the library is straightforward to extend:
-
-**Add a new analysis center** — write a center YAML in `configs/centers/` defining its servers and product offerings, then call `registry.add_resource_spec(path)`.
-
-**Add a new product type** — add entries to `product_spec.yaml` and `format_spec.yaml` with the filename template and parameter bindings.
-
-**Add a cloud workspace** — pass an S3 or GCS URI as `base_dir`:
-```python
-client = GNSSClient.from_defaults(base_dir="s3://my-bucket/gnss-data")
-```
-All path operations — search, download, lockfile I/O — behave identically on local and cloud storage.
-
-**Swap specification sets** — `gnss-management-specs` is an independent data package. A project with different products (e.g. acoustic ranging, seismic) can ship its own spec package and wire it into `ProductRegistry` without touching the engine.
+Full detail: [Architecture](architecture.md) · [Class Reference](class-reference.md)
 
 ---
 
 ## Supported products
 
-| Product | Format | Description |
-|---|---|---|
-| Orbit | SP3 | Precise satellite ephemerides (15 min) |
-| Clock | CLK | Satellite & station clock corrections (30 s / 5 min) |
-| Bias | BIA | Code and phase bias (OSB/DSB) for PPP-AR |
-| ERP | ERP | Polar motion, UT1-UTC, LOD |
-| GIM | IONEX | Global ionosphere TEC maps |
-| Navigation | RINEX NAV | Broadcast ephemerides (merged BRDC) |
-| ATX | ANTEX | Satellite & receiver antenna phase center calibrations |
-| OBX | OBX | Satellite attitude quaternions |
-| Troposphere | VMF1/VMF3 | Vienna Mapping Functions (gridded) |
-| Orography | GRID | Orography grids for VMF |
-| Leap seconds | — | IERS leap second table |
-| Sat parameters | — | Satellite metadata (mass, geometry, SRP) |
+| Product | Format | Sampling | Description |
+|---|---|---|---|
+| ORBIT | SP3 | 15 min | Precise satellite ephemerides (ITRF2020 / IGb20 for Repro3+ products) |
+| CLOCK | CLK | 30 s / 5 min | Satellite and station clock corrections |
+| BIA | BIA | daily | OSB/FCB code and phase biases — required for PPP-AR integer fixing |
+| ERP | ERP | daily | Polar motion (x_p, y_p), UT1-UTC, LOD |
+| GIM | IONEX | 1–2 h | Global ionosphere TEC maps |
+| NAVIGATION | RINEX NAV | — | Broadcast ephemerides (merged BRDC) |
+| ATTATX | ANTEX | static | Satellite and receiver antenna phase-center calibrations |
+| ATTOBX | OBX | 5 min | Satellite attitude quaternions |
+| TROPOSPHERE | VMF1/VMF3 | 6 h | Vienna Mapping Functions (gridded) |
+| OROGRAPHY | GRID | static | Orography for VMF |
+| LEAPSECOND | — | static | IERS leap-second table |
+| SAT\_PARAMETERS | — | static | Satellite mass, geometry, SRP metadata |
 
 ---
 
@@ -261,21 +284,21 @@ All path operations — search, download, lockfile I/O — behave identically on
 
 | Center | Institution | Protocol | Products |
 |---|---|---|---|
-| **CDDIS** | NASA GSFC | FTPS | clock, GIM, leap seconds, navigation, orbit |
-| **COD** | AIUB / Univ. Bern | FTP | bias, clock, ERP, GIM, orbit |
-| **ESA** | ESA/ESOC | FTP | clock, GIM, orbit |
-| **GFZ** | GFZ Potsdam | FTP | clock, orbit |
-| **IGS** | IGN France | FTP / HTTPS | ATX, bias, clock, ERP, navigation, OBX, orbit |
-| **VMF** | TU Wien | HTTPS | orography, VMF1, VMF3 |
-| **WUM** | Wuhan University | FTP | bias, clock, ERP, GIM, leap seconds, navigation, OBX, orbit, sat_parameters |
+| CDDIS | NASA GSFC | FTPS | clock, GIM, leap seconds, navigation, orbit |
+| COD | AIUB / Univ. Bern | FTP | bias, clock, ERP, GIM, orbit |
+| ESA | ESA/ESOC | FTP | clock, GIM, orbit |
+| GFZ | GFZ Potsdam | FTP | clock, orbit |
+| IGS | IGN France / files.igs.org | FTP / HTTPS | ATX, bias, clock, ERP, navigation, OBX, orbit |
+| VMF | TU Wien | HTTPS | orography, VMF1, VMF3 |
+| WUM | Wuhan University | FTP | bias, clock, ERP, GIM, leap seconds, navigation, OBX, orbit, sat_parameters |
 
 ---
 
 ## References
 
-- [International GNSS Service — Products](https://igs.org/products/)
+- [IGS Products](https://igs.org/products/) — accuracy and latency specifications
 - [IGS Long Filename Convention](https://igs.org/formats-and-standards/)
-- [PRIDE-PPPAR (Wuhan University)](https://pride.whu.edu.cn/pppar/)
+- [PRIDE-PPPAR](https://pride.whu.edu.cn/pppar/)
 - [Vienna Mapping Functions](https://vmf.geo.tuwien.ac.at/)
-- [fsspec](https://filesystem-spec.readthedocs.io/)
-- [cloudpathlib](https://cloudpathlib.drivendata.org/)
+- [cloudpathlib](https://cloudpathlib.drivendata.org/) — cloud storage support
+- [fsspec](https://filesystem-spec.readthedocs.io/) — FTP/HTTPS connection pooling

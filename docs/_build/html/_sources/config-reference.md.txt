@@ -1,10 +1,11 @@
 # YAML Configuration Reference
 
-The GNSS product management system is driven entirely by YAML configuration
-files bundled in the [`gnss-product-management`](../packages/gnss-product-management/) package.
-This document describes every configuration directory and what each controls.
+The product management system is driven entirely by YAML configuration files
+bundled in the [`gnss-management-specs`](../packages/gnss-management-specs/)
+package. This separates data from code: adding a new analysis center or product
+type requires only a new YAML file.
 
-> Source path: `packages/gnss-product-management/src/gnss_product_management/configs/`
+> Source path: `packages/gnss-management-specs/src/gnss_management_specs/configs/`
 
 ---
 
@@ -52,8 +53,8 @@ Concrete filename structures for each data format:
   observation
 - **Parameters** — metadata fields (from `meta/`) that populate each template
 
-Together these two files let the `QueryFactory` dynamically construct and
-deconstruct filenames for any product type.
+Together these two files let `SearchPlanner` dynamically construct and
+match filenames for any product type using the parameter catalog.
 
 ---
 
@@ -74,6 +75,21 @@ Each file defines a single IGS analysis center:
 These configs are the blueprints for how the system interacts with each data
 provider.
 
+### Authentication
+
+Most centers (COD, ESA, GFZ, WUM) serve products over anonymous FTP and
+require no credentials. **CDDIS** (NASA GSFC) has required authenticated
+FTPS access since November 2020. Credentials are read automatically from
+`~/.netrc`:
+
+```
+machine cddis.nasa.gov login <earthdata_username> password <earthdata_password>
+```
+
+Register at <https://cddis.nasa.gov/Data_and_Derived_Products/CreateAccount.html>.
+Without a valid `.netrc` entry, all CDDIS queries will fail with a 530
+authentication error.
+
 ---
 
 ## `local/` — Local Storage Configuration
@@ -90,12 +106,26 @@ Dictates how downloaded products are organized on disk:
 
 | Collection | Contents |
 |---|---|
-| `products` | Orbits, clocks, biases, attitude data |
+| `products` | Orbits (SP3), clocks (CLK), biases (BIA), attitude (OBX) |
 | `rinex` | Observation, navigation, meteorological RINEX |
-| `common` | Ionosphere maps, troposphere grids |
-| `table` | Leap seconds, satellite parameters, antenna calibrations |
-| `lockfiles` | Provenance / version tracking for downloaded dependencies |
-| `leo` | Level-1B instrument data from LEO satellites |
+| `common` | Ionosphere maps (IONEX), troposphere grids (VMF1/VMF3) |
+| `table` | Static reference files: leap-second table, satellite parameters (mass, geometry), ANTEX |
+| `lockfiles` | Dependency lock files — provenance and SHA-256 hashes for every resolved product |
+| `leo` | Level-1B GNSS observation data from LEO satellites (e.g. COSMIC-2, Swarm); uses the same SP3/CLK product types but separate center configs |
+
+### Cloud storage
+
+The `local_config.yaml` directory structure applies equally to local and cloud
+paths. Pass an S3 (or GCS/Azure) URI as `base_dir` and the same
+`{YYYY}/{DDD}/` layout is mirrored in object storage:
+
+```python
+client = GNSSClient.from_defaults(base_dir="s3://my-bucket/gnss-products")
+# Products land at:
+#   s3://my-bucket/gnss-products/2025/015/products/WUM0OPSFIN...SP3
+#   s3://my-bucket/gnss-products/2025/015/common/COD0OPSFIN...INX
+#   s3://my-bucket/gnss-products/dependency_lockfiles/pride-ppp_ppp_20250015.json
+```
 
 ---
 
@@ -113,8 +143,10 @@ Bundles all GNSS products required for a specific processing engine:
 - **`dependencies`** — The list of required products, each referencing a
   product `spec` (like `ORBIT`, `CLOCK`, `BIA`)
 
-The `DependencyResolver` uses these specs to find, download, and cache a
-complete, prioritized dataset for any processing run.
+`ResolvePipeline` (via `GNSSClient.resolve_dependencies`) uses these specs to
+find, download, and cache a complete, prioritised dataset for any processing
+run. The `preferences` list drives the timeliness/center cascade:
+FIN → RAP → ULT, with per-parameter fallback ordering.
 
 ---
 
@@ -136,5 +168,6 @@ Defines the searchable dimensions ("axes") for product queries:
   - `temporal` type (`daily`, `hourly`, `static`)
   - `local_collection` mapping to `local_config.yaml`
 
-This file defines the API for requesting GNSS products — it ensures queries are
-valid and directs the system to the right resources.
+This file defines the queryable dimensions for product searches. `SearchPlanner`
+reads these profiles to know which parameter axes apply to each product and how
+to route queries to local vs. remote resources.

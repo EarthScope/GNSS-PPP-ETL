@@ -19,8 +19,6 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="GNSS PPP Product Reference" href="ppp-products.html" />
-    <link rel="prev" title="GNSS-PPP-ETL" href="index.html" />
 </head>
 
 <body class="wy-body-for-nav">
@@ -42,42 +40,16 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#what-is-gnss-ppp-etl">What is GNSS-PPP-ETL?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#packages">Packages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick start</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#search-across-all-centers">Search across all centers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#download-products">Download products</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#resolve-all-dependencies-for-a-processing-task">Resolve all dependencies for a processing task</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#run-pride-pppar-end-to-end">Run PRIDE-PPPAR end-to-end</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#key-concepts">Key concepts</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#product-parameters">Product parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#foundresource">FoundResource</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#dependencyspec">DependencySpec</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#lock-files">Lock files</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#extensibility">Extensibility</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#supported-products">Supported products</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#supported-analysis-centers">Supported analysis centers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
-</ul>
-</li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ppp-products.html">GNSS PPP Product Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config-reference.html">YAML Configuration Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="class-reference.html">Class Reference — gnss-product-management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="INDEX.html">Documentation Index</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API</span></p>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api/gnss-product-management.html">gnss-product-management API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/pride-ppp.html">pride-ppp API</a></li>
@@ -109,22 +81,134 @@
 
   <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
-<section id="what-is-gnss-ppp-etl">
-<h2>What is GNSS-PPP-ETL?<a class="headerlink" href="#what-is-gnss-ppp-etl" title="Link to this heading"></a></h2>
-<p>Running Precise Point Positioning (PPP or PPP-AR) requires a constellation of auxiliary products before a single epoch can be processed: satellite orbits (SP3), clocks (CLK), phase biases (BIA), Earth rotation parameters (ERP), ionosphere maps (IONEX), troposphere grids, and antenna calibrations (ATX). These files are scattered across FTP/FTPS/HTTP servers maintained by seven IGS analysis centers, each with its own directory layout, naming convention, and update cadence.</p>
-<p><strong>GNSS-PPP-ETL</strong> eliminates that bookkeeping. Given a date and a processing task definition, it:</p>
-<ol class="arabic simple">
-<li><p>Resolves every required product across all registered analysis centers</p></li>
-<li><p>Downloads and decompresses the files into a structured local workspace</p></li>
-<li><p>Tracks what was fetched and from where in reproducible lock files</p></li>
-<li><p>Optionally runs PRIDE-PPPAR end-to-end and returns parsed position output</p></li>
-</ol>
-<p>The library is YAML-driven: products, centers, formats, and storage layouts are pure data. Adding a new analysis center or product type requires only a new YAML file — no Python changes.</p>
+<p>GNSS-PPP-ETL automates the retrieval of IGS analysis center products required
+for Precise Point Positioning. Given a date and a product dependency
+specification, it resolves every required file across all registered centers,
+downloads and decompresses them into a structured local workspace, and records
+provenance in lock files. For PRIDE-PPPAR users a companion package
+(<code class="docutils literal notranslate"><span class="pre">pride-ppp</span></code>) wraps product resolution, <code class="docutils literal notranslate"><span class="pre">pdp3</span></code> config generation, and output
+parsing into a single call.</p>
+<hr class="docutils" />
+<section id="if-you-work-with-gnss-products">
+<h2>If you work with GNSS products<a class="headerlink" href="#if-you-work-with-gnss-products" title="Link to this heading"></a></h2>
+<p>The query engine speaks IGS parameter codes directly. <code class="docutils literal notranslate"><span class="pre">TTT</span></code> is the solution
+timeliness code — <code class="docutils literal notranslate"><span class="pre">FIN</span></code> (final, available ≥13 days after observation),
+<code class="docutils literal notranslate"><span class="pre">RAP</span></code> (rapid, ≤17 hours), <code class="docutils literal notranslate"><span class="pre">ULT</span></code> (ultra-rapid, ≤3 hours). <code class="docutils literal notranslate"><span class="pre">AAA</span></code> is the
+analysis center code.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management</span><span class="w"> </span><span class="kn">import</span> <span class="n">GNSSClient</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">()</span>
+<span class="n">date</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2025</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+<span class="c1"># Find all final SP3 orbits from COD and WUM for 2025-015</span>
+<span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">for_product</span><span class="p">(</span><span class="s2">&quot;ORBIT&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="s2">&quot;FIN&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">sources</span><span class="p">(</span><span class="s2">&quot;COD&quot;</span><span class="p">,</span> <span class="s2">&quot;WUM&quot;</span><span class="p">,</span> <span class="s2">&quot;GFZ&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">prefer</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FIN&quot;</span><span class="p">,</span> <span class="s2">&quot;RAP&quot;</span><span class="p">,</span> <span class="s2">&quot;ULT&quot;</span><span class="p">],</span> <span class="n">AAA</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;WUM&quot;</span><span class="p">,</span> <span class="s2">&quot;COD&quot;</span><span class="p">,</span> <span class="s2">&quot;GFZ&quot;</span><span class="p">])</span>
+    <span class="o">.</span><span class="n">search</span><span class="p">()</span>
+<span class="p">)</span>
+<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">quality</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+    <span class="c1"># COD  FIN  COD0OPSFIN_2025015000_01D_05M_ORB.SP3</span>
+    <span class="c1"># WUM  FIN  WUM0OPSFIN_2025015000_01D_05M_ORB.SP3</span>
+</pre></div>
+</div>
+<p>Products are named using the <a class="reference external" href="https://igs.org/formats-and-standards/">IGS long filename
+convention</a>:
+<code class="docutils literal notranslate"><span class="pre">AC0TYPE_YYYYDDDHHMM_LEN_SMP_CNT.FMT</span></code>. The parameter catalog maps <code class="docutils literal notranslate"><span class="pre">YYYY</span></code>,
+<code class="docutils literal notranslate"><span class="pre">DDD</span></code>, <code class="docutils literal notranslate"><span class="pre">GPSWEEK</span></code>, and related fields automatically from the query date —
+you only need to specify the dimensions you want to constrain.</p>
+<p>For full dependency resolution (orbit + clock + bias + ERP + tables in one
+call), see <a class="reference internal" href="#dependency-resolution"><span class="xref myst">Dependency resolution</span></a> below.</p>
+</section>
+<hr class="docutils" />
+<section id="if-you-are-building-a-processing-pipeline">
+<h2>If you are building a processing pipeline<a class="headerlink" href="#if-you-are-building-a-processing-pipeline" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">GNSSClient</span></code> is stateless after construction and safe to reuse across calls.
+<code class="docutils literal notranslate"><span class="pre">max_connections</span></code> controls the per-host FTP/HTTPS connection pool — tune it
+against the rate limits of the centers you query (CDDIS enforces strict limits;
+most FTP centers tolerate 4–8 connections).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span>
+    <span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://my-bucket/gnss-products&quot;</span><span class="p">,</span>   <span class="c1"># S3 workspace</span>
+    <span class="n">max_connections</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Cloud paths (<code class="docutils literal notranslate"><span class="pre">s3://</span></code>, <code class="docutils literal notranslate"><span class="pre">gs://</span></code>, <code class="docutils literal notranslate"><span class="pre">az://</span></code>) work identically to local paths
+throughout — search, download, and lockfile I/O all route through
+<a class="reference external" href="https://cloudpathlib.drivendata.org/">cloudpathlib</a>. Multiple workers
+sharing the same S3 prefix coordinate via lock files: a worker that finds an
+existing <code class="docutils literal notranslate"><span class="pre">DependencyLockFile</span></code> for <code class="docutils literal notranslate"><span class="pre">(package,</span> <span class="pre">task,</span> <span class="pre">date)</span></code> returns immediately.</p>
+<p>For date-range searches the query builder parallelises internally:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">for_product</span><span class="p">(</span><span class="s2">&quot;CLOCK&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">on_range</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>   <span class="c1"># parallel across dates, up to 8 workers</span>
+    <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="s2">&quot;FIN&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">search</span><span class="p">()</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="architecture.html"><span class="doc std std-doc">Architecture</span></a> for the connection pool and pipeline
+internals, and <a class="reference internal" href="#cloud-workspace"><span class="xref myst">Cloud workspace</span></a> for S3 setup details.</p>
+</section>
+<hr class="docutils" />
+<section id="if-you-are-processing-rinex-with-pride-pppar">
+<h2>If you are processing RINEX with PRIDE-PPPAR<a class="headerlink" href="#if-you-are-processing-rinex-with-pride-pppar" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PrideProcessor</span></code> is the single entry point. It owns product resolution, config
+generation, and <code class="docutils literal notranslate"><span class="pre">pdp3</span></code> invocation. Construct it once, call <code class="docutils literal notranslate"><span class="pre">process_batch()</span></code>
+for a full station-year.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pride_ppp</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrideProcessor</span><span class="p">,</span> <span class="n">ProcessingMode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">processor</span> <span class="o">=</span> <span class="n">PrideProcessor</span><span class="p">(</span>
+    <span class="n">pride_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/data/pride&quot;</span><span class="p">),</span>        <span class="c1"># products + working dirs land here</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/data/output&quot;</span><span class="p">),</span>      <span class="c1"># .kin and .res files land here</span>
+    <span class="n">mode</span><span class="o">=</span><span class="n">ProcessingMode</span><span class="o">.</span><span class="n">FINAL</span><span class="p">,</span>            <span class="c1"># only accept FIN products</span>
+<span class="p">)</span>
+
+<span class="n">rinex_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/data/rinex/SITE&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.rnx&quot;</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">processor</span><span class="o">.</span><span class="n">process_batch</span><span class="p">(</span><span class="n">rinex_files</span><span class="p">,</span> <span class="n">max_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">positions</span><span class="p">()</span>           <span class="c1"># DataFrame: epoch, X, Y, Z, σ</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">date</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> epochs&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">date</span><span class="si">}</span><span class="s2">  FAILED  rc=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">returncode</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">process_batch</span></code> resolves products <strong>once per unique date</strong> across all RINEX
+files for that date before dispatching <code class="docutils literal notranslate"><span class="pre">pdp3</span></code>, so a year of data from a
+single station requires at most 365 product resolution calls rather than
+one per file.</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">ProcessingMode.DEFAULT</span></code> the resolver cascades through FIN → RAP → ULT,
+using the best available solution at run time. Use <code class="docutils literal notranslate"><span class="pre">FINAL</span></code> for post-processing
+where reproducibility matters.</p>
+</section>
+<hr class="docutils" />
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/EarthScope/GNSS-PPP-ETL.git
+<span class="nb">cd</span><span class="w"> </span>GNSS-PPP-ETL
+uv<span class="w"> </span>sync<span class="w"> </span>--all-packages
+</pre></div>
+</div>
+<p>Standalone:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>gnss-product-management<span class="w">          </span><span class="c1"># product retrieval only</span>
+uv<span class="w"> </span>add<span class="w"> </span>pride-ppp<span class="w">                        </span><span class="c1"># includes gnss-product-management</span>
+</pre></div>
+</div>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">pdp3</span></code> from <a class="reference external" href="https://github.com/PrideLab/PRIDE-PPPAR">PRIDE-PPPAR</a> must be
+on <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> to use <code class="docutils literal notranslate"><span class="pre">pride-ppp</span></code>.</p>
+</div></blockquote>
 </section>
 <hr class="docutils" />
 <section id="packages">
 <h2>Packages<a class="headerlink" href="#packages" title="Link to this heading"></a></h2>
-<p>This is a <a class="reference external" href="https://docs.astral.sh/uv/concepts/projects/workspaces/">uv workspace</a> with three packages:</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Package</p></th>
@@ -133,7 +217,7 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gnss-management-specs</span></code></p></td>
-<td><p>Pluggable YAML data bundle — centers, products, formats, storage layouts</p></td>
+<td><p>YAML data bundle — centers, products, formats, storage layouts</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gnss-product-management</span></code></p></td>
 <td><p>Discovery, resolution, and download engine</p></td>
@@ -145,158 +229,10 @@
 </table>
 </section>
 <hr class="docutils" />
-<section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/EarthScope/GNSS-PPP-ETL.git
-<span class="nb">cd</span><span class="w"> </span>GNSS-PPP-ETL
-uv<span class="w"> </span>sync<span class="w"> </span>--all-packages
-</pre></div>
-</div>
-<p>Or install individual packages:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>add<span class="w"> </span>gnss-product-management
-uv<span class="w"> </span>add<span class="w"> </span>pride-ppp
-</pre></div>
-</div>
-<blockquote>
-<div><p><strong>PRIDE-PPPAR prerequisite:</strong> the <code class="docutils literal notranslate"><span class="pre">pdp3</span></code> binary from <a class="reference external" href="https://pride.whu.edu.cn/pppar/">PRIDE-PPPAR</a> must be on <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> to use <code class="docutils literal notranslate"><span class="pre">pride-ppp</span></code>.</p>
-</div></blockquote>
-</section>
-<hr class="docutils" />
-<section id="quick-start">
-<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
-<section id="search-across-all-centers">
-<h3>Search across all centers<a class="headerlink" href="#search-across-all-centers" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management</span><span class="w"> </span><span class="kn">import</span> <span class="n">GNSSClient</span>
-
-<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">()</span>
-<span class="n">date</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2025</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
-
-<span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">for_product</span><span class="p">(</span><span class="s2">&quot;ORBIT&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="s2">&quot;FIN&quot;</span><span class="p">)</span>                       <span class="c1"># final solutions only</span>
-    <span class="o">.</span><span class="n">sources</span><span class="p">(</span><span class="s2">&quot;COD&quot;</span><span class="p">,</span> <span class="s2">&quot;ESA&quot;</span><span class="p">,</span> <span class="s2">&quot;GFZ&quot;</span><span class="p">)</span>          <span class="c1"># restrict to these centers</span>
-    <span class="o">.</span><span class="n">prefer</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FIN&quot;</span><span class="p">,</span> <span class="s2">&quot;RAP&quot;</span><span class="p">,</span> <span class="s2">&quot;ULT&quot;</span><span class="p">])</span>      <span class="c1"># rank by timeliness</span>
-    <span class="o">.</span><span class="n">search</span><span class="p">()</span>
-<span class="p">)</span>
-
-<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">quality</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="download-products">
-<h3>Download products<a class="headerlink" href="#download-products" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;/data/gnss-products&quot;</span><span class="p">)</span>
-
-<span class="n">paths</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">for_product</span><span class="p">(</span><span class="s2">&quot;ORBIT&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">TTT</span><span class="o">=</span><span class="s2">&quot;FIN&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">sources</span><span class="p">(</span><span class="s2">&quot;COD&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">)</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="resolve-all-dependencies-for-a-processing-task">
-<h3>Resolve all dependencies for a processing task<a class="headerlink" href="#resolve-all-dependencies-for-a-processing-task" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resolution</span><span class="p">,</span> <span class="n">lockfile_path</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">resolve_dependencies</span><span class="p">(</span>
-    <span class="s2">&quot;path/to/pride_pppar.yaml&quot;</span><span class="p">,</span>
-    <span class="n">date</span><span class="p">,</span>
-    <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">resolution</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">resolution</span><span class="o">.</span><span class="n">table</span><span class="p">())</span>
-
-<span class="k">if</span> <span class="n">resolution</span><span class="o">.</span><span class="n">all_required_fulfilled</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">spec_name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">resolution</span><span class="o">.</span><span class="n">product_paths</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spec_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The resolver checks the local workspace first via lock files — subsequent calls for the same date return immediately without any network activity.</p>
-</section>
-<section id="run-pride-pppar-end-to-end">
-<h3>Run PRIDE-PPPAR end-to-end<a class="headerlink" href="#run-pride-pppar-end-to-end" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pride_ppp</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrideProcessor</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-
-<span class="n">processor</span> <span class="o">=</span> <span class="n">PrideProcessor</span><span class="p">(</span>
-    <span class="n">pride_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/data/pride&quot;</span><span class="p">),</span>
-    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/data/output&quot;</span><span class="p">),</span>
-<span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;SITE00USA_R_20250010000_01D_30S_MO.rnx&quot;</span><span class="p">))</span>
-
-<span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">positions</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>   <span class="c1"># kinematic positions as DataFrame</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">residuals</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>   <span class="c1"># residuals as DataFrame</span>
-</pre></div>
-</div>
-</section>
-</section>
-<hr class="docutils" />
-<section id="key-concepts">
-<h2>Key concepts<a class="headerlink" href="#key-concepts" title="Link to this heading"></a></h2>
-<section id="product-parameters">
-<h3>Product parameters<a class="headerlink" href="#product-parameters" title="Link to this heading"></a></h3>
-<p>Every GNSS product filename encodes a set of named metadata fields. The two most important query parameters are:</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Parameter</p></th>
-<th class="head"><p>Meaning</p></th>
-<th class="head"><p>Common values</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TTT</span></code></p></td>
-<td><p>Solution timeliness</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">FIN</span></code> (final), <code class="docutils literal notranslate"><span class="pre">RAP</span></code> (rapid), <code class="docutils literal notranslate"><span class="pre">ULT</span></code> (ultra-rapid)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AAA</span></code></p></td>
-<td><p>Analysis center</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">COD</span></code>, <code class="docutils literal notranslate"><span class="pre">ESA</span></code>, <code class="docutils literal notranslate"><span class="pre">GFZ</span></code>, <code class="docutils literal notranslate"><span class="pre">WUM</span></code>, <code class="docutils literal notranslate"><span class="pre">IGS</span></code>, …</p></td>
-</tr>
-</tbody>
-</table>
-<p>Other parameters — <code class="docutils literal notranslate"><span class="pre">YYYY</span></code>, <code class="docutils literal notranslate"><span class="pre">DDD</span></code>, <code class="docutils literal notranslate"><span class="pre">GPSWEEK</span></code>, <code class="docutils literal notranslate"><span class="pre">FMT</span></code>, <code class="docutils literal notranslate"><span class="pre">SMP</span></code> — are computed automatically from the query date. Use <code class="docutils literal notranslate"><span class="pre">.where()</span></code> to pin values and <code class="docutils literal notranslate"><span class="pre">.prefer()</span></code> to rank without hard-filtering.</p>
-</section>
-<section id="foundresource">
-<h3>FoundResource<a class="headerlink" href="#foundresource" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">search()</span></code> returns a list of <code class="docutils literal notranslate"><span class="pre">FoundResource</span></code> objects. Each represents a single candidate file — either on a remote server or already in local storage:</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Property</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">r.center</span></code></p></td>
-<td><p>Analysis center (<code class="docutils literal notranslate"><span class="pre">&quot;COD&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ESA&quot;</span></code>, …)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">r.quality</span></code></p></td>
-<td><p>Solution tier (<code class="docutils literal notranslate"><span class="pre">&quot;FIN&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;RAP&quot;</span></code>, …)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">r.filename</span></code></p></td>
-<td><p>Bare filename</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">r.uri</span></code></p></td>
-<td><p>Full remote URL or local path</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">r.protocol</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ftp&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ftps&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;https&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;file&quot;</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">r.is_local</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if already on disk</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="dependencyspec">
-<h3>DependencySpec<a class="headerlink" href="#dependencyspec" title="Link to this heading"></a></h3>
-<p>A YAML file that lists every product a processing task requires, which centers to prefer, and how to rank alternatives. Example structure:</p>
+<section id="dependency-resolution">
+<h2>Dependency resolution<a class="headerlink" href="#dependency-resolution" title="Link to this heading"></a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">DependencySpec</span></code> YAML lists every product a processing task requires and
+encodes the timeliness/center preference cascade:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pride_pppar</span>
 <span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pride-ppp</span>
 <span class="nt">task</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kinematic_ppp</span>
@@ -311,65 +247,83 @@ uv<span class="w"> </span>add<span class="w"> </span>pride-ppp
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">spec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CLOCK</span>
 <span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">spec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BIA</span>
-<span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">   </span><span class="c1"># Float PPP runs without BIA; PPP-AR integer fixing requires it</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">spec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ERP</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">spec</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ATTATX</span>
 <span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 </div>
-<p>Pass the path to <code class="docutils literal notranslate"><span class="pre">client.resolve_dependencies()</span></code> and the library handles everything else.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;/data/gnss-products&quot;</span><span class="p">)</span>
+
+<span class="n">resolution</span><span class="p">,</span> <span class="n">lockfile_path</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">resolve_dependencies</span><span class="p">(</span>
+    <span class="s2">&quot;pride_pppar.yaml&quot;</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">sink_id</span><span class="o">=</span><span class="s2">&quot;local&quot;</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">resolution</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<span class="c1"># ORBIT  FIN  WUM  downloaded  /data/gnss-products/2025/015/WUM0OPSFIN...SP3</span>
+<span class="c1"># CLOCK  FIN  WUM  downloaded  /data/gnss-products/2025/015/WUM0OPSFIN...CLK</span>
+<span class="c1"># BIA    FIN  WUM  downloaded  ...</span>
+<span class="c1"># ERP    FIN  WUM  downloaded  ...</span>
+<span class="c1"># ATTATX ---  IGS  downloaded  ...</span>
+
+<span class="k">if</span> <span class="n">resolution</span><span class="o">.</span><span class="n">all_required_fulfilled</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">spec</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">resolution</span><span class="o">.</span><span class="n">product_paths</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spec</span><span class="si">:</span><span class="s2">10s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resolver checks the local workspace first. If a <code class="docutils literal notranslate"><span class="pre">DependencyLockFile</span></code> for
+<code class="docutils literal notranslate"><span class="pre">(package,</span> <span class="pre">task,</span> <span class="pre">date,</span> <span class="pre">version)</span></code> already exists, resolution returns
+immediately — no network calls.</p>
 </section>
-<section id="lock-files">
-<h3>Lock files<a class="headerlink" href="#lock-files" title="Link to this heading"></a></h3>
-<p>Every resolved product is tracked in a sidecar <code class="docutils literal notranslate"><span class="pre">&lt;filename&gt;_lock.json</span></code> containing the source URL, SHA-256 hash, file size, and local sink path. An aggregate <code class="docutils literal notranslate"><span class="pre">DependencyLockFile</span></code> is written after a full dependency resolution, enabling:</p>
-<ul class="simple">
-<li><p><strong>Fast re-runs</strong> — if the lockfile already exists for a <code class="docutils literal notranslate"><span class="pre">(package,</span> <span class="pre">task,</span> <span class="pre">date)</span></code> triple, resolution returns immediately</p></li>
-<li><p><strong>Reproducibility</strong> — exact provenance for every file used in a processing run</p></li>
-<li><p><strong>Integrity checks</strong> — hash verification on reload</p></li>
-</ul>
-</section>
+<hr class="docutils" />
+<section id="cloud-workspace">
+<h2>Cloud workspace<a class="headerlink" href="#cloud-workspace" title="Link to this heading"></a></h2>
+<p>Any <code class="docutils literal notranslate"><span class="pre">base_dir</span></code> URI supported by
+<a class="reference external" href="https://cloudpathlib.drivendata.org/">cloudpathlib</a> works as a workspace:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># S3</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://my-bucket/gnss/products&quot;</span><span class="p">)</span>
+
+<span class="c1"># Google Cloud Storage</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;gs://my-bucket/gnss/products&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Lock files are written under <code class="docutils literal notranslate"><span class="pre">base_dir/dependency_lockfiles/</span></code>, giving
+distributed workers a shared coordination point. A worker that detects a
+valid lockfile for the requested date skips all network activity.</p>
 </section>
 <hr class="docutils" />
 <section id="architecture">
 <h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">gnss-product-management</span></code> package is organized into five layers. Each layer depends only on layers below it.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────────────────┐
-│  Layer 4 — Interface                                    │
-│  GNSSClient, ProductQuery                               │
-│  ProductRegistry, WorkSpace  (environment setup)        │
-├─────────────────────────────────────────────────────────┤
-│  Layer 3 — Orchestration                                │
-│  SearchPlanner, WormHole, ConnectionPoolFactory         │
-│  DownloadPipeline, ResolvePipeline, LockfileWriter      │
-├─────────────────────────────────────────────────────────┤
-│  Layer 2 — Catalog                                      │
-│  FormatCatalog, ProductCatalog, ResourceCatalog         │
-│  SourcePlanner (Protocol)                               │
-├─────────────────────────────────────────────────────────┤
-│  Layer 1 — Specification                                │
-│  Pydantic models: FormatSpec, ProductSpec, SearchTarget │
-│  DependencySpec, DependencyResolution, LockProduct      │
-├─────────────────────────────────────────────────────────┤
-│  Layer 0 — Configuration                                │
-│  Bundled YAML files, as_path(), hash_file(), utilities  │
-└─────────────────────────────────────────────────────────┘
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌────────────────────────────────────────────────┐
+│  Layer 4 — Interface                           │
+│  GNSSClient · ProductQuery                     │
+│  ProductRegistry · WorkSpace (setup)           │
+├────────────────────────────────────────────────┤
+│  Layer 3 — Orchestration                       │
+│  SearchPlanner · WormHole                      │
+│  ConnectionPoolFactory (fsspec-backed)         │
+│  DownloadPipeline · ResolvePipeline            │
+│  LockfileWriter · LockfileManager              │
+├────────────────────────────────────────────────┤
+│  Layer 2 — Catalog                             │
+│  FormatCatalog · ProductCatalog                │
+│  ResourceCatalog · SourcePlanner (Protocol)    │
+├────────────────────────────────────────────────┤
+│  Layer 1 — Specification (Pydantic)            │
+│  FormatSpec · ProductSpec · SearchTarget       │
+│  DependencySpec · LockProduct                  │
+├────────────────────────────────────────────────┤
+│  Layer 0 — Configuration                       │
+│  Bundled YAML · as_path() · hash_file()        │
+└────────────────────────────────────────────────┘
 </pre></div>
 </div>
-<p><strong><code class="docutils literal notranslate"><span class="pre">GNSSClient</span></code></strong> is the single user-facing entry point. <code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> loads YAML specs and builds the catalog chain; <code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code> registers local storage directories. Both satisfy the <code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> protocol, giving <code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code> a uniform interface to remote and local resources.</p>
-<p>Connection pooling (<code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code>) uses <a class="reference external" href="https://filesystem-spec.readthedocs.io/">fsspec</a> for FTP, FTPS, and HTTP. Cloud storage (<code class="docutils literal notranslate"><span class="pre">s3://</span></code>, <code class="docutils literal notranslate"><span class="pre">gs://</span></code>, <code class="docutils literal notranslate"><span class="pre">az://</span></code>) is supported transparently through <a class="reference external" href="https://cloudpathlib.drivendata.org/">cloudpathlib</a>.</p>
-<p>See <a class="reference internal" href="architecture.html"><span class="std std-doc">Architecture</span></a> and <a class="reference internal" href="class-reference.html"><span class="std std-doc">Class Reference</span></a> for full detail.</p>
-</section>
-<hr class="docutils" />
-<section id="extensibility">
-<h2>Extensibility<a class="headerlink" href="#extensibility" title="Link to this heading"></a></h2>
-<p>Because the specification layer is pure YAML data, the library is straightforward to extend:</p>
-<p><strong>Add a new analysis center</strong> — write a center YAML in <code class="docutils literal notranslate"><span class="pre">configs/centers/</span></code> defining its servers and product offerings, then call <code class="docutils literal notranslate"><span class="pre">registry.add_resource_spec(path)</span></code>.</p>
-<p><strong>Add a new product type</strong> — add entries to <code class="docutils literal notranslate"><span class="pre">product_spec.yaml</span></code> and <code class="docutils literal notranslate"><span class="pre">format_spec.yaml</span></code> with the filename template and parameter bindings.</p>
-<p><strong>Add a cloud workspace</strong> — pass an S3 or GCS URI as <code class="docutils literal notranslate"><span class="pre">base_dir</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://my-bucket/gnss-data&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>All path operations — search, download, lockfile I/O — behave identically on local and cloud storage.</p>
-<p><strong>Swap specification sets</strong> — <code class="docutils literal notranslate"><span class="pre">gnss-management-specs</span></code> is an independent data package. A project with different products (e.g. acoustic ranging, seismic) can ship its own spec package and wire it into <code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> without touching the engine.</p>
+<p>Each layer depends only on layers below it. <code class="docutils literal notranslate"><span class="pre">ProductRegistry</span></code> and <code class="docutils literal notranslate"><span class="pre">WorkSpace</span></code>
+both satisfy the <code class="docutils literal notranslate"><span class="pre">SourcePlanner</span></code> protocol, giving <code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code> a uniform
+interface to remote and local resources. All local/cloud path operations route
+through <code class="docutils literal notranslate"><span class="pre">as_path()</span></code>, which dispatches to <code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code> or <code class="docutils literal notranslate"><span class="pre">cloudpathlib</span></code>
+based on the URI scheme.</p>
+<p>Full detail: <a class="reference internal" href="architecture.html"><span class="std std-doc">Architecture</span></a> · <a class="reference internal" href="class-reference.html"><span class="std std-doc">Class Reference</span></a></p>
 </section>
 <hr class="docutils" />
 <section id="supported-products">
@@ -378,57 +332,70 @@ uv<span class="w"> </span>add<span class="w"> </span>pride-ppp
 <thead>
 <tr class="row-odd"><th class="head"><p>Product</p></th>
 <th class="head"><p>Format</p></th>
+<th class="head"><p>Sampling</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Orbit</p></td>
+<tr class="row-even"><td><p>ORBIT</p></td>
 <td><p>SP3</p></td>
-<td><p>Precise satellite ephemerides (15 min)</p></td>
+<td><p>15 min</p></td>
+<td><p>Precise satellite ephemerides (ITRF2020 / IGb20 for Repro3+ products)</p></td>
 </tr>
-<tr class="row-odd"><td><p>Clock</p></td>
+<tr class="row-odd"><td><p>CLOCK</p></td>
 <td><p>CLK</p></td>
-<td><p>Satellite &amp; station clock corrections (30 s / 5 min)</p></td>
+<td><p>30 s / 5 min</p></td>
+<td><p>Satellite and station clock corrections</p></td>
 </tr>
-<tr class="row-even"><td><p>Bias</p></td>
+<tr class="row-even"><td><p>BIA</p></td>
 <td><p>BIA</p></td>
-<td><p>Code and phase bias (OSB/DSB) for PPP-AR</p></td>
+<td><p>daily</p></td>
+<td><p>OSB/FCB code and phase biases — required for PPP-AR integer fixing</p></td>
 </tr>
 <tr class="row-odd"><td><p>ERP</p></td>
 <td><p>ERP</p></td>
-<td><p>Polar motion, UT1-UTC, LOD</p></td>
+<td><p>daily</p></td>
+<td><p>Polar motion (x_p, y_p), UT1-UTC, LOD</p></td>
 </tr>
 <tr class="row-even"><td><p>GIM</p></td>
 <td><p>IONEX</p></td>
+<td><p>1–2 h</p></td>
 <td><p>Global ionosphere TEC maps</p></td>
 </tr>
-<tr class="row-odd"><td><p>Navigation</p></td>
+<tr class="row-odd"><td><p>NAVIGATION</p></td>
 <td><p>RINEX NAV</p></td>
+<td><p>—</p></td>
 <td><p>Broadcast ephemerides (merged BRDC)</p></td>
 </tr>
-<tr class="row-even"><td><p>ATX</p></td>
+<tr class="row-even"><td><p>ATTATX</p></td>
 <td><p>ANTEX</p></td>
-<td><p>Satellite &amp; receiver antenna phase center calibrations</p></td>
+<td><p>static</p></td>
+<td><p>Satellite and receiver antenna phase-center calibrations</p></td>
 </tr>
-<tr class="row-odd"><td><p>OBX</p></td>
+<tr class="row-odd"><td><p>ATTOBX</p></td>
 <td><p>OBX</p></td>
+<td><p>5 min</p></td>
 <td><p>Satellite attitude quaternions</p></td>
 </tr>
-<tr class="row-even"><td><p>Troposphere</p></td>
+<tr class="row-even"><td><p>TROPOSPHERE</p></td>
 <td><p>VMF1/VMF3</p></td>
+<td><p>6 h</p></td>
 <td><p>Vienna Mapping Functions (gridded)</p></td>
 </tr>
-<tr class="row-odd"><td><p>Orography</p></td>
+<tr class="row-odd"><td><p>OROGRAPHY</p></td>
 <td><p>GRID</p></td>
-<td><p>Orography grids for VMF</p></td>
+<td><p>static</p></td>
+<td><p>Orography for VMF</p></td>
 </tr>
-<tr class="row-even"><td><p>Leap seconds</p></td>
+<tr class="row-even"><td><p>LEAPSECOND</p></td>
 <td><p>—</p></td>
-<td><p>IERS leap second table</p></td>
+<td><p>static</p></td>
+<td><p>IERS leap-second table</p></td>
 </tr>
-<tr class="row-odd"><td><p>Sat parameters</p></td>
+<tr class="row-odd"><td><p>SAT_PARAMETERS</p></td>
 <td><p>—</p></td>
-<td><p>Satellite metadata (mass, geometry, SRP)</p></td>
+<td><p>static</p></td>
+<td><p>Satellite mass, geometry, SRP metadata</p></td>
 </tr>
 </tbody>
 </table>
@@ -445,37 +412,37 @@ uv<span class="w"> </span>add<span class="w"> </span>pride-ppp
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><strong>CDDIS</strong></p></td>
+<tr class="row-even"><td><p>CDDIS</p></td>
 <td><p>NASA GSFC</p></td>
 <td><p>FTPS</p></td>
 <td><p>clock, GIM, leap seconds, navigation, orbit</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>COD</strong></p></td>
+<tr class="row-odd"><td><p>COD</p></td>
 <td><p>AIUB / Univ. Bern</p></td>
 <td><p>FTP</p></td>
 <td><p>bias, clock, ERP, GIM, orbit</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>ESA</strong></p></td>
+<tr class="row-even"><td><p>ESA</p></td>
 <td><p>ESA/ESOC</p></td>
 <td><p>FTP</p></td>
 <td><p>clock, GIM, orbit</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>GFZ</strong></p></td>
+<tr class="row-odd"><td><p>GFZ</p></td>
 <td><p>GFZ Potsdam</p></td>
 <td><p>FTP</p></td>
 <td><p>clock, orbit</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>IGS</strong></p></td>
-<td><p>IGN France</p></td>
+<tr class="row-even"><td><p>IGS</p></td>
+<td><p>IGN France / files.igs.org</p></td>
 <td><p>FTP / HTTPS</p></td>
 <td><p>ATX, bias, clock, ERP, navigation, OBX, orbit</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>VMF</strong></p></td>
+<tr class="row-odd"><td><p>VMF</p></td>
 <td><p>TU Wien</p></td>
 <td><p>HTTPS</p></td>
 <td><p>orography, VMF1, VMF3</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>WUM</strong></p></td>
+<tr class="row-even"><td><p>WUM</p></td>
 <td><p>Wuhan University</p></td>
 <td><p>FTP</p></td>
 <td><p>bias, clock, ERP, GIM, leap seconds, navigation, OBX, orbit, sat_parameters</p></td>
@@ -487,12 +454,12 @@ uv<span class="w"> </span>add<span class="w"> </span>pride-ppp
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><a class="reference external" href="https://igs.org/products/">International GNSS Service — Products</a></p></li>
+<li><p><a class="reference external" href="https://igs.org/products/">IGS Products</a> — accuracy and latency specifications</p></li>
 <li><p><a class="reference external" href="https://igs.org/formats-and-standards/">IGS Long Filename Convention</a></p></li>
-<li><p><a class="reference external" href="https://pride.whu.edu.cn/pppar/">PRIDE-PPPAR (Wuhan University)</a></p></li>
+<li><p><a class="reference external" href="https://pride.whu.edu.cn/pppar/">PRIDE-PPPAR</a></p></li>
 <li><p><a class="reference external" href="https://vmf.geo.tuwien.ac.at/">Vienna Mapping Functions</a></p></li>
-<li><p><a class="reference external" href="https://filesystem-spec.readthedocs.io/">fsspec</a></p></li>
-<li><p><a class="reference external" href="https://cloudpathlib.drivendata.org/">cloudpathlib</a></p></li>
+<li><p><a class="reference external" href="https://cloudpathlib.drivendata.org/">cloudpathlib</a> — cloud storage support</p></li>
+<li><p><a class="reference external" href="https://filesystem-spec.readthedocs.io/">fsspec</a> — FTP/HTTPS connection pooling</p></li>
 </ul>
 </section>
 </section>
@@ -500,10 +467,7 @@ uv<span class="w"> </span>add<span class="w"> </span>pride-ppp
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="GNSS-PPP-ETL" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ppp-products.html" class="btn btn-neutral float-right" title="GNSS PPP Product Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

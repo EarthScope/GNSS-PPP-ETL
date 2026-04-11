@@ -16,6 +16,7 @@
       <script src="../_static/documentation_options.js?v=01f34227"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -134,13 +135,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#pride_ppp.PrideProcessor"><code class="docutils literal notranslate"><span class="pre">PrideProcessor</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor._pride_dir"><code class="docutils literal notranslate"><span class="pre">PrideProcessor._pride_dir</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor._output_dir"><code class="docutils literal notranslate"><span class="pre">PrideProcessor._output_dir</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor._pride_install_dir"><code class="docutils literal notranslate"><span class="pre">PrideProcessor._pride_install_dir</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor._cli_config"><code class="docutils literal notranslate"><span class="pre">PrideProcessor._cli_config</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor._mode"><code class="docutils literal notranslate"><span class="pre">PrideProcessor._mode</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor._client"><code class="docutils literal notranslate"><span class="pre">PrideProcessor._client</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor._dep_spec"><code class="docutils literal notranslate"><span class="pre">PrideProcessor._dep_spec</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor.__init__"><code class="docutils literal notranslate"><span class="pre">PrideProcessor.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor.process"><code class="docutils literal notranslate"><span class="pre">PrideProcessor.process()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pride_ppp.PrideProcessor.process_batch"><code class="docutils literal notranslate"><span class="pre">PrideProcessor.process_batch()</span></code></a></li>
@@ -898,86 +892,35 @@ float literal.  This pre-validator normalises the value so the
 <dt class="sig sig-object py" id="pride_ppp.PrideProcessor">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pride_ppp.</span></span><span class="sig-name descname"><span class="pre">PrideProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pride_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">pride_install_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cli_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pride_ppp.PrideCLIConfig" title="pride_ppp.specifications.cli.PrideCLIConfig"><span class="pre">PrideCLIConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">PrideCLIConfig(sample_frequency=1,</span> <span class="pre">system='GREC23J',</span> <span class="pre">frequency=['G12',</span> <span class="pre">'R12',</span> <span class="pre">'E15',</span> <span class="pre">'C26',</span> <span class="pre">'J12'],</span> <span class="pre">loose_edit=True,</span> <span class="pre">cutoff_elevation=7,</span> <span class="pre">interval=None,</span> <span class="pre">high_ion=None,</span> <span class="pre">tides='SOP',</span> <span class="pre">pride_configfile_path=None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pride_ppp.ProcessingMode" title="pride_ppp.factories.processor.ProcessingMode"><span class="pre">ProcessingMode</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.14)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'FINAL'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'DEFAULT'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ProcessingMode.DEFAULT</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pride_ppp/factories/processor.html#PrideProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pride_ppp.PrideProcessor" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Facade: RINEX file in → kinematic positions out.</p>
-<p>Owns its own ProductEnvironment and WorkSpace.  No global state.
-Thread-safe for concurrent <code class="docutils literal notranslate"><span class="pre">process()</span></code> calls.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pride_ppp.PrideProcessor._pride_dir">
-<span class="sig-name descname"><span class="pre">_pride_dir</span></span><a class="headerlink" href="#pride_ppp.PrideProcessor._pride_dir" title="Link to this definition"></a></dt>
-<dd><p>Root directory for PRIDE products and working state.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Path</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pride_ppp.PrideProcessor._output_dir">
-<span class="sig-name descname"><span class="pre">_output_dir</span></span><a class="headerlink" href="#pride_ppp.PrideProcessor._output_dir" title="Link to this definition"></a></dt>
-<dd><p>Final destination for <code class="docutils literal notranslate"><span class="pre">.kin</span></code> / <code class="docutils literal notranslate"><span class="pre">.res</span></code> output files.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Path</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pride_ppp.PrideProcessor._pride_install_dir">
-<span class="sig-name descname"><span class="pre">_pride_install_dir</span></span><a class="headerlink" href="#pride_ppp.PrideProcessor._pride_install_dir" title="Link to this definition"></a></dt>
-<dd><p>Optional path to an existing PRIDE-PPPAR installation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Path or None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pride_ppp.PrideProcessor._cli_config">
-<span class="sig-name descname"><span class="pre">_cli_config</span></span><a class="headerlink" href="#pride_ppp.PrideProcessor._cli_config" title="Link to this definition"></a></dt>
-<dd><p>Configuration for pdp3 CLI flag generation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#pride_ppp.PrideCLIConfig" title="pride_ppp.PrideCLIConfig">PrideCLIConfig</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pride_ppp.PrideProcessor._mode">
-<span class="sig-name descname"><span class="pre">_mode</span></span><a class="headerlink" href="#pride_ppp.PrideProcessor._mode" title="Link to this definition"></a></dt>
-<dd><p>Product timeliness mode (DEFAULT or FINAL).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#pride_ppp.ProcessingMode" title="pride_ppp.ProcessingMode">ProcessingMode</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pride_ppp.PrideProcessor._client">
-<span class="sig-name descname"><span class="pre">_client</span></span><a class="headerlink" href="#pride_ppp.PrideProcessor._client" title="Link to this definition"></a></dt>
-<dd><p>Configured GNSS client — owns product resolution and download.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="gnss-product-management.html#gnss_product_management.client.GNSSClient" title="gnss_product_management.client.GNSSClient">GNSSClient</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pride_ppp.PrideProcessor._dep_spec">
-<span class="sig-name descname"><span class="pre">_dep_spec</span></span><a class="headerlink" href="#pride_ppp.PrideProcessor._dep_spec" title="Link to this definition"></a></dt>
-<dd><p>Dependency specification governing product resolution.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="gnss-product-management.html#gnss_product_management.specifications.DependencySpec" title="gnss_product_management.specifications.DependencySpec">DependencySpec</a></p>
-</dd>
-</dl>
-</dd></dl>
-
+<p>RINEX observation file in → kinematic PPP-AR positions out.</p>
+<p>Owns its own <code class="xref py py-class docutils literal notranslate"><span class="pre">ProductRegistry</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">WorkSpace</span></code>, and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GNSSClient</span></code>.  No global state; a single instance is safe to
+reuse across many <a class="reference internal" href="#pride_ppp.PrideProcessor.process" title="pride_ppp.PrideProcessor.process"><code class="xref py py-meth docutils literal notranslate"><span class="pre">process()</span></code></a> / <a class="reference internal" href="#pride_ppp.PrideProcessor.process_batch" title="pride_ppp.PrideProcessor.process_batch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">process_batch()</span></code></a> calls.</p>
+<p>The full pipeline per RINEX file:</p>
+<ol class="arabic simple">
+<li><p>Infer site ID and observation date from the RINEX filename/header.</p></li>
+<li><p>Resolve IGS products (orbit, clock, bias, ERP, ATX) for that date
+via <code class="xref py py-meth docutils literal notranslate"><span class="pre">GNSSClient.resolve_dependencies()</span></code>.  Skips resolution if a
+valid <code class="docutils literal notranslate"><span class="pre">DependencyLockFile</span></code> already exists.</p></li>
+<li><p>Return a cached <a class="reference internal" href="#pride_ppp.ProcessingResult" title="pride_ppp.ProcessingResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProcessingResult</span></code></a> if a valid <code class="docutils literal notranslate"><span class="pre">.kin</span></code> output
+already exists in <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> (unless <em>override</em> is <code class="docutils literal notranslate"><span class="pre">True</span></code>).</p></li>
+<li><p>Write a <code class="docutils literal notranslate"><span class="pre">pdp3</span></code> <code class="docutils literal notranslate"><span class="pre">config_file</span></code> to <code class="docutils literal notranslate"><span class="pre">pride_dir/{year}/{doy}/</span></code>.</p></li>
+<li><p>Execute <code class="docutils literal notranslate"><span class="pre">pdp3</span></code> and move <code class="docutils literal notranslate"><span class="pre">.kin</span></code> / <code class="docutils literal notranslate"><span class="pre">.res</span></code> outputs to <code class="docutils literal notranslate"><span class="pre">output_dir</span></code>.</p></li>
+</ol>
+<p>For a full station-year, use <a class="reference internal" href="#pride_ppp.PrideProcessor.process_batch" title="pride_ppp.PrideProcessor.process_batch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">process_batch()</span></code></a>: it resolves products
+once per unique date, writes configs for all dates, skips cached results,
+then dispatches <code class="docutils literal notranslate"><span class="pre">pdp3</span></code> subprocesses in parallel.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">processor</span> <span class="o">=</span> <span class="n">PrideProcessor</span><span class="p">(</span>
+    <span class="n">pride_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/data/pride&quot;</span><span class="p">),</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/data/output&quot;</span><span class="p">),</span>
+    <span class="n">mode</span><span class="o">=</span><span class="n">ProcessingMode</span><span class="o">.</span><span class="n">FINAL</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">processor</span><span class="o">.</span><span class="n">process_batch</span><span class="p">(</span><span class="n">rinex_files</span><span class="p">,</span> <span class="n">max_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">positions</span><span class="p">()),</span> <span class="s2">&quot;epochs&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="pride_ppp.PrideProcessor.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pride_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">pride_install_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cli_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pride_ppp.PrideCLIConfig" title="pride_ppp.specifications.cli.PrideCLIConfig"><span class="pre">PrideCLIConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">PrideCLIConfig(sample_frequency=1,</span> <span class="pre">system='GREC23J',</span> <span class="pre">frequency=['G12',</span> <span class="pre">'R12',</span> <span class="pre">'E15',</span> <span class="pre">'C26',</span> <span class="pre">'J12'],</span> <span class="pre">loose_edit=True,</span> <span class="pre">cutoff_elevation=7,</span> <span class="pre">interval=None,</span> <span class="pre">high_ion=None,</span> <span class="pre">tides='SOP',</span> <span class="pre">pride_configfile_path=None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pride_ppp.ProcessingMode" title="pride_ppp.factories.processor.ProcessingMode"><span class="pre">ProcessingMode</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.14)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'FINAL'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'DEFAULT'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ProcessingMode.DEFAULT</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/pride_ppp/factories/processor.html#PrideProcessor.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pride_ppp.PrideProcessor.__init__" title="Link to this definition"></a></dt>
@@ -1107,15 +1050,21 @@ results at once.</p>
 <dt class="sig sig-object py" id="pride_ppp.ProcessingMode">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pride_ppp.</span></span><span class="sig-name descname"><span class="pre">ProcessingMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pride_ppp/factories/processor.html#ProcessingMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pride_ppp.ProcessingMode" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
-<p>Product timeliness mode.</p>
-<p>Controls which dependency-spec YAML is used for product resolution.
-The timeliness codes refer to IGS product latency classes:
-FIN = final (≥13 days), RAP = rapid (≤17 hours), ULT = ultra-rapid (≤3 hours).</p>
+<p>IGS product timeliness mode for dependency resolution.</p>
+<p>Selects which dependency-spec YAML governs which products are accepted.</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">DEFAULT</span></code> — cascades through FIN → RAP → ULT, using the best
-available product at the time of the run.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">FINAL</span></code>   — only accepts final (FIN) products; fails if FIN
-products are not yet available for the requested date.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DEFAULT</span></code> — cascades through FIN → RAP → ULT.  Uses the best
+available product at run time.  Suitable for near-real-time processing
+or when the observation date is within the last two weeks.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FINAL</span></code>   — accepts only IGS final (FIN) products (available ≥13 days
+after observation).  Suitable for post-processing campaigns where
+reproducibility and highest accuracy are required.</p></li>
+</ul>
+<p>IGS product latency reference (approximate):</p>
+<ul class="simple">
+<li><p>FIN (final)       : orbit ≈ 13 days,  clock ≈ 13 days</p></li>
+<li><p>RAP (rapid)       : orbit ≈ 17 hours, clock ≈ 17 hours</p></li>
+<li><p>ULT (ultra-rapid) : orbit ≈ 3 hours,  clock predicted half</p></li>
 </ul>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pride_ppp.ProcessingMode.DEFAULT">
@@ -1252,10 +1201,25 @@ produce one.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pride_ppp.ProcessingResult.positions">
 <span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/pride_ppp/factories/processor.html#ProcessingResult.positions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pride_ppp.ProcessingResult.positions" title="Link to this definition"></a></dt>
-<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">.kin</span></code> file into a DataFrame with WRMS residuals.</p>
+<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">.kin</span></code> file into a DataFrame of kinematic positions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Kinematic position DataFrame, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the run failed.</p>
+<dd class="field-odd"><p><p>Kinematic position DataFrame indexed by UTC epoch, or <code class="docutils literal notranslate"><span class="pre">None</span></code>
+if the run failed.  Columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Latitude</span></code>  — geodetic latitude (degrees)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Longitude</span></code> — geodetic longitude (degrees)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Height</span></code>    — ellipsoidal height (metres)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Nsat</span></code>      — number of satellites used in the epoch solution</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PDOP</span></code>      — position dilution of precision</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wrms</span></code>      — phase residual WRMS per epoch (mm), merged
+from the <code class="docutils literal notranslate"><span class="pre">.res</span></code> file</p></li>
+</ul>
+<p>Coordinates are in the reference frame of the resolved orbit/clock
+products (IGS20/ITRF2020 for Repro3+ products; IGS14/ITRF2014 for
+earlier series). Epochs with <code class="docutils literal notranslate"><span class="pre">Nsat</span> <span class="pre">≤</span> <span class="pre">4</span></code> or <code class="docutils literal notranslate"><span class="pre">PDOP</span> <span class="pre">≥</span> <span class="pre">5</span></code> should
+be treated with caution.</p>
+</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame or None</p>
@@ -1452,13 +1416,21 @@ When set to <code class="docutils literal notranslate"><span class="pre">&quot;D
 <dl class="py function">
 <dt class="sig sig-object py" id="pride_ppp.get_wrms_from_res">
 <span class="sig-prename descclassname"><span class="pre">pride_ppp.</span></span><span class="sig-name descname"><span class="pre">get_wrms_from_res</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pride_ppp/factories/output.html#get_wrms_from_res"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pride_ppp.get_wrms_from_res" title="Link to this definition"></a></dt>
-<dd><p>Get WRMS from a RES file.</p>
+<dd><p>Compute per-epoch phase residual WRMS from a pdp3 <code class="docutils literal notranslate"><span class="pre">.res</span></code> file.</p>
+<p>The WRMS is computed as <span class="math notranslate nohighlight">\(\sqrt{\sum w_i r_i^2 / \sum w_i}\)</span> where
+<span class="math notranslate nohighlight">\(r_i\)</span> are the double-differenced phase residuals (cycles) and
+<span class="math notranslate nohighlight">\(w_i\)</span> are the corresponding weights, then converted to millimetres.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>res_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The path to the RES file.</p>
+<dd class="field-odd"><p><strong>res_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em>) – Path to the pdp3 residual output file (<code class="docutils literal notranslate"><span class="pre">res_{YYYY}{DOY}_{site}.res</span></code>).</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A DataFrame with the WRMS data.</p>
+<dd class="field-even"><p><p>Two-column DataFrame:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">date</span></code>  — UTC epoch timestamp</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wrms</span></code>  — phase residual WRMS (mm) for that epoch</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.DataFrame</p>
