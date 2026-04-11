@@ -1,0 +1,178 @@
+id: KASI
+name: Korea Astronomy and Space Science Institute (KASI)
+description: >
+  KASI is an IGS Global Data Center hosted at the Korea Astronomy and Space
+  Science Institute in Daejeon, South Korea. It maintains a comprehensive
+  full-parity mirror of IGS and MGEX products from all major Analysis Centers
+  and is reachable via anonymous FTP. Products follow the IGS long-filename
+  convention organized in GPS-week subdirectories under gnss/products/.
+  The server also hosts the full RINEX observation archive (gnss/data/).
+website: https://gnss.kasi.re.kr/
+
+servers:
+  - id: kasi_ftp
+    name: KASI FTP archive
+    hostname: "ftp://nfs.kasi.re.kr"
+    protocol: ftp
+    auth_required: false
+    description: >
+      Anonymous FTP at nfs.kasi.re.kr. Full mirror of IGS and MGEX products
+      organized under gnss/products/{GPSWEEK}/. Also archives RINEX
+      observation data under gnss/data/.
+
+products:
+  # ── Orbits ──────────────────────────────────────────────────────
+  - id: kasi_orbit
+    product_name: ORBIT
+    server_id: kasi_ftp
+    available: true
+    description: IGS + MGEX precise orbits (mirrors all major ACs)
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: GBM}
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: WMC}
+      - {name: AAA, value: COD}
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: ESA}
+      - {name: AAA, value: JPL}
+      - {name: AAA, value: GRG}
+      - {name: AAA, value: SHA}
+      - {name: AAA, value: CAS}
+      - {name: AAA, value: EMR}
+      - {name: AAA, value: SIO}
+      - {name: AAA, value: TUG}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: TTT, value: ULT}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: "05M"}
+      - {name: SMP, value: "15M"}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Clocks ──────────────────────────────────────────────────────
+  - id: kasi_clock
+    product_name: CLOCK
+    server_id: kasi_ftp
+    available: true
+    description: IGS + MGEX precise clocks (mirrors all major ACs)
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: GBM}
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: WMC}
+      - {name: AAA, value: COD}
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: ESA}
+      - {name: AAA, value: JPL}
+      - {name: AAA, value: GRG}
+      - {name: AAA, value: SHA}
+      - {name: AAA, value: CAS}
+      - {name: AAA, value: EMR}
+      - {name: AAA, value: SIO}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: "30S"}
+      - {name: SMP, value: "05M"}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── ERP ─────────────────────────────────────────────────────────
+  - id: kasi_erp
+    product_name: ERP
+    server_id: kasi_ftp
+    available: true
+    description: Earth rotation parameters (mirrors all major ACs)
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: COD}
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: ESA}
+      - {name: AAA, value: WUM}
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Biases ──────────────────────────────────────────────────────
+  - id: kasi_bia
+    product_name: BIA
+    server_id: kasi_ftp
+    available: true
+    description: Observable-specific signal biases (mirrors all major ACs)
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: COD}
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: ESA}
+      - {name: AAA, value: GRG}
+      - {name: AAA, value: CAS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Attitude / ORBEX ────────────────────────────────────────────
+  - id: kasi_obx
+    product_name: ATTOBX
+    server_id: kasi_ftp
+    available: true
+    description: Satellite attitude quaternions ORBEX (mirrors all major ACs)
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: COD}
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: ESA}
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: kasi_sinex
+    product_name: SINEX
+    server_id: kasi_ftp
+    available: true
+    description: IGS combined weekly SINEX station coordinate solutions
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: SNX}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Ionosphere (GIM) ───────────────────────────────────────────
+  - id: kasi_ionex
+    product_name: IONEX
+    server_id: kasi_ftp
+    available: true
+    description: IGS combined and AC-specific Global Ionosphere Maps
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: AAA, value: COD}
+      - {name: AAA, value: JPL}
+      - {name: AAA, value: ESA}
+      - {name: AAA, value: CAS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: "01H"}
+      - {name: SMP, value: "02H"}
+    directory: {pattern: "gnss/products/ionex/{YYYY}/{DDD}/"}
+
+  # ── Broadcast Navigation ────────────────────────────────────────
+  - id: kasi_nav
+    product_name: RNX3_BRDC
+    server_id: kasi_ftp
+    available: true
+    description: Merged broadcast navigation files (RINEX 3)
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}p/"}
