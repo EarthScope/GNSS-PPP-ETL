@@ -819,12 +819,16 @@ source = { editable = "packages/gnss-management-specs" }
 [[package]]
 name = "gnss-ppp-etl"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "cloudpathlib" },
     { name = "gnss-product-management" },
     { name = "pride-ppp" },
+    { name = "pydantic" },
     { name = "pytest" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "typer" },
 ]
 
 [package.dev-dependencies]
@@ -855,7 +859,11 @@ requires-dist = [
     { name = "cloudpathlib", specifier = ">=0.23.0" },
     { name = "gnss-product-management", editable = "packages/gnss-product-management" },
     { name = "pride-ppp", editable = "packages/pride-ppp" },
+    { name = "pydantic", specifier = ">=2.0" },
     { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "rich", specifier = ">=13.0" },
+    { name = "typer", specifier = ">=0.12" },
 ]
 
 [package.metadata.requires-dev]
