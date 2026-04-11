@@ -117,9 +117,7 @@ products:
         version: "1"
         constraints:
           FMT: "ERP"
-          LEN: "01D"
           CNT: "ERP"
-          SMP: "01D"
         variant: default
 
   BIA:
@@ -134,7 +132,6 @@ products:
         constraints:
           FMT: "BIA"
           LEN: "01D"
-          CNT: "OSB"
         variant: default
 
   ATTOBX:
@@ -165,6 +162,36 @@ products:
           FMT: "INX"
           LEN: "01D"
           CNT: "GIM"
+        variant: default
+
+  SINEX:
+    description: >
+      SINEX (Solution INdependent EXchange) format weekly station coordinate
+      solutions and Earth orientation estimates.
+      ex: IGS0OPSFIN_20250010000_07D_07D_SOL.SNX.gz
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          FMT: "SNX"
+          CNT: "SOL"
+        variant: default
+
+  TROP:
+    description: >
+      Troposphere SINEX products providing zenith total delay (ZTD) and
+      horizontal gradient estimates per station.
+      ex: IGS0OPSFIN_20250010000_01D_05M_TRO.TRO.gz
+
+    formats:
+
+      - format: PRODUCT
+        version: "1"
+        constraints:
+          FMT: "TRO"
+          CNT: "TRO"
         variant: default
 
   RNX3_BRDC:

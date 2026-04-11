@@ -1,0 +1,39 @@
+id: NGII
+name: National Geographic Information Institute (NGII)
+description: >
+  NGII (National Geographic Information Institute) is South Korea's national
+  mapping agency and operates an IGS Regional Data Center for the Korean GNSS
+  network (KGPS — Korea GPS/GNSS network). NGII archives RINEX observation
+  data from Korean CORS stations. Its public FTP endpoint (nfs.kgps.go.kr)
+  is not accessible from outside Korea and its web services return errors
+  externally. For IGS combined orbit/clock products in the Korea region, use
+  the KASI Global Data Center (nfs.kasi.re.kr) instead.
+website: https://www.ngii.go.kr/
+
+servers:
+  - id: ngii_ftp
+    name: NGII KGPS FTP (restricted)
+    hostname: "ftp://nfs.kgps.go.kr"
+    protocol: ftp
+    auth_required: false
+    description: >
+      FTP server for Korean GNSS network (KGPS) RINEX observation data.
+      Not reachable from outside Korea. NGII does not host IGS combined
+      orbit/clock/ERP products.
+
+products:
+  # NGII is a regional RINEX observation data center only.
+  # It does not produce or mirror IGS-style orbit/clock/ERP products.
+  # All products are marked unavailable due to external network restriction.
+
+  - id: ngii_nav
+    product_name: RNX3_BRDC
+    server_id: ngii_ftp
+    available: false
+    description: >
+      Korean GNSS network broadcast navigation files. Server not accessible
+      outside Korea. Use CDDIS or BKG for broadcast navigation.
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}p/"}

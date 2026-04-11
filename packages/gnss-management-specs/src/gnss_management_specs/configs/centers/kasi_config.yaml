@@ -1,28 +1,32 @@
-id: CDDIS
-name: NASA CDDIS
+id: KASI
+name: Korea Astronomy and Space Science Institute (KASI)
 description: >
-  NASA's Crustal Dynamics Data Information System archives and
-  distributes space geodesy data including GNSS, SLR, VLBI, and DORIS.
-  Mirrors products from all IGS analysis centers.
-website: https://cddis.nasa.gov/
+  KASI is an IGS Global Data Center hosted at the Korea Astronomy and Space
+  Science Institute in Daejeon, South Korea. It maintains a comprehensive
+  full-parity mirror of IGS and MGEX products from all major Analysis Centers
+  and is reachable via anonymous FTP. Products follow the IGS long-filename
+  convention organized in GPS-week subdirectories under gnss/products/.
+  The server also hosts the full RINEX observation archive (gnss/data/).
+website: https://gnss.kasi.re.kr/
 
 servers:
-  - id: cddis_ftps
-    name: CDDIS FTPS
-    hostname: "ftp://gdc.cddis.eosdis.nasa.gov"
-    protocol: ftps
+  - id: kasi_ftp
+    name: KASI FTP archive
+    hostname: "ftp://nfs.kasi.re.kr"
+    protocol: ftp
     auth_required: false
     description: >
-      Requires FTPS (explicit TLS). Anonymous login with email address.
-      May require NASA Earthdata login for some products.
+      Anonymous FTP at nfs.kasi.re.kr. Full mirror of IGS and MGEX products
+      organized under gnss/products/{GPSWEEK}/. Also archives RINEX
+      observation data under gnss/data/.
 
 products:
   # ── Orbits ──────────────────────────────────────────────────────
-  - id: cddis_orbit
+  - id: kasi_orbit
     product_name: ORBIT
-    server_id: cddis_ftps
+    server_id: kasi_ftp
     available: true
-    description: Precise orbits (mirrors all IGS ACs)
+    description: IGS + MGEX precise orbits (mirrors all major ACs)
     parameters:
       - {name: AAA, value: IGS}
       - {name: AAA, value: GBM}
@@ -36,9 +40,11 @@ products:
       - {name: AAA, value: SHA}
       - {name: AAA, value: CAS}
       - {name: AAA, value: EMR}
+      - {name: AAA, value: SIO}
       - {name: AAA, value: TUG}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
+      - {name: TTT, value: ULT}
       - {name: PPP, value: OPS}
       - {name: PPP, value: MGX}
       - {name: SMP, value: "05M"}
@@ -46,11 +52,11 @@ products:
     directory: {pattern: "gnss/products/{GPSWEEK}/"}
 
   # ── Clocks ──────────────────────────────────────────────────────
-  - id: cddis_clock
+  - id: kasi_clock
     product_name: CLOCK
-    server_id: cddis_ftps
+    server_id: kasi_ftp
     available: true
-    description: Precise clocks (mirrors all IGS ACs)
+    description: IGS + MGEX precise clocks (mirrors all major ACs)
     parameters:
       - {name: AAA, value: IGS}
       - {name: AAA, value: GBM}
@@ -64,7 +70,7 @@ products:
       - {name: AAA, value: SHA}
       - {name: AAA, value: CAS}
       - {name: AAA, value: EMR}
-      - {name: AAA, value: TUG}
+      - {name: AAA, value: SIO}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
@@ -74,11 +80,11 @@ products:
     directory: {pattern: "gnss/products/{GPSWEEK}/"}
 
   # ── ERP ─────────────────────────────────────────────────────────
-  - id: cddis_erp
+  - id: kasi_erp
     product_name: ERP
-    server_id: cddis_ftps
+    server_id: kasi_ftp
     available: true
-    description: Earth rotation parameters (mirrors all IGS ACs)
+    description: Earth rotation parameters (mirrors all major ACs)
     parameters:
       - {name: AAA, value: IGS}
       - {name: AAA, value: COD}
@@ -93,57 +99,66 @@ products:
     directory: {pattern: "gnss/products/{GPSWEEK}/"}
 
   # ── Biases ──────────────────────────────────────────────────────
-  - id: cddis_bia
+  - id: kasi_bia
     product_name: BIA
-    server_id: cddis_ftps
+    server_id: kasi_ftp
     available: true
-    description: Observable-specific signal biases (mirrors all IGS ACs)
+    description: Observable-specific signal biases (mirrors all major ACs)
     parameters:
       - {name: AAA, value: IGS}
       - {name: AAA, value: COD}
       - {name: AAA, value: GFZ}
-      - {name: AAA, value: GBM}
       - {name: AAA, value: ESA}
-      - {name: AAA, value: WUM}
-      - {name: AAA, value: WMC}
       - {name: AAA, value: GRG}
-      - {name: AAA, value: SHA}
       - {name: AAA, value: CAS}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
       - {name: PPP, value: MGX}
     directory: {pattern: "gnss/products/{GPSWEEK}/"}
-  # ── SINEX weekly solutions ──────────────────────────────────────
-  - id: cddis_sinex
-    product_name: SINEX
-    server_id: cddis_ftps
+
+  # ── Attitude / ORBEX ────────────────────────────────────────────
+  - id: kasi_obx
+    product_name: ATTOBX
+    server_id: kasi_ftp
     available: true
-    description: Weekly station coordinate SINEX solutions (mirrors all IGS ACs)
+    description: Satellite attitude quaternions ORBEX (mirrors all major ACs)
     parameters:
       - {name: AAA, value: IGS}
-      - {name: AAA, value: MIT}
-      - {name: AAA, value: EMR}
-      - {name: AAA, value: JPL}
+      - {name: AAA, value: COD}
       - {name: AAA, value: GFZ}
       - {name: AAA, value: ESA}
-      - {name: AAA, value: COD}
+      - {name: AAA, value: GRG}
       - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
     directory: {pattern: "gnss/products/{GPSWEEK}/"}
-  # ── Ionosphere (GIM) ───────────────────────────────────────────
-  - id: cddis_gim
-    product_name: IONEX
-    server_id: cddis_ftps
+
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: kasi_sinex
+    product_name: SINEX
+    server_id: kasi_ftp
     available: true
-    description: Global Ionosphere Maps
+    description: IGS combined weekly SINEX station coordinate solutions
+    parameters:
+      - {name: AAA, value: IGS}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: SNX}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Ionosphere (GIM) ───────────────────────────────────────────
+  - id: kasi_ionex
+    product_name: IONEX
+    server_id: kasi_ftp
+    available: true
+    description: IGS combined and AC-specific Global Ionosphere Maps
     parameters:
       - {name: AAA, value: IGS}
       - {name: AAA, value: COD}
       - {name: AAA, value: JPL}
       - {name: AAA, value: ESA}
       - {name: AAA, value: CAS}
-      - {name: AAA, value: WUM}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
@@ -151,64 +166,13 @@ products:
       - {name: SMP, value: "02H"}
     directory: {pattern: "gnss/products/ionex/{YYYY}/{DDD}/"}
 
-  # ── Attitude (ORBEX) ───────────────────────────────────────────
-  - id: cddis_attobx
-    product_name: ATTOBX
-    server_id: cddis_ftps
+  # ── Broadcast Navigation ────────────────────────────────────────
+  - id: kasi_nav
+    product_name: RNX3_BRDC
+    server_id: kasi_ftp
     available: true
-    description: >
-      Satellite attitude (ORBEX) mirrored from all producing IGS/MGEX ACs.
-      Required for precise antenna orientation and LEO processing.
-    parameters:
-      - {name: AAA, value: WUM}
-      - {name: AAA, value: WMC}
-      - {name: AAA, value: COD}
-      - {name: AAA, value: GRG}
-      - {name: AAA, value: JPL}
-      - {name: AAA, value: TUG}
-      - {name: TTT, value: FIN}
-      - {name: TTT, value: RAP}
-      - {name: PPP, value: MGX}
-      - {name: PPP, value: OPS}
-      - {name: SMP, value: "30S"}
-    directory: {pattern: "gnss/products/{GPSWEEK}/"}
-
-  # ── Troposphere SINEX ──────────────────────────────────────────
-  - id: cddis_trop
-    product_name: TROP
-    server_id: cddis_ftps
-    available: true
-    description: >
-      Troposphere SINEX (ZTD + horizontal gradients) mirrored from IGS,
-      CODE, and GFZ. Used for validation and as a-priori constraints in PPP.
+    description: Merged broadcast navigation files (RINEX 3)
     parameters:
       - {name: AAA, value: IGS}
-      - {name: AAA, value: COD}
-      - {name: AAA, value: GFZ}
-      - {name: TTT, value: FIN}
       - {name: PPP, value: OPS}
-      - {name: SMP, value: "05M"}
-    directory: {pattern: "gnss/products/troposphere/zpd/{YYYY}/"}
-
-  # ── Broadcast navigation ───────────────────────────────────────
-  - id: cddis_nav
-    product_name: RNX3_BRDC
-    server_id: cddis_ftps
-    available: true
-    description: RINEX 3 broadcast navigation (multi-GNSS)
-    parameters:
-      - {name: CCC, value: IGS}
-      - {name: D, value: E}
-      - {name: D, value: M}
     directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}p/"}
-
-  # ── Reference tables ───────────────────────────────────────────
-  - id: cddis_leap_seconds
-    product_name: LEAP_SEC
-    server_id: cddis_ftps
-    available: false
-    description: >-
-      Leap seconds file — not available via CDDIS FTPS (only on HTTPS archive
-      which requires NASA Earthdata auth). Use WUM as the primary source.
-    parameters: []
-    directory: {pattern: "gnss/products/leap_sec/"}

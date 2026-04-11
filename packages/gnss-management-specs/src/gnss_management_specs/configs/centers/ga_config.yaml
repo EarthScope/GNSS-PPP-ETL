@@ -1,0 +1,85 @@
+id: GA
+name: Geoscience Australia (GA)
+description: >
+  Geoscience Australia is an IGS Regional Data Center for the Asia-Pacific
+  region, hosting the Australian Regional GNSS Network (ARGN) and the
+  Asia-Pacific Reference Frame (APREF) station network. GA provides RINEX
+  observation data and APREF SINEX coordinate solutions. GA also produces
+  experimental orbit/clock/ERP products via its open-source Ginan software
+  (AC code GAG), available as rapid solutions. Experimental Ginan products
+  are not equivalent to official IGS combined products. RINEX data and
+  products are served via a public AWS S3 bucket accessible over HTTPS.
+website: https://www.ga.gov.au/scientific-topics/positioning-navigation/geodesy
+
+servers:
+  - id: ga_s3
+    name: Geoscience Australia public S3 (HTTPS)
+    hostname: "https://ga-gnss-products-v1.s3.amazonaws.com"
+    protocol: https
+    auth_required: false
+    description: >
+      Public AWS S3 bucket hosted in ap-southeast-2. Contains APREF SINEX
+      solutions and experimental Ginan orbit/clock/ERP products. No
+      authentication required. Browse index:
+      https://ga-gnss-products-v1.s3.amazonaws.com/index.html
+
+products:
+  # ── APREF SINEX (regional station coordinates) ──────────────────
+  - id: ga_sinex
+    product_name: SINEX
+    server_id: ga_s3
+    available: true
+    description: >
+      APREF weekly SINEX station coordinate solutions (ITRF2020).
+      Files named AUS0OPSSNX_* (daily) and AUT0OPSSNX_* (cumulative).
+    parameters:
+      - {name: AAA, value: AUS}
+      - {name: AAA, value: AUT}
+      - {name: TTT, value: SNX}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "v1/products/{GPSWEEK}/"}
+
+  # ── Ginan experimental orbits ───────────────────────────────────
+  - id: ga_orbit
+    product_name: ORBIT
+    server_id: ga_s3
+    available: true
+    description: >
+      Experimental Ginan rapid precise orbits (AC code GAG). Not an
+      official IGS combined product. Subject to change without notice.
+    parameters:
+      - {name: AAA, value: GAG}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: "05M"}
+      - {name: SMP, value: "15M"}
+    directory: {pattern: "v1/products/{GPSWEEK}/"}
+
+  # ── Ginan experimental clocks ───────────────────────────────────
+  - id: ga_clock
+    product_name: CLOCK
+    server_id: ga_s3
+    available: true
+    description: >
+      Experimental Ginan rapid precise clocks (AC code GAG). Not an
+      official IGS combined product.
+    parameters:
+      - {name: AAA, value: GAG}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: "30S"}
+    directory: {pattern: "v1/products/{GPSWEEK}/"}
+
+  # ── Ginan experimental ERP ──────────────────────────────────────
+  - id: ga_erp
+    product_name: ERP
+    server_id: ga_s3
+    available: true
+    description: >
+      Experimental Ginan rapid Earth rotation parameters (AC code GAG).
+      Not an official IGS combined product.
+    parameters:
+      - {name: AAA, value: GAG}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "v1/products/{GPSWEEK}/"}

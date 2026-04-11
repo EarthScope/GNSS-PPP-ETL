@@ -1,0 +1,44 @@
+id: EUREF
+name: EUREF Permanent GNSS Network (EPN)
+description: >
+  The EUREF Permanent GNSS Network (EPN) is a network of continuously
+  operating GNSS reference stations across Europe, coordinated by the
+  European Reference Frame (EUREF) sub-commission and operated by the
+  Royal Observatory of Belgium (ROB). EPN provides RINEX observation data
+  from 400+ European stations and weekly SINEX station coordinate solutions
+  in ETRS89 (the European Terrestrial Reference System). EPN is not an IGS
+  orbit or clock Analysis Center and does not host IGS combined
+  orbit/clock/ERP products. Products are served over HTTPS only (no FTP).
+website: https://epncb.oma.be/
+
+servers:
+  - id: euref_https
+    name: EPN Central Bureau HTTPS (ROB)
+    hostname: "https://epncb.oma.be"
+    protocol: https
+    auth_required: false
+    description: >
+      HTTPS-only access to EPN RINEX observation data and ETRS89-aligned
+      SINEX station coordinate solutions. No authentication required.
+      RINEX obs: /pub/RINEX/YYYY/DDD/
+      SINEX products: /pub/product/referenceframe/CWWWW/
+
+products:
+  # ── EPN weekly SINEX (station coordinates) ──────────────────────
+  # Weekly SINEX solutions use a campaign+week path: CWWWW where C is a
+  # campaign letter (most recent reprocessing uses 'A' for the current
+  # operational solution). Example: /pub/product/referenceframe/A2349/
+  - id: euref_sinex
+    product_name: SINEX
+    server_id: euref_https
+    available: true
+    description: >
+      EPN weekly SINEX station coordinate solutions (ETRS89 / ITRF-aligned).
+      Covers 400+ European CORS stations. Useful for European reference
+      frame densification and CORS coordinate validation. Directory pattern
+      uses a campaign letter prefix on the GPS week (e.g. A2349/).
+    parameters:
+      - {name: AAA, value: EPN}
+      - {name: TTT, value: SNX}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/product/referenceframe/A{GPSWEEK}/"}

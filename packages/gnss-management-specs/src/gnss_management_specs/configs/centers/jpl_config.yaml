@@ -1,110 +1,105 @@
-id: COD
-name: Center for Orbit Determination in Europe (AIUB)
-website: http://www.aiub.unibe.ch/
+id: JPL
+name: NASA Jet Propulsion Laboratory
+description: >
+  JPL is one of the founding IGS analysis centers and the primary contributor
+  of ionosphere VTEC maps (jplg). Produces GPS/GNSS precise orbits, clocks,
+  and the widely-used JPL IONEX product series.
+website: https://www.jpl.nasa.gov/
 
 servers:
-  - id: code_ftp
-    name: Primary FTP
-    hostname: "ftp://ftp.aiub.unibe.ch"
-    protocol: ftp
+  - id: jpl_sideshow
+    name: JPL Sideshow HTTPS
+    hostname: "https://sideshow.jpl.nasa.gov"
+    protocol: https
     auth_required: false
-    description: CODE FTP server at University of Bern
+    description: >
+      JPL public HTTPS server. FTP access was discontinued in 2019.
+      IGS long-filename products are in pub/jpligsac/{GPSWEEK}/.
 
 products:
   # ── Orbits ──────────────────────────────────────────────────────
-  - id: code_orbit
+  - id: jpl_orbit
     product_name: ORBIT
-    server_id: code_ftp
+    server_id: jpl_sideshow
     available: true
-    description: CODE precise orbits
+    description: JPL precise GPS/GNSS orbits
     parameters:
-      - {name: AAA, value: COD}
+      - {name: AAA, value: JPL}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
-      - {name: PPP, value: MGX}
       - {name: SMP, value: 05M}
       - {name: SMP, value: 15M}
-    directory: {pattern: "CODE/{YYYY}/"}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
   # ── Clocks ──────────────────────────────────────────────────────
-  - id: code_clock
+  - id: jpl_clock
     product_name: CLOCK
-    server_id: code_ftp
+    server_id: jpl_sideshow
     available: true
-    description: CODE precise clocks
+    description: JPL precise satellite clocks
     parameters:
-      - {name: AAA, value: COD}
+      - {name: AAA, value: JPL}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
       - {name: SMP, value: 30S}
       - {name: SMP, value: 05M}
-    directory: {pattern: "CODE/{YYYY}/"}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
   # ── ERP ─────────────────────────────────────────────────────────
-  - id: code_erp
+  - id: jpl_erp
     product_name: ERP
-    server_id: code_ftp
+    server_id: jpl_sideshow
     available: true
     description: Earth rotation parameters
     parameters:
-      - {name: AAA, value: COD}
+      - {name: AAA, value: JPL}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
-    directory: {pattern: "CODE/{YYYY}/"}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
   # ── Biases ──────────────────────────────────────────────────────
-  - id: code_bias
+  - id: jpl_bias
     product_name: BIA
-    server_id: code_ftp
+    server_id: jpl_sideshow
     available: true
-    description: Differential code biases (DCB/OSB)
+    description: Observable-specific signal biases (OSB)
     parameters:
-      - {name: AAA, value: COD}
+      - {name: AAA, value: JPL}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
-    directory: {pattern: "CODE/{YYYY}/"}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
-  # ── Ionosphere ─────────────────────────────────────────────────
-  - id: code_gim
+  # ── Ionosphere (GIM) ───────────────────────────────────────────
+  # JPL is one of the primary IGS IONEX producers (jplg series).
+  # The combined IGS GIM weights JPL products heavily.
+  - id: jpl_gim
     product_name: IONEX
-    server_id: code_ftp
+    server_id: jpl_sideshow
     available: true
-    description: Global Ionosphere Maps (CODE is primary producer)
+    description: >
+      JPL Global Ionosphere Maps — jplg VTEC series. One of the primary
+      inputs to the IGS combined GIM (IGSG).
     parameters:
-      - {name: AAA, value: COD}
+      - {name: AAA, value: JPL}
       - {name: TTT, value: FIN}
       - {name: TTT, value: RAP}
-      - {name: TTT, value: PRD}
       - {name: PPP, value: OPS}
       - {name: SMP, value: 01H}
       - {name: SMP, value: 02H}
-    directory: {pattern: "CODE/{YYYY}/"}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
   # ── SINEX weekly solutions ──────────────────────────────────────
-  - id: code_sinex
+  - id: jpl_sinex
     product_name: SINEX
-    server_id: code_ftp
+    server_id: jpl_sideshow
     available: true
-    description: CODE weekly station coordinate SINEX solutions
+    description: JPL weekly station coordinate SINEX solutions
     parameters:
-      - {name: AAA, value: COD}
+      - {name: AAA, value: JPL}
       - {name: TTT, value: FIN}
       - {name: PPP, value: OPS}
-    directory: {pattern: "CODE/{YYYY}/"}
-
-  # ── Troposphere SINEX ──────────────────────────────────────────
-  - id: code_trop
-    product_name: TROP
-    server_id: code_ftp
-    available: true
-    description: CODE troposphere SINEX (zenith total delay + horizontal gradients)
-    parameters:
-      - {name: AAA, value: COD}
-      - {name: TTT, value: FIN}
-      - {name: PPP, value: OPS}
-      - {name: SMP, value: 05M}
-    directory: {pattern: "CODE/{YYYY}/"}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}

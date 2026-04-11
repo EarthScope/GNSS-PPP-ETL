@@ -4,11 +4,11 @@ website: https://www.gfz-potsdam.de/
 
 servers:
   - id: gfz_ftp
-    name: ISDC FTP
-    hostname: "ftp://isdcftp.gfz-potsdam.de"
+    name: GFZ FTP
+    hostname: "ftp://ftp.gfz-potsdam.de"
     protocol: ftp
     auth_required: false
-    description: Information System and Data Center (ISDC) FTP
+    description: GFZ FTP server (formerly isdcftp.gfz-potsdam.de / ISDC, migrated to ftp.gfz-potsdam.de)
 
 products:
   # ── Orbits ──────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ products:
       - {name: PPP, value: MGX}
       - {name: SMP, value: 05M}
       - {name: SMP, value: 15M}
-    directory: {pattern: "gnss/products/final/w{GPSWEEK}/"}
+    directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
 
   # ── Clocks ──────────────────────────────────────────────────────
   - id: gfz_clock
@@ -43,4 +43,64 @@ products:
       - {name: PPP, value: MGX}
       - {name: SMP, value: 30S}
       - {name: SMP, value: 05M}
-    directory: {pattern: "gnss/products/final/w{GPSWEEK}/"}
+    directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
+
+  # ── ERP ─────────────────────────────────────────────────────────
+  - id: gfz_erp
+    product_name: ERP
+    server_id: gfz_ftp
+    available: true
+    description: Earth rotation parameters
+    parameters:
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: GBM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: LEN, value: "07D"}
+    directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
+
+  # ── Biases ──────────────────────────────────────────────────────
+  - id: gfz_bia
+    product_name: BIA
+    server_id: gfz_ftp
+    available: false
+    description: GFZ does not publish bias files on this FTP endpoint
+    parameters:
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: GBM}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
+
+  # ── Troposphere SINEX ──────────────────────────────────────────
+  - id: gfz_trop
+    product_name: TROP
+    server_id: gfz_ftp
+    available: true
+    description: GFZ troposphere SINEX (zenith total delay + horizontal gradients)
+    parameters:
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: GBM}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
+
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: gfz_sinex
+    product_name: SINEX
+    server_id: gfz_ftp
+    available: true
+    description: GFZ/GBM weekly station coordinate SINEX solutions
+    parameters:
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: GBM}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
