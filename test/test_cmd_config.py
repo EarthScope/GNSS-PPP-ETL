@@ -93,8 +93,6 @@ def test_set_centers_multi_value(tmp_path):
 
     assert result.exit_code == 0
 
-    from gnss_ppp_etl.config import UserConfig
-
     with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file):
         cfg = UserConfig.load()
     assert cfg.centers == ["COD", "ESA", "GFZ"]
@@ -111,8 +109,6 @@ def test_set_log_level(tmp_path):
     with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file):
         result = runner.invoke(app, ["config", "set", "log-level", "DEBUG"])
     assert result.exit_code == 0
-
-    from gnss_ppp_etl.config import UserConfig
 
     with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file):
         cfg = UserConfig.load()
