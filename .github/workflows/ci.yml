@@ -4,6 +4,7 @@ on:
   push:
     branches: ["**"]
   pull_request:
+    branches: ["**"]
 
 jobs:
   test:
@@ -17,3 +18,13 @@ jobs:
       - run: uv run ruff check packages/
       - run: uv run ruff format --check packages/
       - run: uv run pytest packages/gnss-product-management/test/ -m "not integration" -q
+
+  update-docs:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: uv run --group dev sphinx-build docs docs/_build/html

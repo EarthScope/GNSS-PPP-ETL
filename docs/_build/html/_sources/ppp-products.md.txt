@@ -53,21 +53,34 @@ Satellite clock error corrections.
 
 ### Earth Rotation Parameters (ERP)
 
-Transform between Earth-fixed and inertial reference frames.
+Encodes polar motion (x_p, y_p), UT1-UTC, and length-of-day (LOD) for the
+transformation between the International Terrestrial Reference Frame (ITRF)
+and the International Celestial Reference Frame (ICRF). Required for orbit
+integration and precise coordinate transformation in PPP.
 
 | Convention | Pattern | Example |
 |---|---|---|
 | Legacy | `igsWWWWD.erp` | `igs22341.erp` |
 | Modern | `AC0OPSFIN_YYYYDDDHHMM_01D_01D_ERP.ERP` | `IGS0OPSFIN_20231230000_01D_01D_ERP.ERP` |
 
-### Code/Phase Bias (BIA)
+### Bias Products (BIA)
 
-Correct signal-dependent hardware biases.
+Three distinct bias types are used in modern GNSS processing:
+
+| Type | Abbreviation | Purpose | Required for |
+|---|---|---|---|
+| Observable-Specific Bias | OSB | Signal-specific hardware delay (multi-GNSS, multi-frequency) | Float PPP, PPP-AR |
+| Fractional Cycle Bias | FCB / phase bias | Fractional part of ambiguity — enables integer fixing | PPP-AR only |
+| Differential Code Bias | DCB | Legacy inter-frequency code delay | Ionosphere modeling (legacy) |
+
+OSB supersedes DCB for modern multi-GNSS processing. FCB (or its equivalent under
+the integer recovery clock / decoupled clock models) is required to fix carrier-phase
+ambiguities to integers in PPP-AR.  Without it, PPP produces a float solution.
 
 | Product | Pattern | Example |
 |---|---|---|
-| Code Bias (OSB) | `AC0MGXRAP_YYYYDDD0000_01D_01D_BIA.BIA` | `CAS0MGXRAP_20231230000_01D_01D_BIA.BIA` |
-| Phase Bias (PPP-AR) | `AC0MGXRAP_YYYYDDD0000_01D_30S_PHS.BIA` | `CAS0MGXRAP_20231230000_01D_30S_PHS.BIA` |
+| OSB | `AC0MGXFIN_YYYYDDD0000_01D_01D_OSB.BIA` | `WUM0MGXFIN_20231230000_01D_01D_OSB.BIA` |
+| Phase Bias / FCB | `AC0MGXRAP_YYYYDDD0000_01D_30S_ABS.BIA` | `CAS0MGXRAP_20231230000_01D_30S_ABS.BIA` |
 
 ### Ionosphere Products (IONEX)
 
@@ -88,12 +101,18 @@ AC0OPSFIN_YYYYDDD0000_01D_05M_TRO.TRO
 
 ### Antenna Calibration (ANTEX)
 
-Phase center offset and variation models for antennas.
+Phase center offset (PCO) and phase center variation (PCV) models for both
+receiver and satellite antennas. Must be consistent with the reference frame
+(ITRF realization) used for the orbit and clock products.
 
-| File       | Meaning             |
-|------------|---------------------|
-| `igs14.atx` | IGS14 antenna model |
-| `igs20.atx` | IGS20 antenna model |
+| File        | Frame       | Status |
+|-------------|-------------|--------|
+| `igs14.atx` | IGS14/ITRF2014 | Superseded — deprecated since IGS Repro3 (late 2022) |
+| `igs20.atx` | IGS20/ITRF2020 | Current — required when using IGS Repro3 or later products |
+
+> Using `igs14.atx` with Repro3 or post-Repro3 orbit/clock products
+> introduces a frame inconsistency of order 1–2 cm. Always match the
+> ANTEX to the reference frame of the orbit solution.
 
 ### Reference Frame / SINEX
 
@@ -104,15 +123,16 @@ Weekly SINEX solutions:
 | Legacy | `igsWWWW.snx` | `igs2234.snx` |
 | Modern | `AC0OPSFIN_YYYYDDD0000_07D_07D_SOL.SNX` | `IGS0OPSFIN_20231230000_07D_07D_SOL.SNX` |
 
-### Real-Time SSR Streams
+### Satellite Attitude (OBX)
 
-Real-time corrections via NTRIP (RTCM 3.x SSR):
+Satellite attitude quaternions used when processing LEO data or when applying
+precise antenna orientation corrections beyond the nominal yaw-steering model.
 
-| Stream | Contents |
-|---|---|
-| `IGS03` | Orbit + clock corrections |
-| `CLK93` | Clock corrections |
-| `SSRA00IGS0` | Multi-signal corrections |
+```
+AC0OPSFIN_YYYYDDD0000_01D_05M_ATT.OBX
+```
+
+> Note: Real-time SSR streams (NTRIP/RTCM) are not supported by this library.
 
 ---
 
@@ -137,19 +157,16 @@ SSSS00CCC_R_YYYYDDDHHMM_01D_30S_MO.rnx.gz
 
 | Product Category | Product Name | Purpose in PPP | Format | Sampling | Latency |
 |---|---|---|---|---|---|
-| Observations | GNSS Observation Data | Raw measurements (code, phase) | RINEX OBS | 1–30 s | Real-time / daily |
-| Satellite Orbits | Precise Orbit Ephemerides | Accurate satellite positions | SP3 | 5–15 min | Ultra-rapid / Rapid / Final |
-| Satellite Clocks | Precise Clock Offsets | Satellite clock error correction | RINEX CLK | 5 s / 30 s | Ultra-rapid / Rapid / Final |
-| Bias Products | Differential Code Bias (DCB) | Code biases between frequencies | SINEX BIAS | Daily | Rapid / Final |
-| Bias Products | Observable Specific Bias (OSB) | Signal-specific biases (multi-GNSS) | SINEX BIAS | Daily | Rapid / Final |
-| Phase Bias | Fractional Cycle Bias (FCB) | Integer ambiguity fixing in PPP-AR | FCB / SINEX BIAS | 5 min – 30 s | Rapid / Final |
-| Earth Orientation | Earth Rotation Parameters (ERP/EOP) | Terrestrial ↔ inertial frame transform | ERP | Daily | Rapid / Final |
-| Reference Frame | Station Coordinates / Frame Solutions | Define reference frame (ITRF) | SINEX | Daily / weekly | Final |
-| Troposphere | Zenith Tropospheric Delay (ZTD/ZPD) | Atmospheric delay corrections | SINEX TRO | 5 min – 1 hr | Rapid / Final |
-| Ionosphere | Global TEC Maps | Ionospheric delay models | IONEX | 15 min – 2 hr | Rapid / Final |
-| Antenna Calibration | Antenna Phase Center Models | Receiver/satellite antenna offsets | ANTEX | Static | Final |
-| Satellite Attitude | Satellite Yaw / Attitude | Satellite antenna orientation | ATT / YAW | 5–15 min | Rapid / Final |
-| Real-Time Corrections | SSR Corrections | Real-time orbit/clock/bias | RTCM SSR | 1–10 s | Real-time |
+| Observations | GNSS Observation | Raw code and carrier-phase measurements | RINEX OBS | 1–30 s | — |
+| Precise Orbits | SP3 | Satellite positions in ITRF (replaces broadcast ephemeris) | SP3 | 5–15 min | ULT ≤3 h / RAP ≤17 h / FIN ≥13 d |
+| Precise Clocks | CLK | Satellite and receiver clock corrections at RMS < 100 ps (FIN) | RINEX CLK | 30 s (FIN/RAP) / 5 min (ULT) | ULT ≤3 h / RAP ≤17 h / FIN ≥13 d |
+| Observable-Specific Bias | OSB | Signal-level hardware delays; supersedes DCB for multi-GNSS/multi-freq | SINEX BIAS | Daily | RAP / FIN |
+| Fractional Cycle Bias | FCB / phase bias | Fractional ambiguity terms enabling PPP-AR integer fixing | SINEX BIAS | Daily / 30 s | RAP / FIN |
+| Earth Rotation Parameters | ERP | Polar motion (x_p, y_p), UT1-UTC, LOD for ITRF↔ICRF | ERP | Daily | RAP / FIN |
+| Ionosphere | GIM (IONEX) | Global TEC grid for single-frequency or ionosphere-constrained PPP | IONEX | 2 h (FIN) / 15 min (RTS) | RAP / FIN |
+| Troposphere | VMF1/VMF3 | Vienna Mapping Function grids (superior to Saastamoinen for high accuracy) | GRID | 6 h | FIN |
+| Antenna Calibration | ANTEX | PCO/PCV for receiver and satellite antennas; must match orbit frame (igs20) | ANTEX | Static | FIN |
+| Satellite Attitude | OBX | Attitude quaternions for LEO processing or precise antenna orientation | OBX | 5–15 min | RAP / FIN |
 
 ---
 

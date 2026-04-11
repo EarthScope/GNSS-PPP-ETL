@@ -56,8 +56,14 @@
 <li class="toctree-l3"><a class="reference internal" href="#format-spec-yaml"><code class="docutils literal notranslate"><span class="pre">format_spec.yaml</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#centers-analysis-center-configurations"><code class="docutils literal notranslate"><span class="pre">centers/</span></code> — Analysis Center Configurations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#local-local-storage-configuration"><code class="docutils literal notranslate"><span class="pre">local/</span></code> — Local Storage Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#centers-analysis-center-configurations"><code class="docutils literal notranslate"><span class="pre">centers/</span></code> — Analysis Center Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#authentication">Authentication</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#local-local-storage-configuration"><code class="docutils literal notranslate"><span class="pre">local/</span></code> — Local Storage Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cloud-storage">Cloud storage</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#dependencies-product-dependency-specifications"><code class="docutils literal notranslate"><span class="pre">dependencies/</span></code> — Product Dependency Specifications</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#query-product-query-specifications"><code class="docutils literal notranslate"><span class="pre">query/</span></code> — Product Query Specifications</a></li>
 </ul>
@@ -98,11 +104,12 @@
 
   <section id="yaml-configuration-reference">
 <h1>YAML Configuration Reference<a class="headerlink" href="#yaml-configuration-reference" title="Link to this heading"></a></h1>
-<p>The GNSS product management system is driven entirely by YAML configuration
-files bundled in the <a class="reference internal" href="#../packages/gnss-product-management/"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">gnss-product-management</span></code></span></a> package.
-This document describes every configuration directory and what each controls.</p>
+<p>The product management system is driven entirely by YAML configuration files
+bundled in the <a class="reference internal" href="#../packages/gnss-management-specs/"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">gnss-management-specs</span></code></span></a>
+package. This separates data from code: adding a new analysis center or product
+type requires only a new YAML file.</p>
 <blockquote>
-<div><p>Source path: <code class="docutils literal notranslate"><span class="pre">packages/gnss-product-management/src/gnss_product_management/configs/</span></code></p>
+<div><p>Source path: <code class="docutils literal notranslate"><span class="pre">packages/gnss-management-specs/src/gnss_management_specs/configs/</span></code></p>
 </div></blockquote>
 <hr class="docutils" />
 <section id="meta-metadata-field-specifications">
@@ -148,8 +155,8 @@ generating file paths.</p></li>
 observation</p></li>
 <li><p><strong>Parameters</strong> — metadata fields (from <code class="docutils literal notranslate"><span class="pre">meta/</span></code>) that populate each template</p></li>
 </ul>
-<p>Together these two files let the <code class="docutils literal notranslate"><span class="pre">QueryFactory</span></code> dynamically construct and
-deconstruct filenames for any product type.</p>
+<p>Together these two files let <code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code> dynamically construct and
+match filenames for any product type using the parameter catalog.</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -168,6 +175,19 @@ and <code class="docutils literal notranslate"><span class="pre">directory</span
 </ul>
 <p>These configs are the blueprints for how the system interacts with each data
 provider.</p>
+<section id="authentication">
+<h3>Authentication<a class="headerlink" href="#authentication" title="Link to this heading"></a></h3>
+<p>Most centers (COD, ESA, GFZ, WUM) serve products over anonymous FTP and
+require no credentials. <strong>CDDIS</strong> (NASA GSFC) has required authenticated
+FTPS access since November 2020. Credentials are read automatically from
+<code class="docutils literal notranslate"><span class="pre">~/.netrc</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="n">cddis</span><span class="o">.</span><span class="n">nasa</span><span class="o">.</span><span class="n">gov</span> <span class="n">login</span> <span class="o">&lt;</span><span class="n">earthdata_username</span><span class="o">&gt;</span> <span class="n">password</span> <span class="o">&lt;</span><span class="n">earthdata_password</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Register at <a class="reference external" href="https://cddis.nasa.gov/Data_and_Derived_Products/CreateAccount.html">https://cddis.nasa.gov/Data_and_Derived_Products/CreateAccount.html</a>.
+Without a valid <code class="docutils literal notranslate"><span class="pre">.netrc</span></code> entry, all CDDIS queries will fail with a 530
+authentication error.</p>
+</section>
 </section>
 <hr class="docutils" />
 <section id="local-local-storage-configuration">
@@ -189,25 +209,38 @@ date information maps to storage paths.</p></li>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">products</span></code></p></td>
-<td><p>Orbits, clocks, biases, attitude data</p></td>
+<td><p>Orbits (SP3), clocks (CLK), biases (BIA), attitude (OBX)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rinex</span></code></p></td>
 <td><p>Observation, navigation, meteorological RINEX</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">common</span></code></p></td>
-<td><p>Ionosphere maps, troposphere grids</p></td>
+<td><p>Ionosphere maps (IONEX), troposphere grids (VMF1/VMF3)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">table</span></code></p></td>
-<td><p>Leap seconds, satellite parameters, antenna calibrations</p></td>
+<td><p>Static reference files: leap-second table, satellite parameters (mass, geometry), ANTEX</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lockfiles</span></code></p></td>
-<td><p>Provenance / version tracking for downloaded dependencies</p></td>
+<td><p>Dependency lock files — provenance and SHA-256 hashes for every resolved product</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">leo</span></code></p></td>
-<td><p>Level-1B instrument data from LEO satellites</p></td>
+<td><p>Level-1B GNSS observation data from LEO satellites (e.g. COSMIC-2, Swarm); uses the same SP3/CLK product types but separate center configs</p></td>
 </tr>
 </tbody>
 </table>
+<section id="cloud-storage">
+<h3>Cloud storage<a class="headerlink" href="#cloud-storage" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">local_config.yaml</span></code> directory structure applies equally to local and cloud
+paths. Pass an S3 (or GCS/Azure) URI as <code class="docutils literal notranslate"><span class="pre">base_dir</span></code> and the same
+<code class="docutils literal notranslate"><span class="pre">{YYYY}/{DDD}/</span></code> layout is mirrored in object storage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">client</span> <span class="o">=</span> <span class="n">GNSSClient</span><span class="o">.</span><span class="n">from_defaults</span><span class="p">(</span><span class="n">base_dir</span><span class="o">=</span><span class="s2">&quot;s3://my-bucket/gnss-products&quot;</span><span class="p">)</span>
+<span class="c1"># Products land at:</span>
+<span class="c1">#   s3://my-bucket/gnss-products/2025/015/products/WUM0OPSFIN...SP3</span>
+<span class="c1">#   s3://my-bucket/gnss-products/2025/015/common/COD0OPSFIN...INX</span>
+<span class="c1">#   s3://my-bucket/gnss-products/dependency_lockfiles/pride-ppp_ppp_20250015.json</span>
+</pre></div>
+</div>
+</section>
 </section>
 <hr class="docutils" />
 <section id="dependencies-product-dependency-specifications">
@@ -223,8 +256,10 @@ options exist (e.g. prefer <code class="docutils literal notranslate"><span clas
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">dependencies</span></code></strong> — The list of required products, each referencing a
 product <code class="docutils literal notranslate"><span class="pre">spec</span></code> (like <code class="docutils literal notranslate"><span class="pre">ORBIT</span></code>, <code class="docutils literal notranslate"><span class="pre">CLOCK</span></code>, <code class="docutils literal notranslate"><span class="pre">BIA</span></code>)</p></li>
 </ul>
-<p>The <code class="docutils literal notranslate"><span class="pre">DependencyResolver</span></code> uses these specs to find, download, and cache a
-complete, prioritized dataset for any processing run.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ResolvePipeline</span></code> (via <code class="docutils literal notranslate"><span class="pre">GNSSClient.resolve_dependencies</span></code>) uses these specs to
+find, download, and cache a complete, prioritised dataset for any processing
+run. The <code class="docutils literal notranslate"><span class="pre">preferences</span></code> list drives the timeliness/center cascade:
+FIN → RAP → ULT, with per-parameter fallback ordering.</p>
 </section>
 <hr class="docutils" />
 <section id="query-product-query-specifications">
@@ -247,8 +282,9 @@ broadcast navigation)</p></li>
 </ul>
 </li>
 </ul>
-<p>This file defines the API for requesting GNSS products — it ensures queries are
-valid and directs the system to the right resources.</p>
+<p>This file defines the queryable dimensions for product searches. <code class="docutils literal notranslate"><span class="pre">SearchPlanner</span></code>
+reads these profiles to know which parameter axes apply to each product and how
+to route queries to local vs. remote resources.</p>
 </section>
 </section>
 
