@@ -83,3 +83,28 @@ products:
       - {name: SMP, value: 01H}
       - {name: SMP, value: 02H}
     directory: {pattern: "CODE/{YYYY}/"}
+
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: code_sinex
+    product_name: SINEX
+    server_id: code_ftp
+    available: true
+    description: CODE weekly station coordinate SINEX solutions
+    parameters:
+      - {name: AAA, value: COD}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "CODE/{YYYY}/"}
+
+  # ── Troposphere SINEX ──────────────────────────────────────────
+  - id: code_trop
+    product_name: TROP
+    server_id: code_ftp
+    available: true
+    description: CODE troposphere SINEX (zenith total delay + horizontal gradients)
+    parameters:
+      - {name: AAA, value: COD}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "CODE/{YYYY}/"}

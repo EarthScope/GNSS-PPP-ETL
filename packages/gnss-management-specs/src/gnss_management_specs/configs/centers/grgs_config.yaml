@@ -1,21 +1,24 @@
 id: GRGS
-name: Groupe de Recherche de Géodésie Spatiale (CNES/GRGS)
+name: Groupe de Recherche de Géodésie Spatiale (CNES/CLS)
 description: >
-  GRGS is a French geodesy research group (CNES/OMP) and an IGS analysis center
-  using the GINS/Gipsy software suite. AC code GRG. Contributes precise orbits,
-  clocks, ERP and signal biases to both IGS and MGEX combinations.
-website: https://grgs.obs-mip.fr/
+  GRGS is a French geodesy research group (CNES/CLS) and an IGS analysis center.
+  AC code GRG. Contributes precise orbits, clocks, ERP, signal biases, and attitude
+  quaternions (ORBEX) to both IGS and MGEX combinations. Orbits, clocks, and attitude
+  files must be used together — radial orbit and attitude differences are compensated
+  in the clock products. Products are hosted at ftpsedr.cls.fr and mirrored by
+  CDDIS and IGN.
+website: https://igsac-cnes.cls.fr/
 
 servers:
   - id: grgs_ftp
-    name: GRGS FTP server
-    hostname: "ftp://grgs.obs-mip.fr"
+    name: CNES/CLS IGS AC FTP
+    hostname: "ftp://ftpsedr.cls.fr"
     protocol: ftp
     auth_required: false
     description: >
-      GRGS anonymous FTP server. Product directory layout follows the
-      IGS long-filename convention; verify the path with run_in_terminal
-      or the discover_centers.py dev script before production use.
+      CNES/CLS anonymous FTP server. IGS long-filename products are under
+      pub/igsac/{GPSWEEK}/. Auxiliary products (biases, attitude) are
+      co-located in the same GPS-week directory.
 
 products:
   # ── Orbits ──────────────────────────────────────────────────────
@@ -27,10 +30,11 @@ products:
     parameters:
       - {name: AAA, value: GRG}
       - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
       - {name: SMP, value: 05M}
       - {name: SMP, value: 15M}
-    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}
+    directory: {pattern: "pub/igsac/{GPSWEEK}/"}
 
   # ── Clocks ──────────────────────────────────────────────────────
   - id: grgs_clock
@@ -41,10 +45,11 @@ products:
     parameters:
       - {name: AAA, value: GRG}
       - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
       - {name: SMP, value: 30S}
       - {name: SMP, value: 05M}
-    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}
+    directory: {pattern: "pub/igsac/{GPSWEEK}/"}
 
   # ── ERP ─────────────────────────────────────────────────────────
   - id: grgs_erp
@@ -55,8 +60,9 @@ products:
     parameters:
       - {name: AAA, value: GRG}
       - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
-    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}
+    directory: {pattern: "pub/igsac/{GPSWEEK}/"}
 
   # ── Biases ──────────────────────────────────────────────────────
   - id: grgs_bias
@@ -67,5 +73,38 @@ products:
     parameters:
       - {name: AAA, value: GRG}
       - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
       - {name: PPP, value: OPS}
-    directory: {pattern: "pub/gnss/products/final/week{GPSWEEK}/"}
+    directory: {pattern: "pub/igsac/{GPSWEEK}/"}
+
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: grgs_sinex
+    product_name: SINEX
+    server_id: grgs_ftp
+    available: true
+    description: GRGS/CNES weekly station coordinate SINEX solutions
+    parameters:
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "pub/igsac/{GPSWEEK}/"}
+
+  # ── Attitude (ORBEX) ─────────────────────────────────────────────
+  # GRGS attitude quaternions must be used with the matching orbit/clock
+  # files; radial orbit and attitude differences are absorbed into clocks.
+  - id: grgs_attobx
+    product_name: ATTOBX
+    server_id: grgs_ftp
+    available: true
+    description: >
+      GRGS satellite attitude quaternions in ORBEX format. Must be combined
+      with the matching GRG orbit and clock products.
+    parameters:
+      - {name: AAA, value: GRG}
+      - {name: TTT, value: FIN}
+      - {name: TTT, value: RAP}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 05M}
+      - {name: SMP, value: 30S}
+    directory: {pattern: "pub/igsac/{GPSWEEK}/"}

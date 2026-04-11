@@ -164,6 +164,18 @@ products:
       - {name: SMP, value: 02H}
     directory: {pattern: "pub/gps/products/ionex/{YYYY}/{DDD}/"}
 
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: wuhan_sinex
+    product_name: SINEX
+    server_id: wuhan_ftp
+    available: true
+    description: Wuhan University weekly station coordinate SINEX solutions
+    parameters:
+      - {name: AAA, value: WUM}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: MGX}
+    directory: {pattern: "pub/gps/products/{GPSWEEK}/"}
+
   # ── Broadcast navigation ───────────────────────────────────────
   - id: wuhan_nav
     product_name: RNX3_BRDC

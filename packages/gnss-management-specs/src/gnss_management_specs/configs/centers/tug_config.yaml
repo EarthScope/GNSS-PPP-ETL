@@ -76,3 +76,17 @@ products:
       - {name: PPP, value: OPS}
       - {name: PPP, value: MGX}
     directory: {pattern: "gnss/products/{GPSWEEK}/"}
+
+  # ── Attitude (ORBEX) ─────────────────────────────────────────────
+  # TUG (GROOPS) produces ORBEX attitude quaternions for multi-GNSS satellites.
+  - id: tug_attobx
+    product_name: ATTOBX
+    server_id: cddis_mirror
+    available: true
+    description: TUG satellite attitude (ORBEX) — multi-GNSS, via CDDIS mirror
+    parameters:
+      - {name: AAA, value: TUG}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 30S}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}

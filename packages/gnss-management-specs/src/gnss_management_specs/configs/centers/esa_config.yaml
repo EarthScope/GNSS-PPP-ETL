@@ -86,3 +86,15 @@ products:
       - {name: SMP, value: "01H"}
       - {name: SMP, value: "02H"}
     directory: {pattern: "gnss/products/ionex/{YYYY}/{DDD}/"}
+
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: esa_sinex
+    product_name: SINEX
+    server_id: esa_ftp
+    available: true
+    description: ESA/ESOC weekly station coordinate SINEX solutions
+    parameters:
+      - {name: AAA, value: ESA}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+    directory: {pattern: "gnss/products/{GPSWEEK}/"}

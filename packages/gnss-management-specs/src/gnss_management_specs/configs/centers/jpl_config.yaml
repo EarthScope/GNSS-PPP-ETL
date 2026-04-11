@@ -8,14 +8,13 @@ website: https://www.jpl.nasa.gov/
 
 servers:
   - id: jpl_sideshow
-    name: JPL Sideshow FTP
-    hostname: "ftp://sideshow.jpl.nasa.gov"
-    protocol: ftp
+    name: JPL Sideshow HTTPS
+    hostname: "https://sideshow.jpl.nasa.gov"
+    protocol: https
     auth_required: false
     description: >
-      JPL public FTP server. IGS long-filename products are in
-      pub/jpligsac/{GPSWEEK}/. Verify the path against the current
-      server layout — JPL periodically reorganises the directory tree.
+      JPL public HTTPS server. FTP access was discontinued in 2019.
+      IGS long-filename products are in pub/jpligsac/{GPSWEEK}/.
 
 products:
   # ── Orbits ──────────────────────────────────────────────────────
@@ -91,4 +90,16 @@ products:
       - {name: PPP, value: OPS}
       - {name: SMP, value: 01H}
       - {name: SMP, value: 02H}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
+
+  # ── SINEX weekly solutions ──────────────────────────────────────
+  - id: jpl_sinex
+    product_name: SINEX
+    server_id: jpl_sideshow
+    available: true
+    description: JPL weekly station coordinate SINEX solutions
+    parameters:
+      - {name: AAA, value: JPL}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
     directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}

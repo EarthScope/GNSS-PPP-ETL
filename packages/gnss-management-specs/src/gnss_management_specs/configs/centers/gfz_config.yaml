@@ -76,6 +76,21 @@ products:
       - {name: PPP, value: MGX}
     directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
 
+  # ── Troposphere SINEX ──────────────────────────────────────────
+  - id: gfz_trop
+    product_name: TROP
+    server_id: gfz_ftp
+    available: true
+    description: GFZ troposphere SINEX (zenith total delay + horizontal gradients)
+    parameters:
+      - {name: AAA, value: GFZ}
+      - {name: AAA, value: GBM}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: PPP, value: MGX}
+      - {name: SMP, value: 05M}
+    directory: {pattern: "GNSS/products/final/w{GPSWEEK}/"}
+
   # ── SINEX weekly solutions ──────────────────────────────────────
   - id: gfz_sinex
     product_name: SINEX

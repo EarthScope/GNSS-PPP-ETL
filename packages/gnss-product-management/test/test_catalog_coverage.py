@@ -54,6 +54,8 @@ def _discover_center_products() -> list[tuple[str, str, str]]:
         cfg = yaml.safe_load(yaml_file.read_text())
         center_id: str = cfg.get("id", yaml_file.stem)
         for product_entry in cfg.get("products", []):
+            if not product_entry.get("available", True):
+                continue  # skip explicitly disabled products
             product_name: str | None = product_entry.get("product_name")
             if product_name:
                 key = (yaml_file.name, center_id, product_name)
