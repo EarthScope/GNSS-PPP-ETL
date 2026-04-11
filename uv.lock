@@ -18,6 +18,7 @@ resolution-markers = [
 members = [
     "gnss-management-specs",
     "gnss-ppp-etl",
+    "gnss-ppp-etl-cli",
     "gnss-product-management",
     "pride-ppp",
 ]
@@ -827,17 +828,13 @@ dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
     { name = "pyyaml" },
-    { name = "rich" },
-    { name = "typer" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "pre-commit" },
     { name = "pre-commit-hooks" },
-    { name = "rich" },
     { name = "ruff" },
-    { name = "typer" },
 ]
 docs = [
     { name = "myst-parser", version = "4.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -862,17 +859,13 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "rich", specifier = ">=13.0" },
-    { name = "typer", specifier = ">=0.12" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pre-commit-hooks", specifier = ">=4.6.0" },
-    { name = "rich", specifier = ">=13.0" },
     { name = "ruff", specifier = ">=0.15.8" },
-    { name = "typer", specifier = ">=0.12" },
 ]
 docs = [
     { name = "myst-parser", specifier = ">=3" },
@@ -881,6 +874,23 @@ docs = [
     { name = "sphinx-rtd-theme", specifier = ">=2" },
 ]
 test = [{ name = "pytest", specifier = ">=8" }]
+
+[[package]]
+name = "gnss-ppp-etl-cli"
+version = "0.1.0"
+source = { editable = "packages/gnss-ppp-etl-cli" }
+dependencies = [
+    { name = "gnss-ppp-etl" },
+    { name = "rich" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "gnss-ppp-etl", editable = "." },
+    { name = "rich", specifier = ">=13.0" },
+    { name = "typer", specifier = ">=0.12" },
+]
 
 [[package]]
 name = "gnss-product-management"
