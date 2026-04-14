@@ -17,11 +17,24 @@ resolution-markers = [
 [manifest]
 members = [
     "gnss-management-specs",
-    "gnss-ppp-etl",
     "gnss-ppp-etl-cli",
     "gnss-product-management",
     "pride-ppp",
 ]
+
+[manifest.dependency-groups]
+dev = [
+    { name = "pre-commit", specifier = ">=4.5.1" },
+    { name = "pre-commit-hooks", specifier = ">=4.6.0" },
+    { name = "ruff", specifier = ">=0.15.8" },
+]
+docs = [
+    { name = "myst-parser", specifier = ">=3" },
+    { name = "sphinx", specifier = ">=7" },
+    { name = "sphinx-autodoc-typehints", specifier = ">=2" },
+    { name = "sphinx-rtd-theme", specifier = ">=2" },
+]
+test = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -818,76 +831,20 @@ name = "gnss-management-specs"
 source = { editable = "packages/gnss-management-specs" }
 
 [[package]]
-name = "gnss-ppp-etl"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "cloudpathlib" },
-    { name = "gnss-product-management" },
-    { name = "pride-ppp" },
-    { name = "pydantic" },
-    { name = "pytest" },
-    { name = "pyyaml" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pre-commit" },
-    { name = "pre-commit-hooks" },
-    { name = "ruff" },
-]
-docs = [
-    { name = "myst-parser", version = "4.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "myst-parser", version = "5.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "sphinx-autodoc-typehints", version = "3.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "sphinx-autodoc-typehints", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "sphinx-autodoc-typehints", version = "3.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "sphinx-rtd-theme" },
-]
-test = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cloudpathlib", specifier = ">=0.23.0" },
-    { name = "gnss-product-management", editable = "packages/gnss-product-management" },
-    { name = "pride-ppp", editable = "packages/pride-ppp" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pyyaml", specifier = ">=6.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pre-commit", specifier = ">=4.5.1" },
-    { name = "pre-commit-hooks", specifier = ">=4.6.0" },
-    { name = "ruff", specifier = ">=0.15.8" },
-]
-docs = [
-    { name = "myst-parser", specifier = ">=3" },
-    { name = "sphinx", specifier = ">=7" },
-    { name = "sphinx-autodoc-typehints", specifier = ">=2" },
-    { name = "sphinx-rtd-theme", specifier = ">=2" },
-]
-test = [{ name = "pytest", specifier = ">=8" }]
-
-[[package]]
 name = "gnss-ppp-etl-cli"
 version = "0.1.0"
 source = { editable = "packages/gnss-ppp-etl-cli" }
 dependencies = [
-    { name = "gnss-ppp-etl" },
+    { name = "gnss-product-management" },
+    { name = "pride-ppp" },
     { name = "rich" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "gnss-ppp-etl", editable = "." },
+    { name = "gnss-product-management", editable = "packages/gnss-product-management" },
+    { name = "pride-ppp", editable = "packages/pride-ppp" },
     { name = "rich", specifier = ">=13.0" },
     { name = "typer", specifier = ">=0.12" },
 ]

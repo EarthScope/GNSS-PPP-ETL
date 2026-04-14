@@ -6,8 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
-from gnss_ppp_etl.config import UserConfig
+from gnss_ppp_etl_cli.config import UserConfig
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +42,7 @@ def test_load_from_user_file(tmp_path):
     user_cfg = tmp_path / "config.toml"
     _write_toml(user_cfg, 'base_dir = "/data/gnss"\nmax_connections = 8\n')
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig.load()
 
     assert cfg.base_dir == Path("/data/gnss")
@@ -61,7 +60,7 @@ def test_project_config_overrides_user(tmp_path):
     project_dir.mkdir()
     _write_toml(project_dir / "gnss-ppp-etl.toml", "max_connections = 12\n")
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig.load(project_dir=project_dir)
 
     assert cfg.max_connections == 12  # project overrides user
@@ -79,7 +78,7 @@ def test_env_var_overrides_file(tmp_path, monkeypatch):
     monkeypatch.setenv("GNSS_CENTERS", "COD,ESA,GFZ")
     monkeypatch.setenv("GNSS_LOG_LEVEL", "DEBUG")
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig.load()
 
     assert cfg.max_connections == 16
@@ -97,7 +96,7 @@ def test_invalid_env_max_connections_ignored(tmp_path, monkeypatch):
 
     monkeypatch.setenv("GNSS_MAX_CONNECTIONS", "not-a-number")
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig.load()
 
     assert cfg.max_connections == 6  # file value preserved
@@ -146,13 +145,13 @@ def test_to_processor_kwargs_minimal():
 def test_save_and_reload(tmp_path):
     user_cfg = tmp_path / "config.toml"
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig(max_connections=8, log_level="INFO")
         cfg.save()
 
     assert user_cfg.exists()
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg2 = UserConfig.load()
 
     assert cfg2.max_connections == 8
@@ -162,14 +161,14 @@ def test_save_and_reload(tmp_path):
 def test_set_scalar_key(tmp_path):
     user_cfg = tmp_path / "config.toml"
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig()
         cfg.set("max_connections", "12")
 
     assert cfg.max_connections == 12
     assert user_cfg.exists()
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         reloaded = UserConfig.load()
     assert reloaded.max_connections == 12
 
@@ -177,13 +176,13 @@ def test_set_scalar_key(tmp_path):
 def test_set_centers_as_list(tmp_path):
     user_cfg = tmp_path / "config.toml"
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig()
         cfg.set("centers", ["COD", "ESA", "GFZ"])
 
     assert cfg.centers == ["COD", "ESA", "GFZ"]
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         reloaded = UserConfig.load()
     assert reloaded.centers == ["COD", "ESA", "GFZ"]
 
@@ -191,7 +190,7 @@ def test_set_centers_as_list(tmp_path):
 def test_set_centers_as_comma_string(tmp_path):
     user_cfg = tmp_path / "config.toml"
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig()
         cfg.set("centers", "COD, ESA, GFZ")
 
@@ -208,7 +207,7 @@ def test_reset_removes_file(tmp_path):
     user_cfg = tmp_path / "config.toml"
     _write_toml(user_cfg, "max_connections = 8\n")
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig.load()
         assert user_cfg.exists()
         cfg.reset()
@@ -220,7 +219,7 @@ def test_reset_no_file_is_safe(tmp_path):
     """reset() should not raise if the config file doesn't exist."""
     user_cfg = tmp_path / "config.toml"
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig()
         cfg.reset()  # no file — should not raise
 
@@ -231,7 +230,7 @@ def test_reset_no_file_is_safe(tmp_path):
 def test_toml_roundtrip_all_fields(tmp_path):
     user_cfg = tmp_path / "config.toml"
 
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", user_cfg):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig(
             base_dir=str(tmp_path / "data"),
             centers=["COD", "GFZ"],

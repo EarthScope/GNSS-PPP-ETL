@@ -10,9 +10,8 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
+from gnss_ppp_etl_cli.app import app  # triggers subcommand assembly
 from typer.testing import CliRunner
-
-from gnss_ppp_etl.cli.app import app  # triggers subcommand assembly
 
 runner = CliRunner()
 
@@ -50,7 +49,7 @@ def _patch_client(results):
     query.sources.return_value = query
     query.search.return_value = results
     mock_client.query.return_value = query
-    return patch("gnss_ppp_etl.cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client)
+    return patch("gnss_ppp_etl_cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client)
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
@@ -60,7 +59,7 @@ def test_search_unknown_product_exits_nonzero(tmp_path):
     """A product that returns no results should exit with code 1."""
     cfg_file = tmp_path / "config.toml"
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
         _patch_client([]),
     ):
         result = runner.invoke(app, ["search", "NOTAPRODUCT", "--date", "2025-01-15"])
@@ -77,7 +76,7 @@ def test_search_renders_table_columns(tmp_path):
     ]
 
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
         _patch_client(resources),
     ):
         result = runner.invoke(app, ["search", "ORBIT", "--date", "2025-01-15"])
@@ -95,7 +94,7 @@ def test_search_local_marker(tmp_path):
     resources = [_make_resource(is_local=True)]
 
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
         _patch_client(resources),
     ):
         result = runner.invoke(app, ["search", "ORBIT", "--date", "2025-01-15"])
@@ -111,7 +110,7 @@ def test_search_json_output(tmp_path):
     resources = [_make_resource()]
 
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
         _patch_client(resources),
     ):
         result = runner.invoke(
@@ -135,7 +134,7 @@ def test_search_json_contains_all_fields(tmp_path):
     resources = [_make_resource()]
 
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
         _patch_client(resources),
     ):
         runner.invoke(app, ["search", "ORBIT", "--date", "2025-01-15", "--json", str(json_out)])
@@ -158,8 +157,8 @@ def test_search_where_filter_passed_to_query(tmp_path):
     mock_client.query.return_value = query
 
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
-        patch("gnss_ppp_etl.cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client),
     ):
         result = runner.invoke(
             app, ["search", "ORBIT", "--date", "2025-01-15", "--where", "TTT=FIN"]
@@ -182,8 +181,8 @@ def test_search_sources_filter_passed_to_query(tmp_path):
     mock_client.query.return_value = query
 
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
-        patch("gnss_ppp_etl.cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client),
     ):
         result = runner.invoke(
             app, ["search", "ORBIT", "--date", "2025-01-15", "--sources", "COD", "--sources", "ESA"]
@@ -196,7 +195,7 @@ def test_search_sources_filter_passed_to_query(tmp_path):
 def test_search_invalid_date_exits_nonzero(tmp_path):
     """A malformed --date should exit with code 1."""
     cfg_file = tmp_path / "config.toml"
-    with patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file):
+    with patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file):
         result = runner.invoke(app, ["search", "ORBIT", "--date", "not-a-date"])
     assert result.exit_code != 0
 
@@ -205,7 +204,7 @@ def test_search_invalid_where_exits_nonzero(tmp_path):
     """A --where value without '=' should exit with code 1."""
     cfg_file = tmp_path / "config.toml"
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
         _patch_client([]),
     ):
         result = runner.invoke(
@@ -227,8 +226,8 @@ def test_search_date_range_uses_on_range(tmp_path):
     mock_client.query.return_value = query
 
     with (
-        patch("gnss_ppp_etl.config._USER_CONFIG_PATH", cfg_file),
-        patch("gnss_ppp_etl.cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client),
+        patch("gnss_ppp_etl_cli.config._USER_CONFIG_PATH", cfg_file),
+        patch("gnss_ppp_etl_cli.cmd_search.GNSSClient.from_defaults", return_value=mock_client),
     ):
         result = runner.invoke(
             app, ["search", "ORBIT", "--date", "2025-01-15", "--to", "2025-01-17"]

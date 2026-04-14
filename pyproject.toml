@@ -1,24 +1,10 @@
-[project]
-name = "gnss-ppp-etl"
-version = "0.1.0"
-requires-python = ">=3.10,<3.15"
-dependencies = [
-    "cloudpathlib>=0.23.0",
-    "gnss-product-management>=0.1.0",
-    "pride-ppp>=0.1.0",
-    "pytest>=9.0.2",
-    "pydantic>=2.0",
-    "pyyaml>=6.0",
-]
+[tool.uv.workspace]
+members = ["packages/*"]
 
 [tool.uv.sources]
 gnss-management-specs = { workspace = true }
 gnss-product-management = { workspace = true }
 pride-ppp = { workspace = true }
-
-
-[tool.uv.workspace]
-members = ["packages/*"]
 
 [dependency-groups]
 dev = [
@@ -37,7 +23,7 @@ docs = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["test"]
+testpaths = ["packages/gnss-ppp-etl-cli/test"]
 addopts = "-v"
 markers = [
     "integration: tests that hit live servers (deselect with -m 'not integration')",
@@ -50,10 +36,3 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
 ignore = ["E501"]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/gnss_ppp_etl"]

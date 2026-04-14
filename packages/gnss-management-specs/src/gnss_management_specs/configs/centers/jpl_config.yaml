@@ -61,6 +61,7 @@ products:
     directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
   # ── Biases ──────────────────────────────────────────────────────
+  # JPL does not publish OSB/BIA products in the IGS long-filename format.
   - id: jpl_bias
     product_name: BIA
     server_id: jpl_sideshow
@@ -74,15 +75,15 @@ products:
     directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
   # ── Ionosphere (GIM) ───────────────────────────────────────────
-  # JPL is one of the primary IGS IONEX producers (jplg series).
-  # The combined IGS GIM weights JPL products heavily.
+  # JPL publishes IONEX in the legacy 8-char format (jplg series) only.
+  # The IGS long-filename IONEX format is not used by JPL.
   - id: jpl_gim
     product_name: IONEX
     server_id: jpl_sideshow
     available: true
     description: >
-      JPL Global Ionosphere Maps — jplg VTEC series. One of the primary
-      inputs to the IGS combined GIM (IGSG).
+      JPL Global Ionosphere Maps — jplg VTEC series. Published in legacy
+      8-character filename format only; not available in IGS long-filename format.
     parameters:
       - {name: AAA, value: JPL}
       - {name: TTT, value: FIN}
@@ -90,6 +91,19 @@ products:
       - {name: PPP, value: OPS}
       - {name: SMP, value: 01H}
       - {name: SMP, value: 02H}
+    directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
+
+  # ── Troposphere SINEX ──────────────────────────────────────────
+  - id: jpl_trop
+    product_name: TROP
+    server_id: jpl_sideshow
+    available: true
+    description: JPL troposphere SINEX (zenith total delay) — 30-second sampling
+    parameters:
+      - {name: AAA, value: JPL}
+      - {name: TTT, value: FIN}
+      - {name: PPP, value: OPS}
+      - {name: SMP, value: 30S}
     directory: {pattern: "pub/jpligsac/{GPSWEEK}/"}
 
   # ── SINEX weekly solutions ──────────────────────────────────────

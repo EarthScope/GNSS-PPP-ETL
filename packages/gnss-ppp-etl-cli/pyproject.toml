@@ -3,7 +3,8 @@ name = "gnss-ppp-etl-cli"
 version = "0.1.0"
 requires-python = ">=3.10,<3.15"
 dependencies = [
-    "gnss-ppp-etl>=0.1.0",
+    "gnss-product-management>=0.1.0",
+    "pride-ppp>=0.1.0",
     "typer>=0.12",
     "rich>=13.0",
 ]
@@ -12,7 +13,8 @@ dependencies = [
 gnss = "gnss_ppp_etl_cli.app:main"
 
 [tool.uv.sources]
-gnss-ppp-etl = { workspace = true }
+gnss-product-management = { workspace = true }
+pride-ppp = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

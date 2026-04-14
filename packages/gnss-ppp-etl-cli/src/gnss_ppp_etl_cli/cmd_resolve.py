@@ -27,8 +27,8 @@ from gnss_product_management import GNSSClient
 from gnss_product_management.specifications.dependencies.dependencies import DependencySpec
 from rich.table import Table
 
-from gnss_ppp_etl.config import ConfigLoader
 from gnss_ppp_etl_cli import SIMPLE_HEAD, console, progress, summary
+from gnss_ppp_etl_cli.config import ConfigLoader
 
 # Map short names → YAML paths (loaded lazily to avoid import at startup)
 _SPEC_NAMES: dict[str, str] = {
