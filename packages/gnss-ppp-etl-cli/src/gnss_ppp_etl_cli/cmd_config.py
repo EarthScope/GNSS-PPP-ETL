@@ -35,6 +35,8 @@ YAML schema example::
 
 from __future__ import annotations
 
+import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -202,8 +204,6 @@ def config_show() -> None:
     t.add_row("  tides", cli.tides, _src("processor"))
     console.print(t)
 
-    import os
-
     console.print(f"\n[dim]User config:  {USER_CONFIG_PATH}[/dim]")
     console.print(f"[dim]Override env: {ENV_VAR}={os.environ.get(ENV_VAR, '(not set)')}[/dim]\n")
 
@@ -327,7 +327,6 @@ def config_validate(
     GNSSClient required, so this works even before base-dir is configured.
     Pass --no-connectivity to skip the live server checks.
     """
-    import json
 
     cfg = ConfigLoader.load()
     t0 = time.monotonic()

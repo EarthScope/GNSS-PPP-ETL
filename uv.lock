@@ -836,7 +836,6 @@ version = "0.1.0"
 source = { editable = "packages/gnss-ppp-etl-cli" }
 dependencies = [
     { name = "gnss-product-management" },
-    { name = "pride-ppp" },
     { name = "rich" },
     { name = "typer" },
 ]
@@ -844,7 +843,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "gnss-product-management", editable = "packages/gnss-product-management" },
-    { name = "pride-ppp", editable = "packages/pride-ppp" },
     { name = "rich", specifier = ">=13.0" },
     { name = "typer", specifier = ">=0.12" },
 ]
