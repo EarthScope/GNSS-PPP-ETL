@@ -10,27 +10,19 @@ Subcommands
 
 Config file
 -----------
-All settings are stored in YAML at::
+All settings are stored in TOML at::
 
-    ~/.config/gnss-ppp-etl/config.yaml
+    ~/.config/gnss-ppp-etl/config.toml
 
-A project-local override can live in ``gnss-ppp-etl.yaml`` (any ancestor
-directory).  Set ``GNSS_CONFIG=/path/to/file.yaml`` for a one-shot override.
+A project-local override can live in ``gnss-ppp-etl.toml`` (the project
+directory).  Set ``GNSS_CONFIG=/path/to/file.toml`` for a one-shot override.
 
-YAML schema example::
+TOML schema example::
 
-    log_level: WARNING
-    client:
-      base_dir: ~/gnss_data
-      max_connections: 4
-      centers: [COD, ESA, GFZ]
-    processor:
-      pride_dir: ~/gnss_data/pride
-      output_dir: ~/gnss_data/output
-      default_mode: default
-      cli:
-        system: GREC23J
-        cutoff_elevation: 7
+    log_level = "WARNING"
+    base_dir = "~/gnss_data"
+    max_connections = 4
+    centers = ["COD", "ESA", "GFZ"]
 """
 
 from __future__ import annotations
@@ -52,19 +44,11 @@ from rich.table import Table
 from gnss_ppp_etl_cli import SIMPLE_HEAD, console, progress, summary
 from gnss_ppp_etl_cli.config import ENV_VAR, USER_CONFIG_PATH, ConfigLoader
 
-# ── flat-key → YAML-path mapping (for `gnss config set`) ─────────────────────
+# ── flat-key → TOML-path mapping (for `gnss config set`) ────────────────────
 _FLAT_KEY_MAP: dict[str, tuple[str, ...]] = {
-    "base-dir": ("client", "base_dir"),
-    "max-connections": ("client", "max_connections"),
-    "centers": ("client", "centers"),
-    "pride-dir": ("processor", "pride_dir"),
-    "output-dir": ("processor", "output_dir"),
-    "default-mode": ("processor", "default_mode"),
-    "system": ("processor", "cli", "system"),
-    "cutoff-elevation": ("processor", "cli", "cutoff_elevation"),
-    "loose-edit": ("processor", "cli", "loose_edit"),
-    "sample-frequency": ("processor", "cli", "sample_frequency"),
-    "tides": ("processor", "cli", "tides"),
+    "base-dir": ("base_dir",),
+    "max-connections": ("max_connections",),
+    "centers": ("centers",),
     "log-level": ("log_level",),
 }
 
@@ -111,33 +95,20 @@ def config_init() -> None:
         "  Local product directory  (client.base_dir)",
         default=str(cfg.client.base_dir or Path.home() / "gnss_data"),
     )
-    pride_dir = Prompt.ask(
-        "  PRIDE working directory  (processor.pride_dir)",
-        default=str(cfg.processor.pride_dir or Path.home() / "gnss_data" / "pride"),
-    )
-    output_dir = Prompt.ask(
-        "  PPP output directory     (processor.output_dir)",
-        default=str(cfg.processor.output_dir or Path.home() / "gnss_data" / "output"),
-    )
+
     centers_str = Prompt.ask(
-        "  Preferred centers — comma-separated, blank = all  (client.centers)",
+        "  Preferred centers — comma-separated, blank = all",
         default=",".join(cfg.client.centers) if cfg.client.centers else "",
     )
     conn_str = Prompt.ask(
-        "  Max connections per host  (client.max_connections)",
+        "  Max connections per host",
         default=str(cfg.client.max_connections),
     )
 
     updates: dict = {
-        "client": {
-            "base_dir": str(Path(base_dir).expanduser()),
-            "max_connections": int(conn_str) if conn_str.isdigit() else cfg.client.max_connections,
-            "centers": [c.strip().upper() for c in centers_str.split(",") if c.strip()],
-        },
-        "processor": {
-            "pride_dir": str(Path(pride_dir).expanduser()),
-            "output_dir": str(Path(output_dir).expanduser()),
-        },
+        "base_dir": str(Path(base_dir).expanduser()),
+        "max_connections": int(conn_str) if conn_str.isdigit() else cfg.client.max_connections,
+        "centers": [c.strip().upper() for c in centers_str.split(",") if c.strip()],
     }
     ConfigLoader.update_user_config(updates)
     console.print(f"\n[green]✓ Config saved to {USER_CONFIG_PATH}[/green]\n")
@@ -177,33 +148,6 @@ def config_show() -> None:
     )
     console.print(t)
 
-    # Processor
-    console.print("\n[bold]processor:[/bold]")
-    t = _make_table()
-    t.add_row(
-        "  pride-dir",
-        str(cfg.processor.pride_dir) if cfg.processor.pride_dir else "[dim]—[/dim]",
-        _src("processor"),
-    )
-    t.add_row(
-        "  output-dir",
-        str(cfg.processor.output_dir) if cfg.processor.output_dir else "[dim]—[/dim]",
-        _src("processor"),
-    )
-    t.add_row("  default-mode", cfg.processor.default_mode, _src("processor"))
-    console.print(t)
-
-    # Processor / CLI
-    console.print("\n[bold]processor.cli:[/bold]")
-    cli = cfg.processor.cli
-    t = _make_table()
-    t.add_row("  system", cli.system, _src("processor"))
-    t.add_row("  cutoff-elevation", str(cli.cutoff_elevation), _src("processor"))
-    t.add_row("  loose-edit", str(cli.loose_edit), _src("processor"))
-    t.add_row("  sample-frequency", str(cli.sample_frequency), _src("processor"))
-    t.add_row("  tides", cli.tides, _src("processor"))
-    console.print(t)
-
     console.print(f"\n[dim]User config:  {USER_CONFIG_PATH}[/dim]")
     console.print(f"[dim]Override env: {ENV_VAR}={os.environ.get(ENV_VAR, '(not set)')}[/dim]\n")
 
@@ -216,11 +160,7 @@ def config_set(
     key: Annotated[
         str,
         typer.Argument(
-            help=(
-                "Config key.  Flat names: base-dir, centers, max-connections, "
-                "pride-dir, output-dir, default-mode, log-level, system, "
-                "cutoff-elevation, loose-edit, sample-frequency, tides."
-            ),
+            help="Config key. Valid keys: base-dir, centers, max-connections, log-level.",
         ),
     ],
     values: Annotated[list[str], typer.Argument(help="Value(s) to set.")],
@@ -232,9 +172,7 @@ def config_set(
       gnss config set base-dir ~/gnss_data
       gnss config set centers COD ESA GFZ
       gnss config set max-connections 6
-      gnss config set default-mode final
-      gnss config set cutoff-elevation 10
-      gnss config set system GREC23J
+      gnss config set log-level DEBUG
     """
     norm_key = key.lower().replace("_", "-")
     path_tuple = _FLAT_KEY_MAP.get(norm_key)
@@ -253,25 +191,6 @@ def config_set(
             console.print("[red]max-connections requires a single integer value.[/red]")
             raise typer.Exit(1)
         coerced = int(values[0])
-    elif yaml_key == "cutoff_elevation":
-        if len(values) != 1 or not values[0].isdigit():
-            console.print("[red]cutoff-elevation requires a single integer.[/red]")
-            raise typer.Exit(1)
-        coerced = int(values[0])
-    elif yaml_key == "loose_edit":
-        if len(values) != 1 or values[0].lower() not in ("true", "false", "1", "0"):
-            console.print("[red]loose-edit requires true or false.[/red]")
-            raise typer.Exit(1)
-        coerced = values[0].lower() in ("true", "1")
-    elif yaml_key == "sample_frequency":
-        if len(values) != 1:
-            console.print("[red]sample-frequency requires a single numeric value.[/red]")
-            raise typer.Exit(1)
-        try:
-            coerced = float(values[0])
-        except ValueError:
-            console.print(f"[red]'{values[0]}' is not a valid number.[/red]")
-            raise typer.Exit(1)
     else:
         if len(values) != 1:
             console.print(f"[red]{key!r} takes exactly one value.[/red]")
@@ -333,9 +252,7 @@ def config_validate(
 
     # ── 1. Check configured paths exist ──────────────────────────────────────
     dir_checks: list[tuple[str, Path | None]] = [
-        ("client.base_dir", cfg.client.base_dir),
-        ("processor.pride_dir", cfg.processor.pride_dir),
-        ("processor.output_dir", cfg.processor.output_dir),
+        ("base_dir", cfg.base_dir),
     ]
     console.print()
     console.rule("[bold]Directory checks[/bold]")

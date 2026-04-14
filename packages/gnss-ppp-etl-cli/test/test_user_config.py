@@ -25,9 +25,6 @@ def test_default_values():
     assert cfg.centers == []
     assert cfg.max_connections == 4
     assert cfg.log_level == "WARNING"
-    assert cfg.pride_dir is None
-    assert cfg.output_dir is None
-    assert cfg.default_mode == "default"
 
 
 def test_default_sources_empty():
@@ -120,23 +117,11 @@ def test_to_client_kwargs_no_base_dir():
 
 
 def test_to_processor_kwargs():
-    cfg = UserConfig(
-        pride_dir="/data/pride",
-        output_dir="/data/output",
-        default_mode="final",
-    )
-    kwargs = cfg.to_processor_kwargs()
-    assert kwargs["pride_dir"] == Path("/data/pride")
-    assert kwargs["output_dir"] == Path("/data/output")
-    assert kwargs["mode"] == "final"
+    pass  # processor/pride functionality removed
 
 
 def test_to_processor_kwargs_minimal():
-    cfg = UserConfig()
-    kwargs = cfg.to_processor_kwargs()
-    assert kwargs["mode"] == "default"
-    assert "pride_dir" not in kwargs
-    assert "output_dir" not in kwargs
+    pass  # processor/pride functionality removed
 
 
 # ── Persistence ───────────────────────────────────────────────────────────────
@@ -236,9 +221,6 @@ def test_toml_roundtrip_all_fields(tmp_path):
             centers=["COD", "GFZ"],
             max_connections=10,
             log_level="DEBUG",
-            pride_dir=str(tmp_path / "pride"),
-            output_dir=str(tmp_path / "output"),
-            default_mode="final",
         )
         cfg.save()
         reloaded = UserConfig.load()
@@ -246,4 +228,3 @@ def test_toml_roundtrip_all_fields(tmp_path):
     assert reloaded.max_connections == 10
     assert reloaded.log_level == "DEBUG"
     assert reloaded.centers == ["COD", "GFZ"]
-    assert reloaded.default_mode == "final"

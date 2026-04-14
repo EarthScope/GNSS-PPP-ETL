@@ -40,12 +40,9 @@ def test_show_contains_all_keys(tmp_path):
         result = runner.invoke(app, ["config", "show"])
     for key in (
         "base-dir",
-        "pride-dir",
-        "output-dir",
         "centers",
         "max-connections",
         "log-level",
-        "default-mode",
     ):
         assert key in result.output, f"Expected key {key!r} in show output"
 

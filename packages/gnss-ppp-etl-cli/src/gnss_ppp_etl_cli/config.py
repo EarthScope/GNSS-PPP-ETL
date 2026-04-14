@@ -18,7 +18,6 @@ Usage::
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -39,15 +38,6 @@ USER_CONFIG_PATH: Path = _USER_CONFIG_PATH
 
 
 # ── Sub-section view helpers ──────────────────────────────────────────────────
-
-
-@dataclass
-class CliOptions:
-    system: str = "GREC"
-    cutoff_elevation: int = 7
-    loose_edit: bool = False
-    sample_frequency: float = 30.0
-    tides: str = "r"
 
 
 class _ClientView:
@@ -71,40 +61,11 @@ class _ClientView:
         return self._cfg.max_connections
 
 
-class _ProcessorView:
-    """Read-only view of processor-related config fields."""
-
-    __slots__ = ("_cfg",)
-
-    def __init__(self, cfg: UserConfig) -> None:
-        self._cfg = cfg
-
-    @property
-    def pride_dir(self) -> Path | None:
-        return self._cfg.pride_dir
-
-    @property
-    def output_dir(self) -> Path | None:
-        return self._cfg.output_dir
-
-    @property
-    def default_mode(self) -> str:
-        return self._cfg.default_mode
-
-    @property
-    def cli(self) -> CliOptions:
-        return self._cfg._cli_options
-
-
 # ── Main config class ─────────────────────────────────────────────────────────
 
 
 class UserConfig:
-    """Resolved configuration for gnss-ppp-etl.
-
-    Flat fields are authoritative; ``.client`` and ``.processor`` are
-    read-only views provided for CLI command ergonomics.
-    """
+    """Resolved configuration for gnss-ppp-etl."""
 
     def __init__(
         self,
@@ -112,29 +73,16 @@ class UserConfig:
         centers: list[str] | None = None,
         max_connections: int = 4,
         log_level: str = "WARNING",
-        pride_dir: str | Path | None = None,
-        output_dir: str | Path | None = None,
-        default_mode: str = "default",
     ) -> None:
         self.base_dir: Path | None = Path(base_dir).expanduser() if base_dir else None
         self.centers: list[str] = list(centers) if centers else []
         self.max_connections: int = int(max_connections)
         self.log_level: str = log_level
-        self.pride_dir: Path | None = Path(pride_dir).expanduser() if pride_dir else None
-        self.output_dir: Path | None = Path(output_dir).expanduser() if output_dir else None
-        self.default_mode: str = default_mode
-        self._cli_options: CliOptions = CliOptions()
         self._sources: dict[str, str] = {}
-
-    # ── Nested views ─────────────────────────────────────────────────────────
 
     @property
     def client(self) -> _ClientView:
         return _ClientView(self)
-
-    @property
-    def processor(self) -> _ProcessorView:
-        return _ProcessorView(self)
 
     # ── kwarg factories ───────────────────────────────────────────────────────
 
@@ -143,15 +91,6 @@ class UserConfig:
         kwargs: dict[str, Any] = {"max_connections": self.max_connections}
         if self.base_dir is not None:
             kwargs["base_dir"] = self.base_dir
-        return kwargs
-
-    def to_processor_kwargs(self) -> dict[str, Any]:
-        """Return kwargs for ``PrideProcessor()``."""
-        kwargs: dict[str, Any] = {"mode": self.default_mode}
-        if self.pride_dir is not None:
-            kwargs["pride_dir"] = self.pride_dir
-        if self.output_dir is not None:
-            kwargs["output_dir"] = self.output_dir
         return kwargs
 
     # ── Class-method constructors ─────────────────────────────────────────────
@@ -204,25 +143,11 @@ class UserConfig:
             data["centers"] = self.centers
         if self.max_connections != 4:
             data["max_connections"] = self.max_connections
-        if self.pride_dir is not None:
-            data["pride_dir"] = str(self.pride_dir)
-        if self.output_dir is not None:
-            data["output_dir"] = str(self.output_dir)
-        if self.default_mode != "default":
-            data["default_mode"] = self.default_mode
         _write_toml(_USER_CONFIG_PATH, data)
 
     def set(self, key: str, value: Any) -> None:
         """Set a single key and persist to the user config file."""
-        _SETTABLE = {
-            "base_dir",
-            "centers",
-            "max_connections",
-            "log_level",
-            "pride_dir",
-            "output_dir",
-            "default_mode",
-        }
+        _SETTABLE = {"base_dir", "centers", "max_connections", "log_level"}
         if key not in _SETTABLE:
             raise KeyError(f"Unknown config key: {key!r}")
 
@@ -233,7 +158,7 @@ class UserConfig:
                 value = list(value)
         elif key == "max_connections":
             value = int(value)
-        elif key in ("base_dir", "pride_dir", "output_dir"):
+        elif key == "base_dir":
             value = Path(value).expanduser() if value else None
 
         setattr(self, key, value)
@@ -313,10 +238,7 @@ def _write_toml(path: Path, data: dict[str, Any]) -> None:
 
 def _apply_flat(cfg: UserConfig, data: dict[str, Any], source: str) -> None:
     """Apply a flat or nested TOML dict to *cfg*, recording the source."""
-    # Support both flat keys (test/user config) and nested sections (CLI YAML style)
     client = data.get("client", {})
-    processor = data.get("processor", {})
-    cli = processor.get("cli", {}) if isinstance(processor, dict) else {}
 
     def _set(attr: str, val: Any, src_key: str) -> None:
         setattr(cfg, attr, val)
@@ -343,34 +265,6 @@ def _apply_flat(cfg: UserConfig, data: dict[str, Any], source: str) -> None:
     )
     if raw is not None:
         _set("max_connections", int(raw), "max_connections")
-
-    # pride_dir
-    raw = data.get("pride_dir") or processor.get("pride_dir")
-    if raw is not None:
-        _set("pride_dir", Path(raw).expanduser(), "pride_dir")
-
-    # output_dir
-    raw = data.get("output_dir") or processor.get("output_dir")
-    if raw is not None:
-        _set("output_dir", Path(raw).expanduser(), "output_dir")
-
-    # default_mode
-    raw = data.get("default_mode") or processor.get("default_mode")
-    if raw is not None:
-        _set("default_mode", raw, "default_mode")
-
-    # CLI sub-options
-    if cli:
-        if "system" in cli:
-            cfg._cli_options.system = cli["system"]
-        if "cutoff_elevation" in cli:
-            cfg._cli_options.cutoff_elevation = int(cli["cutoff_elevation"])
-        if "loose_edit" in cli:
-            cfg._cli_options.loose_edit = bool(cli["loose_edit"])
-        if "sample_frequency" in cli:
-            cfg._cli_options.sample_frequency = float(cli["sample_frequency"])
-        if "tides" in cli:
-            cfg._cli_options.tides = cli["tides"]
 
 
 def _apply_env(cfg: UserConfig) -> None:
