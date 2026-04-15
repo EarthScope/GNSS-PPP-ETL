@@ -351,10 +351,11 @@ class ProductQuery:
                     / filename
                 )
             else:
-                proto = (rq.server.protocol or "ftp").lower()
-                uri = (
-                    f"{proto}://{hostname}/{rq.directory.value or rq.directory.pattern}/{filename}"  # type: ignore[union-attr]
-                )
+                # hostname is stored as a full URL base (e.g. "ftp://ftp.aiub.unibe.ch")
+                # so join directly without prepending the protocol again.
+                base = hostname.rstrip("/")
+                directory = (rq.directory.value or rq.directory.pattern).strip("/")  # type: ignore[union-attr]
+                uri = f"{base}/{directory}/{filename}"
             r = FoundResource(
                 product=rq.product.name,
                 source="local" if is_local else "remote",
