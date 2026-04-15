@@ -1,4 +1,4 @@
-GNSS-PPP-ETL
+GNSSommelier
 ============
 
 A Python monorepo for GNSS Precise Point Positioning (PPP) product management and processing.

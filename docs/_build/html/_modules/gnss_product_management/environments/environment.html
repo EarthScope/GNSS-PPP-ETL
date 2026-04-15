@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>gnss_product_management.environments.environment &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+  <title>gnss_product_management.environments.environment &mdash; GNSSommelier 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
@@ -29,7 +29,7 @@
 
 
           <a href="../../../index.html" class="icon icon-home">
-            GNSS-PPP-ETL
+            GNSSommelier
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -61,7 +61,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">GNSS-PPP-ETL</a>
+          <a href="../../../index.html">GNSSommelier</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -80,9 +80,7 @@
            <div itemprop="articleBody">
 
   <h1>Source code for gnss_product_management.environments.environment</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
-
-<span class="sd">ProductRegistry — builds the full catalog chain and manages remote resources.</span>
+<span></span><span class="sd">&quot;&quot;&quot;ProductRegistry — builds the full catalog chain and manages remote resources.</span>
 
 <span class="sd">Loads parameter, format, product, and resource specification YAMLs, then</span>
 <span class="sd">builds derived catalogs (``ParameterCatalog`` → ``FormatCatalog`` →</span>
@@ -95,6 +93,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">NamedTuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.format.format_spec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">FormatCatalog</span><span class="p">,</span>
@@ -117,7 +117,6 @@
     <span class="n">ResourceCatalog</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.metadata_funcs</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_computed_fields</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_MatchEntry</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>

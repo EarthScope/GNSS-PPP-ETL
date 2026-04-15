@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>gnss_product_management.specifications.format.spec &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+  <title>gnss_product_management.specifications.format.spec &mdash; GNSSommelier 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=9edc463e" />
 
@@ -29,7 +29,7 @@
 
 
           <a href="../../../../index.html" class="icon icon-home">
-            GNSS-PPP-ETL
+            GNSSommelier
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
@@ -61,7 +61,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">GNSS-PPP-ETL</a>
+          <a href="../../../../index.html">GNSSommelier</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -80,9 +80,7 @@
            <div itemprop="articleBody">
 
   <h1>Source code for gnss_product_management.specifications.format.spec</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
-
-<span class="sd">Raw Pydantic models and registry for format specifications.</span>
+<span></span><span class="sd">&quot;&quot;&quot;Raw Pydantic models and registry for format specifications.</span>
 
 <span class="sd">Two distinct types live here:</span>
 
@@ -107,8 +105,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.parameters.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterCatalog</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_validator</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.parameters.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterCatalog</span>
 
 
 <div class="viewcode-block" id="FormatFieldDef">

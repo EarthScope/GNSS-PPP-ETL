@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pride_ppp.factories.processor &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+  <title>pride_ppp.factories.processor &mdash; GNSSommelier 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
@@ -29,7 +29,7 @@
 
 
           <a href="../../../index.html" class="icon icon-home">
-            GNSS-PPP-ETL
+            GNSSommelier
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -61,7 +61,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">GNSS-PPP-ETL</a>
+          <a href="../../../index.html">GNSSommelier</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -104,13 +104,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">gnss_management_specs.configs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CENTERS_RESOURCE_DIR</span><span class="p">,</span>
-    <span class="n">FORMAT_SPEC_YAML</span><span class="p">,</span>
-    <span class="n">LOCAL_SPEC_DIR</span><span class="p">,</span>
-    <span class="n">META_SPEC_YAML</span><span class="p">,</span>
-    <span class="n">PRODUCT_SPEC_YAML</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">GNSSClient</span><span class="p">,</span>
     <span class="n">WorkSpace</span><span class="p">,</span>
@@ -119,6 +112,13 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.dependencies.dependencies</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">DependencyResolution</span><span class="p">,</span>
     <span class="n">DependencySpec</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gpm_specs.configs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CENTERS_RESOURCE_DIR</span><span class="p">,</span>
+    <span class="n">FORMAT_SPEC_YAML</span><span class="p">,</span>
+    <span class="n">LOCAL_SPEC_DIR</span><span class="p">,</span>
+    <span class="n">META_SPEC_YAML</span><span class="p">,</span>
+    <span class="n">PRODUCT_SPEC_YAML</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..defaults</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
