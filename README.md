@@ -159,7 +159,7 @@ uv sync --all-packages
 uv tool install packages/gpm-cli
 
 # Search for final orbit products from COD and ESA
-gnssommelier search --product ORBIT --date 2025-01-02 --centers COD,ESA --solution FIN
+gnssommelier search ORBIT --date 2025-01-02 --sources COD --sources ESA --where TTT=FIN
 
 # Show / edit configuration
 gnssommelier config show
