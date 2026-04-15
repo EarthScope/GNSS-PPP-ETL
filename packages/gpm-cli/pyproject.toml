@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-gnss = "gpm_cli.app:main"
+gnssommelier = "gpm_cli.app:main"
 
 [tool.uv.sources]
 gnss-product-management = { workspace = true }

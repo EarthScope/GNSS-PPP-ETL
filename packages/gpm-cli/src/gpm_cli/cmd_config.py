@@ -1,4 +1,4 @@
-"""gnss config — manage persistent user configuration.
+"""gnssommelier config — manage persistent user configuration.
 
 Subcommands
 -----------
@@ -87,7 +87,7 @@ config_app = typer.Typer(
 @config_app.command("init")
 def config_init() -> None:
     """Interactive first-run setup wizard."""
-    console.print("\n[bold cyan]gnss config init[/bold cyan] — one-time setup\n")
+    console.print("\n[bold cyan]gnssommelier config init[/bold cyan] — one-time setup\n")
 
     cfg = ConfigLoader.load()
 
@@ -169,10 +169,10 @@ def config_set(
 
     Examples::
 
-      gnss config set base-dir ~/gnss_data
-      gnss config set centers COD ESA GFZ
-      gnss config set max-connections 6
-      gnss config set log-level DEBUG
+      gnssommelier config set base-dir ~/gnss_data
+      gnssommelier config set centers COD ESA GFZ
+      gnssommelier config set max-connections 6
+      gnssommelier config set log-level DEBUG
     """
     norm_key = key.lower().replace("_", "-")
     path_tuple = _FLAT_KEY_MAP.get(norm_key)

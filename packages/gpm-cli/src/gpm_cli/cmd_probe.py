@@ -1,16 +1,16 @@
-"""gnss probe — check server connectivity or product availability.
+"""gnssommelier probe — check server connectivity or product availability.
 
 Usage
 -----
   # Connectivity mode (no --date, no --product)
-  gnss probe
-  gnss probe --center WUM --center COD
+  gnssommelier probe
+  gnssommelier probe --center WUM --center COD
 
   # Product search mode (--date and/or --product provided)
-  gnss probe --date 2025-01-15
-  gnss probe --date 2025-01-15 --product ORBIT --product CLOCK
-  gnss probe --date 2025-01-15 --center GFZ --workers 4
-  gnss probe --date 2025-01-15 --json results.json
+  gnssommelier probe --date 2025-01-15
+  gnssommelier probe --date 2025-01-15 --product ORBIT --product CLOCK
+  gnssommelier probe --date 2025-01-15 --center GFZ --workers 4
+  gnssommelier probe --date 2025-01-15 --json results.json
 
 Exit code: 0 if all checks pass, 1 if any fail.
 

@@ -155,14 +155,14 @@ uv sync --all-packages
 
 ```bash
 # Install the CLI tool
-uv tool install packages/gnss-ppp-etl-cli
+uv tool install packages/gpm-cli
 
 # Search for final orbit products from COD and ESA
-gnss search --product ORBIT --date 2025-01-02 --centers COD,ESA --solution FIN
+gnssommelier search --product ORBIT --date 2025-01-02 --centers COD,ESA --solution FIN
 
 # Show / edit configuration
-gnss config show
-gnss config set base-dir /data/gnss-products
+gnssommelier config show
+gnssommelier config set base-dir /data/gnss-products
 ```
 
 ### Search for products across all centers
@@ -258,7 +258,7 @@ GNSS-PPP-ETL/
 │   │   └── test/
 │   ├── gnss-ppp-etl-cli/                 # CLI tool
 │   │   └── src/gnss_ppp_etl_cli/
-│   │       ├── app.py                    # Entry point — `gnss` command
+│   │       ├── app.py                    # Entry point — `gnssommelier` command
 │   │       ├── cmd_config.py             # `gnss config` subcommands
 │   │       ├── cmd_download.py           # `gnss download` subcommand
 │   │       ├── cmd_probe.py              # `gnss probe` subcommand

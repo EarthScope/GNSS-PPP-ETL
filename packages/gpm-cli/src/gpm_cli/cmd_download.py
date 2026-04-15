@@ -1,12 +1,12 @@
-"""gnss download — download GNSS products to the configured base directory.
+"""gnssommelier download — download GNSS products to the configured base directory.
 
 Usage
 -----
-  gnss download ORBIT --date 2025-01-15
-  gnss download ORBIT CLOCK ERP --date 2025-01-15
-  gnss download ORBIT --date 2025-01-15 --sources COD ESA
-  gnss download ORBIT --date 2025-01-15 --dry-run
-  gnss download ORBIT --date 2025-01-15 --where TTT=FIN
+  gnssommelier download ORBIT --date 2025-01-15
+  gnssommelier download ORBIT CLOCK ERP --date 2025-01-15
+  gnssommelier download ORBIT --date 2025-01-15 --sources COD ESA
+  gnssommelier download ORBIT --date 2025-01-15 --dry-run
+  gnssommelier download ORBIT --date 2025-01-15 --where TTT=FIN
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ def download(
     if not cfg.client.base_dir and not dry_run:
         console.print(
             "[red]base-dir is not configured.[/red]  "
-            "Run [bold]gnss config set base-dir <path>[/bold] first, "
+            "Run [bold]gnssommelier config set base-dir <path>[/bold] first, "
             "or pass [bold]GNSS_BASE_DIR[/bold] via env."
         )
         raise typer.Exit(1)
