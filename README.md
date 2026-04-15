@@ -1,9 +1,11 @@
-# GNSS-PPP-ETL
+# GNSSommelier
+
+![GNSSommelier](docs/image.png)
 
 Automated retrieval and management of [IGS](https://igs.org/) analysis center
 products for Precise Point Positioning. Provides a Python library for
 product discovery, dependency resolution, and download across 18 configured
-IGS analysis centers, plus a command-line tool (`gnss`) for interactive
+IGS analysis centers, plus a command-line tool (`gnssommelier`) for interactive
 workflows.
 
 ## Contents
@@ -30,7 +32,7 @@ calibrations (ATX). These files are scattered across FTP/FTPS/HTTP servers
 maintained by different IGS analysis centers, each with its own directory
 layout, naming convention, and update cadence.
 
-**GNSS-PPP-ETL** eliminates the manual bookkeeping. Given a date and a
+**GNSSommelier** eliminates the manual bookkeeping. Given a date and a
 processing task definition, it resolves every required product across all
 registered centers, downloads and decompresses the files into a structured
 local workspace, and tracks what was fetched in reproducible lock files. For
@@ -45,12 +47,12 @@ containing four packages:
 
 | Package | Purpose |
 |---|---|
-| [`gnss-management-specs`](packages/gnss-management-specs/) | Pluggable YAML specification data for GNSS products, centers, formats, and storage layouts |
+| [`gpm-specs`](packages/gpm-specs/) | Pluggable YAML specification data for GNSS products, centers, formats, and storage layouts |
 | [`gnss-product-management`](packages/gnss-product-management/) | YAML-driven product discovery, query expansion, dependency resolution, and download from IGS analysis centers |
-| [`gnss-ppp-etl-cli`](packages/gnss-ppp-etl-cli/) | Command-line tool (`gnss`) for search, download, and configuration |
+| [`gpm-cli`](packages/gpm-cli/) | Command-line tool (`gnssommelier`) for search, download, and configuration |
 | [`pride-ppp`](packages/pride-ppp/) | Concurrent-safe PRIDE-PPPAR integration — RINEX in, kinematic positions out |
 
-### gnss-management-specs
+### gpm-specs
 
 A data-only package shipping the bundled YAML specifications that describe
 GNSS product catalogs, analysis center endpoints, file-naming formats,
@@ -63,15 +65,15 @@ as independent packages without modifying `gnss-product-management`.
 The core library. A five-layer architecture (Configuration → Specification →
 Catalog → Orchestration → Interface) keeps concerns separated so adding a new
 center or product type requires only a new YAML file. The `defaults` module
-wires the bundled `gnss-management-specs` into pre-built singletons
+wires the bundled `gpm-specs` into pre-built singletons
 (`DefaultProductEnvironment`, `DefaultWorkSpace`); users who need a different
 spec set can build their own `ProductEnvironment` via its `add_*` methods.
 
-### gnss-ppp-etl-cli
+###gpm-cli
 
-A `typer`-based CLI installed as the `gnss` entry point. Provides subcommands
+A `typer`-based CLI installed as the `gnssommelier` entry point. Provides subcommands
 for searching products across configured centers, downloading resolved
-dependencies, and managing the user config file (`~/.config/gnss-ppp-etl/config.toml`).
+dependencies, and managing the user config file (`~/.config/gnssommelier/config.toml`).
 
 ### pride-ppp
 
@@ -122,7 +124,6 @@ All 18 configured centers. See [docs/data-centers.md](docs/data-centers.md) for 
 | **COD** | [AIUB, Univ. of Bern](https://www.aiub.unibe.ch/research/gnss/) | `ftp.aiub.unibe.ch` | FTP |
 | **ESA** | [ESA/ESOC](https://navigation.esa.int/) | `gssc.esa.int` | FTP |
 | **EUREF** | [EUREF Permanent GNSS Network](https://epncb.oma.be/) | `epncb.oma.be` | HTTPS |
-| **GA** | [Geoscience Australia](https://www.ga.gov.au/scientific-topics/positioning-navigation/geodesy) | `ga-gnss-products-v1.s3.amazonaws.com` | HTTPS (S3) |
 | **GFZ** | [GFZ Potsdam](https://www.gfz-potsdam.de/) | `ftp.gfz-potsdam.de` | FTP |
 | **GRGS** | [CNES/CLS](https://igsac-cnes.cls.fr/) | `ftpsedr.cls.fr` | FTP |
 | **IGS** | [IGS combined products](https://igs.org/) | `igs.ign.fr` / `files.igs.org` | FTP / HTTPS |
@@ -146,8 +147,8 @@ All 18 configured centers. See [docs/data-centers.md](docs/data-centers.md) for 
 
 ```bash
 # Clone and install
-git clone https://github.com/EarthScope/GNSS-PPP-ETL.git
-cd GNSS-PPP-ETL
+git clone https://github.com/EarthScope/GNSSommelier.git
+cd GNSSommelier
 uv sync --all-packages
 ```
 
@@ -235,12 +236,12 @@ Runnable scripts in each package's `examples/` directory:
 ## Project structure
 
 ```
-GNSS-PPP-ETL/
+GNSSommelier/
 ├── pyproject.toml                        # Workspace root
 ├── docs/                                 # Architecture & reference docs
 ├── packages/
-│   ├── gnss-management-specs/            # Pluggable YAML specification data
-│   │   └── src/gnss_management_specs/
+│   ├── gpm-specs/            # Pluggable YAML specification data
+│   │   └── src/gpm_specs/
 │   │       └── configs/                  # YAML specs (centers, products, formats, etc.)
 │   │           ├── centers/              # Analysis center endpoint definitions (18 centers)
 │   │           ├── local/                # Local storage layout specs
@@ -249,15 +250,15 @@ GNSS-PPP-ETL/
 │   │           └── query/                # Query template specs
 │   ├── gnss-product-management/          # Product discovery & download
 │   │   ├── src/gnss_product_management/
-│   │   │   ├── defaults/           # Wires gnss-management-specs into singletons
+│   │   │   ├── defaults/           # Wires gpm-specs into singletons
 │   │   │   ├── environments/       # ProductRegistry, WorkSpace
 │   │   │   ├── factories/          # SearchPlanner, WormHole, ConnectionPoolFactory, pipelines
 │   │   │   ├── specifications/     # Pydantic models (Parameter, FormatSpec, ProductSpec)
 │   │   │   ├── lockfile/           # LockfileManager, DependencyLockFile, operations
 │   │   │   └── utilities/          # Date math, decompression, path helpers
 │   │   └── test/
-│   ├── gnss-ppp-etl-cli/                 # CLI tool
-│   │   └── src/gnss_ppp_etl_cli/
+│   ├──gpm-cli/                 # CLI tool
+│   │   └── src/gpm_cli/
 │   │       ├── app.py                    # Entry point — `gnssommelier` command
 │   │       ├── cmd_config.py             # `gnss config` subcommands
 │   │       ├── cmd_download.py           # `gnss download` subcommand

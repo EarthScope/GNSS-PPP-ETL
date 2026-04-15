@@ -1,10 +1,10 @@
-"""User configuration for gnss-ppp-etl.
+"""User configuration for gnssommelier.
 
 Config files use TOML format.  Resolution order (highest priority last):
 
   1. Compiled defaults
-  2. User config  (~/.config/gnss-ppp-etl/config.toml)
-  3. Project config (gnss-ppp-etl.toml in *project_dir*)
+  2. User config  (~/.config/gnssommelier/config.toml)
+  3. Project config (gnssommelier.toml in *project_dir*)
   4. Environment variables  (GNSS_*)
 
 Usage::
@@ -33,7 +33,7 @@ except ModuleNotFoundError:
 
 ENV_VAR = "GNSS_CONFIG"
 
-_USER_CONFIG_PATH: Path = Path.home() / ".config" / "gnss-ppp-etl" / "config.toml"
+_USER_CONFIG_PATH: Path = Path.home() / ".config" / "gnssommelier" / "config.toml"
 USER_CONFIG_PATH: Path = _USER_CONFIG_PATH
 
 
@@ -65,7 +65,7 @@ class _ClientView:
 
 
 class UserConfig:
-    """Resolved configuration for gnss-ppp-etl."""
+    """Resolved configuration for gnssommelier."""
 
     def __init__(
         self,
@@ -105,7 +105,7 @@ class UserConfig:
         """Load and resolve configuration from all sources.
 
         Args:
-            project_dir: Directory to search for ``gnss-ppp-etl.toml``.
+            project_dir: Directory to search for ``gnssommelier.toml``.
 
         Returns:
             Resolved :class:`UserConfig`.
@@ -120,7 +120,7 @@ class UserConfig:
 
         # 2. Project config
         if project_dir is not None:
-            project_file = Path(project_dir) / "gnss-ppp-etl.toml"
+            project_file = Path(project_dir) / "gnssommelier.toml"
             if project_file.exists():
                 data = _read_toml(project_file)
                 _apply_flat(cfg, data, source="project")

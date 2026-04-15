@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath("../packages/gnss-product-management/src"))
 sys.path.insert(0, os.path.abspath("../packages/pride-ppp/src"))
 sys.path.insert(0, os.path.abspath("../packages/gnss-management-specs/src"))
 
-project = "GNSS-PPP-ETL"
+project = "GNSSommelier"
 author = "EarthScope"
 release = "0.1.0"
 

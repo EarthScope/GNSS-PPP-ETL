@@ -55,7 +55,7 @@ def test_project_config_overrides_user(tmp_path):
 
     project_dir = tmp_path / "project"
     project_dir.mkdir()
-    _write_toml(project_dir / "gnss-ppp-etl.toml", "max_connections = 12\n")
+    _write_toml(project_dir / "gnssommelier.toml", "max_connections = 12\n")
 
     with patch("gpm_cli.config._USER_CONFIG_PATH", user_cfg):
         cfg = UserConfig.load(project_dir=project_dir)

@@ -12,9 +12,9 @@ Config file
 -----------
 All settings are stored in TOML at::
 
-    ~/.config/gnss-ppp-etl/config.toml
+    ~/.config/gnssommelier/config.toml
 
-A project-local override can live in ``gnss-ppp-etl.toml`` (the project
+A project-local override can live in ``gnssommelier.toml`` (the project
 directory).  Set ``GNSS_CONFIG=/path/to/file.toml`` for a one-shot override.
 
 TOML schema example::
@@ -76,7 +76,7 @@ def _make_table() -> Table:
 
 config_app = typer.Typer(
     name="config",
-    help="Read, write, and validate gnss-ppp-etl configuration.",
+    help="Read, write, and validate gnssommelier configuration.",
     no_args_is_help=True,
 )
 

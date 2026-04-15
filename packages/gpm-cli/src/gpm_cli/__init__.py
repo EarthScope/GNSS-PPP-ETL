@@ -50,7 +50,7 @@ SIMPLE_HEAD = box.SIMPLE_HEAD
 app = typer.Typer(
     name="gnssommelier",
     help=(
-        "GNSS-PPP-ETL command-line interface.\n\n"
+        "GNSSommelier command-line interface.\n\n"
         "Manage configuration, search for IGS products, download them, resolve "
         "dependency sets, and run PRIDE-PPP-AR processing — all from the shell."
     ),

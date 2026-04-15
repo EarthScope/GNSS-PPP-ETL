@@ -229,7 +229,7 @@ def _probe_https(server: CandidateServer, directory: str) -> list[str]:
         import urllib.request  # noqa: PLC0415
 
         url = server.hostname.rstrip("/") + "/" + directory.lstrip("/")
-        req = urllib.request.Request(url, headers={"User-Agent": "GNSS-PPP-ETL/probe"})
+        req = urllib.request.Request(url, headers={"User-Agent": "GNSSommelier/probe"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             print(f"  [OK  ] HTTP {resp.status} — {url}")
         return []

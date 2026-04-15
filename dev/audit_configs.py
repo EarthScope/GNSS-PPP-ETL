@@ -87,7 +87,7 @@ def _list_https(hostname: str, path: str) -> list[str] | None:
 
         url = hostname.rstrip("/") + "/" + path.lstrip("/")
         req = urllib.request.Request(
-            url, method="HEAD", headers={"User-Agent": "GNSS-PPP-ETL/audit"}
+            url, method="HEAD", headers={"User-Agent": "GNSSommelier/audit"}
         )
         urllib.request.urlopen(req, timeout=15)
         return []  # reachable but no listing
