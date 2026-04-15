@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>gnss_product_management.environments.workspace &mdash; GNSS-PPP-ETL 0.1.0 documentation</title>
+  <title>gnss_product_management.environments.workspace &mdash; GNSSommelier 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
@@ -29,7 +29,7 @@
 
 
           <a href="../../../index.html" class="icon icon-home">
-            GNSS-PPP-ETL
+            GNSSommelier
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -61,7 +61,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">GNSS-PPP-ETL</a>
+          <a href="../../../index.html">GNSSommelier</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -80,9 +80,7 @@
            <div itemprop="articleBody">
 
   <h1>Source code for gnss_product_management.environments.workspace</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Author: Franklyn Dunbar</span>
-
-<span class="sd">Workspace management for local GNSS product storage.</span>
+<span></span><span class="sd">&quot;&quot;&quot;Workspace management for local GNSS product storage.</span>
 
 <span class="sd">Maps :class:`LocalResourceSpec` definitions (loaded from YAML) to concrete</span>
 <span class="sd">base directories on disk so that local resources can be queried through the</span>
@@ -102,6 +100,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.local.local</span><span class="w"> </span><span class="kn">import</span> <span class="n">LocalResourceSpec</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.parameters.parameter</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterCatalog</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.products.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProductCatalog</span>
@@ -112,7 +112,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.specifications.remote.resource</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchTarget</span><span class="p">,</span> <span class="n">Server</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ensure_datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.utilities.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">as_path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">gnss_product_management.environments.environment</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProductRegistry</span>
