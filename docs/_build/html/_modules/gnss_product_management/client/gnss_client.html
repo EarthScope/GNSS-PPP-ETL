@@ -44,6 +44,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data-centers.html">GNSS Data Center Catalog</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
@@ -117,32 +118,39 @@
 <div class="viewcode-block" id="GNSSClient">
 <a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.GNSSClient">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GNSSClient</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;High-level client for searching and downloading GNSS products.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Single entry point for IGS product search, download, and dependency resolution.</span>
 
-<span class="sd">    ``GNSSClient`` is the single entry point for all product retrieval.</span>
-<span class="sd">    It wraps :class:`ProductQuery`, :class:`DownloadPipeline`, and</span>
-<span class="sd">    :class:`ResolvePipeline` as internal implementation details.</span>
+<span class="sd">    Wraps :class:`ProductQuery`, :class:`DownloadPipeline`, and</span>
+<span class="sd">    :class:`ResolvePipeline`. All user-facing operations go through this class.</span>
 
-<span class="sd">    Use :meth:`from_defaults` to get started with the bundled specs::</span>
+<span class="sd">    Use :meth:`from_defaults` to build from the bundled IGS center and product</span>
+<span class="sd">    specs. Pass a ``base_dir`` to enable downloads and local-first resolution::</span>
 
-<span class="sd">        # Search only — no local sink needed</span>
+<span class="sd">        # Search only (no local sink)</span>
 <span class="sd">        client = GNSSClient.from_defaults()</span>
-<span class="sd">        results = client.search(date, product=&quot;ORBIT&quot;)</span>
+<span class="sd">        results = client.search(date, product=&quot;ORBIT&quot;, parameters={&quot;TTT&quot;: &quot;FIN&quot;})</span>
 
-<span class="sd">        # Search and download</span>
+<span class="sd">        # Search and download to a local directory</span>
 <span class="sd">        client = GNSSClient.from_defaults(base_dir=&quot;/data/gnss&quot;)</span>
-<span class="sd">        results = client.search(date, product=&quot;CLOCK&quot;, parameters={&quot;TTT&quot;: &quot;FIN&quot;})</span>
-<span class="sd">        paths = client.download(results, sink_id=&quot;local&quot;)</span>
+<span class="sd">        paths = client.download(results[:1], sink_id=&quot;local&quot;)</span>
 
-<span class="sd">        # Full dependency resolution</span>
-<span class="sd">        client = GNSSClient.from_defaults(base_dir=&quot;/data/gnss&quot;)</span>
+<span class="sd">        # Search and download to S3</span>
+<span class="sd">        client = GNSSClient.from_defaults(base_dir=&quot;s3://my-bucket/gnss&quot;)</span>
+<span class="sd">        paths = client.download(results[:1], sink_id=&quot;local&quot;)</span>
+
+<span class="sd">        # Full dependency resolution (orbit + clock + bias + ERP + ...)</span>
 <span class="sd">        resolution, lockfile = client.resolve_dependencies(&quot;spec.yaml&quot;, date, sink_id=&quot;local&quot;)</span>
 
+<span class="sd">    ``max_connections`` sets the per-host FTP/HTTPS connection pool size.</span>
+<span class="sd">    CDDIS (NASA FTPS) enforces strict anonymous connection limits; keep it at</span>
+<span class="sd">    2–4 for CDDIS-heavy queries. FTP centers (COD, WUM, GFZ) generally</span>
+<span class="sd">    tolerate 6–8.</span>
+
 <span class="sd">    Args:</span>
-<span class="sd">        product_registry: Configured :class:`ProductRegistry` with loaded product and</span>
-<span class="sd">            center specs.</span>
+<span class="sd">        product_registry: Built :class:`ProductRegistry` with loaded product</span>
+<span class="sd">            and center specs.</span>
 <span class="sd">        workspace: :class:`WorkSpace` with registered local directories.</span>
-<span class="sd">        max_connections: Maximum concurrent connections per host.</span>
+<span class="sd">        max_connections: Maximum concurrent connections per host (default 4).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -183,6 +191,16 @@
 <span class="sd">        *base_dir* is provided, all local specs are registered against that</span>
 <span class="sd">        directory, enabling downloads and local-first resolution.</span>
 
+<span class="sd">        *base_dir* may be a local path **or** a cloud storage URI supported</span>
+<span class="sd">        by `cloudpathlib &lt;https://cloudpathlib.drivendata.org/&gt;`_::</span>
+
+<span class="sd">            # Local</span>
+<span class="sd">            client = GNSSClient.from_defaults(base_dir=&quot;/data/gnss&quot;)</span>
+<span class="sd">            # Amazon S3</span>
+<span class="sd">            client = GNSSClient.from_defaults(base_dir=&quot;s3://my-bucket/gnss&quot;)</span>
+<span class="sd">            # Google Cloud Storage</span>
+<span class="sd">            client = GNSSClient.from_defaults(base_dir=&quot;gs://my-bucket/gnss&quot;)</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            base_dir: Root directory for local product storage.  If ``None``,</span>
 <span class="sd">                the client operates in search-only mode (no local sink).</span>
@@ -190,6 +208,7 @@
 <span class="sd">                ``&quot;local&quot;``).  Used as the ``sink_id`` in</span>
 <span class="sd">                :meth:`download` and :meth:`resolve_dependencies`.</span>
 <span class="sd">            max_connections: Maximum concurrent connections per host.</span>
+<span class="sd">                Keep at 2–4 for CDDIS; 6–8 for COD, WUM, GFZ.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A configured :class:`GNSSClient` instance.</span>
@@ -260,27 +279,40 @@
         <span class="n">local_resources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">remote_resources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FoundResource</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search for products matching the given criteria.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search for IGS products matching the given criteria.</span>
 
-<span class="sd">        Delegates to :class:`ProductQuery` internally: builds queries,</span>
-<span class="sd">        lists remote directories, expands matches, infers parameters,</span>
-<span class="sd">        and ranks by preference and protocol.</span>
+<span class="sd">        Builds :class:`SearchTarget` objects from the product catalog, lists</span>
+<span class="sd">        remote directories via the connection pool, matches filenames by regex,</span>
+<span class="sd">        and ranks results by preference and protocol.</span>
+
+<span class="sd">        Key ``parameters`` keys follow the IGS long filename convention:</span>
+
+<span class="sd">        - ``TTT`` — solution timeliness: ``&quot;FIN&quot;`` (final, ≥13 d),</span>
+<span class="sd">          ``&quot;RAP&quot;`` (rapid, ≤17 h), ``&quot;ULT&quot;`` (ultra-rapid, ≤3 h)</span>
+<span class="sd">        - ``AAA`` — analysis center: ``&quot;COD&quot;``, ``&quot;ESA&quot;``, ``&quot;GFZ&quot;``,</span>
+<span class="sd">          ``&quot;WUM&quot;``, ``&quot;IGS&quot;``, …</span>
+
+<span class="sd">        For the full fluent interface (including date-range searches) use</span>
+<span class="sd">        :meth:`query` instead.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            date: Target date (timezone-aware datetime).</span>
-<span class="sd">            product: Product name as a string (e.g. ``&quot;ORBIT&quot;``) or a dict</span>
-<span class="sd">                with ``name``, and optionally ``version`` / ``variant``.</span>
-<span class="sd">            parameters: Parameter constraints, e.g. ``{&quot;TTT&quot;: &quot;FIN&quot;}``.</span>
-<span class="sd">            preferences: Optional preference cascade for ranking results.</span>
-<span class="sd">                Each :class:`SearchPreference` specifies a parameter and</span>
-<span class="sd">                an ordered list of preferred values.</span>
-<span class="sd">            local_resources: Restrict to these local resource IDs.</span>
+<span class="sd">            product: Product name (e.g. ``&quot;ORBIT&quot;``, ``&quot;CLOCK&quot;``, ``&quot;BIA&quot;``)</span>
+<span class="sd">                or a dict with ``name``, and optionally ``version`` /</span>
+<span class="sd">                ``variant``.</span>
+<span class="sd">            parameters: Parameter constraints, e.g.</span>
+<span class="sd">                ``{&quot;TTT&quot;: &quot;FIN&quot;, &quot;AAA&quot;: &quot;WUM&quot;}``.</span>
+<span class="sd">            preferences: Preference cascade for ranking.  Each</span>
+<span class="sd">                :class:`SearchPreference` names a parameter and an ordered</span>
+<span class="sd">                list of preferred values, e.g.</span>
+<span class="sd">                ``SearchPreference(parameter=&quot;TTT&quot;, sorting=[&quot;FIN&quot;,&quot;RAP&quot;])``.</span>
+<span class="sd">            local_resources: Restrict to these local resource aliases.</span>
 <span class="sd">            remote_resources: Restrict to these remote center IDs.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Ranked list of :class:`FoundResource` objects, best first.</span>
-<span class="sd">            Local/file results precede remote ones; within each protocol</span>
-<span class="sd">            tier results are ordered by *preferences*.</span>
+<span class="sd">            Ranked list of :class:`FoundResource` objects.  Local (file://)</span>
+<span class="sd">            results precede remote ones; within each protocol tier results</span>
+<span class="sd">            are ordered by *preferences*.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">product_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">product</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">product</span>
         <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="o">.</span><span class="n">for_product</span><span class="p">(</span><span class="n">product_name</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
@@ -356,18 +388,24 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve all dependencies in a spec for the given date.</span>
 
 <span class="sd">        Accepts a :class:`DependencySpec` object or a path to a YAML file.</span>
-<span class="sd">        Checks local disk first, then downloads missing files.  Returns</span>
-<span class="sd">        immediately if a lockfile already exists for</span>
-<span class="sd">        ``(package, task, date, version)``.</span>
+<span class="sd">        Checks local disk first, then downloads any missing files.  If a</span>
+<span class="sd">        ``DependencyLockFile`` already exists for ``(package, task, date,</span>
+<span class="sd">        version)``, resolution returns immediately without any network calls.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            dep_spec: Dependency specification — a :class:`DependencySpec`</span>
 <span class="sd">                instance, or a path (``str`` or :class:`Path`) to a YAML file.</span>
-<span class="sd">            date: Target date (timezone-aware datetime).</span>
-<span class="sd">            sink_id: Local resource identifier for storing resolved files.</span>
+<span class="sd">                The spec encodes which products are required, the center/</span>
+<span class="sd">                timeliness preference cascade, and per-product constraints.</span>
+<span class="sd">            date: Target date (timezone-aware datetime, midnight UTC).</span>
+<span class="sd">            sink_id: Local resource alias for storing resolved files</span>
+<span class="sd">                (e.g. ``&quot;local&quot;``).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A ``(DependencyResolution, lockfile_path)`` tuple.</span>
+<span class="sd">            ``DependencyResolution`` exposes ``.summary()``, ``.table()``,</span>
+<span class="sd">            ``.product_paths()``, ``.missing``, and</span>
+<span class="sd">            ``.all_required_fulfilled``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dep_spec</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
             <span class="n">dep_spec</span> <span class="o">=</span> <span class="n">DependencySpec</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="n">dep_spec</span><span class="p">)</span>

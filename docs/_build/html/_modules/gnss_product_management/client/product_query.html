@@ -44,6 +44,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data-centers.html">GNSS Data Center Catalog</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
@@ -230,13 +231,22 @@
 <div class="viewcode-block" id="ProductQuery.where">
 <a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.where">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">parameters</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constrain product parameters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constrain product parameters (hard filter).</span>
 
-<span class="sd">        Keyword arguments map parameter names to required values, e.g.</span>
-<span class="sd">        ``where(TTT=&quot;FIN&quot;)`` or ``where(TTT=[&quot;FIN&quot;, &quot;RAP&quot;])``.</span>
+<span class="sd">        Keyword arguments use IGS long filename field codes as keys.</span>
+<span class="sd">        Common constraints:</span>
+
+<span class="sd">        - ``TTT=&quot;FIN&quot;`` — final solutions only (≥13 days latency)</span>
+<span class="sd">        - ``TTT=&quot;RAP&quot;`` — rapid solutions only (≤17 hours latency)</span>
+<span class="sd">        - ``TTT=&quot;ULT&quot;`` — ultra-rapid solutions only (≤3 hours latency)</span>
+<span class="sd">        - ``AAA=&quot;WUM&quot;`` — Wuhan University products only</span>
+<span class="sd">        - ``AAA=[&quot;WUM&quot;, &quot;COD&quot;]`` — WUM or COD only</span>
+
+<span class="sd">        Use :meth:`prefer` instead of :meth:`where` when you want to rank</span>
+<span class="sd">        results without excluding alternatives.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            **parameters: Parameter name → value (or list of values).</span>
+<span class="sd">            **parameters: IGS field name → required value or list of values.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            ``self`` for chaining.</span>
@@ -281,17 +291,24 @@
 <div class="viewcode-block" id="ProductQuery.prefer">
 <a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.ProductQuery.prefer">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">prefer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProductQuery</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Define a preference cascade for ranking results.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rank results by a preference cascade without hard-filtering.</span>
 
-<span class="sd">        Keyword arguments map parameter names to an ordered list of</span>
-<span class="sd">        preferred values.  The first entry is most preferred::</span>
+<span class="sd">        Unlike :meth:`where`, ``prefer`` keeps all matching products in the</span>
+<span class="sd">        result list but sorts them so the most-preferred appear first.  The</span>
+<span class="sd">        standard IGS timeliness cascade is::</span>
 
 <span class="sd">            .prefer(TTT=[&quot;FIN&quot;, &quot;RAP&quot;, &quot;ULT&quot;])</span>
 
-<span class="sd">        Multiple calls accumulate preferences in call order.</span>
+<span class="sd">        Center preference can be layered on top::</span>
+
+<span class="sd">            .prefer(TTT=[&quot;FIN&quot;, &quot;RAP&quot;, &quot;ULT&quot;], AAA=[&quot;WUM&quot;, &quot;COD&quot;, &quot;GFZ&quot;])</span>
+
+<span class="sd">        Multiple :meth:`prefer` calls accumulate in call order; later calls</span>
+<span class="sd">        do not override earlier ones.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            **kwargs: Parameter name → ordered list of preferred values.</span>
+<span class="sd">            **kwargs: IGS field name → ordered list of preferred values,</span>
+<span class="sd">                most preferred first.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            ``self`` for chaining.</span>

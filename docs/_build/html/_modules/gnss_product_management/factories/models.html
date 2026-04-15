@@ -44,6 +44,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data-centers.html">GNSS Data Center Catalog</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
@@ -101,7 +102,18 @@
 <div class="viewcode-block" id="FoundResource">
 <a class="viewcode-back" href="../../../api/gnss-product-management.html#gnss_product_management.client.FoundResource">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FoundResource</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A discovered product resource — either a local file or a remote URI.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A discovered IGS product — either a local file or a remote URI.</span>
+
+<span class="sd">    Returned by :meth:`GNSSClient.search` and :meth:`ProductQuery.search`.</span>
+<span class="sd">    The most useful properties for geodetic workflows:</span>
+
+<span class="sd">    - ``r.center`` — analysis center code (``AAA`` field, e.g. ``&quot;WUM&quot;``)</span>
+<span class="sd">    - ``r.quality`` — timeliness code (``TTT`` field: ``&quot;FIN&quot;``, ``&quot;RAP&quot;``, ``&quot;ULT&quot;``)</span>
+<span class="sd">    - ``r.filename`` — bare IGS long filename</span>
+<span class="sd">    - ``r.uri`` — full remote URL (``ftp://...``) or local path</span>
+<span class="sd">    - ``r.is_local`` — ``True`` if already on disk</span>
+<span class="sd">    - ``r.downloaded`` — ``True`` after a successful download</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">arbitrary_types_allowed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 

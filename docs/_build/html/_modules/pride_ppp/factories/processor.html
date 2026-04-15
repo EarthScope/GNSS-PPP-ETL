@@ -44,6 +44,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../ppp-products.html">GNSS PPP Product Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../config-reference.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data-centers.html">GNSS Data Center Catalog</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../class-reference.html">Class Reference — gnss-product-management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../INDEX.html">Documentation Index</a></li>
@@ -144,16 +145,22 @@
 <div class="viewcode-block" id="ProcessingMode">
 <a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.ProcessingMode">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ProcessingMode</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Product timeliness mode.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;IGS product timeliness mode for dependency resolution.</span>
 
-<span class="sd">    Controls which dependency-spec YAML is used for product resolution.</span>
-<span class="sd">    The timeliness codes refer to IGS product latency classes:</span>
-<span class="sd">    FIN = final (≥13 days), RAP = rapid (≤17 hours), ULT = ultra-rapid (≤3 hours).</span>
+<span class="sd">    Selects which dependency-spec YAML governs which products are accepted.</span>
 
-<span class="sd">    * ``DEFAULT`` — cascades through FIN → RAP → ULT, using the best</span>
-<span class="sd">      available product at the time of the run.</span>
-<span class="sd">    * ``FINAL``   — only accepts final (FIN) products; fails if FIN</span>
-<span class="sd">      products are not yet available for the requested date.</span>
+<span class="sd">    * ``DEFAULT`` — cascades through FIN → RAP → ULT.  Uses the best</span>
+<span class="sd">      available product at run time.  Suitable for near-real-time processing</span>
+<span class="sd">      or when the observation date is within the last two weeks.</span>
+<span class="sd">    * ``FINAL``   — accepts only IGS final (FIN) products (available ≥13 days</span>
+<span class="sd">      after observation).  Suitable for post-processing campaigns where</span>
+<span class="sd">      reproducibility and highest accuracy are required.</span>
+
+<span class="sd">    IGS product latency reference (approximate):</span>
+
+<span class="sd">    - FIN (final)       : orbit ≈ 13 days,  clock ≈ 13 days</span>
+<span class="sd">    - RAP (rapid)       : orbit ≈ 17 hours, clock ≈ 17 hours</span>
+<span class="sd">    - ULT (ultra-rapid) : orbit ≈ 3 hours,  clock predicted half</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">DEFAULT</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
@@ -232,12 +239,26 @@
 <div class="viewcode-block" id="ProcessingResult.positions">
 <a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.ProcessingResult.positions">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">positions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the ``.kin`` file into a DataFrame with WRMS residuals.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the ``.kin`` file into a DataFrame of kinematic positions.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        pd.DataFrame or None</span>
-<span class="sd">            Kinematic position DataFrame, or ``None`` if the run failed.</span>
+<span class="sd">            Kinematic position DataFrame indexed by UTC epoch, or ``None``</span>
+<span class="sd">            if the run failed.  Columns:</span>
+
+<span class="sd">            * ``Latitude``  — geodetic latitude (degrees)</span>
+<span class="sd">            * ``Longitude`` — geodetic longitude (degrees)</span>
+<span class="sd">            * ``Height``    — ellipsoidal height (metres)</span>
+<span class="sd">            * ``Nsat``      — number of satellites used in the epoch solution</span>
+<span class="sd">            * ``PDOP``      — position dilution of precision</span>
+<span class="sd">            * ``wrms``      — phase residual WRMS per epoch (mm), merged</span>
+<span class="sd">              from the ``.res`` file</span>
+
+<span class="sd">            Coordinates are in the reference frame of the resolved orbit/clock</span>
+<span class="sd">            products (IGS20/ITRF2020 for Repro3+ products; IGS14/ITRF2014 for</span>
+<span class="sd">            earlier series). Epochs with ``Nsat ≤ 4`` or ``PDOP ≥ 5`` should</span>
+<span class="sd">            be treated with caution.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">success</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
@@ -269,9 +290,14 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_infer_site</span><span class="p">(</span><span class="n">rinex</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract a 4-character site identifier from a RINEX filename.</span>
 
-<span class="sd">    Matches the first four alphanumeric characters of the filename stem</span>
-<span class="sd">    (e.g. ``NCC12540.25o`` → ``NCC1``).  Falls back to ``&quot;SIT1&quot;`` when</span>
-<span class="sd">    the filename does not conform to the expected RINEX naming convention.</span>
+<span class="sd">    Matches the first four alphanumeric characters of the filename stem.</span>
+<span class="sd">    Works for both RINEX 3 long names (``SITE00USA_R_20251500000_01D_30S_MO.rnx``</span>
+<span class="sd">    → ``SITE``) and legacy 8.3 names (``NCC12500.25o`` → ``NCC1``).</span>
+
+<span class="sd">    Falls back to ``&quot;SIT1&quot;`` when the filename does not contain a</span>
+<span class="sd">    4-character alphanumeric prefix.  This fallback is silent — pass</span>
+<span class="sd">    ``site=`` explicitly to :meth:`PrideProcessor.process` for non-standard</span>
+<span class="sd">    filenames so that output files are named correctly.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        rinex: Path to a RINEX observation file.</span>
@@ -392,27 +418,37 @@
 <div class="viewcode-block" id="PrideProcessor">
 <a class="viewcode-back" href="../../../api/pride-ppp.html#pride_ppp.PrideProcessor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PrideProcessor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Facade: RINEX file in → kinematic positions out.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;RINEX observation file in → kinematic PPP-AR positions out.</span>
 
-<span class="sd">    Owns its own ProductEnvironment and WorkSpace.  No global state.</span>
-<span class="sd">    Thread-safe for concurrent ``process()`` calls.</span>
+<span class="sd">    Owns its own :class:`ProductRegistry`, :class:`WorkSpace`, and</span>
+<span class="sd">    :class:`GNSSClient`.  No global state; a single instance is safe to</span>
+<span class="sd">    reuse across many :meth:`process` / :meth:`process_batch` calls.</span>
 
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    _pride_dir : Path</span>
-<span class="sd">        Root directory for PRIDE products and working state.</span>
-<span class="sd">    _output_dir : Path</span>
-<span class="sd">        Final destination for ``.kin`` / ``.res`` output files.</span>
-<span class="sd">    _pride_install_dir : Path or None</span>
-<span class="sd">        Optional path to an existing PRIDE-PPPAR installation.</span>
-<span class="sd">    _cli_config : PrideCLIConfig</span>
-<span class="sd">        Configuration for pdp3 CLI flag generation.</span>
-<span class="sd">    _mode : ProcessingMode</span>
-<span class="sd">        Product timeliness mode (DEFAULT or FINAL).</span>
-<span class="sd">    _client : GNSSClient</span>
-<span class="sd">        Configured GNSS client — owns product resolution and download.</span>
-<span class="sd">    _dep_spec : DependencySpec</span>
-<span class="sd">        Dependency specification governing product resolution.</span>
+<span class="sd">    The full pipeline per RINEX file:</span>
+
+<span class="sd">    1. Infer site ID and observation date from the RINEX filename/header.</span>
+<span class="sd">    2. Resolve IGS products (orbit, clock, bias, ERP, ATX) for that date</span>
+<span class="sd">       via :meth:`GNSSClient.resolve_dependencies`.  Skips resolution if a</span>
+<span class="sd">       valid ``DependencyLockFile`` already exists.</span>
+<span class="sd">    3. Return a cached :class:`ProcessingResult` if a valid ``.kin`` output</span>
+<span class="sd">       already exists in ``output_dir`` (unless *override* is ``True``).</span>
+<span class="sd">    4. Write a ``pdp3`` ``config_file`` to ``pride_dir/{year}/{doy}/``.</span>
+<span class="sd">    5. Execute ``pdp3`` and move ``.kin`` / ``.res`` outputs to ``output_dir``.</span>
+
+<span class="sd">    For a full station-year, use :meth:`process_batch`: it resolves products</span>
+<span class="sd">    once per unique date, writes configs for all dates, skips cached results,</span>
+<span class="sd">    then dispatches ``pdp3`` subprocesses in parallel.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        processor = PrideProcessor(</span>
+<span class="sd">            pride_dir=Path(&quot;/data/pride&quot;),</span>
+<span class="sd">            output_dir=Path(&quot;/data/output&quot;),</span>
+<span class="sd">            mode=ProcessingMode.FINAL,</span>
+<span class="sd">        )</span>
+<span class="sd">        for result in processor.process_batch(rinex_files, max_workers=4):</span>
+<span class="sd">            if result.success:</span>
+<span class="sd">                print(result.date, len(result.positions()), &quot;epochs&quot;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="PrideProcessor.__init__">
