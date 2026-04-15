@@ -6,13 +6,14 @@ Server, ResourceSpec, SearchTarget — remote resource models (Layer 1).
 from pathlib import Path
 
 import yaml
+from pydantic import BaseModel
+
 from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.products.product import (
     PathTemplate,
     Product,
 )
 from gnss_product_management.utilities.helpers import _PassthroughDict
-from pydantic import BaseModel
 
 
 class Server(BaseModel):

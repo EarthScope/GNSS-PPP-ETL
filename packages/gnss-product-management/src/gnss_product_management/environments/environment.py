@@ -14,6 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from pydantic import BaseModel
+
 from gnss_product_management.specifications.format.format_spec import (
     FormatCatalog,
     FormatSpecCatalog,
@@ -35,7 +37,6 @@ from gnss_product_management.specifications.remote.resource_catalog import (
     ResourceCatalog,
 )
 from gnss_product_management.utilities.metadata_funcs import register_computed_fields
-from pydantic import BaseModel
 
 
 class _MatchEntry(NamedTuple):

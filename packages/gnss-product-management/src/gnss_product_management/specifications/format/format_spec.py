@@ -6,6 +6,8 @@ Format-variant specifications and FormatCatalog â€” resolves FormatVariantSpec â
 from pathlib import Path
 
 import yaml
+from pydantic import BaseModel, Field
+
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
@@ -17,7 +19,6 @@ from gnss_product_management.specifications.products.product import (
     VariantCatalog,
     VersionCatalog,
 )
-from pydantic import BaseModel, Field
 
 
 class FormatVariantSpec(BaseModel):

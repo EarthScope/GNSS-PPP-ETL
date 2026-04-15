@@ -6,11 +6,12 @@ Core product models — PathTemplate, Product, and catalog hierarchies.
 import re
 from typing import Generic, TypeVar
 
+from pydantic import BaseModel, Field
+
 from gnss_product_management.specifications.parameters.parameter import (
     Parameter,
     ParameterCatalog,
 )
-from pydantic import BaseModel, Field
 
 
 class PathTemplate(BaseModel):
