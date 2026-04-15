@@ -3,7 +3,7 @@ name = "pride-ppp"
 dynamic = ["version"]
 requires-python = ">=3.10,<3.15"
 dependencies = [
-    "gnss-management-specs",
+    "gpm-specs",
     "gnss-product-management",
     "julian>=0.14",
     "pandas>=2.0",
@@ -27,7 +27,7 @@ source = "vcs"
 raw-options = { root = "../.." }
 
 [tool.uv.sources]
-gnss-management-specs = { workspace = true }
+gpm-specs = { workspace = true }
 gnss-product-management = { workspace = true }
 
 [tool.pytest.ini_options]

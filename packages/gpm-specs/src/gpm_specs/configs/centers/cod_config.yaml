@@ -106,5 +106,5 @@ products:
       - {name: AAA, value: COD}
       - {name: TTT, value: FIN}
       - {name: PPP, value: OPS}
-      - {name: SMP, value: 05M}
+      - {name: SMP, value: 01H}
     directory: {pattern: "CODE/{YYYY}/"}

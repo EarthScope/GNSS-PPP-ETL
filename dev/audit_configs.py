@@ -30,9 +30,9 @@ PROBE_DATE = datetime.datetime(2025, 1, 15, tzinfo=datetime.timezone.utc)
 
 CENTERS_DIR = (
     Path(__file__).parent.parent.parent.parent
-    / "gnss-management-specs"
+    / "gpm-specs"
     / "src"
-    / "gnss_management_specs"
+    / "gpm_specs"
     / "configs"
     / "centers"
 )
@@ -87,7 +87,7 @@ def _list_https(hostname: str, path: str) -> list[str] | None:
 
         url = hostname.rstrip("/") + "/" + path.lstrip("/")
         req = urllib.request.Request(
-            url, method="HEAD", headers={"User-Agent": "GNSS-PPP-ETL/audit"}
+            url, method="HEAD", headers={"User-Agent": "GNSSommelier/audit"}
         )
         urllib.request.urlopen(req, timeout=15)
         return []  # reachable but no listing

@@ -14,10 +14,11 @@ jobs:
         with:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v4
-      - run: uv sync --group dev
+      - run: uv sync --group dev --group test
       - run: uv run ruff check packages/
       - run: uv run ruff format --check packages/
       - run: uv run pytest packages/gnss-product-management/test/ -m "not integration" -q
+      - run: uv run pytest packages/gpm-cli/test/ -q
 
   update-docs:
     runs-on: ubuntu-latest

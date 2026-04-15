@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-LockfileWriter — write a :class:`DependencyResolution` to a lockfile.
+"""LockfileWriter — write a :class:`DependencyResolution` to a lockfile.
 
 Thin wrapper around :class:`LockfileManager` that converts a resolution
 into a persisted, reproducible manifest.

@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-WormHole — protocol-agnostic file search and download.
-"""
+"""WormHole — protocol-agnostic file search and download."""
 
 import datetime
 import logging
@@ -12,6 +9,7 @@ from pathlib import Path
 
 import fsspec
 import fsspec.utils
+
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
 from gnss_product_management.specifications.products.product import PathTemplate

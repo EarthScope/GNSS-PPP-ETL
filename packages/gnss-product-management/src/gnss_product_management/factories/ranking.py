@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-ranking — module-level helpers for sorting SearchTarget results.
-"""
+"""ranking — module-level helpers for sorting SearchTarget results."""
 
 from __future__ import annotations
 

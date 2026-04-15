@@ -10,8 +10,8 @@
 Clone the repository and sync all packages in one step:
 
 ```bash
-git clone https://github.com/EarthScope/GNSS-PPP-ETL.git
-cd GNSS-PPP-ETL
+git clone https://github.com/EarthScope/GNSSommelier.git
+cd GNSSommelier
 uv sync
 ```
 

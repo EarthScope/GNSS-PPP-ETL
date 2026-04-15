@@ -1,9 +1,8 @@
-"""Author: Franklyn Dunbar
-
-ProductSpec and ProductCatalog — resolve product specs against FormatCatalog.
-"""
+"""ProductSpec and ProductCatalog — resolve product specs against FormatCatalog."""
 
 import re
+
+from pydantic import BaseModel, Field
 
 from gnss_product_management.specifications.catalog import Catalog
 from gnss_product_management.specifications.format.format_spec import FormatCatalog
@@ -14,7 +13,6 @@ from gnss_product_management.specifications.products.product import (
     VariantCatalog,
     VersionCatalog,
 )
-from pydantic import BaseModel, Field
 
 
 class ProductSpec(BaseModel):

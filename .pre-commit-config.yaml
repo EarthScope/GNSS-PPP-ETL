@@ -27,12 +27,12 @@ repos:
 
       - id: ruff-check
         name: ruff lint
-        entry: uv run ruff check --fix
+        entry: uv run ruff check --fix packages/
         language: system
         types: [python]
 
       - id: ruff-format
         name: ruff format
-        entry: uv run ruff format
+        entry: uv run ruff format packages/
         language: system
         types: [python]

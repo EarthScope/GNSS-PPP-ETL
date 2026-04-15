@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-pride_ppp — PRIDE PPP-AR integration package.
+"""pride_ppp — PRIDE PPP-AR integration package.
 
 Provides a concurrent-safe ``PrideProcessor`` that resolves GNSS products,
 runs the pdp3 binary, and returns structured ``ProcessingResult`` objects

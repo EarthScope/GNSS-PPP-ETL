@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Shared helper functions and sentinel types.
+"""Shared helper functions and sentinel types.
 
 Contains low-level utilities used across the package:
 

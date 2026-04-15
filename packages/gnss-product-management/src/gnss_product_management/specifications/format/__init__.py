@@ -1,4 +1,4 @@
-"""Author: Franklyn Dunbar"""
+"""Format specifications — FormatSpec, FormatVersionSpec, and catalog types."""
 
 from .format_spec import (
     FormatCatalog as FormatCatalog,

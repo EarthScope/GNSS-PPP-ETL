@@ -1,4 +1,4 @@
-"""Author: Franklyn Dunbar"""
+"""Remote resource specifications — Server, ResourceSpec, and SearchTarget models."""
 
 from .resource import (
     ResourceSpec as ResourceSpec,

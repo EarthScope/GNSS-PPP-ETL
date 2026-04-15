@@ -78,10 +78,10 @@ if orbits:
 
 ---
 
-## 2. Automated dependency resolution with a shared S3 workspace
+## 2. Automated dependency resolution with a shared  workspace
 
 **Goal:** Resolve a full PPP-AR product set (orbit, clock, bias, ERP, ATX)
-for a date range using a timeliness cascade, store results in S3, and
+for a date range using a timeliness cascade, store results, and
 demonstrate the lockfile fast-path on a second call.
 
 This pattern suits a production pipeline where multiple workers share a
@@ -251,7 +251,7 @@ ships minimal runnable scripts under each package's `examples/` directory:
 
 | Script | Package | Description |
 |---|---|---|
-| [`search_products.py`](https://github.com/EarthScope/GNSS-PPP-ETL/blob/main/packages/gnss-product-management/examples/search_products.py) | gnss-product-management | Four progressively narrower search patterns |
-| [`download_from_center.py`](https://github.com/EarthScope/GNSS-PPP-ETL/blob/main/packages/gnss-product-management/examples/download_from_center.py) | gnss-product-management | Search → inspect → download |
-| [`process_rinex.py`](https://github.com/EarthScope/GNSS-PPP-ETL/blob/main/packages/pride-ppp/examples/process_rinex.py) | pride-ppp | Single RINEX file end-to-end |
-| [`batch_process.py`](https://github.com/EarthScope/GNSS-PPP-ETL/blob/main/packages/pride-ppp/examples/batch_process.py) | pride-ppp | Batch processing with `process_batch` |
+| [`search_products.py`](https://github.com/EarthScope/GNSSommelier/blob/main/packages/gnss-product-management/examples/search_products.py) | gnss-product-management | Four progressively narrower search patterns |
+| [`download_from_center.py`](https://github.com/EarthScope/GNSSommelier/blob/main/packages/gnss-product-management/examples/download_from_center.py) | gnss-product-management | Search → inspect → download |
+| [`process_rinex.py`](https://github.com/EarthScope/GNSSommelier/blob/main/packages/pride-ppp/examples/process_rinex.py) | pride-ppp | Single RINEX file end-to-end |
+| [`batch_process.py`](https://github.com/EarthScope/GNSSommelier/blob/main/packages/pride-ppp/examples/batch_process.py) | pride-ppp | Batch processing with `process_batch` |

@@ -1,9 +1,12 @@
-# GNSS-PPP-ETL
+# GNSSommelier
+
+![GNSSommelier](docs/image.png)
 
 Automated retrieval and management of [IGS](https://igs.org/) analysis center
-products for Precise Point Positioning, with an integrated
-[PRIDE-PPPAR](https://pride.whu.edu.cn/pppar/) processing pipeline for
-kinematic PPP-AR solutions.
+products for Precise Point Positioning. Provides a Python library for
+product discovery, dependency resolution, and download across 18 configured
+IGS analysis centers, plus a command-line tool (`gnssommelier`) for interactive
+workflows.
 
 ## Contents
 
@@ -29,7 +32,7 @@ calibrations (ATX). These files are scattered across FTP/FTPS/HTTP servers
 maintained by different IGS analysis centers, each with its own directory
 layout, naming convention, and update cadence.
 
-**GNSS-PPP-ETL** eliminates the manual bookkeeping. Given a date and a
+**GNSSommelier** eliminates the manual bookkeeping. Given a date and a
 processing task definition, it resolves every required product across all
 registered centers, downloads and decompresses the files into a structured
 local workspace, and tracks what was fetched in reproducible lock files. For
@@ -40,15 +43,16 @@ single call.
 ## Packages
 
 This is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/)
-containing three packages:
+containing four packages:
 
 | Package | Purpose |
 |---|---|
-| [`gnss-management-specs`](packages/gnss-management-specs/) | Pluggable YAML specification data for GNSS products, centers, formats, and storage layouts |
+| [`gpm-specs`](packages/gpm-specs/) | Pluggable YAML specification data for GNSS products, centers, formats, and storage layouts |
 | [`gnss-product-management`](packages/gnss-product-management/) | YAML-driven product discovery, query expansion, dependency resolution, and download from IGS analysis centers |
+| [`gpm-cli`](packages/gpm-cli/) | Command-line tool (`gnssommelier`) for search, download, and configuration |
 | [`pride-ppp`](packages/pride-ppp/) | Concurrent-safe PRIDE-PPPAR integration — RINEX in, kinematic positions out |
 
-### gnss-management-specs
+### gpm-specs
 
 A data-only package shipping the bundled YAML specifications that describe
 GNSS product catalogs, analysis center endpoints, file-naming formats,
@@ -61,9 +65,15 @@ as independent packages without modifying `gnss-product-management`.
 The core library. A five-layer architecture (Configuration → Specification →
 Catalog → Orchestration → Interface) keeps concerns separated so adding a new
 center or product type requires only a new YAML file. The `defaults` module
-wires the bundled `gnss-management-specs` into pre-built singletons
+wires the bundled `gpm-specs` into pre-built singletons
 (`DefaultProductEnvironment`, `DefaultWorkSpace`); users who need a different
 spec set can build their own `ProductEnvironment` via its `add_*` methods.
+
+### gpm-cli
+
+A `typer`-based CLI installed as the `gnssommelier` entry point. Provides subcommands
+for searching products across configured centers, downloading resolved
+dependencies, and managing the user config file (`~/.config/gnssommelier/config.toml`).
 
 ### pride-ppp
 
@@ -104,27 +114,56 @@ Product types currently defined in the bundled specifications:
 
 ## Supported analysis centers & servers
 
+All 18 configured centers. See [docs/data-centers.md](docs/data-centers.md) for full details.
+
 | Center | Institution | Server | Protocol |
 |---|---|---|---|
+| **BKG** | [Federal Agency for Cartography and Geodesy](https://igs.bkg.bund.de/) | `igs.bkg.bund.de` | HTTPS |
+| **CAS** | [Chinese Academy of Sciences (GIPP)](http://www.gipp.org.cn/) | `ftp.gipp.org.cn` | FTP |
 | **CDDIS** | [NASA GSFC](https://cddis.nasa.gov/) | `gdc.cddis.eosdis.nasa.gov` | FTPS |
-| **COD** | [AIUB, Univ. of Bern](http://www.aiub.unibe.ch/research/code___analysis_center/) | `ftp.aiub.unibe.ch` | FTP |
-| **ESA** | [ESA/ESOC](https://gssc.esa.int/) | `gssc.esa.int` | FTP |
-| **GFZ** | [GFZ Potsdam](https://www.gfz-potsdam.de/) | `isdcftp.gfz-potsdam.de` | FTP |
+| **COD** | [AIUB, Univ. of Bern](https://www.aiub.unibe.ch/research/gnss/) | `ftp.aiub.unibe.ch` | FTP |
+| **ESA** | [ESA/ESOC](https://navigation.esa.int/) | `gssc.esa.int` | FTP |
+| **EUREF** | [EUREF Permanent GNSS Network](https://epncb.oma.be/) | `epncb.oma.be` | HTTPS |
+| **GFZ** | [GFZ Potsdam](https://www.gfz-potsdam.de/) | `ftp.gfz-potsdam.de` | FTP |
+| **GRGS** | [CNES/CLS](https://igsac-cnes.cls.fr/) | `ftpsedr.cls.fr` | FTP |
 | **IGS** | [IGS combined products](https://igs.org/) | `igs.ign.fr` / `files.igs.org` | FTP / HTTPS |
+| **JPL** | [NASA JPL](https://sideshow.jpl.nasa.gov/) | `sideshow.jpl.nasa.gov` | HTTPS |
+| **KASI** | [Korea Astronomy and Space Science Institute](https://gnss.kasi.re.kr/) | `nfs.kasi.re.kr` | FTP |
+| **NGII** | [National Geographic Information Institute, Korea](https://www.ngii.go.kr/) | `nfs.kgps.go.kr` | FTP |
+| **NRCan** | [Natural Resources Canada (CSRS)](https://www.nrcan.gc.ca/home) | `ftp.nrcan.gc.ca` | FTP |
+| **SIO** | [Scripps Institution of Oceanography / SOPAC](https://sopac-csrc.ucsd.edu/) | `garner.ucsd.edu` | FTP (defunct) |
+| **TUG** | [Graz University of Technology (ITSG)](https://www.tugraz.at/institute/ifg/) | via CDDIS | FTPS |
 | **VMF** | [TU Wien](https://vmf.geo.tuwien.ac.at/) | `vmf.geo.tuwien.ac.at` | HTTPS |
-| **WUM** | [Wuhan University (WHU)](http://www.igs.gnsswhu.cn/) | `igs.gnsswhu.cn` | FTP |
+| **WUM** | [Wuhan University](http://www.igs.gnsswhu.cn/) | `igs.gnsswhu.cn` | FTP |
 
 > **CDDIS authentication:** CDDIS FTPS requires an EarthData account. Add
 > `machine cddis.nasa.gov login <user> password <pass>` to `~/.netrc`.
 > Register at <https://cddis.nasa.gov/Data_and_Derived_Products/CreateAccount.html>.
+>
+> **SIO / NGII:** These centers have `available: false` on all products —
+> SIO's FTP is decommissioned; NGII is only reachable from within Korea.
 
 ## Quick start
 
 ```bash
 # Clone and install
-git clone https://github.com/EarthScope/GNSS-PPP-ETL.git
-cd GNSS-PPP-ETL
+git clone https://github.com/EarthScope/GNSSommelier.git
+cd GNSSommelier
 uv sync --all-packages
+```
+
+### Use the CLI
+
+```bash
+# Install the CLI tool
+uv tool install packages/gpm-cli
+
+# Search for final orbit products from COD and ESA
+gnssommelier search ORBIT --date 2025-01-02 --sources COD --sources ESA --where TTT=FIN
+
+# Show / edit configuration
+gnssommelier config show
+gnssommelier config set base-dir /data/gnss-products
 ```
 
 ### Search for products across all centers
@@ -197,28 +236,35 @@ Runnable scripts in each package's `examples/` directory:
 ## Project structure
 
 ```
-GNSS-PPP-ETL/
+GNSSommelier/
 ├── pyproject.toml                        # Workspace root
 ├── docs/                                 # Architecture & reference docs
 ├── packages/
-│   ├── gnss-management-specs/            # Pluggable YAML specification data
-│   │   └── src/gnss_management_specs/
+│   ├── gpm-specs/            # Pluggable YAML specification data
+│   │   └── src/gpm_specs/
 │   │       └── configs/                  # YAML specs (centers, products, formats, etc.)
-│   │           ├── centers/              # Analysis center endpoint definitions
-│   │           ├── dependencies/         # Dependency graph specs
+│   │           ├── centers/              # Analysis center endpoint definitions (18 centers)
 │   │           ├── local/                # Local storage layout specs
 │   │           ├── meta/                 # Parameter & metadata specs
 │   │           ├── products/             # Product catalog specs
 │   │           └── query/                # Query template specs
 │   ├── gnss-product-management/          # Product discovery & download
 │   │   ├── src/gnss_product_management/
-│   │   │   ├── defaults/           # Wires gnss-management-specs into singletons
+│   │   │   ├── defaults/           # Wires gpm-specs into singletons
 │   │   │   ├── environments/       # ProductRegistry, WorkSpace
 │   │   │   ├── factories/          # SearchPlanner, WormHole, ConnectionPoolFactory, pipelines
 │   │   │   ├── specifications/     # Pydantic models (Parameter, FormatSpec, ProductSpec)
 │   │   │   ├── lockfile/           # LockfileManager, DependencyLockFile, operations
 │   │   │   └── utilities/          # Date math, decompression, path helpers
 │   │   └── test/
+│   ├──gpm-cli/                 # CLI tool
+│   │   └── src/gpm_cli/
+│   │       ├── app.py                    # Entry point — `gnssommelier` command
+│   │       ├── cmd_config.py             # `gnss config` subcommands
+│   │       ├── cmd_download.py           # `gnss download` subcommand
+│   │       ├── cmd_probe.py              # `gnss probe` subcommand
+│   │       ├── cmd_search.py             # `gnss search` subcommand
+│   │       └── config.py                 # UserConfig / ConfigLoader
 │   └── pride-ppp/                        # PRIDE-PPPAR integration
 │       └── src/pride_ppp/
 │           ├── factories/

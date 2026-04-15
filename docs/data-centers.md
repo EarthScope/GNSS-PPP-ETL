@@ -46,16 +46,16 @@ The table below lists every server endpoint configured across all centers.
 | GA | `ga_s3` | `https://ga-gnss-products-v1.s3.amazonaws.com` | HTTPS (S3) | None | SINEX (APREF), ORBIT†, CLOCK†, ERP† |
 | GFZ | `gfz_ftp` | `ftp://ftp.gfz-potsdam.de` | FTP | None | ORBIT, CLOCK, ERP, SINEX, TROP |
 | GRGS | `grgs_ftp` | `ftp://ftpsedr.cls.fr` | FTP | None | ORBIT, CLOCK, ERP, BIA, SINEX, ATTOBX |
-| IGS | `ign_ftp` | `ftp://igs.ign.fr` | FTP | None | ORBIT, CLOCK, ERP, BIA, ATTOBX, SINEX, TROP, RNX3_BRDC |
+| IGS | `ign_ftp` | `ftp://igs.ign.fr` | FTP | None | ORBIT, CLOCK, ERP, BIA, ATTOBX, IONEX, SINEX, TROP, RNX3_BRDC |
 | IGS | `igs_http` | `https://files.igs.org` | HTTPS | None | ANTEX (ATX), station logs |
-| JPL | `jpl_https` | `https://sideshow.jpl.nasa.gov` | HTTPS | None | ORBIT, CLOCK, ERP, BIA, IONEX |
+| JPL | `jpl_sideshow` | `https://sideshow.jpl.nasa.gov` | HTTPS | None | ORBIT, CLOCK, ERP, BIA, IONEX, TROP, SINEX |
 | KASI | `kasi_ftp` | `ftp://nfs.kasi.re.kr` | FTP | None | ORBIT, CLOCK, ERP, BIA, ATTOBX, SINEX, IONEX, RNX3_BRDC |
-| NGII | `ngii_ftp` | `ftp://nfs.kgps.go.kr` | FTP | None* | Korean CORS RINEX obs only |
+| NGII | `ngii_ftp` | `ftp://nfs.kgps.go.kr` | FTP | None* | RNX3_BRDC (all `available: false`) |
 | NRCan | `nrcan_ftp` | `ftp://ftp.nrcan.gc.ca` | FTP | None | ORBIT, CLOCK, ERP, BIA, SINEX |
 | SIO | `sio_ftp` | `ftp://garner.ucsd.edu` | FTP | None* | ORBIT, CLOCK, ERP, SINEX (all `available: false`) |
-| TUG | `cddis_ftps` | `ftp://gdc.cddis.eosdis.nasa.gov` | FTPS (anon) | None | ORBIT, CLOCK, ERP, SINEX (via CDDIS) |
+| TUG | `cddis_mirror` | `ftp://gdc.cddis.eosdis.nasa.gov` | FTPS (anon) | None | ORBIT, CLOCK, ERP, BIA, ATTOBX (via CDDIS) |
 | VMF | `vmf_https` | `https://vmf.geo.tuwien.ac.at` | HTTPS | None | VMF1, VMF3, OROGRAPHY |
-| WUM | `wuhan_ftp` | `ftp://igs.gnsswhu.cn` | FTP | None | ORBIT, CLOCK, ERP |
+| WUM | `wuhan_ftp` | `ftp://igs.gnsswhu.cn` | FTP | None | ORBIT, CLOCK, ERP, BIA, ATTOBX, IONEX, RNX3_BRDC, LEAP_SEC, SAT_PARAMS |
 
 \* Not accessible from outside Korea.
 † Experimental Ginan products — not official IGS combined products.
@@ -187,8 +187,8 @@ such as ANTEX antenna calibrations.
 Website: <https://sideshow.jpl.nasa.gov/>
 
 JPL is one of the original seven IGS Analysis Centers (AC code `JPL`). Products
-include orbit, clock, ERP, bias, and ionosphere (GIM). Available via HTTPS at
-`sideshow.jpl.nasa.gov/pub/JPL_GNSS_Products/{GPSWEEK}/`.
+include orbit, clock, ERP, bias, ionosphere (GIM), troposphere, and SINEX. Available
+via HTTPS at `sideshow.jpl.nasa.gov/pub/jpligsac/{GPSWEEK}/`.
 
 ---
 
