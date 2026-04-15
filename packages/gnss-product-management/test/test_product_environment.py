@@ -3,13 +3,13 @@
 from pathlib import Path
 
 import pytest
-from gnss_management_specs.configs import (
+from gnss_product_management.factories import ProductRegistry
+from gpm_specs.configs import (
     CENTERS_RESOURCE_DIR,
     FORMAT_SPEC_YAML,
     META_SPEC_YAML,
     PRODUCT_SPEC_YAML,
 )
-from gnss_product_management.factories import ProductRegistry
 
 # ── Fixtures ──────────────────────────────────────────────────────
 

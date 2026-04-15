@@ -30,9 +30,9 @@ PROBE_DATE = datetime.datetime(2025, 1, 15, tzinfo=datetime.timezone.utc)
 
 CENTERS_DIR = (
     Path(__file__).parent.parent.parent.parent
-    / "gnss-management-specs"
+    / "gpm-specs"
     / "src"
-    / "gnss_management_specs"
+    / "gpm_specs"
     / "configs"
     / "centers"
 )

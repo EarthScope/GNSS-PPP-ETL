@@ -22,13 +22,6 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
-from gnss_management_specs.configs import (
-    CENTERS_RESOURCE_DIR,
-    FORMAT_SPEC_YAML,
-    LOCAL_SPEC_DIR,
-    META_SPEC_YAML,
-    PRODUCT_SPEC_YAML,
-)
 from gnss_product_management import (
     GNSSClient,
     WorkSpace,
@@ -37,6 +30,13 @@ from gnss_product_management.environments import ProductRegistry
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
+)
+from gpm_specs.configs import (
+    CENTERS_RESOURCE_DIR,
+    FORMAT_SPEC_YAML,
+    LOCAL_SPEC_DIR,
+    META_SPEC_YAML,
+    PRODUCT_SPEC_YAML,
 )
 
 from ..defaults import (

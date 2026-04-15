@@ -39,7 +39,7 @@ from gnss_product_management.factories.connection_pool import ConnectionPoolFact
 from gnss_product_management.specifications.remote.resource import Server
 from rich.table import Table
 
-from gnss_ppp_etl_cli import SIMPLE_HEAD, console, progress, summary
+from gpm_cli import SIMPLE_HEAD, console, progress, summary
 
 _SKIP_PRODUCTS: frozenset[str] = frozenset({"LEO_L1B"})
 _DEFAULT_DATE = "2025-01-15"

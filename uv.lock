@@ -16,9 +16,9 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "gnss-management-specs",
-    "gnss-ppp-etl-cli",
     "gnss-product-management",
+    "gpm-cli",
+    "gpm-specs",
     "pride-ppp",
 ]
 
@@ -827,34 +827,13 @@ wheels = [
 ]
 
 [[package]]
-name = "gnss-management-specs"
-source = { editable = "packages/gnss-management-specs" }
-
-[[package]]
-name = "gnss-ppp-etl-cli"
-version = "0.1.0"
-source = { editable = "packages/gnss-ppp-etl-cli" }
-dependencies = [
-    { name = "gnss-product-management" },
-    { name = "rich" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "gnss-product-management", editable = "packages/gnss-product-management" },
-    { name = "rich", specifier = ">=13.0" },
-    { name = "typer", specifier = ">=0.12" },
-]
-
-[[package]]
 name = "gnss-product-management"
 source = { editable = "packages/gnss-product-management" }
 dependencies = [
     { name = "aiohttp" },
     { name = "cloudpathlib", extra = ["s3"] },
     { name = "fsspec" },
-    { name = "gnss-management-specs" },
+    { name = "gpm-specs" },
     { name = "julian" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -872,7 +851,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.3" },
     { name = "cloudpathlib", extras = ["s3"], specifier = ">=0.18" },
     { name = "fsspec", specifier = ">=2024.0" },
-    { name = "gnss-management-specs", editable = "packages/gnss-management-specs" },
+    { name = "gpm-specs", editable = "packages/gpm-specs" },
     { name = "julian", specifier = ">=0.14" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -882,6 +861,27 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.0" }]
+
+[[package]]
+name = "gpm-cli"
+version = "0.1.0"
+source = { editable = "packages/gpm-cli" }
+dependencies = [
+    { name = "gnss-product-management" },
+    { name = "rich" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "gnss-product-management", editable = "packages/gnss-product-management" },
+    { name = "rich", specifier = ">=13.0" },
+    { name = "typer", specifier = ">=0.12" },
+]
+
+[[package]]
+name = "gpm-specs"
+source = { editable = "packages/gpm-specs" }
 
 [[package]]
 name = "identify"
@@ -1918,8 +1918,8 @@ wheels = [
 name = "pride-ppp"
 source = { editable = "packages/pride-ppp" }
 dependencies = [
-    { name = "gnss-management-specs" },
     { name = "gnss-product-management" },
+    { name = "gpm-specs" },
     { name = "julian" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1938,8 +1938,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gnss-management-specs", editable = "packages/gnss-management-specs" },
     { name = "gnss-product-management", editable = "packages/gnss-product-management" },
+    { name = "gpm-specs", editable = "packages/gpm-specs" },
     { name = "julian", specifier = ">=0.14" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.0" },
     { name = "pandas", specifier = ">=2.0" },

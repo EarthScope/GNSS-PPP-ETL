@@ -14,7 +14,7 @@ TestRemoteProbe
     matched.  Run with ``-m integration`` to include.
 
 The parametrize lists are built at import time by parsing the YAML files under
-gnss_management_specs, so new centers and products are picked up automatically.
+gpm_specs, so new centers and products are picked up automatically.
 """
 
 from __future__ import annotations
@@ -26,9 +26,9 @@ from pathlib import Path
 import pytest
 import yaml
 from conftest import _build_env
-from gnss_management_specs.configs import CENTERS_RESOURCE_DIR
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories import SearchPlanner
+from gpm_specs.configs import CENTERS_RESOURCE_DIR
 
 # ── Static reference table products not reachable on the standard test date ──
 # These are fetched by a different mechanism (static URL, no date directory).

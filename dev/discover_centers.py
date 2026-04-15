@@ -365,7 +365,7 @@ def main() -> None:
         print()
 
     print("Done. Add or update center YAML configs in:")
-    print("  packages/gnss-management-specs/src/gnss_management_specs/configs/centers/")
+    print("  packages/gpm-specs/src/gpm_specs/configs/centers/")
 
 
 if __name__ == "__main__":

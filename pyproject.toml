@@ -2,7 +2,7 @@
 members = ["packages/*"]
 
 [tool.uv.sources]
-gnss-management-specs = { workspace = true }
+gpm-specs = { workspace = true }
 gnss-product-management = { workspace = true }
 pride-ppp = { workspace = true }
 
@@ -23,7 +23,10 @@ docs = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/gnss-ppp-etl-cli/test"]
+testpaths = [
+    "packages/gnss-product-management/test",
+    "packages/gpm-cli/test",
+]
 addopts = "-v"
 markers = [
     "integration: tests that hit live servers (deselect with -m 'not integration')",

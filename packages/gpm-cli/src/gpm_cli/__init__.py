@@ -48,7 +48,7 @@ SIMPLE_HEAD = box.SIMPLE_HEAD
 # ── Root Typer app ────────────────────────────────────────────────────────────
 
 app = typer.Typer(
-    name="gnss",
+    name="gnssommelier",
     help=(
         "GNSS-PPP-ETL command-line interface.\n\n"
         "Manage configuration, search for IGS products, download them, resolve "

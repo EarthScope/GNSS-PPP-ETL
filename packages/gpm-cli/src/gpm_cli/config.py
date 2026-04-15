@@ -9,7 +9,7 @@ Config files use TOML format.  Resolution order (highest priority last):
 
 Usage::
 
-    from gnss_ppp_etl_cli.config import ConfigLoader, ENV_VAR, USER_CONFIG_PATH
+    from gpm_cli.config import ConfigLoader, ENV_VAR, USER_CONFIG_PATH
 
     cfg = ConfigLoader.load()
     client = GNSSClient.from_defaults(**cfg.to_client_kwargs())

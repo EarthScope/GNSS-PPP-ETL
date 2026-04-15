@@ -41,8 +41,8 @@ from gnss_product_management.factories.connection_pool import ConnectionPoolFact
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from gnss_ppp_etl_cli import SIMPLE_HEAD, console, progress, summary
-from gnss_ppp_etl_cli.config import ENV_VAR, USER_CONFIG_PATH, ConfigLoader
+from gpm_cli import SIMPLE_HEAD, console, progress, summary
+from gpm_cli.config import ENV_VAR, USER_CONFIG_PATH, ConfigLoader
 
 # ── flat-key → TOML-path mapping (for `gnss config set`) ────────────────────
 _FLAT_KEY_MAP: dict[str, tuple[str, ...]] = {
