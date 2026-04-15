@@ -156,4 +156,5 @@ def search(
 
 
 def _parse_date(s: str) -> datetime.datetime:
+    """Parse a ``YYYY-MM-DD`` string into a UTC-aware datetime."""
     return datetime.datetime.strptime(s, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)

@@ -49,6 +49,8 @@ _DEFAULT_DATE = "2025-01-15"
 
 
 class ConnStatus(str, Enum):
+    """Outcome of a server connectivity probe."""
+
     CONNECTED = "CONNECTED"
     AUTH_REQUIRED = "AUTH REQUIRED"
     UNREACHABLE = "UNREACHABLE"
@@ -56,6 +58,8 @@ class ConnStatus(str, Enum):
 
 
 class SearchStatus(str, Enum):
+    """Outcome of a product availability probe."""
+
     FOUND = "FOUND"
     NOT_FOUND = "NOT FOUND"
     SKIPPED = "SKIPPED"
@@ -64,6 +68,8 @@ class SearchStatus(str, Enum):
 
 @dataclass
 class ConnResult:
+    """Result of probing a single remote server."""
+
     server: Server
     centers: list[str]
     status: ConnStatus
@@ -73,6 +79,8 @@ class ConnResult:
 
 @dataclass
 class ProbeResult:
+    """Result of probing a single (center, product) pair."""
+
     center_id: str
     product_name: str
     status: SearchStatus
@@ -238,6 +246,7 @@ _SEARCH_MARKUP: dict[SearchStatus, str] = {
 
 
 def _connectivity_table(results: list[ConnResult]) -> Table:
+    """Build a Rich table summarising server connectivity results."""
     t = Table(box=SIMPLE_HEAD, header_style="bold", expand=False)
     t.add_column("Centers", style="bold cyan")
     t.add_column("Hostname")
@@ -261,6 +270,7 @@ def _connectivity_table(results: list[ConnResult]) -> Table:
 
 
 def _search_table(results: list[ProbeResult]) -> Table:
+    """Build a Rich table summarising product availability probe results."""
     t = Table(box=SIMPLE_HEAD, header_style="bold", expand=False)
     t.add_column("Center", style="bold cyan", min_width=8)
     t.add_column("Product", min_width=12)
@@ -286,6 +296,16 @@ def _search_table(results: list[ProbeResult]) -> Table:
 def _run_connectivity(
     center_filter: list[str] | None, workers: int, output_json: Path | None
 ) -> bool:
+    """Run connectivity probes against all matching servers in parallel.
+
+    Args:
+        center_filter: Restrict probes to these center IDs, or None for all.
+        workers: Number of concurrent probe threads.
+        output_json: Write JSON results to this path when provided.
+
+    Returns:
+        True if every server is reachable (CONNECTED or AUTH_REQUIRED).
+    """
     pairs = _unique_servers(center_filter)
     if not pairs:
         console.print("[red]No servers matched the given filters.[/red]")
@@ -367,6 +387,18 @@ def _run_product_search(
     workers: int,
     output_json: Path | None,
 ) -> bool:
+    """Search all matching (center, product) pairs for the given date in parallel.
+
+    Args:
+        date: UTC date string in ``YYYY-MM-DD`` format.
+        center_filter: Restrict to these center IDs, or None for all.
+        product_filter: Restrict to these product names, or None for all.
+        workers: Number of concurrent search threads.
+        output_json: Write JSON results to this path when provided.
+
+    Returns:
+        True if every probe returned FOUND (no NOT_FOUND or ERROR results).
+    """
     probe_date = datetime.datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
     pairs = _center_products(center_filter, product_filter)
     if not pairs:

@@ -13,4 +13,5 @@ app.command("probe")(probe)
 
 
 def main() -> None:
+    """Launch the gnssommelier CLI application."""
     app()

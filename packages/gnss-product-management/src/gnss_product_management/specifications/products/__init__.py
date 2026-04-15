@@ -1,4 +1,4 @@
-"""Author: Franklyn Dunbar"""
+"""Product specifications — product models, path templates, and version/variant catalogs."""
 
 from .product import (
     PathTemplate as PathTemplate,

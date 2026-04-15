@@ -1,4 +1,4 @@
-"""Author: Franklyn Dunbar"""
+"""Parameter specifications — typed metadata fields with regex patterns and compute functions."""
 
 from .parameter import (
     DerivationMethod,
