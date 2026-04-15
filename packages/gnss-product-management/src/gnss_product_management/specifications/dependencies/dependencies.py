@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Pure Pydantic models and result types for dependency specifications.
-"""
+"""Pure Pydantic models and result types for dependency specifications."""
 
 from __future__ import annotations
 

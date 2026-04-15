@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Pure Pydantic models for local storage specifications.
-"""
+"""Pure Pydantic models for local storage specifications."""
 
 from __future__ import annotations
 

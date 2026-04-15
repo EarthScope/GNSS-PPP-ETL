@@ -21,8 +21,8 @@
 ## Setup
 
 ```bash
-git clone https://github.com/EarthScope/GNSS-PPP-ETL.git
-cd GNSS-PPP-ETL
+git clone https://github.com/EarthScope/GNSSommelier.git
+cd GNSSommelier
 uv sync --all-packages
 ```
 
@@ -337,7 +337,7 @@ else:
 
 ### Bug reports
 
-Open an issue at [EarthScope/GNSS-PPP-ETL](https://github.com/EarthScope/GNSS-PPP-ETL/issues)
+Open an issue at [EarthScope/GNSSommelier](https://github.com/EarthScope/GNSSommelier/issues)
 and include:
 
 - The minimal code that reproduces the problem

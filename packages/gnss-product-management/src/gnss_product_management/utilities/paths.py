@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Path utilities — unified local/cloud path construction.
+"""Path utilities — unified local/cloud path construction.
 
 ``as_path`` is the single entry point for converting URI strings into the
 appropriate path object.  Callers never need to import :mod:`cloudpathlib`

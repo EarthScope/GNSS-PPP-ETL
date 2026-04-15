@@ -1,6 +1,6 @@
 # Overview
 
-GNSS-PPP-ETL automates the retrieval of IGS analysis center products required
+GNSSommelier automates the retrieval of IGS analysis center products required
 for Precise Point Positioning. Given a date and a product dependency
 specification, it resolves every required file across all registered centers,
 downloads and decompresses them into a structured local workspace, and records
@@ -127,8 +127,8 @@ where reproducibility matters.
 ## Installation
 
 ```bash
-git clone https://github.com/EarthScope/GNSS-PPP-ETL.git
-cd GNSS-PPP-ETL
+git clone https://github.com/EarthScope/GNSSommelier.git
+cd GNSSommelier
 uv sync --all-packages
 ```
 

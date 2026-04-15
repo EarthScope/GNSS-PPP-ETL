@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Environments — setup and configuration for product resolution.
+"""Environments — setup and configuration for product resolution.
 
 Provides the two core configuration objects:
 

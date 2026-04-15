@@ -12,15 +12,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
-# ── Paths ──────────────────────────────────────────────────────────
-from gnss_management_specs.configs import LOCAL_SPEC_DIR
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
 from gnss_product_management.specifications.dependencies.dependencies import (
     DependencySpec,
     ResolvedDependency,
 )
+
+# ── Paths ──────────────────────────────────────────────────────────
+from gpm_specs.configs import LOCAL_SPEC_DIR
 
 _TEST_RESOURCES = Path(__file__).resolve().parent / "resources"
 PRIDE_PPPAR_SPEC = _TEST_RESOURCES / "pride_pppar.yaml"

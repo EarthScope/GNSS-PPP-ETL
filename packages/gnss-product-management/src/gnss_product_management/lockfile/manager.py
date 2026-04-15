@@ -1,7 +1,4 @@
-"""
-Author: Franklyn Dunbar
-
-Lockfile manager — single facade for all lockfile operations.
+"""Lockfile manager — single facade for all lockfile operations.
 
 Provides a unified interface for checking, loading, saving, and
 sharing dependency lockfiles.  All callers (:class:`ResolvePipeline`,

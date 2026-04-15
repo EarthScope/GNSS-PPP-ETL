@@ -1,6 +1,6 @@
 # Documentation Index
 
-Master table of contents for the GNSS-PPP-ETL repository.
+Master table of contents for the GNSSommelier repository.
 
 ---
 

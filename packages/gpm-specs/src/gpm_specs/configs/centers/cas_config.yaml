@@ -14,17 +14,22 @@ servers:
     name: CAS GIPP FTP
     hostname: "ftp://ftp.gipp.org.cn"
     protocol: ftp
-    auth_required: false
+    auth_required: true
     description: >
       CAS GNSS Ionospheric Products and Positioning (GIPP) FTP server.
-      IONEX products under product/ionex/{YYYY}/{DDD}/.
-      High-rate (15 min) IONEX under product/ionex/15min/{YYYY}/{DDD}/.
-      DCB/OSB products under product/dcb/mgex/.
+      Externally inaccessible as of 2026-04 from outside China.
+      Diagnosis: IP resolves (123.57.20.171, Alibaba Cloud), ICMP pings succeed
+      (~270ms RTT), but FTP port 21 is silently dropped (TCP timeout). HTTP/HTTPS
+      ports accept TCP connections but return no response. Root cause: Chinese
+      network firewall (GFW) blocks FTP from foreign IPs; HTTP/HTTPS appear to be
+      behind a CDN/WAF that does not respond to international traffic.
+      Use CDDIS or IGN mirrors for CAS products instead (AAA=CAS entries available there).
 
 products:
   # ── Ionosphere (GIM) ───────────────────────────────────────────
   # CAS is one of the primary IGS IONEX producers alongside CODE, JPL, ESA.
   # CAS GIM is weighted in the IGS combined (IGSG) product.
+  # Access via this server requires Chinese network; use CDDIS/IGN instead.
   - id: cas_gim
     product_name: IONEX
     server_id: cas_gipp_ftp

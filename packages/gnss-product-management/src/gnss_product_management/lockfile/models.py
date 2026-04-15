@@ -1,7 +1,4 @@
-"""
-Author: Franklyn Dunbar
-
-Pydantic models for lockfile entries and dependency lockfiles.
+"""Pydantic models for lockfile entries and dependency lockfiles.
 
 Defines the data structures that represent a single resolved product
 (:class:`LockProduct`) and a collection of resolved products for one

@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-ResourceCatalog — resolve a ResourceSpec against a ProductCatalog into queryable products.
-"""
+"""ResourceCatalog — resolve a ResourceSpec against a ProductCatalog into queryable products."""
 
 from itertools import product as iterproduct
 

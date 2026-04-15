@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Connection pool — thread-safe fsspec filesystem instances per host.
-"""
+"""Connection pool — thread-safe fsspec filesystem instances per host."""
 
 import logging
 import os

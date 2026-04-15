@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Workspace management for local GNSS product storage.
+"""Workspace management for local GNSS product storage.
 
 Maps :class:`LocalResourceSpec` definitions (loaded from YAML) to concrete
 base directories on disk so that local resources can be queried through the
@@ -20,6 +18,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pydantic import BaseModel
+
 from gnss_product_management.specifications.local.local import LocalResourceSpec
 from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from gnss_product_management.specifications.products.catalog import ProductCatalog
@@ -30,7 +30,6 @@ from gnss_product_management.specifications.products.product import (
 from gnss_product_management.specifications.remote.resource import SearchTarget, Server
 from gnss_product_management.utilities.helpers import _ensure_datetime
 from gnss_product_management.utilities.paths import AnyPath, as_path
-from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from gnss_product_management.environments.environment import ProductRegistry

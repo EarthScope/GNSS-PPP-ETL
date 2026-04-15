@@ -1,9 +1,6 @@
 """Tests for infer_from_regex — reverse-parsing filenames via FormatRegistry."""
 
 import pytest
-
-# ── Paths ──────────────────────────────────────────────────────────
-from gnss_management_specs.configs import FORMAT_SPEC_YAML, META_SPEC_YAML
 from gnss_product_management.specifications.format.spec import (
     FormatRegistry,
     FormatSpecCollection,
@@ -16,6 +13,9 @@ from gnss_product_management.specifications.products.product import (
     PathTemplate,
     infer_from_regex,
 )
+
+# ── Paths ──────────────────────────────────────────────────────────
+from gpm_specs.configs import FORMAT_SPEC_YAML, META_SPEC_YAML
 
 # ── Fixtures ───────────────────────────────────────────────────────
 

@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-GNSSClient — high-level entry point for searching and downloading GNSS products.
-"""
+"""GNSSClient — high-level entry point for searching and downloading GNSS products."""
 
 from __future__ import annotations
 
@@ -11,7 +8,8 @@ from itertools import groupby
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from gnss_management_specs.configs import LOCAL_SPEC_DIR
+from gpm_specs.configs import LOCAL_SPEC_DIR
+
 from gnss_product_management.client.product_query import ProductQuery
 from gnss_product_management.defaults import DefaultProductEnvironment
 from gnss_product_management.environments import WorkSpace

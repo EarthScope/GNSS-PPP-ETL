@@ -1,30 +1,16 @@
-[project]
-name = "gnss-ppp-etl"
-version = "0.1.0"
-requires-python = ">=3.10,<3.15"
-dependencies = [
-    "cloudpathlib>=0.23.0",
-    "gnss-product-management>=0.1.0",
-    "pride-ppp>=0.1.0",
-    "pytest>=9.0.2",
-]
-
-[tool.uv.sources]
-gnss-management-specs = { workspace = true }
-gnss-product-management = { workspace = true }
-pride-ppp = { workspace = true }
-
-
 [tool.uv.workspace]
 members = ["packages/*"]
+
+[tool.uv.sources]
+gpm-specs = { workspace = true }
+gnss-product-management = { workspace = true }
+pride-ppp = { workspace = true }
 
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.1",
     "pre-commit-hooks>=4.6.0",
     "ruff>=0.15.8",
-    "rich>=13.0",
-    "typer>=0.12",
 ]
 test = [
   "pytest>=8",
@@ -34,6 +20,16 @@ docs = [
     "sphinx-rtd-theme>=2",
     "myst-parser>=3",
     "sphinx-autodoc-typehints>=2",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "packages/gnss-product-management/test",
+    "packages/gpm-cli/test",
+]
+addopts = "-v"
+markers = [
+    "integration: tests that hit live servers (deselect with -m 'not integration')",
 ]
 
 [tool.ruff]

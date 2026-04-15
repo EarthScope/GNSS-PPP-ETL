@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-SourcePlanner — common interface for local and remote search planners.
-"""
+"""SourcePlanner — common interface for local and remote search planners."""
 
 from __future__ import annotations
 

@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Raw Pydantic models and registry for format specifications.
+"""Raw Pydantic models and registry for format specifications.
 
 Two distinct types live here:
 
@@ -25,8 +23,9 @@ import re
 from pathlib import Path
 
 import yaml
-from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from gnss_product_management.specifications.parameters.parameter import ParameterCatalog
 
 
 class FormatFieldDef(BaseModel):

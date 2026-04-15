@@ -165,11 +165,13 @@ products:
     directory: {pattern: "pub/gps/products/ionex/{YYYY}/{DDD}/"}
 
   # ── SINEX weekly solutions ──────────────────────────────────────
+  # WUM does not publish its own SINEX solutions. The pub/gps/products/{GPSWEEK}/
+  # directory mirrors other AC SINEX files (EMR, ESA, etc.) but no WUM SNX.
   - id: wuhan_sinex
     product_name: SINEX
     server_id: wuhan_ftp
-    available: true
-    description: Wuhan University weekly station coordinate SINEX solutions
+    available: false
+    description: WUM weekly SINEX solutions — not published by WUM
     parameters:
       - {name: AAA, value: WUM}
       - {name: TTT, value: FIN}

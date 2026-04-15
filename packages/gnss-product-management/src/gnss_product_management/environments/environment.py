@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-ProductRegistry — builds the full catalog chain and manages remote resources.
+"""ProductRegistry — builds the full catalog chain and manages remote resources.
 
 Loads parameter, format, product, and resource specification YAMLs, then
 builds derived catalogs (``ParameterCatalog`` → ``FormatCatalog`` →
@@ -13,6 +11,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, NamedTuple
+
+from pydantic import BaseModel
 
 from gnss_product_management.specifications.format.format_spec import (
     FormatCatalog,
@@ -35,7 +35,6 @@ from gnss_product_management.specifications.remote.resource_catalog import (
     ResourceCatalog,
 )
 from gnss_product_management.utilities.metadata_funcs import register_computed_fields
-from pydantic import BaseModel
 
 
 class _MatchEntry(NamedTuple):

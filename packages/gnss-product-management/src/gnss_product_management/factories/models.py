@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Public return types and exceptions for the ProductRegistry API.
-"""
+"""Public return types and exceptions for the ProductRegistry API."""
 
 from __future__ import annotations
 
@@ -10,8 +7,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from gnss_product_management.utilities.paths import AnyPath
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+
+from gnss_product_management.utilities.paths import AnyPath
 
 if TYPE_CHECKING:
     from gnss_product_management.lockfile import ProductLockfile

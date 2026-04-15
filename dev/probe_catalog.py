@@ -1,24 +1,34 @@
 #!/usr/bin/env python3
-"""GNSS catalog probe — two operating modes.
+"""GNSS catalog dev utilities — three subcommands.
 
-Connectivity mode  (no --date, no --product)
-    Attempt a connection against every server registered in the specs using
-    the same ConnectionPoolFactory the library uses internally.  Reports
-    CONNECTED / AUTH REQUIRED / UNREACHABLE for each hostname.
+probe (default)
+    Probe remote servers and product availability.
 
-Product search mode  (--date and/or --product provided)
-    For every (center, product) pair declared in the specs, run a live
-    directory listing via GNSSClient and assert at least one file is found
-    for the requested date.
+    Connectivity mode  (no --date, no --product)
+        Attempt a connection against every server registered in the specs.
+        Reports CONNECTED / AUTH REQUIRED / UNREACHABLE for each hostname.
+
+    Product search mode  (--date and/or --product provided)
+        For every (center, product) pair, run a live directory listing via
+        GNSSClient and assert at least one file is found for the date.
+
+batch
+    Run PRIDE-PPP-AR on a set of RINEX observation files.  Products are
+    resolved once per unique date then pdp3 is dispatched concurrently.
 
 Usage
 -----
-    uv run dev/probe_catalog.py                                         # connectivity
-    uv run dev/probe_catalog.py --center WUM --center COD               # filtered connectivity
-    uv run dev/probe_catalog.py --date 2025-01-15                       # all products
-    uv run dev/probe_catalog.py --date 2025-01-15 --product ORBIT --product CLOCK
-    uv run dev/probe_catalog.py --date 2025-01-15 --center GFZ --workers 4
-    uv run dev/probe_catalog.py --date 2025-01-15 --json dev/results.json
+    # Connectivity probe
+    uv run dev/probe_catalog.py probe
+    uv run dev/probe_catalog.py probe --center WUM --center COD
+    # Product search probe
+    uv run dev/probe_catalog.py probe --date 2025-01-15
+    uv run dev/probe_catalog.py probe --date 2025-01-15 --product ORBIT --product CLOCK
+    uv run dev/probe_catalog.py probe --date 2025-01-15 --center GFZ --workers 4
+    uv run dev/probe_catalog.py probe --date 2025-01-15 --json dev/results.json
+    # Batch RINEX processing
+    uv run dev/probe_catalog.py batch *.rnx --pride-dir /data/pride --output-dir /data/out
+    uv run dev/probe_catalog.py batch /obs/*.rnx --mode final --workers 4 --json batch.json
 
 Exit code: 0 if all checks pass, 1 if any fail.
 
@@ -45,6 +55,7 @@ from gnss_product_management import FoundResource, GNSSClient
 from gnss_product_management.defaults import DefaultProductEnvironment
 from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
 from gnss_product_management.specifications.remote.resource import Server
+from pride_ppp import PrideProcessor, ProcessingMode, ProcessingResult
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
@@ -502,11 +513,230 @@ def _run_product_search(
     return not any(r.status in (SearchStatus.NOT_FOUND, SearchStatus.ERROR) for r in results)
 
 
+# ── Batch RINEX processing ────────────────────────────────────────────────────
+
+
+class ProcessingStatus(str, Enum):
+    SUCCESS = "SUCCESS"
+    CACHED = "CACHED"
+    FAILED = "FAILED"
+    ERROR = "ERROR"
+
+
+@dataclass
+class BatchResult:
+    rinex: Path
+    site: str
+    date: datetime.date | None
+    status: ProcessingStatus
+    kin_path: Path | None = None
+    wrms_mm: float | None = None
+    n_epochs: int = 0
+    elapsed: float = 0.0
+    error: str = ""
+
+
+_PROC_MARKUP: dict[ProcessingStatus, str] = {
+    ProcessingStatus.SUCCESS: "[bold green]SUCCESS[/bold green]",
+    ProcessingStatus.CACHED: "[bold cyan]CACHED[/bold cyan]",
+    ProcessingStatus.FAILED: "[bold red]FAILED[/bold red]",
+    ProcessingStatus.ERROR: "[bold yellow]ERROR[/bold yellow]",
+}
+
+
+def _batch_table(results: list[BatchResult]) -> Table:
+    t = Table(box=box.SIMPLE_HEAD, header_style="bold", expand=False)
+    t.add_column("RINEX", style="bold cyan")
+    t.add_column("Site", min_width=6)
+    t.add_column("Date", min_width=10)
+    t.add_column("Status", min_width=9)
+    t.add_column("Epochs", justify="right", min_width=7)
+    t.add_column("WRMS (mm)", justify="right", min_width=9)
+    t.add_column("Time", justify="right", min_width=6)
+    t.add_column("Output / Error")
+    for r in sorted(results, key=lambda r: (str(r.date), r.site)):
+        date_str = str(r.date) if r.date else "—"
+        epochs = str(r.n_epochs) if r.n_epochs else "—"
+        wrms = f"{r.wrms_mm:.2f}" if r.wrms_mm is not None else "—"
+        elapsed = f"{r.elapsed:.1f}s" if r.elapsed else "—"
+        if r.status in (ProcessingStatus.SUCCESS, ProcessingStatus.CACHED):
+            detail = f"[dim]{r.kin_path}[/dim]" if r.kin_path else "[dim]—[/dim]"
+        elif r.error:
+            detail = f"[yellow]{r.error[:80]}[/yellow]"
+        else:
+            detail = "[dim]—[/dim]"
+        t.add_row(
+            r.rinex.name,
+            r.site,
+            date_str,
+            _PROC_MARKUP[r.status],
+            epochs,
+            wrms,
+            elapsed,
+            detail,
+        )
+    return t
+
+
+def _extract_wrms(result: ProcessingResult) -> tuple[float | None, int]:
+    """Pull mean WRMS (mm) and epoch count from a ProcessingResult, if available."""
+    if not result.success:
+        return None, 0
+    try:
+        df = result.positions()
+        if df is None or df.empty:
+            return None, 0
+        n = len(df)
+        if "wrms" in df.columns:
+            vals = df["wrms"].dropna()
+            wrms = float(vals.mean()) if not vals.empty else None
+        else:
+            wrms = None
+        return wrms, n
+    except Exception:  # noqa: BLE001
+        return None, 0
+
+
+def _run_batch_rinex(
+    rinex_files: list[Path],
+    pride_dir: Path,
+    output_dir: Path,
+    mode: str,
+    workers: int,
+    override: bool,
+    output_json: Path | None,
+) -> bool:
+    if not rinex_files:
+        console.print("[red]No RINEX files provided.[/red]")
+        raise typer.Exit(1)
+
+    console.print()
+    console.rule(
+        f"[bold]Batch RINEX processing[/bold]  ·  {len(rinex_files)} files"
+        f"  ·  mode={mode}  ·  {workers} workers"
+    )
+    console.print()
+
+    try:
+        processing_mode = ProcessingMode(mode.upper())
+    except ValueError:
+        console.print(f"[red]Unknown mode '{mode}'. Choose 'default' or 'final'.[/red]")
+        raise typer.Exit(1)
+
+    processor = PrideProcessor(
+        pride_dir=pride_dir,
+        output_dir=output_dir,
+        mode=processing_mode,
+    )
+
+    results: list[BatchResult] = []
+    t0 = time.monotonic()
+
+    _ICON = {
+        ProcessingStatus.SUCCESS: "[green]✓[/green]",
+        ProcessingStatus.CACHED: "[cyan]~[/cyan]",
+        ProcessingStatus.FAILED: "[red]✗[/red]",
+        ProcessingStatus.ERROR: "[yellow]![/yellow]",
+    }
+
+    with _progress() as progress:
+        task = progress.add_task("[cyan]Processing...", total=len(rinex_files))
+        file_t0: float = time.monotonic()
+        for processing_result in processor.process_batch(
+            rinex_files, max_workers=workers, override=override
+        ):
+            elapsed = time.monotonic() - file_t0
+            file_t0 = time.monotonic()
+
+            wrms_mm, n_epochs = _extract_wrms(processing_result)
+
+            cached = processing_result.config_path.name == "(cached)"
+            if processing_result.success:
+                status = ProcessingStatus.CACHED if cached else ProcessingStatus.SUCCESS
+                error = ""
+            elif processing_result.returncode != 0:
+                status = ProcessingStatus.FAILED
+                error = (
+                    processing_result.stderr.strip().splitlines()[-1]
+                    if processing_result.stderr
+                    else ""
+                )
+            else:
+                status = ProcessingStatus.ERROR
+                error = (
+                    processing_result.stderr.strip().splitlines()[-1]
+                    if processing_result.stderr
+                    else "unknown error"
+                )
+
+            br = BatchResult(
+                rinex=processing_result.rinex_path,
+                site=processing_result.site,
+                date=processing_result.date,
+                status=status,
+                kin_path=processing_result.kin_path,
+                wrms_mm=wrms_mm,
+                n_epochs=n_epochs,
+                elapsed=elapsed,
+                error=error,
+            )
+            results.append(br)
+            progress.update(
+                task,
+                advance=1,
+                description=f"[cyan]Processing...[/cyan] {_ICON[status]} [dim]{processing_result.rinex_path.name}[/dim]",
+            )
+
+    elapsed_total = time.monotonic() - t0
+    console.print(_batch_table(results))
+
+    succeeded = sum(
+        1 for r in results if r.status in (ProcessingStatus.SUCCESS, ProcessingStatus.CACHED)
+    )
+    extra = []
+    if n := sum(1 for r in results if r.status == ProcessingStatus.CACHED):
+        extra.append(f"[cyan]~ {n} cached[/cyan]")
+    if n := sum(1 for r in results if r.status == ProcessingStatus.FAILED):
+        extra.append(f"[red]✗ {n} failed[/red]")
+    if n := sum(1 for r in results if r.status == ProcessingStatus.ERROR):
+        extra.append(f"[yellow]! {n} errors[/yellow]")
+    console.print(_summary(succeeded, len(results), extra, elapsed_total, "Batch summary"))
+
+    if output_json:
+        output_json.parent.mkdir(parents=True, exist_ok=True)
+        output_json.write_text(
+            json.dumps(
+                {
+                    "mode": "batch",
+                    "processing_mode": mode,
+                    "files": [
+                        {
+                            "rinex": str(r.rinex),
+                            "site": r.site,
+                            "date": str(r.date) if r.date else None,
+                            "status": r.status.value,
+                            "kin_path": str(r.kin_path) if r.kin_path else None,
+                            "wrms_mm": r.wrms_mm,
+                            "n_epochs": r.n_epochs,
+                            "elapsed_s": round(r.elapsed, 2),
+                            "error": r.error,
+                        }
+                        for r in sorted(results, key=lambda r: (str(r.date), r.site))
+                    ],
+                },
+                indent=2,
+            )
+        )
+        console.print(f"[dim]Results saved to {output_json}[/dim]\n")
+
+    return all(r.status in (ProcessingStatus.SUCCESS, ProcessingStatus.CACHED) for r in results)
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 
-@app.command()
-def main(
+@app.command("probe")
+def probe(
     date: Annotated[
         str | None,
         typer.Option("--date", help="UTC date (YYYY-MM-DD). Omit for connectivity-only mode."),
@@ -523,11 +753,60 @@ def main(
         Path | None, typer.Option("--json", help="Save results to JSON.")
     ] = None,
 ) -> None:
+    """Probe server connectivity or product availability in the GNSS catalog."""
     search_mode = date is not None or bool(product)
     ok = (
         _run_product_search(date or _DEFAULT_DATE, center, product, workers, output_json)
         if search_mode
         else _run_connectivity(center, workers, output_json)
+    )
+    if not ok:
+        raise typer.Exit(1)
+
+
+@app.command("batch")
+def batch_rinex(
+    rinex: Annotated[
+        list[Path],
+        typer.Argument(help="RINEX observation files to process."),
+    ],
+    pride_dir: Annotated[
+        Path,
+        typer.Option("--pride-dir", help="Root directory for PRIDE products and working state."),
+    ] = Path("pride"),
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output-dir", help="Directory for .kin / .res output files."),
+    ] = Path("output"),
+    mode: Annotated[
+        str,
+        typer.Option("--mode", help="Product timeliness mode: 'default' (FIN→RAP→ULT) or 'final'."),
+    ] = "default",
+    workers: Annotated[
+        int, typer.Option("--workers", help="Max concurrent pdp3 subprocesses.")
+    ] = 4,
+    override: Annotated[
+        bool,
+        typer.Option("--override/--no-override", help="Re-run pdp3 even when valid output exists."),
+    ] = False,
+    output_json: Annotated[
+        Path | None, typer.Option("--json", help="Save results summary to JSON.")
+    ] = None,
+) -> None:
+    """Batch-process RINEX files through PRIDE-PPP-AR.
+
+    Products are resolved once per unique date then pdp3 subprocesses are
+    dispatched in parallel.  Already-cached .kin outputs are skipped unless
+    --override is set.
+    """
+    ok = _run_batch_rinex(
+        rinex_files=rinex,
+        pride_dir=pride_dir,
+        output_dir=output_dir,
+        mode=mode,
+        workers=workers,
+        override=override,
+        output_json=output_json,
     )
     if not ok:
         raise typer.Exit(1)

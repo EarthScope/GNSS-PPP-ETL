@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-SearchPlanner — lazy narrowing query builder.
-"""
+"""SearchPlanner — lazy narrowing query builder."""
 
 import datetime
 import logging
