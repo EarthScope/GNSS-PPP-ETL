@@ -248,7 +248,7 @@ def kin_to_kin_position_df(source: str | Path) -> pd.DataFrame | None:
 
 
 def read_kin_data(kin_path):
-    """Read a ``.kin`` file into a DataFrame using fixed-width column specs.
+    r"""Read a ``.kin`` file into a DataFrame using fixed-width column specs.
 
     The column widths match the pdp3 output format (PRIDE-PPPAR 3).
     The resulting DataFrame is indexed by UTC timestamps derived from
@@ -262,7 +262,7 @@ def read_kin_data(kin_path):
     Returns
     -------
     pd.DataFrame
-        Fixed-width columns: Mjd, Sod, *, X, Y, Z, Latitude, Longitude,
+        Fixed-width columns: Mjd, Sod, \*, X, Y, Z, Latitude, Longitude,
         Height, Nsat, G (GPS sats), R (GLONASS), E (Galileo), C2 (BDS-2),
         C3 (BDS-3), J (QZSS), PDOP.  Indexed by UTC datetime derived from
         MJD + seconds-of-day.

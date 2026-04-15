@@ -9,6 +9,7 @@
   <title>Class Reference — gnss-product-management &mdash; GNSSommelier 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/autodoc_pydantic.css?v=a0a71c94" />
 
 
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -19,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Documentation Index" href="INDEX.html" />
+    <link rel="next" title="Examples" href="examples.html" />
     <link rel="prev" title="gnss-product-management Class Dependency Graph" href="gnss-product-management-classes.html" />
 </head>
 
@@ -44,6 +45,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ppp-products.html">GNSS PPP Product Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config-reference.html">YAML Configuration Reference</a></li>
@@ -91,12 +93,14 @@
 <li class="toctree-l2"><a class="reference internal" href="#full-dependency-graph-simplified">Full Dependency Graph (simplified)</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="INDEX.html">Documentation Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api/gnss-product-management.html">gnss-product-management API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/pride-ppp.html">pride-ppp API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/gpm-cli.html">gpm-cli API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/gpm-specs.html">gpm-specs API</a></li>
 </ul>
 
         </div>
@@ -130,7 +134,7 @@ grouped by architectural layer.</p>
 <hr class="docutils" />
 <section id="layer-0-configuration-utilities">
 <h2>Layer 0 — Configuration &amp; Utilities<a class="headerlink" href="#layer-0-configuration-utilities" title="Link to this heading"></a></h2>
-<p>Layer 0 contains no standalone classes — only module-level helpers and bundled YAML data. Low-level network I/O is handled at Layer 3 by <code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code> (via <code class="docutils literal notranslate"><span class="pre">fsspec</span></code>). See <a class="reference internal" href="#layer-6--utilities"><span class="xref myst">Layer 6 — Utilities</span></a> for the utility classes (<code class="docutils literal notranslate"><span class="pre">_PassthroughDict</span></code>, <code class="docutils literal notranslate"><span class="pre">IGSAntexReferenceFrameType</span></code>) and <a class="reference internal" href="#layer-3--factories-planners--transport"><span class="xref myst">Layer 3 — Factories, Planners &amp; Transport</span></a> for <code class="docutils literal notranslate"><span class="pre">ConnectionPool</span></code> / <code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code>.</p>
+<p>Layer 0 contains no standalone classes — only module-level helpers and bundled YAML data. Low-level network I/O is handled at Layer 3 by <code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code> (via <code class="docutils literal notranslate"><span class="pre">fsspec</span></code>). See <a class="reference internal" href="#layer-6-utilities"><span class="xref myst">Layer 6 — Utilities</span></a> for the utility classes (<code class="docutils literal notranslate"><span class="pre">_PassthroughDict</span></code>, <code class="docutils literal notranslate"><span class="pre">IGSAntexReferenceFrameType</span></code>) and <a class="reference internal" href="#layer-3-factories-planners-transport"><span class="xref myst">Layer 3 — Factories, Planners &amp; Transport</span></a> for <code class="docutils literal notranslate"><span class="pre">ConnectionPool</span></code> / <code class="docutils literal notranslate"><span class="pre">ConnectionPoolFactory</span></code>.</p>
 </section>
 <hr class="docutils" />
 <section id="layer-1-specifications-data-models">
@@ -894,7 +898,7 @@ LockfileManager
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="gnss-product-management-classes.html" class="btn btn-neutral float-left" title="gnss-product-management Class Dependency Graph" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="INDEX.html" class="btn btn-neutral float-right" title="Documentation Index" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from gnss_product_management.utilities.paths import AnyPath
 
 if TYPE_CHECKING:
-    from gnss_product_management.lockfile import ProductLockfile
+    from gnss_product_management.lockfile import DependencyLockFile
 
 
 class FoundResource(BaseModel):
@@ -104,7 +104,7 @@ class Resolution(BaseModel):
     paths: list[Path] = Field(
         default_factory=list, description="Local paths of all resolved products."
     )
-    lockfile: ProductLockfile | None = None
+    lockfile: DependencyLockFile | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 

@@ -1,12 +1,12 @@
 """gnssommelier download — download GNSS products to the configured base directory.
 
-Usage
------
-  gnssommelier download ORBIT --date 2025-01-15
-  gnssommelier download ORBIT CLOCK ERP --date 2025-01-15
-  gnssommelier download ORBIT --date 2025-01-15 --sources COD ESA
-  gnssommelier download ORBIT --date 2025-01-15 --dry-run
-  gnssommelier download ORBIT --date 2025-01-15 --where TTT=FIN
+Examples::
+
+    gnssommelier download ORBIT --date 2025-01-15
+    gnssommelier download ORBIT CLOCK ERP --date 2025-01-15
+    gnssommelier download ORBIT --date 2025-01-15 --sources COD ESA
+    gnssommelier download ORBIT --date 2025-01-15 --dry-run
+    gnssommelier download ORBIT --date 2025-01-15 --where TTT=FIN
 """
 
 from __future__ import annotations

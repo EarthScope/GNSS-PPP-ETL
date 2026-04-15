@@ -8,9 +8,9 @@ Master table of contents for the GNSSommelier repository.
 
 | Document | Description |
 |---|---|
-| [README](../README.md) | Project overview, quick start, supported products and centers |
-| [INSTALL](../INSTALL.md) | Installation instructions |
-| [LICENSE](../LICENSE) | Project license |
+| README | Project overview, quick start, supported products and centers |
+| INSTALL | Installation instructions |
+| LICENSE | Project license |
 
 ## Reference docs (`docs/`)
 
@@ -33,19 +33,17 @@ These READMEs live next to the code they describe (all under `packages/gnss-prod
 
 | Path | Topic |
 |---|---|
-| [`environments/README.md`](../packages/gnss-product-management/src/gnss_product_management/environments/README.md) | `ProductEnvironment` and `WorkSpace` usage |
-| [`factories/README.md`](../packages/gnss-product-management/src/gnss_product_management/factories/README.md) | Factory classes (query, resource, dependency) |
-| [`lockfile/README.md`](../packages/gnss-product-management/src/gnss_product_management/lockfile/README.md) | Lock-file tracking system |
-| [`server/README.md`](../packages/gnss-product-management/src/gnss_product_management/server/README.md) | FTP/HTTP/Local protocol adapters |
-| [`specifications/README.md`](../packages/gnss-product-management/src/gnss_product_management/specifications/README.md) | Pydantic domain models |
-| [`utilities/README.md`](../packages/gnss-product-management/src/gnss_product_management/utilities/README.md) | Date math, decompression, naming helpers |
+| `environments/` | `ProductEnvironment` and `WorkSpace` usage |
+| `factories/` | Factory classes (query, resource, dependency) |
+| `lockfile/` | Lock-file tracking system |
+| `specifications/` | Pydantic domain models |
+| `utilities/` | Date math, decompression, naming helpers |
 
 ## Examples
 
 | Package | Script | Description |
 |---|---|---|
 | gnss-product-management | [`search_products.py`](../packages/gnss-product-management/examples/search_products.py) | Search all centers for a product type |
-| gnss-product-management | [`resolve_dependencies.py`](../packages/gnss-product-management/examples/resolve_dependencies.py) | Resolve & download all dependencies |
 | gnss-product-management | [`download_from_center.py`](../packages/gnss-product-management/examples/download_from_center.py) | Download from a single center |
 | pride-ppp | [`process_rinex.py`](../packages/pride-ppp/examples/process_rinex.py) | Process one RINEX file end-to-end |
 | pride-ppp | [`batch_process.py`](../packages/pride-ppp/examples/batch_process.py) | Batch-process multiple RINEX files |

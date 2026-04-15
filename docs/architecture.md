@@ -1,6 +1,6 @@
 # gnss-product-management: Layers & Abstractions
 
-> Architecture blueprint for [`packages/gnss-product-management/src/gnss_product_management/`](../packages/gnss-product-management/src/gnss_product_management/)
+> Architecture blueprint for `packages/gnss-product-management/src/gnss_product_management/`
 
 ---
 

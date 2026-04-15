@@ -1,12 +1,12 @@
 """gnssommelier search — search for GNSS products across analysis centers.
 
-Usage
------
-  gnssommelier search ORBIT --date 2025-01-15
-  gnssommelier search ORBIT --date 2025-01-15 --where TTT=FIN --where AAA=COD
-  gnssommelier search ORBIT --date 2025-01-01 --to 2025-01-07
-  gnssommelier search ORBIT --date 2025-01-15 --sources COD ESA GFZ
-  gnssommelier search ORBIT --date 2025-01-15 --json results.json
+Examples::
+
+    gnssommelier search ORBIT --date 2025-01-15
+    gnssommelier search ORBIT --date 2025-01-15 --where TTT=FIN --where AAA=COD
+    gnssommelier search ORBIT --date 2025-01-01 --to 2025-01-07
+    gnssommelier search ORBIT --date 2025-01-15 --sources COD ESA GFZ
+    gnssommelier search ORBIT --date 2025-01-15 --json results.json
 """
 
 from __future__ import annotations

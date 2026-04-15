@@ -1,22 +1,21 @@
 """gnssommelier probe — check server connectivity or product availability.
 
-Usage
------
-  # Connectivity mode (no --date, no --product)
-  gnssommelier probe
-  gnssommelier probe --center WUM --center COD
+Examples::
 
-  # Product search mode (--date and/or --product provided)
-  gnssommelier probe --date 2025-01-15
-  gnssommelier probe --date 2025-01-15 --product ORBIT --product CLOCK
-  gnssommelier probe --date 2025-01-15 --center GFZ --workers 4
-  gnssommelier probe --date 2025-01-15 --json results.json
+    # Connectivity mode (no --date, no --product)
+    gnssommelier probe
+    gnssommelier probe --center WUM --center COD
+
+    # Product search mode (--date and/or --product provided)
+    gnssommelier probe --date 2025-01-15
+    gnssommelier probe --date 2025-01-15 --product ORBIT --product CLOCK
+    gnssommelier probe --date 2025-01-15 --center GFZ --workers 4
+    gnssommelier probe --date 2025-01-15 --json results.json
 
 Exit code: 0 if all checks pass, 1 if any fail.
 
-Notes
------
-CDDIS requires FTPS credentials in ~/.netrc:
+Note: CDDIS requires FTPS credentials in ~/.netrc::
+
     machine gdc.cddis.eosdis.nasa.gov login <user> password <pass>
 """
 

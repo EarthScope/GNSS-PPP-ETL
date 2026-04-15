@@ -20,6 +20,7 @@ docs = [
     "sphinx-rtd-theme>=2",
     "myst-parser>=3",
     "sphinx-autodoc-typehints>=2",
+    "autodoc-pydantic>=2",
 ]
 
 [tool.pytest.ini_options]
