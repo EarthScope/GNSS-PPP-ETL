@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Computed metadata field registrations for a :class:`ParameterCatalog`.
+"""Computed metadata field registrations for a :class:`ParameterCatalog`.
 
 Defines date-to-metadata transformations (``DDD``, ``GPSWEEK``, ``YYYY``,
 ``REFFRAME``, etc.) and :func:`register_computed_fields` which wires

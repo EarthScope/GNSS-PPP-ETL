@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Base class for Layer 2 catalog objects.
+"""Base class for Layer 2 catalog objects.
 
 All catalog classes must implement ``build()`` as a classmethod that
 constructs a fully-built instance from lower-layer specifications.

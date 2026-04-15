@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Format-variant specifications and FormatCatalog — resolves FormatVariantSpec → Product.
-"""
+"""Format-variant specifications and FormatCatalog — resolves FormatVariantSpec → Product."""
 
 from pathlib import Path
 

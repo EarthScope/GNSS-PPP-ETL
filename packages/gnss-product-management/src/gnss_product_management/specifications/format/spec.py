@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Raw Pydantic models and registry for format specifications.
+"""Raw Pydantic models and registry for format specifications.
 
 Two distinct types live here:
 

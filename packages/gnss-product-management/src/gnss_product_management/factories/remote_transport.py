@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-WormHole — protocol-agnostic file search and download.
-"""
+"""WormHole — protocol-agnostic file search and download."""
 
 import datetime
 import logging

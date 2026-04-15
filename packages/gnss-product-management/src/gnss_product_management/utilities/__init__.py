@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Utilities — domain helper functions for GNSS product metadata.
-"""
+"""Utilities — domain helper functions for GNSS product metadata."""
 
 from .metadata_funcs import IGSAntexReferenceFrameType, register_computed_fields
 from .paths import AnyPath, as_path

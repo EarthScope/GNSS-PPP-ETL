@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-ResolvePipeline — Find + Download + LockfileWriter in one call.
+"""ResolvePipeline — Find + Download + LockfileWriter in one call.
 
 High-level composition that resolves a :class:`DependencySpec` for a
 given date: finds resources, optionally downloads them, writes per-file

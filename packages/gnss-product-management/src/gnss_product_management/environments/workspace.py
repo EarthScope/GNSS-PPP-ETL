@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Workspace management for local GNSS product storage.
+"""Workspace management for local GNSS product storage.
 
 Maps :class:`LocalResourceSpec` definitions (loaded from YAML) to concrete
 base directories on disk so that local resources can be queried through the

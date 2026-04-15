@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-GNSSClient — high-level entry point for searching and downloading GNSS products.
-"""
+"""GNSSClient — high-level entry point for searching and downloading GNSS products."""
 
 from __future__ import annotations
 

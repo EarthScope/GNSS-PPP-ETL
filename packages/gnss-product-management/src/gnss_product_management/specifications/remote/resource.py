@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Server, ResourceSpec, SearchTarget — remote resource models (Layer 1).
-"""
+"""Server, ResourceSpec, SearchTarget — remote resource models (Layer 1)."""
 
 from pathlib import Path
 

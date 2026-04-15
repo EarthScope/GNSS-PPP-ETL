@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Parameter model and ParameterCatalog — replaces MetadataField + MetadataCatalog.
-"""
+"""Parameter model and ParameterCatalog — replaces MetadataField + MetadataCatalog."""
 
 import datetime
 import re

@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Default singleton instances for the GNSS PPP product environment.
+"""Default singleton instances for the GNSS PPP product environment.
 
 Constructs pre-configured :data:`DefaultProductEnvironment` and
 :data:`DefaultWorkSpace` from the bundled YAML specifications

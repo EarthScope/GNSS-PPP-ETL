@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Factories — Layer 2: query construction, resource discovery, and file fetching.
-"""
+"""Factories — Layer 2: query construction, resource discovery, and file fetching."""
 
 from gnss_product_management.environments import ProductRegistry, WorkSpace
 from gnss_product_management.factories.pipelines import (

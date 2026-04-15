@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-GNSS PPP Products — specification-driven product discovery and resolution.
-"""
+"""GNSS PPP Products — specification-driven product discovery and resolution."""
 
 # -- Primary public API -------------------------------------------------------
 from gnss_product_management.client import FoundResource, GNSSClient, ProductQuery  # noqa: F401

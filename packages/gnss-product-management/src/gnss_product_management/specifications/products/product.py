@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Core product models — PathTemplate, Product, and catalog hierarchies.
-"""
+"""Core product models — PathTemplate, Product, and catalog hierarchies."""
 
 import re
 from typing import Generic, TypeVar

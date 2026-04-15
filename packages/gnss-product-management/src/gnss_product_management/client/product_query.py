@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-ProductQuery — fluent builder for GNSS product search and download.
-"""
+"""ProductQuery — fluent builder for GNSS product search and download."""
 
 from __future__ import annotations
 

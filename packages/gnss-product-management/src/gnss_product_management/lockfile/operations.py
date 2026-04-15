@@ -1,7 +1,4 @@
-"""
-Author: Franklyn Dunbar
-
-Read, write, build, and validate lockfile entries.
+"""Read, write, build, and validate lockfile entries.
 
 Provides pure-function helpers for the lockfile lifecycle:
 

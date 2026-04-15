@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Configs — YAML file paths for the bundled config data.
+"""Configs — YAML file paths for the bundled config data.
 
 Provides absolute ``Path`` constants that point at the YAML specification
 files shipped inside this package.

@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-DownloadPipeline — found resource → local path.
+"""DownloadPipeline — found resource → local path.
 
 Fetches remote :class:`FoundResource` objects to the local workspace
 using :class:`WormHole` and :class:`SearchPlanner` for sink path

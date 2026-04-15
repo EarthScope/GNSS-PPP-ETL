@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-Public return types and exceptions for the ProductRegistry API.
-"""
+"""Public return types and exceptions for the ProductRegistry API."""
 
 from __future__ import annotations
 

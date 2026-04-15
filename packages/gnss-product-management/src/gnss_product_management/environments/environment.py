@@ -1,6 +1,4 @@
-"""Author: Franklyn Dunbar
-
-ProductRegistry — builds the full catalog chain and manages remote resources.
+"""ProductRegistry — builds the full catalog chain and manages remote resources.
 
 Loads parameter, format, product, and resource specification YAMLs, then
 builds derived catalogs (``ParameterCatalog`` → ``FormatCatalog`` →

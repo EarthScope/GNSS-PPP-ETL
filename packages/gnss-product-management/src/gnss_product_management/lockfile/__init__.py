@@ -1,7 +1,4 @@
-"""
-Author: Franklyn Dunbar
-
-Lockfile — models and I/O for reproducible product manifests.
+"""Lockfile — models and I/O for reproducible product manifests.
 
 This package provides Pydantic models and file-system operations for
 creating, reading, writing, and validating *lockfiles*.  A lockfile

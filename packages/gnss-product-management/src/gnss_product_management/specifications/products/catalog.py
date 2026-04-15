@@ -1,7 +1,4 @@
-"""Author: Franklyn Dunbar
-
-ProductSpec and ProductCatalog — resolve product specs against FormatCatalog.
-"""
+"""ProductSpec and ProductCatalog — resolve product specs against FormatCatalog."""
 
 import re
 
