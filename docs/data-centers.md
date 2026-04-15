@@ -1,8 +1,8 @@
 # GNSS Data Center Catalog
 
-All data centers and servers currently configured in the `gnss-management-specs` package.
+All data centers and servers currently configured in the `gpm-specs` package.
 Each center has a YAML config file under
-`packages/gnss-management-specs/src/gnss_management_specs/configs/centers/`.
+[`packages/gpm-specs/src/gpm_specs/configs/centers/`](../packages/gpm-specs/src/gpm_specs/configs/centers/).
 
 ---
 
@@ -10,24 +10,22 @@ Each center has a YAML config file under
 
 | ID | Full Name | Config File | Role |
 |----|-----------|-------------|------|
-| [BKG](#bkg) | Federal Agency for Cartography and Geodesy | `bkg_config.yaml` | IGS Global Data Center |
-| [CAS](#cas) | Chinese Academy of Sciences (GIPP) | `cas_config.yaml` | IGS Analysis Center |
-| [CDDIS](#cddis) | NASA Crustal Dynamics Data Information System | `cddis_config.yaml` | IGS Global Data Center |
-| [COD](#cod) | Center for Orbit Determination in Europe (AIUB) | `cod_config.yaml` | IGS Analysis Center |
-| [ESA](#esa) | European Space Agency / ESOC | `esa_config.yaml` | IGS Analysis Center |
-| [EUREF](#euref) | EUREF Permanent GNSS Network (EPN) | `euref_config.yaml` | European Regional DC |
-| [GA](#ga) | Geoscience Australia | `ga_config.yaml` | IGS Regional Data Center |
-| [GFZ](#gfz) | GFZ German Research Centre for Geosciences | `gfz_config.yaml` | IGS Analysis Center |
-| [GRGS](#grgs) | Groupe de Recherche de Géodésie Spatiale (CNES/CLS) | `grgs_config.yaml` | IGS Analysis Center |
-| [IGS](#igs) | International GNSS Service | `igs_config.yaml` | IGS Combined Products |
-| [JPL](#jpl) | NASA Jet Propulsion Laboratory | `jpl_config.yaml` | IGS Analysis Center |
-| [KASI](#kasi) | Korea Astronomy and Space Science Institute | `kasi_config.yaml` | IGS Global Data Center |
-| [NGII](#ngii) | National Geographic Information Institute (Korea) | `ngii_config.yaml` | IGS Regional Data Center |
-| [NRCan](#nrcan) | Natural Resources Canada (CSRS) | `nrcan_config.yaml` | IGS Analysis Center |
-| [SIO](#sio) | Scripps Institution of Oceanography / SOPAC | `sio_config.yaml` | IGS Analysis Center (defunct FTP) |
-| [TUG](#tug) | Graz University of Technology (ITSG) | `tug_config.yaml` | IGS Analysis Center |
-| [VMF](#vmf) | TU Wien — Vienna Mapping Functions | `vmf_config.yaml` | Troposphere Products |
-| [WUM](#wum) | Wuhan University GNSS Research Center | `wuhan_config.yaml` | IGS Analysis Center |
+| [BKG](#bkg) | Federal Agency for Cartography and Geodesy | [`bkg_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/bkg_config.yaml) | IGS Global Data Center |
+| [CAS](#cas) | Chinese Academy of Sciences (GIPP) | [`cas_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/cas_config.yaml) | IGS Analysis Center |
+| [CDDIS](#cddis) | NASA Crustal Dynamics Data Information System | [`cddis_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/cddis_config.yaml) | IGS Global Data Center |
+| [COD](#cod) | Center for Orbit Determination in Europe (AIUB) | [`cod_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/cod_config.yaml) | IGS Analysis Center |
+| [ESA](#esa) | European Space Agency / ESOC | [`esa_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/esa_config.yaml) | IGS Analysis Center |
+| [EUREF](#euref) | EUREF Permanent GNSS Network (EPN) | [`euref_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/euref_config.yaml) | European Regional DC |
+| [GFZ](#gfz) | GFZ German Research Centre for Geosciences | [`gfz_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/gfz_config.yaml) | IGS Analysis Center |
+| [GRGS](#grgs) | Groupe de Recherche de Géodésie Spatiale (CNES/CLS) | [`grgs_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/grgs_config.yaml) | IGS Analysis Center |
+| [IGS](#igs) | International GNSS Service | [`igs_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/igs_config.yaml) | IGS Combined Products |
+| [JPL](#jpl) | NASA Jet Propulsion Laboratory | [`jpl_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/jpl_config.yaml) | IGS Analysis Center |
+| [KASI](#kasi) | Korea Astronomy and Space Science Institute | [`kasi_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/kasi_config.yaml) | IGS Global Data Center |
+| [NGII](#ngii) | National Geographic Information Institute (Korea) | [`ngii_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/ngii_config.yaml) | IGS Regional Data Center |
+| [NRCan](#nrcan) | Natural Resources Canada (CSRS) | [`nrcan_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/nrcan_config.yaml) | IGS Analysis Center |
+| [TUG](#tug) | Graz University of Technology (ITSG) | [`tug_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/tug_config.yaml) | IGS Analysis Center |
+| [VMF](#vmf) | TU Wien — Vienna Mapping Functions | [`vmf_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/vmf_config.yaml) | Troposphere Products |
+| [WUM](#wum) | Wuhan University GNSS Research Center | [`wuhan_config.yaml`](../packages/gpm-specs/src/gpm_specs/configs/centers/wuhan_config.yaml) | IGS Analysis Center |
 
 ---
 

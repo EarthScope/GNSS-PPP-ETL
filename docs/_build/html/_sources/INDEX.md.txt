@@ -17,14 +17,16 @@ Master table of contents for the GNSSommelier repository.
 | Document | Description |
 |---|---|
 | [Architecture](architecture.md) | Five-layer architecture of `gnss-product-management` (boundaries, abstractions, resolution chain) |
-| [PPP Products](ppp-products.md) | GNSS product naming conventions, file formats, and product type catalogue |
+| [GNSS Products](gnss-products.md) | GNSS product naming conventions, file formats, and product type catalogue |
 | [Config Reference](config-reference.md) | Guide to the YAML configuration system (metadata, products, centers, local storage, dependencies, queries) |
 
 ## Package READMEs
 
 | Package | README | Description |
 |---|---|---|
-| `gnss-product-management` | [README](../packages/gnss-product-management/README.md) | Core library — YAML-driven product discovery, query expansion, dependency resolution (includes bundled YAML specs) |
+| `gpm-specs` | [README](../packages/gpm-specs/README.md) | Bundled YAML data — analysis center configs, product definitions, format specs, local storage layouts |
+| `gnss-product-management` | [README](../packages/gnss-product-management/README.md) | Core library — product discovery, query expansion, dependency resolution, download |
+| `gpm-cli` | [README](../packages/gpm-cli/README.md) | Command-line interface — `gnssommelier search`, `download`, `probe`, `config` |
 | `pride-ppp` | [README](../packages/pride-ppp/README.md) | PRIDE-PPPAR integration — RINEX in, kinematic positions out |
 
 ## Inline source READMEs

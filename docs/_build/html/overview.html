@@ -55,17 +55,19 @@
 <li class="toctree-l2"><a class="reference internal" href="#cloud-workspace">Cloud workspace</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#supported-products">Supported products</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#full-detail-gnss-products">Full detail: <span class="xref myst">GNSS Products</span></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#supported-analysis-centers">Supported analysis centers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">gnss-product-management: Layers &amp; Abstractions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ppp-products.html">GNSS PPP Product Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gnss-products.html">GNSS PPP Product Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config-reference.html">YAML Configuration Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data-centers.html">GNSS Data Center Catalog</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gnss-product-management-classes.html">gnss-product-management Class Dependency Graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="class-reference.html">Class Reference — gnss-product-management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="INDEX.html">Documentation Index</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -420,7 +422,9 @@ based on the URI scheme.</p>
 </tbody>
 </table>
 </section>
-<hr class="docutils" />
+<section id="full-detail-gnss-products">
+<h2>Full detail: <a class="reference internal" href="gnss-products.html"><span class="std std-doc">GNSS Products</span></a><a class="headerlink" href="#full-detail-gnss-products" title="Link to this heading"></a></h2>
+</section>
 <section id="supported-analysis-centers">
 <h2>Supported analysis centers<a class="headerlink" href="#supported-analysis-centers" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
@@ -432,40 +436,85 @@ based on the URI scheme.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>CDDIS</p></td>
-<td><p>NASA GSFC</p></td>
-<td><p>FTPS</p></td>
-<td><p>clock, GIM, leap seconds, navigation, orbit</p></td>
-</tr>
-<tr class="row-odd"><td><p>COD</p></td>
-<td><p>AIUB / Univ. Bern</p></td>
-<td><p>FTP</p></td>
-<td><p>bias, clock, ERP, GIM, orbit</p></td>
-</tr>
-<tr class="row-even"><td><p>ESA</p></td>
-<td><p>ESA/ESOC</p></td>
-<td><p>FTP</p></td>
-<td><p>clock, GIM, orbit</p></td>
-</tr>
-<tr class="row-odd"><td><p>GFZ</p></td>
-<td><p>GFZ Potsdam</p></td>
-<td><p>FTP</p></td>
-<td><p>clock, orbit</p></td>
-</tr>
-<tr class="row-even"><td><p>IGS</p></td>
-<td><p>IGN France / files.igs.org</p></td>
-<td><p>FTP / HTTPS</p></td>
-<td><p>ATX, bias, clock, ERP, navigation, OBX, orbit</p></td>
-</tr>
-<tr class="row-odd"><td><p>VMF</p></td>
-<td><p>TU Wien</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#bkg"><span class="std std-ref">BKG</span></a></p></td>
+<td><p>Federal Agency for Cartography and Geodesy</p></td>
 <td><p>HTTPS</p></td>
-<td><p>orography, VMF1, VMF3</p></td>
+<td><p>BIA, CLOCK, ERP, IONEX, ORBIT, RNX3_BRDC, SINEX</p></td>
 </tr>
-<tr class="row-even"><td><p>WUM</p></td>
-<td><p>Wuhan University</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#cas"><span class="std std-ref">CAS</span></a></p></td>
+<td><p>Chinese Academy of Sciences (GIPP)</p></td>
 <td><p>FTP</p></td>
-<td><p>bias, clock, ERP, GIM, leap seconds, navigation, OBX, orbit, sat_parameters</p></td>
+<td><p>BIA, IONEX</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#cddis"><span class="std std-ref">CDDIS</span></a></p></td>
+<td><p>NASA Crustal Dynamics Data Information System</p></td>
+<td><p>FTPS</p></td>
+<td><p>ATTOBX, BIA, CLOCK, ERP, IONEX, LEAP_SEC, ORBIT, RNX3_BRDC, SINEX, TROP</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#cod"><span class="std std-ref">COD</span></a></p></td>
+<td><p>Center for Orbit Determination in Europe (AIUB)</p></td>
+<td><p>FTP</p></td>
+<td><p>BIA, CLOCK, ERP, IONEX, ORBIT, SINEX, TROP</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#esa"><span class="std std-ref">ESA</span></a></p></td>
+<td><p>European Space Agency / ESOC</p></td>
+<td><p>FTP</p></td>
+<td><p>BIA, CLOCK, ERP, IONEX, ORBIT, SINEX</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#euref"><span class="std std-ref">EUREF</span></a></p></td>
+<td><p>EUREF Permanent GNSS Network (EPN)</p></td>
+<td><p>HTTPS</p></td>
+<td><p>SINEX</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#gfz"><span class="std std-ref">GFZ</span></a></p></td>
+<td><p>GFZ German Research Centre for Geosciences</p></td>
+<td><p>FTP</p></td>
+<td><p>BIA, CLOCK, ERP, ORBIT, SINEX, TROP</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#grgs"><span class="std std-ref">GRGS</span></a></p></td>
+<td><p>Groupe de Recherche de Géodésie Spatiale (CNES/CLS)</p></td>
+<td><p>FTP</p></td>
+<td><p>ATTOBX, BIA, CLOCK, ERP, ORBIT, SINEX</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#igs"><span class="std std-ref">IGS</span></a></p></td>
+<td><p>International GNSS Service</p></td>
+<td><p>FTP / HTTPS</p></td>
+<td><p>ATTATX, ATTOBX, BIA, CLOCK, ERP, IONEX, ORBIT, RNX3_BRDC, SINEX, TROP</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#jpl"><span class="std std-ref">JPL</span></a></p></td>
+<td><p>NASA Jet Propulsion Laboratory</p></td>
+<td><p>HTTPS</p></td>
+<td><p>BIA, CLOCK, ERP, IONEX, ORBIT, SINEX, TROP</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#kasi"><span class="std std-ref">KASI</span></a></p></td>
+<td><p>Korea Astronomy and Space Science Institute</p></td>
+<td><p>FTP</p></td>
+<td><p>ATTOBX, BIA, CLOCK, ERP, IONEX, ORBIT, RNX3_BRDC, SINEX</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#ngii"><span class="std std-ref">NGII</span></a></p></td>
+<td><p>National Geographic Information Institute (Korea)</p></td>
+<td><p>FTP</p></td>
+<td><p>RNX3_BRDC <em>(unavailable outside Korea)</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#nrcan"><span class="std std-ref">NRCan</span></a></p></td>
+<td><p>Natural Resources Canada (CSRS)</p></td>
+<td><p>FTP</p></td>
+<td><p>BIA, CLOCK, ERP, ORBIT, SINEX</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#tug"><span class="std std-ref">TUG</span></a></p></td>
+<td><p>Graz University of Technology (ITSG)</p></td>
+<td><p>FTPS</p></td>
+<td><p>ATTOBX, BIA, CLOCK, ERP, ORBIT</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="data-centers.html#vmf"><span class="std std-ref">VMF</span></a></p></td>
+<td><p>TU Wien — Vienna Mapping Functions</p></td>
+<td><p>HTTPS</p></td>
+<td><p>OROGRAPHY, VMF</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="data-centers.html#wum"><span class="std std-ref">WUM</span></a></p></td>
+<td><p>Wuhan University GNSS Research Center</p></td>
+<td><p>FTP</p></td>
+<td><p>ATTOBX, BIA, CLOCK, ERP, IONEX, LEAP_SEC, ORBIT, RNX3_BRDC, SAT_PARAMS, SINEX</p></td>
 </tr>
 </tbody>
 </table>

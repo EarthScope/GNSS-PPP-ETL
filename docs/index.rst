@@ -9,12 +9,13 @@ A Python monorepo for GNSS Precise Point Positioning (PPP) product management an
 
    overview
    architecture
-   ppp-products
+   gnss-products
    config-reference
    data-centers
    gnss-product-management-classes
    class-reference
    examples
+   INDEX
 
 .. toctree::
    :maxdepth: 2
