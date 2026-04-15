@@ -278,19 +278,30 @@ Full detail: [Architecture](architecture.md) · [Class Reference](class-referenc
 | LEAPSECOND | — | static | IERS leap-second table |
 | SAT\_PARAMETERS | — | static | Satellite mass, geometry, SRP metadata |
 
+
+Full detail: [GNSS Products](gnss-products.md)
 ---
 
 ## Supported analysis centers
 
 | Center | Institution | Protocol | Products |
-|---|---|---|---|
-| CDDIS | NASA GSFC | FTPS | clock, GIM, leap seconds, navigation, orbit |
-| COD | AIUB / Univ. Bern | FTP | bias, clock, ERP, GIM, orbit |
-| ESA | ESA/ESOC | FTP | clock, GIM, orbit |
-| GFZ | GFZ Potsdam | FTP | clock, orbit |
-| IGS | IGN France / files.igs.org | FTP / HTTPS | ATX, bias, clock, ERP, navigation, OBX, orbit |
-| VMF | TU Wien | HTTPS | orography, VMF1, VMF3 |
-| WUM | Wuhan University | FTP | bias, clock, ERP, GIM, leap seconds, navigation, OBX, orbit, sat_parameters |
+|--------|-------------|----------|---------|
+| [BKG](data-centers.md#bkg) | Federal Agency for Cartography and Geodesy | HTTPS | BIA, CLOCK, ERP, IONEX, ORBIT, RNX3\_BRDC, SINEX |
+| [CAS](data-centers.md#cas) | Chinese Academy of Sciences (GIPP) | FTP | BIA, IONEX |
+| [CDDIS](data-centers.md#cddis) | NASA Crustal Dynamics Data Information System | FTPS | ATTOBX, BIA, CLOCK, ERP, IONEX, LEAP\_SEC, ORBIT, RNX3\_BRDC, SINEX, TROP |
+| [COD](data-centers.md#cod) | Center for Orbit Determination in Europe (AIUB) | FTP | BIA, CLOCK, ERP, IONEX, ORBIT, SINEX, TROP |
+| [ESA](data-centers.md#esa) | European Space Agency / ESOC | FTP | BIA, CLOCK, ERP, IONEX, ORBIT, SINEX |
+| [EUREF](data-centers.md#euref) | EUREF Permanent GNSS Network (EPN) | HTTPS | SINEX |
+| [GFZ](data-centers.md#gfz) | GFZ German Research Centre for Geosciences | FTP | BIA, CLOCK, ERP, ORBIT, SINEX, TROP |
+| [GRGS](data-centers.md#grgs) | Groupe de Recherche de Géodésie Spatiale (CNES/CLS) | FTP | ATTOBX, BIA, CLOCK, ERP, ORBIT, SINEX |
+| [IGS](data-centers.md#igs) | International GNSS Service | FTP / HTTPS | ATTATX, ATTOBX, BIA, CLOCK, ERP, IONEX, ORBIT, RNX3\_BRDC, SINEX, TROP |
+| [JPL](data-centers.md#jpl) | NASA Jet Propulsion Laboratory | HTTPS | BIA, CLOCK, ERP, IONEX, ORBIT, SINEX, TROP |
+| [KASI](data-centers.md#kasi) | Korea Astronomy and Space Science Institute | FTP | ATTOBX, BIA, CLOCK, ERP, IONEX, ORBIT, RNX3\_BRDC, SINEX |
+| [NGII](data-centers.md#ngii) | National Geographic Information Institute (Korea) | FTP | RNX3\_BRDC *(unavailable outside Korea)* |
+| [NRCan](data-centers.md#nrcan) | Natural Resources Canada (CSRS) | FTP | BIA, CLOCK, ERP, ORBIT, SINEX |
+| [TUG](data-centers.md#tug) | Graz University of Technology (ITSG) | FTPS | ATTOBX, BIA, CLOCK, ERP, ORBIT |
+| [VMF](data-centers.md#vmf) | TU Wien — Vienna Mapping Functions | HTTPS | OROGRAPHY, VMF |
+| [WUM](data-centers.md#wum) | Wuhan University GNSS Research Center | FTP | ATTOBX, BIA, CLOCK, ERP, IONEX, LEAP\_SEC, ORBIT, RNX3\_BRDC, SAT\_PARAMS, SINEX |
 
 ---
 
