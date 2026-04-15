@@ -69,7 +69,7 @@ wires the bundled `gpm-specs` into pre-built singletons
 (`DefaultProductEnvironment`, `DefaultWorkSpace`); users who need a different
 spec set can build their own `ProductEnvironment` via its `add_*` methods.
 
-###gpm-cli
+### gpm-cli
 
 A `typer`-based CLI installed as the `gnssommelier` entry point. Provides subcommands
 for searching products across configured centers, downloading resolved
