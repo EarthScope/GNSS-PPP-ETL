@@ -4,7 +4,7 @@ import sys
 # Add all package src directories to path for autodoc
 sys.path.insert(0, os.path.abspath("../packages/gnss-product-management/src"))
 sys.path.insert(0, os.path.abspath("../packages/pride-ppp/src"))
-sys.path.insert(0, os.path.abspath("../packages/gnss-management-specs/src"))
+sys.path.insert(0, os.path.abspath("../packages/gpm-specs/src"))
 
 project = "GNSSommelier"
 author = "EarthScope"
