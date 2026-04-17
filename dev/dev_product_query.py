@@ -23,7 +23,7 @@ base_dir = Path.home() / "gnss-data"  # update for your environment
 client = GNSSClient.from_defaults(base_dir=base_dir)
 client.display()
 date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)
-query_agent = client.query().on(date)
+query_agent = client.product_query().on(date)
 
 # --- Search only -----------------------------------------------------------
 

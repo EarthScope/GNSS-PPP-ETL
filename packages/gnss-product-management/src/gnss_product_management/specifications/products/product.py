@@ -15,8 +15,8 @@ class PathTemplate(BaseModel):
     """A template pattern with ``{NAME}``-style placeholders, resolved via :meth:`derive`."""
 
     pattern: str = Field(description="A template pattern with {NAME}-style placeholders.")
-    value: str | None = Field(None, description="The resolved value after derivation.")
-    description: str | None = Field(None, description="A description of the path template.")
+    value: str | None = Field(default=None, description="The resolved value after derivation.")
+    description: str | None = Field(default=None, description="A description of the path template.")
 
     def derive(self, parameters: list[Parameter]) -> None:
         """Replace ``{PARAM}`` placeholders in *pattern* with parameter values.

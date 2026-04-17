@@ -208,7 +208,9 @@ def _probe_one(
         )
     t0 = time.monotonic()
     try:
-        results = client.query().for_product(product_name).on(date).sources(center_id).search()
+        results = (
+            client.product_query().for_product(product_name).on(date).sources(center_id).search()
+        )
         found = [r for r in results if r.filename]
         return ProbeResult(
             center_id=center_id,

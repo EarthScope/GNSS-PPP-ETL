@@ -89,7 +89,7 @@ def search(
     t0 = time.monotonic()
 
     try:
-        q = client.query().for_product(product)
+        q = client.product_query().for_product(product)
         if end_dt:
             q = q.on_range(start_dt, end_dt)
         else:

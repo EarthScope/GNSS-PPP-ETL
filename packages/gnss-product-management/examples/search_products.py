@@ -94,7 +94,7 @@ print(f"Searching for products on: {date.date()}\n")
 # object.  Calling ``.on(date)`` pins the date; subsequent ``.for_product()``
 # calls reuse the same date.
 # ---------------------------------------------------------------------------
-base_query = client.query().on(date)
+base_query = client.product_query().on(date)
 
 
 def print_results(label: str, results: list) -> None:

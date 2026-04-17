@@ -15,6 +15,7 @@ import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from typing import TYPE_CHECKING
 
 from gnss_product_management.environments import ProductRegistry, WorkSpace
 from gnss_product_management.factories.models import FoundResource
@@ -32,6 +33,9 @@ from gnss_product_management.specifications.dependencies.dependencies import (
     SearchPreference,
 )
 from gnss_product_management.utilities.paths import AnyPath, as_path
+
+if TYPE_CHECKING:
+    from gnss_product_management.networks.environment import NetworkEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -63,18 +67,22 @@ class ResolvePipeline:
         *,
         max_connections: int = 4,
         transport: WormHole | None = None,
+        network_env: NetworkEnvironment | None = None,
     ) -> None:
         from gnss_product_management.client.product_query import ProductQuery
 
         self._env = env
         self._workspace = workspace
-        transport = transport or WormHole(max_connections=max_connections, product_registry=env)
-        planner = SearchPlanner(product_registry=env, workspace=workspace)
-        self._query = ProductQuery(wormhole=transport, search_planner=planner)
+        self._transport = transport or WormHole(
+            max_connections=max_connections, product_registry=env
+        )
+        self._planner = SearchPlanner(product_registry=env, workspace=workspace)
+        self._network_env = network_env
+        self._query = ProductQuery(wormhole=self._transport, search_planner=self._planner)
         self._downloader = DownloadPipeline(
             env,
             workspace,
-            transport=transport,
+            transport=self._transport,
             max_connections=max_connections,
         )
 
@@ -130,6 +138,22 @@ class ResolvePipeline:
             return resolution, lf_path
 
         # --- Full resolution -------------------------------------------------
+        rinex_deps = [d for d in spec.dependencies if d.spec == "RINEX_OBS"]
+        product_deps = [d for d in spec.dependencies if d.spec != "RINEX_OBS"]
+
+        resolved: list[ResolvedDependency] = []
+
+        # RINEX_OBS deps are resolved sequentially via StationQuery.
+        for dep in rinex_deps:
+            rinex_results = self._resolve_rinex_obs(
+                dep=dep,
+                date=date,
+                sink_id=sink_id,
+                centers=centers,
+            )
+            resolved.extend(rinex_results)
+
+        # IGS product deps are resolved in parallel as before.
         resolve_one = partial(
             self._resolve_one,
             date=date,
@@ -139,7 +163,7 @@ class ResolvePipeline:
             download=download,
         )
         with ThreadPoolExecutor(max_workers=15) as executor:
-            resolved = list(executor.map(resolve_one, spec.dependencies))
+            resolved.extend(executor.map(resolve_one, product_deps))
 
         resolution = DependencyResolution(spec_name=spec.name, resolved=resolved)
 
@@ -152,6 +176,78 @@ class ResolvePipeline:
         return resolution, lf_path
 
     # -- Internal ------------------------------------------------------------
+
+    def _resolve_rinex_obs(
+        self,
+        dep: Dependency,
+        *,
+        date: datetime.datetime,
+        sink_id: str,
+        centers: list[str] | None,
+    ) -> list[ResolvedDependency]:
+        """Resolve a RINEX_OBS dependency via :class:`StationQuery`.
+
+        Returns one :class:`ResolvedDependency` per successfully
+        downloaded station file, or a single ``"missing"`` entry.
+        """
+        from gnss_product_management.client.station_query import StationQuery
+
+        missing = [ResolvedDependency(spec=dep.spec, required=dep.required, status="missing")]
+
+        if self._network_env is None:
+            logger.warning("RINEX_OBS dep skipped — no network_env on ResolvePipeline.")
+            return missing
+
+        if dep.stations is None and dep.station_spatial is None:
+            logger.warning("RINEX_OBS dep has neither 'stations' nor 'station_spatial'.")
+            return missing
+
+        # Center priority: dep.constraints["AAA"] > run(centers=...) > all registered.
+        dep_center = dep.constraints.get("AAA")
+        effective_centers = (
+            [dep_center]
+            if dep_center
+            else list(centers)
+            if centers
+            else self._network_env.registry.network_ids
+        )
+
+        sq = (
+            StationQuery(
+                wormhole=self._transport,
+                search_planner=self._planner,
+                network_env=self._network_env,
+            )
+            .on(date)
+            .rinex_version(dep.rinex_version)
+            .networks(*effective_centers)
+        )
+
+        if dep.stations is not None:
+            sq = sq.from_stations(*dep.stations)
+        else:
+            spatial = dep.build_spatial_filter()
+            sq = sq.within(spatial.lat, spatial.lon, spatial.radius_km)
+
+        try:
+            downloaded = sq.download(sink_id=sink_id)
+        except Exception as exc:
+            logger.warning("RINEX_OBS resolution failed: %s", exc)
+            return missing
+
+        if not downloaded:
+            return missing
+
+        return [
+            ResolvedDependency(
+                spec=fr.filename,
+                required=dep.required,
+                status="downloaded",
+                local_path=str(fr.local_path),
+                remote_url=fr.uri,
+            )
+            for fr in downloaded
+        ]
 
     def _resolve_one(
         self,

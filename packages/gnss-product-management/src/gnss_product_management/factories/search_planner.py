@@ -2,8 +2,15 @@
 
 import datetime
 import logging
+from typing import Literal
 
 from gnss_product_management.environments import ProductRegistry, WorkSpace
+from gnss_product_management.environments.gnss_station_network import (
+    GNSSNetworkRegistry,
+    GNSSStation,
+)
+from gnss_product_management.factories.protocols import QueryPlanner
+from gnss_product_management.specifications.parameters.parameter import Parameter
 from gnss_product_management.specifications.products.product import (
     PathTemplate,
     Product,
@@ -14,6 +21,14 @@ from gnss_product_management.specifications.remote.resource import SearchTarget
 from gnss_product_management.utilities.helpers import _listify, expand_dict_combinations
 
 logger = logging.getLogger(__name__)
+
+# Maps the short variant codes used in the public API to the variant key
+# stored in the ProductCatalog (sourced from the format spec YAML).
+_RINEX_VARIANT_NAMES: dict[str, str] = {
+    "OBS": "observation",
+    "NAV": "navigation",
+    "MET": "meteorological",
+}
 
 
 class SearchPlanner:
@@ -47,6 +62,7 @@ class SearchPlanner:
         self,
         product_registry: ProductRegistry,
         workspace: WorkSpace,
+        gnss_network_registry: GNSSNetworkRegistry | None = None,
     ):
         """Initialise the search planner.
 
@@ -54,10 +70,125 @@ class SearchPlanner:
             product_registry: Built :class:`ProductRegistry` with
                 catalogs and remote resource catalogs ready.
             workspace: :class:`WorkSpace` with registered local resources.
+            gnss_network_registry: Optional network registry for station queries.
         """
         self._product_registry: ProductRegistry = product_registry
+        self._gnss_network_registry = gnss_network_registry
         self._workspace: WorkSpace = workspace
         self._workspace.bind(product_registry)
+        if gnss_network_registry is not None:
+            gnss_network_registry.bind(product_registry)
+
+    def get_product_templates(
+        self,
+        product_name_query: str,
+        product_version_query: list[str] | str,
+        product_variant_query: list[str] | str,
+    ) -> list[Product]:
+        """Get product templates matching the query product spec and parameter constraints.
+
+        Args:
+            product_name: Name of the product.
+            versions: List of versions of the product.
+            variants: List of variants of the product.
+        Returns:
+            A list of :class:`Product` templates matching the query spec.
+        Raises:
+            ValueError: If the product, version, or variant is not found.
+        """
+        product_version_query = _listify(product_version_query)
+        product_variant_query = _listify(product_variant_query)
+        product_templates = []
+        product_version_catalog: VersionCatalog | None = (
+            self._product_registry._product_catalog.products.get(product_name_query)
+        )
+        if product_version_catalog is None:
+            raise ValueError(f"Product {product_name_query!r} not found in ProductCatalog")
+        versions = product_version_query or list(product_version_catalog.versions.keys())
+        for version in versions:
+            variant_cat: VariantCatalog | None = product_version_catalog.versions.get(version)
+            if variant_cat is None:
+                raise ValueError(
+                    f"Version {version!r} not found for product {product_name_query!r}"
+                )
+            variants = product_variant_query or list(variant_cat.variants.keys())
+            for variant in variants:
+                if variant not in variant_cat.variants:
+                    raise ValueError(
+                        f"Variant {variant!r} not found for product {product_name_query!r} version {version!r}"
+                    )
+                product_templates.append(variant_cat.variants[variant].model_copy(deep=True))
+        return product_templates
+
+    def update_templates_with_date_fields(
+        self,
+        templates: list[Product],
+        date: datetime.datetime,
+    ) -> list[Product]:
+        """Update product templates with date-resolved parameter values.
+
+        Args:
+            templates: List of product templates to update.
+            date: Target date for resolving computed metadata fields.
+
+        Returns:
+            List of updated product templates with date-resolved parameters.
+        """
+        for template in templates:
+            update_date_params = self._product_registry._parameter_catalog.resolve_params(
+                template.parameters, date
+            )
+            template.parameters = update_date_params
+
+    def narrow_parameters(
+        self,
+        templates: list[Product],
+        parameter_constraints: dict[str, str | list[str]],
+    ) -> list[Product]:
+        """Narrow product templates by substituting parameter constraints.
+
+        Args:
+            templates: List of product templates to narrow.
+            parameter_constraints: User constraints on metadata fields.  Unset
+                fields remain as wildcard regex patterns.
+
+        Returns:
+            List of narrowed product templates with substituted parameter values.
+        """
+        narrowed_templates = []
+        for name, values in parameter_constraints.items():
+            parameter_constraints[name] = _listify(values)
+
+        if parameter_constraints:
+            parameter_combinations = expand_dict_combinations(parameter_constraints)
+            for template in templates:
+                for combo in parameter_combinations:
+                    updated = template.model_copy(deep=True)
+                    for k, v in combo.items():
+                        param_index = next(
+                            (i for i, p in enumerate(updated.parameters) if p.name == k),
+                            None,
+                        )
+                        if param_index is not None:
+                            updated.parameters[param_index].value = v
+                        else:
+                            updated.parameters.append(
+                                Parameter(
+                                    name=k,
+                                    value=v,
+                                    pattern=None,
+                                    description=None,
+                                    derivation=None,
+                                    compute=None,
+                                )
+                            )
+                    if updated.filename is not None:
+                        updated.filename.derive(updated.parameters)
+                    narrowed_templates.append(updated)
+        else:
+            narrowed_templates = templates
+
+        return narrowed_templates
 
     def get(
         self,
@@ -71,8 +202,9 @@ class SearchPlanner:
 
         Args:
             date: Target date for computed metadata fields.
-            product: Product query dict with ``name``, optionally
-                ``version`` and ``variant``.
+            product_name: Name of the product.
+            version: Optional version of the product.
+            variant: Optional variant of the product.
             parameters: User constraints on metadata fields.  Unset
                 fields remain as wildcard regex patterns.
             local_resources: If given, restrict to these local collection IDs.
@@ -96,55 +228,17 @@ class SearchPlanner:
         product_version_query = _listify(product.get("version"))
         product_variant_query = _listify(product.get("variant"))
 
-        product_version_catalog: VersionCatalog | None = (
-            self._product_registry._product_catalog.products.get(product_name_query)
+        product_templates = self.get_product_templates(
+            product_name_query=product_name_query,
+            product_version_query=product_version_query,
+            product_variant_query=product_variant_query,
         )
-        if product_version_catalog is None:
-            raise ValueError(f"Product {product_name_query!r} not found in ProductCatalog")
-        versions = product_version_query or list(product_version_catalog.versions.keys())
-        for version in versions:
-            variant_cat: VariantCatalog | None = product_version_catalog.versions.get(version)
-            if variant_cat is None:
-                raise ValueError(
-                    f"Version {version!r} not found for product {product_name_query!r}"
-                )
-            variants = product_variant_query or list(variant_cat.variants.keys())
-            for variant in variants:
-                if variant not in variant_cat.variants:
-                    raise ValueError(
-                        f"Variant {variant!r} not found for product {product_name_query!r} version {version!r}"
-                    )
-                product_templates.append(variant_cat.variants[variant].model_copy(deep=True))
 
         # 2. Resolve date fields via ParameterCatalog
-        for template in product_templates:
-            update_date_params = self._product_registry._parameter_catalog.resolve_params(
-                template.parameters, date
-            )
-            template.parameters = update_date_params
+        self.update_templates_with_date_fields(product_templates, date)
 
         # 3. Narrow parameter ranges by query constraints
-        product_templates_1: list[Product] = []
-        for name, values in parameters.items():
-            parameters[name] = _listify(values)
-
-        if parameters:
-            parameter_combinations = expand_dict_combinations(parameters)
-            for template in product_templates:
-                for combo in parameter_combinations:
-                    updated = template.model_copy(deep=True)
-                    for k, v in combo.items():
-                        param_index = next(
-                            (i for i, p in enumerate(updated.parameters) if p.name == k),
-                            None,
-                        )
-                        if param_index is not None:
-                            updated.parameters[param_index].value = v
-                    if updated.filename is not None:
-                        updated.filename.derive(updated.parameters)
-                    product_templates_1.append(updated)
-        else:
-            product_templates_1 = product_templates
+        product_templates_1: list[Product] = self.narrow_parameters(product_templates, parameters)
 
         # 5.1 Local resources
         local_out = self.build_queries_from_planner(
@@ -184,7 +278,7 @@ class SearchPlanner:
     def build_queries_from_planner(
         templates: list[Product],
         date: datetime.datetime,
-        query_planner: WorkSpace | ProductRegistry,
+        query_planner: QueryPlanner,
         resource_selection: list[str] | None = None,
     ) -> list[SearchTarget]:
         """Build search queries from a given planner and resource selection.
@@ -218,9 +312,107 @@ class SearchPlanner:
                     )
                     continue
                 for rq in resolved_queries:
-                    resolved_dir: str = query_planner._parameter_catalog.interpolate(
-                        rq.directory.pattern, date, computed_only=True
-                    )
-                    rq.directory = PathTemplate(pattern=resolved_dir)
+                    if query_planner._parameter_catalog is not None:
+                        resolved_dir: str = query_planner._parameter_catalog.interpolate(
+                            rq.directory.pattern, date, computed_only=True
+                        )
+                        rq.directory = PathTemplate(pattern=resolved_dir)
                     out.append(rq)
+        return out
+
+    def get_stations(
+        self,
+        date: datetime.datetime,
+        version: Literal["2", "3", "4"],
+        stations: list[GNSSStation] | None = None,
+        station_ids: list[str] | str | None = None,
+        variant: Literal["OBS", "NAV", "MET"] = "OBS",
+        network_ids: list[str] | str | None = None,
+        local_resource_ids: list[str] | str | None = None,
+        country_codes: list[str] | str | None = None,
+    ) -> list[SearchTarget]:
+        """Build per-station RINEX search targets for the given date and RINEX version.
+
+        Searches both local workspace resources and registered GNSS networks.
+        Station codes are sourced from *stations* (resolved :class:`GNSSStation`
+        objects) and/or explicit *station_ids*.  Filename patterns and directory
+        templates come from the product catalog and network/workspace configs —
+        no RINEX naming convention is hardcoded here.
+
+        Args:
+            date: Target date (timezone-aware).
+            version: RINEX version — ``"2"``, ``"3"``, or ``"4"``.
+            stations: Pre-resolved station objects; ``site_code`` is used as SSSS.
+            station_ids: Explicit 4-char station codes to include.
+            variant: RINEX file type — ``"OBS"``, ``"NAV"``, or ``"MET"``.
+                Defaults to ``"OBS"``.
+            network_ids: Restrict GNSS network search to these network IDs.
+                ``None`` searches all registered networks.
+            local_resource_ids: Restrict local search to these workspace resource
+                IDs.  ``None`` searches all registered local resources.
+            country_codes: Pin the ``CCC`` parameter (3-char data center/agency).
+
+        Returns:
+            A list of :class:`SearchTarget` objects — one per station × resource
+            × matching product spec combination.
+
+        Raises:
+            ValueError: If *version* or *variant* is not recognised.
+        """
+        if version not in {"2", "3", "4"}:
+            raise ValueError(f"Unsupported RINEX version: {version!r}")
+        if variant not in {"OBS", "NAV", "MET"}:
+            raise ValueError(f"Unsupported RINEX variant: {variant!r}")
+
+        catalog_variant = _RINEX_VARIANT_NAMES[variant]
+        product_templates = self.get_product_templates(
+            product_name_query=f"RINEX_{variant}",
+            product_version_query=_listify(version),
+            product_variant_query=[catalog_variant],
+        )
+        self.update_templates_with_date_fields(product_templates, date)
+
+        # Pin version and collect station codes from both sources.
+        parameter_constraints: dict[str, str | list[str]] = {"V": version}
+        codes: list[str] = []
+        if stations:
+            codes.extend(s.site_code for s in stations)
+        if station_ids:
+            codes.extend(_listify(station_ids))
+        if codes:
+            parameter_constraints["SSSS"] = codes
+        if country_codes:
+            parameter_constraints["CCC"] = _listify(country_codes)
+
+        narrowed = self.narrow_parameters(product_templates, parameter_constraints)
+
+        out: list[SearchTarget] = []
+
+        # Local workspace resources.
+        local_out = self.build_queries_from_planner(
+            templates=narrowed,
+            date=date,
+            query_planner=self._workspace,
+            resource_selection=_listify(local_resource_ids),
+        )
+        out.extend(local_out)
+
+        # GNSS network resources.
+        if self._gnss_network_registry is not None:
+            network_out = self.build_queries_from_planner(
+                templates=narrowed,
+                date=date,
+                query_planner=self._gnss_network_registry,
+                resource_selection=_listify(network_ids),
+            )
+            out.extend(network_out)
+
+        # Replace any unresolved placeholders with their regex patterns.
+        for rq in out:
+            for param in rq.product.parameters:
+                if param.value is None:
+                    param.value = param.pattern
+            if rq.product.filename is not None:
+                rq.product.filename.derive(rq.product.parameters)
+
         return out

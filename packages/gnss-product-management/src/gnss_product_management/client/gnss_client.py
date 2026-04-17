@@ -11,8 +11,10 @@ from typing import TYPE_CHECKING
 from gpm_specs.configs import LOCAL_SPEC_DIR
 
 from gnss_product_management.client.product_query import ProductQuery
-from gnss_product_management.defaults import DefaultProductEnvironment
+from gnss_product_management.client.station_query import StationQuery
+from gnss_product_management.defaults import DefaultNetworkEnvironment, DefaultProductEnvironment
 from gnss_product_management.environments import WorkSpace
+from gnss_product_management.environments.gnss_station_network import GNSSNetworkRegistry
 from gnss_product_management.factories.models import FoundResource
 from gnss_product_management.factories.pipelines.download import DownloadPipeline
 from gnss_product_management.factories.pipelines.resolve import ResolvePipeline
@@ -72,15 +74,21 @@ class GNSSClient:
         product_registry: ProductRegistry,
         workspace: WorkSpace,
         *,
+        network_registry: GNSSNetworkRegistry | None = None,
         max_connections: int = 4,
     ) -> None:
 
         self._product_registry = product_registry
         self._workspace = workspace
+        self._network_registry = network_registry
         self._transport = WormHole(
             max_connections=max_connections, product_registry=product_registry
         )
-        self._planner = SearchPlanner(product_registry=product_registry, workspace=workspace)
+        self._planner = SearchPlanner(
+            product_registry=product_registry,
+            workspace=workspace,
+            gnss_network_registry=network_registry,
+        )
         self._query = ProductQuery(wormhole=self._transport, search_planner=self._planner)
         self._downloader = DownloadPipeline(
             product_registry,
@@ -140,6 +148,7 @@ class GNSSClient:
         return cls(
             product_registry=DefaultProductEnvironment,
             workspace=workspace,
+            network_registry=DefaultNetworkEnvironment,
             max_connections=max_connections,
         )
 
@@ -148,7 +157,29 @@ class GNSSClient:
         self._product_registry.display()
         self._workspace.display()
 
-    def query(self) -> ProductQuery:
+    def station_query(self) -> StationQuery:
+        """Return a fluent :class:`StationQuery` builder.
+
+        Use to search for GNSS station metadata and RINEX observation files::
+
+            stations = (
+                client.station_query()
+                .within(64.9, -147.5, 150.0)
+                .centers("ERT")
+                .on(date)
+                .metadata()
+            )
+
+        Returns:
+            A :class:`StationQuery` bound to this client.
+        """
+        return StationQuery(
+            wormhole=self._transport,
+            search_planner=self._planner,
+            network_env=self._network_registry or DefaultNetworkEnvironment,
+        )
+
+    def product_query(self) -> ProductQuery:
         """Return a fluent :class:`ProductQuery` builder.
 
         This is the preferred entry point for building searches.  Chain
@@ -156,7 +187,7 @@ class GNSSClient:
         or :meth:`ProductQuery.download` to execute::
 
             results = (
-                client.query()
+                client.product_query()
                 .for_product("ORBIT")
                 .on(date)
                 .where(TTT="FIN")
@@ -311,5 +342,6 @@ class GNSSClient:
             env=self._product_registry,
             workspace=self._workspace,
             transport=self._transport,
+            network_env=DefaultNetworkEnvironment,
         )
         return pipeline.run(dep_spec, date, sink_id=sink_id)

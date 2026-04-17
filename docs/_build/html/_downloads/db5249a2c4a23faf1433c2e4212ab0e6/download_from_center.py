@@ -85,7 +85,7 @@ date = datetime.datetime(2025, 1, 2, tzinfo=datetime.timezone.utc)
 print("\n=== Example A: Search → Inspect → Download ===\n")
 
 results = (
-    client.query()
+    client.product_query()
     .for_product("ORBIT")
     .on(date)
     .where(TTT="FIN")
@@ -132,7 +132,7 @@ else:
 print("\n=== Example B: Single-chain search + download ===\n")
 
 paths = (
-    client.query()
+    client.product_query()
     .for_product("CLOCK")
     .on(date)
     .where(TTT="FIN")

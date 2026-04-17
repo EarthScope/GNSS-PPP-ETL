@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Path is kept for DependencySpec.from_yaml signature compatibility
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SearchPreference(BaseModel):
@@ -28,6 +28,73 @@ class Dependency(BaseModel):
     required: bool = True
     description: str = ""
     constraints: dict[str, str] = Field(default_factory=dict)
+
+    # RINEX_OBS-specific fields
+    stations: list[str] | None = Field(
+        default=None,
+        description="Explicit station codes for RINEX_OBS deps (requires .centers to be set).",
+    )
+    station_spatial: dict | None = Field(
+        default=None,
+        description=(
+            "GeoJSON Point geometry with required 'radius_km' for spatial RINEX_OBS queries."
+        ),
+    )
+    rinex_version: str = Field(
+        default="3",
+        description="RINEX version: '2' or '3'.  Only used for RINEX_OBS deps.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_rinex_obs_fields(self) -> Dependency:
+        """Enforce RINEX_OBS field constraints."""
+        has_stations = self.stations is not None
+        has_spatial = self.station_spatial is not None
+
+        if (has_stations or has_spatial) and self.spec != "RINEX_OBS":
+            raise ValueError(
+                f"'stations' and 'station_spatial' are only valid when spec='RINEX_OBS'; "
+                f"got spec={self.spec!r}."
+            )
+
+        if has_stations and has_spatial:
+            raise ValueError(
+                "RINEX_OBS dependency cannot have both 'stations' and 'station_spatial' "
+                "set at the same time.  Use exactly one."
+            )
+
+        return self
+
+    def build_spatial_filter(self):
+        """Build a :class:`PointRadius` from the GeoJSON ``station_spatial`` dict.
+
+        Only ``type: "Point"`` geometries are supported; ``BoundingBox`` is
+        not expressible in the YAML format.
+
+        Returns:
+            A :class:`PointRadius` instance.
+
+        Raises:
+            ValueError: If ``station_spatial`` is ``None`` or has an
+                unsupported GeoJSON type.
+        """
+        if self.station_spatial is None:
+            raise ValueError("station_spatial is not set.")
+        from gnss_product_management.environments.gnss_station_network import PointRadius
+
+        geo = self.station_spatial
+        geo_type = geo.get("type", "")
+        if geo_type == "Point":
+            coords = geo.get("coordinates", [])
+            if len(coords) < 2:
+                raise ValueError("GeoJSON Point must have [lon, lat] coordinates.")
+            lon, lat = float(coords[0]), float(coords[1])
+            radius_km = float(geo.get("radius_km", 0.0))
+            return PointRadius(lat=lat, lon=lon, radius_km=radius_km)
+        raise ValueError(
+            f"Unsupported GeoJSON type for station_spatial: {geo_type!r}. "
+            "Only 'Point' is supported."
+        )
 
 
 class DependencySpec(BaseModel):

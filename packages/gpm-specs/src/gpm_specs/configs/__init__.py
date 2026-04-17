@@ -18,6 +18,8 @@ LOCAL_SPEC_DIR = _CONFIGS_DIR / "local"
 QUERY_SPEC_YAML = _CONFIGS_DIR / "query" / "query_config.yaml"
 # Directory containing per-center resource YAMLs.
 CENTERS_RESOURCE_DIR = _CONFIGS_DIR / "centers"
+# Directory containing network station query YAMLs.
+NETWORKS_RESOURCE_DIR = _CONFIGS_DIR / "networks"
 # Directory containing dependency specification YAMLs.
 DEPENDENCY_SPEC_DIR = _CONFIGS_DIR / "dependencies"
 # Path to the format specification YAML.
@@ -28,6 +30,7 @@ __all__ = [
     "LOCAL_SPEC_DIR",
     "QUERY_SPEC_YAML",
     "CENTERS_RESOURCE_DIR",
+    "NETWORKS_RESOURCE_DIR",
     "DEPENDENCY_SPEC_DIR",
     "FORMAT_SPEC_YAML",
 ]

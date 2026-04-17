@@ -91,7 +91,7 @@ def download(
     all_results = []
     for prod in products:
         try:
-            q = client.query().for_product(prod).on(target_dt)
+            q = client.product_query().for_product(prod).on(target_dt)
             if params:
                 q = q.where(**params)
             if center_ids:

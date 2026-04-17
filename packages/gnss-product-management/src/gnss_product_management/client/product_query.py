@@ -154,6 +154,7 @@ class ProductQuery:
             ``self`` for chaining.
         """
         clone = copy.copy(self)
+        clone._parameters = dict(clone._parameters)
         clone._parameters.update(parameters)
         return clone
 
@@ -210,6 +211,7 @@ class ProductQuery:
             ``self`` for chaining.
         """
         clone = copy.copy(self)
+        clone._preferences = list(clone._preferences)
         for param, sorting in kwargs.items():
             if isinstance(sorting, str):
                 sorting = [sorting]

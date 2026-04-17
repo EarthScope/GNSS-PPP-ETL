@@ -23,16 +23,25 @@ class ConnectionPool:
         max_connections: Maximum number of concurrent connections.
     """
 
-    def __init__(self, hostname: str, max_connections: int = 4):
+    def __init__(
+        self,
+        hostname: str,
+        max_connections: int = 4,
+        filesystem: "fsspec.AbstractFileSystem | None" = None,
+    ):
         """Initialise a connection pool for *hostname*.
 
         Args:
             hostname: Server address or local path.
             max_connections: Maximum number of concurrent connections.
+            filesystem: Optional pre-built fsspec filesystem to use instead of
+                auto-connecting.  Useful for injecting authenticated filesystems
+                (e.g. HTTPS with Bearer tokens).
         """
         self.hostname = hostname
         self.protocol = fsspec.utils.get_protocol(hostname) or "file"
         self.max_connections = max_connections
+        self._injected_filesystem = filesystem
         self._pool: list[fsspec.AbstractFileSystem] = []
         self._semaphore: threading.Semaphore | None = None
         self._pool_lock = threading.Lock()
@@ -45,6 +54,9 @@ class ConnectionPool:
         Returns:
             A filesystem instance, or ``None`` on failure.
         """
+        if self._injected_filesystem is not None:
+            return self._injected_filesystem
+
         if self.protocol == "file":
             try:
                 return fsspec.filesystem("file")
@@ -191,15 +203,24 @@ class ConnectionPoolFactory:
         self._listing_cache: dict[str, list[str]] = {}
         self._listing_cache_lock = threading.Lock()
 
-    def add_connection(self, hostname: str):
+    def add_connection(
+        self,
+        hostname: str,
+        filesystem: "fsspec.AbstractFileSystem | None" = None,
+    ):
         """Ensure a connection pool exists for *hostname*.
 
         Args:
             hostname: Server address to pool.
+            filesystem: Optional pre-built fsspec filesystem to inject.  When
+                provided the pool uses this instance instead of auto-connecting,
+                enabling authenticated access (e.g. Bearer-token HTTPS).
         """
         with self._factory_lock:
             if hostname not in self._pools:
-                self._pools[hostname] = ConnectionPool(hostname, self.max_connections)
+                self._pools[hostname] = ConnectionPool(
+                    hostname, self.max_connections, filesystem=filesystem
+                )
 
     @contextmanager
     def get_connection(self, hostname: str):
@@ -262,9 +283,15 @@ class ConnectionPoolFactory:
             with pool.get_connection() as conn:
                 try:
                     return _cache(_ls(conn))
+                except PermissionError as e:
+                    # 401/403 — auth failure, retrying with the same credentials won't help.
+                    logger.warning("Permission denied listing %s on %s: %s", directory, hostname, e)
+                    return []
+                except FileNotFoundError:
+                    # 404 / local path missing — directory does not exist, no retry.
+                    return []
                 except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
                     if pool.protocol == "file":
-                        # Local dir doesn't exist — not a transient failure, no retry.
                         return []
                     logger.debug("Stale connection for %s, reconnecting: %s", hostname, e)
                     fresh = pool.replace_connection(conn)
@@ -272,6 +299,8 @@ class ConnectionPoolFactory:
                         return []
                     try:
                         return _cache(_ls(fresh))
+                    except (PermissionError, FileNotFoundError):
+                        return []
                     except Exception as e2:
                         logger.warning("Retry failed listing %s on %s: %s", directory, hostname, e2)
                         return []
@@ -344,6 +373,13 @@ class ConnectionPoolFactory:
         with pool.get_connection() as conn:
             try:
                 return _get(conn)
+            except PermissionError as e:
+                logger.warning(
+                    "Permission denied downloading %s from %s: %s", remote_path, hostname, e
+                )
+                return None
+            except FileNotFoundError:
+                return None
             except (BrokenPipeError, ConnectionError, EOFError, OSError) as e:
                 logger.debug("Stale connection for %s, reconnecting: %s", hostname, e)
                 fresh = pool.replace_connection(conn)
@@ -351,6 +387,8 @@ class ConnectionPoolFactory:
                     return None
                 try:
                     return _get(fresh)
+                except (PermissionError, FileNotFoundError):
+                    return None
                 except Exception as e2:
                     logger.warning(
                         "Retry failed downloading %s from %s: %s",

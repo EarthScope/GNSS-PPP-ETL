@@ -1,0 +1,60 @@
+id: ERT
+name: EarthScope GAGE network
+description: >
+  EarthScope GAGE continuously operating GNSS station archive.
+  Station metadata is sourced from the UNAVCO radius-search API (public).
+  RINEX observation files are retrieved from gage-data.earthscope.org (requires token).
+
+servers:
+  - id: earthscope_archive
+    hostname: "https://gage-data.earthscope.org"
+    protocol: https
+    auth_required: true
+    description: EarthScope GAGE RINEX archive (requires EARTHSCOPE_TOKEN or earthscope-sdk login)
+
+products:
+  - id: earthscope_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: earthscope_archive
+    available: true
+    description: RINEX 2 observation files from EarthScope GAGE.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "archive/gnss/rinex/obs/{YYYY}/{DDD}/"}
+
+
+  - id: earthscope_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: earthscope_archive
+    available: true
+    description: RINEX 3 observation files from EarthScope GAGE.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "/archive/gnss/data/daily/rinex3/obs/{YYYY}/{DDD}/"}
+
+  - id: earthscope_rinex2_nav
+    product_name: RINEX_NAV
+    server_id: earthscope_archive
+    available: true
+    description: RINEX 2 navigation files from EarthScope GAGE.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "archive/gnss/rinex/nav/{YYYY}/{DDD}/"}
+
+  - id: earthscope_rinex3_nav
+    product_name: RINEX_NAV
+    server_id: earthscope_archive
+    available: true
+    description: RINEX 3 navigation files from EarthScope GAGE.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "archive/gnss/rinex3/nav/{YYYY}/{DDD}/"}
+
+  - id: earthscope_rinex2_met
+    product_name: RINEX_MET
+    server_id: earthscope_archive
+    available: true
+    description: RINEX 2 meteorological files from EarthScope GAGE.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "archive/gnss/rinex/met/{YYYY}/{DDD}/"}

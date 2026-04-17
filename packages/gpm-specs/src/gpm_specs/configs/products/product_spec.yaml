@@ -11,22 +11,22 @@ products:
       - format: RINEX
         version: "2"
         constraints:
-          T: \b[dot]\b
+          T: "[dot]"
         variant: observation
 
 
       - format: RINEX
         version: "3"
         constraints:
-          T: \b[ONM]\b
-          D: \b[GRECEJSM]\b
+          T: "[ONM]"
+          D: "[GRECEJSM]"
         variant: observation
 
       - format: RINEX
         version: "4"
         constraints:
-          T: \b[ONM]\b
-          D: \b[GRECEJSM]\b
+          T: "[ONM]"
+          D: "[GRECEJSM]"
         variant: observation
 
   RINEX_NAV:
@@ -37,21 +37,21 @@ products:
       - format: RINEX
         version: "2"
         constraints:
-          T: \b[ngh]\b
+          T: "[ngh]"
         variant: navigation
 
       - format: RINEX
         version: "3"
         constraints:
-          T: \b[ON]\b
-          D: \b[GRECEJSM]\b
+          T: "[ON]"
+          D: "[GRECEJSM]"
         variant: navigation
 
       - format: RINEX
         version: "4"
         constraints:
-          T: \b[ON]\b
-          D: \b[GRECEJSM]\b
+          T: "[ON]"
+          D: "[GRECEJSM]"
         variant: navigation
 
   RINEX_MET:
@@ -69,14 +69,14 @@ products:
         version: "3"
         constraints:
           T: M
-          D: \b[GRECEJSM]\b
+          D: "[GRECEJSM]"
         variant: meteorological
 
       - format: RINEX
         version: "4"
         constraints:
           T: M
-          D: \b[GRECEJSM]\b
+          D: "[GRECEJSM]"
         variant: meteorological
 
   ORBIT:

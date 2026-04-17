@@ -16,10 +16,12 @@ from gpm_specs.configs import (
     FORMAT_SPEC_YAML,
     LOCAL_SPEC_DIR,
     META_SPEC_YAML,
+    NETWORKS_RESOURCE_DIR,
     PRODUCT_SPEC_YAML,
 )
 
 from gnss_product_management.environments import ProductRegistry, WorkSpace
+from gnss_product_management.environments.gnss_station_network import GNSSNetworkRegistry
 
 # Pre-built environment with all bundled parameter, format, product, and center specs.
 DefaultProductEnvironment = ProductRegistry()
@@ -29,6 +31,18 @@ DefaultProductEnvironment.add_product_spec(PRODUCT_SPEC_YAML)
 for path in Path(CENTERS_RESOURCE_DIR).glob("*.yaml"):
     DefaultProductEnvironment.add_resource_spec(path)
 DefaultProductEnvironment.build()
+
+# Pre-built network registry with all bundled network configs.
+DefaultNetworkRegistry = GNSSNetworkRegistry.from_config(NETWORKS_RESOURCE_DIR)
+DefaultNetworkRegistry.bind(DefaultProductEnvironment)
+
+# Register concrete protocol implementations.
+from gnss_product_management.defaults.earthscope import EarthScopeProtocol  # noqa: E402
+
+DefaultNetworkRegistry.register_protocol(EarthScopeProtocol())
+
+# Backward-compatible alias.
+DefaultNetworkEnvironment = DefaultNetworkRegistry
 
 # Workspace pre-loaded with local resource layout specs.
 DefaultWorkSpace = WorkSpace()

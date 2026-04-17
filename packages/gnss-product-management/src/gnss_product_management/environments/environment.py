@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 from pydantic import BaseModel
+from rich import box
+from rich.console import Console
+from rich.table import Table
 
 from gnss_product_management.specifications.format.format_spec import (
     FormatCatalog,
@@ -506,10 +509,6 @@ class ProductRegistry:
 
         Requires the ``rich`` package (bundled as a project dependency).
         """
-        from rich import box
-        from rich.console import Console
-        from rich.table import Table
-
         console = Console()
 
         if self._product_catalog is not None:
