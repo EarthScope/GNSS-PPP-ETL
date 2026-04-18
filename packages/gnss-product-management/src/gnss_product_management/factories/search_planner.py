@@ -413,7 +413,9 @@ class SearchPlanner:
                 for srv in cfg.servers:
                     server_to_network[srv.id] = nid
             network_out = self._filter_by_data_center(
-                network_out, stations or [], server_to_network,
+                network_out,
+                stations or [],
+                server_to_network,
             )
             out.extend(network_out)
 
@@ -460,14 +462,10 @@ class SearchPlanner:
         """
         # Build site_code → (preferred_server_id, network_id) mapping.
         site_to_dc: dict[str, str] = {
-            s.site_code: s.data_center
-            for s in stations
-            if s.data_center is not None
+            s.site_code: s.data_center for s in stations if s.data_center is not None
         }
         site_to_network: dict[str, str] = {
-            s.site_code: s.network_id
-            for s in stations
-            if s.network_id is not None
+            s.site_code: s.network_id for s in stations if s.network_id is not None
         }
         if not site_to_dc:
             return targets
@@ -506,7 +504,11 @@ class SearchPlanner:
                 continue
 
             # Within the correct network: apply data-center routing.
-            avail = network_server_ids.get(station_nid, all_server_ids) if station_nid else all_server_ids
+            avail = (
+                network_server_ids.get(station_nid, all_server_ids)
+                if station_nid
+                else all_server_ids
+            )
             if dc not in avail:
                 # Data center not configured — keep all same-network targets as
                 # fallback (e.g. JPL/PGC/GA/SIO stations fall back to CDDIS).

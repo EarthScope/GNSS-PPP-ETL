@@ -74,10 +74,6 @@ class GNSSStation(BaseModel):
     end_date: datetime.date | None = None
     data_center: str | None = None
 
-    @model_validator(mode="after")
-    def _site_code_upper(self) -> GNSSStation:
-        self.site_code = self.site_code.upper()
-        return self
 
 class PointRadius(BaseModel):
     """Great-circle spatial filter: all stations within *radius_km* of a point."""

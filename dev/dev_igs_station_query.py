@@ -26,13 +26,7 @@ lon = -147.499
 radius_km = 1000.0
 
 # ── Build the query ───────────────────────────────────────────────────────
-sq = (
-    client.station_query()
-    .networks("IGS")
-    .within(lat, lon, radius_km)
-    .rinex_version("3")
-    .on(date)
-)
+sq = client.station_query().networks("IGS").within(lat, lon, radius_km).rinex_version("3").on(date)
 
 # ── 1. Station metadata ──────────────────────────────────────────────────
 print("\n── IGS station metadata ────────────────────────────────")

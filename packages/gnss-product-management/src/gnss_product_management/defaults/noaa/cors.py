@@ -1,8 +1,8 @@
 from datetime import datetime
 from pathlib import Path
-import numpy as np
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 from shapely.geometry import Point
 
@@ -26,30 +26,30 @@ class NOAA_CORSCollection:
         geometry = [Point(x, y) for x, y in zip(df["x"], df["y"])]
         return gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326")
 
+
 class NOAACORSProtocol(NetworkProtocol):
     id = "CORS"
 
     def __init__(self) -> None:
-       
-       
+
         self._index = NOAA_CORSCollection()
 
     def _within(self, lat: float, lon: float, radius_km: float) -> list[GNSSStation]:
         center = Point(lon, lat)
-        km_to_deg  = 111 * np.cos(np.radians(lat))  # rough conversion factor at given latitude
+        km_to_deg = 111 * np.cos(np.radians(lat))  # rough conversion factor at given latitude
 
-        buffer = center.buffer(radius_km / km_to_deg) 
+        buffer = center.buffer(radius_km / km_to_deg)
         matches = self._index.gdf[self._index.gdf.geometry.within(buffer)]
         return [
             GNSSStation(
-                site_code=rec["SITEID"],
+                site_code=rec["SITEID"].lower(),
                 lat=rec["y"],
                 lon=rec["x"],
                 network_id=self.id,
-                data_center=rec["AGENCY"],
             )
             for _, rec in matches.iterrows()
         ]
+
     def radius_spatial_query(
         self, date: datetime, lat: float, lon: float, radius_km: float
     ) -> list[GNSSStation] | None:

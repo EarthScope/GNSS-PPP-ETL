@@ -7,8 +7,10 @@ import datetime
 import logging
 from collections import defaultdict
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Literal
+import tqdm
 
 from gnss_product_management.environments.gnss_station_network import (
     GNSSNetworkRegistry,
@@ -432,9 +434,7 @@ class StationQuery:
 
         # Version fallback: retry stations with zero candidates at a lower version.
         if self._version_fallback and self._rinex_version in ("3", "4"):
-            fallback_version: Literal["2", "3"] = (
-                "2" if self._rinex_version == "3" else "3"
-            )
+            fallback_version: Literal["2", "3"] = "2" if self._rinex_version == "3" else "3"
             hit_codes = {
                 next((p.value for p in rq.product.parameters if p.name == "SSSS"), None)
                 for rq in expanded
@@ -550,19 +550,62 @@ class StationQuery:
         results.sort(key=_sort_key)
         return results
 
-    def download(self, sink_id: str) -> list[FoundResource]:
+    def _download_station(
+        self,
+        ssss: str,
+        station_candidates: list[FoundResource],
+        sink_id: str,
+        workspace: object,
+    ) -> FoundResource | None:
+        """Try candidates for a single station; return the first success."""
+        for fr in station_candidates:
+            query = fr._query
+            if query is None:
+                logger.debug("FoundResource for %r has no internal query; skipping.", ssss)
+                continue
+
+            try:
+                local_path = self._wormhole.download_one(
+                    query=query,
+                    local_resource_id=sink_id,
+                    local_factory=workspace,
+                    date=self._date,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Download attempt failed for station %r from %r: %s",
+                    ssss,
+                    fr.uri,
+                    exc,
+                )
+                local_path = None
+
+            if local_path is not None:
+                fr.local_path = local_path
+                return fr
+
+        logger.warning(
+            "All download attempts failed for station %r; no RINEX file retrieved.",
+            ssss,
+        )
+        return None
+
+    def download(self, sink_id: str, *, max_workers: int = 8) -> list[FoundResource]:
         """Search and download RINEX files in one call with per-station fallback.
 
         Calls :meth:`search` to obtain a ranked :class:`FoundResource` list,
-        then groups results by station code and tries each candidate in order.
-        The first successful download for a station wins; remaining candidates
-        for that station are skipped.  Stations where every candidate fails are
-        absent from the return list (no error is raised).
+        then groups results by station code and downloads stations
+        concurrently.  For each station the candidates are tried in order;
+        the first successful download wins and remaining candidates are
+        skipped.  Stations where every candidate fails are absent from the
+        return list (no error is raised).
 
         Args:
             sink_id: Local resource alias registered in the workspace
                 (e.g. ``"local"``).  RINEX_OBS files are written under the
                 directory defined for ``RINEX_OBS`` in the workspace spec.
+            max_workers: Maximum number of parallel download threads.
+                Defaults to ``8``.
 
         Returns:
             List of :class:`FoundResource` objects with ``local_path``
@@ -585,37 +628,19 @@ class StationQuery:
         workspace = self._search_planner._workspace
         results: list[FoundResource] = []
 
-        for ssss, station_candidates in by_station.items():
-            for fr in station_candidates:
-                query = fr._query
-                if query is None:
-                    logger.debug("FoundResource for %r has no internal query; skipping.", ssss)
-                    continue
-
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(self._download_station, ssss, scands, sink_id, workspace): ssss
+                for ssss, scands in by_station.items()
+            }
+            for future in tqdm.tqdm(as_completed(futures), total=len(futures)):
+                ssss = futures[future]
                 try:
-                    local_path = self._wormhole.download_one(
-                        query=query,
-                        local_resource_id=sink_id,
-                        local_factory=workspace,
-                        date=self._date,
-                    )
+                    result = future.result()
                 except Exception as exc:
-                    logger.warning(
-                        "Download attempt failed for station %r from %r: %s",
-                        ssss,
-                        fr.uri,
-                        exc,
-                    )
-                    local_path = None
-
-                if local_path is not None:
-                    fr.local_path = local_path
-                    results.append(fr)
-                    break  # First success wins for this station.
-            else:
-                logger.warning(
-                    "All download attempts failed for station %r; no RINEX file retrieved.",
-                    ssss,
-                )
+                    logger.warning("Unexpected error downloading station %r: %s", ssss, exc)
+                else:
+                    if result is not None:
+                        results.append(result)
 
         return results

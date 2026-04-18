@@ -1,11 +1,13 @@
-import datetime 
+import datetime
+import json
 from pathlib import Path
 from typing import Annotated
-import json
+
 import numpy as np
-from pydantic import BaseModel, Field
 from haversine import haversine
-from shapely import STRtree,Point
+from pydantic import BaseModel, Field
+from shapely import Point, STRtree
+
 from gnss_product_management.environments.gnss_station_network import GNSSStation, NetworkProtocol
 
 
@@ -48,9 +50,7 @@ class IGSStation(BaseModel):
 
     # ── Position ─────────────────────────────────────────────────────
     xyz: XYZTuple = Field(description="ECEF coordinates [X, Y, Z] in metres")
-    llh: LLHTuple = Field(
-        description="Geodetic coordinates [lat, lon, height] in deg/deg/m"
-    )
+    llh: LLHTuple = Field(description="Geodetic coordinates [lat, lon, height] in deg/deg/m")
 
     # ── Location ─────────────────────────────────────────────────────
     city: str
@@ -60,9 +60,7 @@ class IGSStation(BaseModel):
     # ── Equipment ────────────────────────────────────────────────────
     antenna_type: str
     antenna_serial_number: str
-    antenna_marker_une: UNETuple = Field(
-        description="Antenna offset [up, north, east] in metres"
-    )
+    antenna_marker_une: UNETuple = Field(description="Antenna offset [up, north, east] in metres")
     radome_type: str
     antcal: str | None = None
     receiver_type: str
@@ -71,9 +69,7 @@ class IGSStation(BaseModel):
     frequency_standard: str | None = None
 
     # ── Data availability ────────────────────────────────────────────
-    satellite_system: list[str] = Field(
-        description="Tracked constellations, e.g. ['GPS', 'GLO']"
-    )
+    satellite_system: list[str] = Field(description="Tracked constellations, e.g. ['GPS', 'GLO']")
     real_time_systems: list[str]
     data_center: str | None = None
     last_publish: datetime.datetime
@@ -125,15 +121,16 @@ class IGSStation(BaseModel):
     def is_active(self) -> bool:
         return self.status == 4
 
+
 class IGSStationCollection(BaseModel):
     stations: list[IGSStation]
 
     @classmethod
     def from_json(cls, path: Path) -> "IGSStationCollection":
-        with open(path, "r") as f:
+        with open(path) as f:
             data = json.load(f)
         return cls.model_validate({"stations": data})
-    
+
     def within(self, lat: float, lon: float, radius_km: float) -> "IGSStationCollection":
         """Return subset of stations within *radius_km* of the given point."""
 
@@ -145,6 +142,7 @@ class IGSStationCollection(BaseModel):
             if dist_km <= radius_km:
                 matches.append(s)
         return IGSStationCollection(stations=matches)
+
 
 class IGSProtocol(NetworkProtocol):
     id = "IGS"
@@ -158,14 +156,13 @@ class IGSProtocol(NetworkProtocol):
     def _within(self, lat: float, lon: float, radius_km: float) -> list[IGSStation]:
         """Return subset of stations within *radius_km* of the given point."""
         center = Point(lon, lat)
-        km_to_deg  = 111 * np.cos(np.radians(lat))  # rough conversion factor at given latitude
+        km_to_deg = 111 * np.cos(np.radians(lat))  # rough conversion factor at given latitude
 
-        buffer = center.buffer(radius_km / km_to_deg) 
-        matches:np.ndarray = self.rtree.query(buffer)
+        buffer = center.buffer(radius_km / km_to_deg)
+        matches: np.ndarray = self.rtree.query(buffer)
         stations = [self._index.stations[idx] for idx in matches.tolist()] or []
         return stations
 
-        
     def radius_spatial_query(  # noqa: ARG002
         self, date: datetime.datetime, lat: float, lon: float, radius_km: float
     ) -> list[GNSSStation] | None:

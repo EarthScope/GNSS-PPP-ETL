@@ -82,6 +82,16 @@ class ConnectionPool:
             logger.warning("FTP/FTPS connection failed for %s", self.hostname)
             return None
 
+        if self.protocol == "s3":
+            # Public S3 buckets: try anonymous access first, then credentialed.
+            for anon in (True, False):
+                try:
+                    return fsspec.filesystem("s3", anon=anon, skip_instance_cache=True)
+                except Exception:
+                    continue
+            logger.warning("S3 connection failed for %s", self.hostname)
+            return None
+
         # HTTP, HTTPS, and other protocols
         try:
             fs, _ = fsspec.core.url_to_fs(self.hostname, skip_instance_cache=True)
@@ -180,6 +190,10 @@ class ConnectionPool:
             return os.path.join(self.hostname, directory)
         if self.protocol in ("http", "https"):
             return f"{self.hostname.rstrip('/')}/{directory.lstrip('/')}"
+        if self.protocol == "s3":
+            # hostname is "s3://bucket" — extract bucket name for S3 key paths.
+            bucket = self.hostname.split("://", 1)[-1].strip("/")
+            return f"{bucket}/{directory.lstrip('/')}"
         # FTP: directory is already an absolute server path
         return directory
 
