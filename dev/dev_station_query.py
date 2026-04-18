@@ -26,11 +26,11 @@ client = GNSSClient.from_defaults(base_dir="/Volumes/DunbarSSD/Project/SeafloorG
 
 lat = 37.74387
 lon = -105.49852
-radius_m = 100000000
+radius_m = 1000000
 # ── Build the query ───────────────────────────────────────────────────────
 sq = (
     client.station_query()
-    .networks("ERT")
+   
     .within(lat, lon, radius_m / 1000)
     .rinex_version("3")
     .on(date)
@@ -46,7 +46,7 @@ if not results:
     print("  (no remote files found)")
 
 
-sq.download(sink_id="local")
+#sq.download(sink_id="local")
 # ── 3. Download (uncomment to test) ──────────────────────────────────────
 # To actually download, create the client with a base_dir:
 #

@@ -60,6 +60,10 @@ class GNSSStation(BaseModel):
     ``end_date=None`` means the station is currently active.
     ``start_date=None`` means the operational start is unknown; such
     stations are *included* rather than excluded by temporal filters.
+    ``data_center`` carries the short identifier of the archive that hosts
+    this station's observation files (e.g. ``"CDDIS"``, ``"IGN"``,
+    ``"BKG"``).  When set, the search planner will route downloads to the
+    matching server rather than trying all servers in the network config.
     """
 
     site_code: str
@@ -68,7 +72,12 @@ class GNSSStation(BaseModel):
     network_id: str | None = None
     start_date: datetime.date | None = None
     end_date: datetime.date | None = None
+    data_center: str | None = None
 
+    @model_validator(mode="after")
+    def _site_code_upper(self) -> GNSSStation:
+        self.site_code = self.site_code.upper()
+        return self
 
 class PointRadius(BaseModel):
     """Great-circle spatial filter: all stations within *radius_km* of a point."""

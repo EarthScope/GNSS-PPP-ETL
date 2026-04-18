@@ -202,6 +202,11 @@ class WormHole:
     def _get_file_pattern(target: SearchTarget) -> str | None:
         """Extract the file regex pattern from a target.
 
+        The returned pattern also matches common archive compression
+        suffixes (``.gz``, ``.Z``, ``.bz2``) and the Hatanaka compact-RINEX
+        variant (``.crx`` in place of ``.rnx``) so that a canonical ``.rnx``
+        template can find ``.crx.gz`` files on real data centers.
+
         Args:
             target: The target to inspect.
 
@@ -212,10 +217,19 @@ class WormHole:
             return None
         fn = target.product.filename
         if isinstance(fn, PathTemplate):
-            return fn.pattern
-        if isinstance(fn, str):
-            return fn
-        return None
+            raw = fn.pattern
+        elif isinstance(fn, str):
+            raw = fn
+        else:
+            return None
+
+        # Allow Hatanaka-compressed RINEX (.crx instead of .rnx).
+        if raw.endswith(".rnx"):
+            raw = raw[:-4] + r"\.(?:crx|rnx)"
+
+        # Allow optional compression suffixes.
+        raw += r"(?:\.gz|\.Z|\.bz2)?"
+        return raw
 
     def _update_parameters(self, search_target: SearchTarget) -> SearchTarget:
         """Update a SearchTarget's parameters by re-interpolating patterns.

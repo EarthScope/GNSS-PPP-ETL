@@ -1,0 +1,152 @@
+id: IGS
+name: International GNSS Service network
+description: >
+  IGS global network of continuously operating GNSS reference stations.
+  Station metadata is sourced from the IGS Network API (public) via a
+  native radius search.  Each station record carries a data_center field
+  (e.g. CDDIS, IGN, BKG) which the search planner uses to route RINEX
+  downloads to the correct archive.  Stations whose data center is not
+  listed here fall back to CDDIS, which mirrors the majority of IGS data.
+
+  Station-to-server routing is pre-computed in igs_stations.yaml (533
+  stations) keyed by site_code → server_id.
+
+# Server IDs deliberately match the IGS API data_center values so the
+# search planner can route per-station without any extra mapping logic.
+station_catalog: igs_stations.yaml
+servers:
+  - id: CDDIS
+    hostname: "ftp://gdc.cddis.eosdis.nasa.gov"
+    protocol: ftps
+    auth_required: false
+    description: >
+      NASA CDDIS FTPS archive (anonymous login).
+      Mirrors the majority of IGS station RINEX data.
+
+  - id: IGN
+    hostname: "ftp://igs.ign.fr"
+    protocol: ftp
+    auth_required: false
+    description: >
+      IGN (Institut National de l'Information Géographique et Forestière)
+      IGS data archive (anonymous FTP).
+
+  - id: BKG
+    hostname: "ftp://igs.bkg.bund.de"
+    protocol: ftp
+    auth_required: false
+    description: >
+      BKG (Bundesamt für Kartographie und Geodäsie) IGS data archive
+      (anonymous FTP).
+
+products:
+  # ── CDDIS ────────────────────────────────────────────────────────
+  - id: igs_cddis_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: CDDIS
+    available: true
+    description: RINEX 2 Hatanaka-compressed observation files via CDDIS.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}d/"}
+
+  - id: igs_cddis_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: CDDIS
+    available: true
+    description: RINEX 3 observation files via CDDIS.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}d/"}
+
+  - id: igs_cddis_rinex2_nav
+    product_name: RINEX_NAV
+    server_id: CDDIS
+    available: true
+    description: RINEX 2 navigation files via CDDIS.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}n/"}
+
+  - id: igs_cddis_rinex3_nav
+    product_name: RINEX_NAV
+    server_id: CDDIS
+    available: true
+    description: RINEX 3 navigation files via CDDIS.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "gnss/data/daily/{YYYY}/{DDD}/{YY}p/"}
+
+  # ── IGN ──────────────────────────────────────────────────────────
+  - id: igs_ign_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: IGN
+    available: true
+    description: RINEX 2 Hatanaka-compressed observation files via IGN.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "pub/igs/data/{YYYY}/{DDD}/"}
+
+  - id: igs_ign_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: IGN
+    available: true
+    description: RINEX 3 observation files via IGN.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "pub/igs/data/{YYYY}/{DDD}/"}
+
+  - id: igs_ign_rinex2_nav
+    product_name: RINEX_NAV
+    server_id: IGN
+    available: true
+    description: RINEX 2 navigation files via IGN.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "pub/igs/data/{YYYY}/{DDD}/"}
+
+  - id: igs_ign_rinex3_nav
+    product_name: RINEX_NAV
+    server_id: IGN
+    available: true
+    description: RINEX 3 navigation files via IGN.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "pub/igs/data/{YYYY}/{DDD}/"}
+
+  # ── BKG ──────────────────────────────────────────────────────────
+  - id: igs_bkg_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: BKG
+    available: true
+    description: RINEX 2 Hatanaka-compressed observation files via BKG.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "IGS/obs/{YYYY}/{DDD}/"}
+
+  - id: igs_bkg_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: BKG
+    available: true
+    description: RINEX 3 observation files via BKG.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "IGS/obs/{YYYY}/{DDD}/"}
+
+  - id: igs_bkg_rinex2_nav
+    product_name: RINEX_NAV
+    server_id: BKG
+    available: true
+    description: RINEX 2 navigation files via BKG.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "IGS/obs/{YYYY}/{DDD}/"}
+
+  - id: igs_bkg_rinex3_nav
+    product_name: RINEX_NAV
+    server_id: BKG
+    available: true
+    description: RINEX 3 navigation files via BKG.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "IGS/obs/{YYYY}/{DDD}/"}

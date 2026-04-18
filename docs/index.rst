@@ -1,25 +1,28 @@
 GNSSommelier
 ============
 
-A Python monorepo for GNSS Precise Point Positioning (PPP) product management and processing.
+Automated retrieval and dependency resolution for IGS GNSS products, with an
+integrated `PRIDE-PPPAR <https://pride.whu.edu.cn/pppar/>`_ processing pipeline.
 
 .. toctree::
    :maxdepth: 2
-   :caption: User Guide
+   :caption: Getting Started
 
    overview
-   architecture
-   gnss-products
-   config-reference
-   data-centers
-   gnss-product-management-classes
-   class-reference
    examples
-   INDEX
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
+   :caption: Reference
+
+   ppp-products
+   config-reference
+   architecture
+   class-reference
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API
 
    api/gnss-product-management
    api/pride-ppp

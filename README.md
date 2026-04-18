@@ -103,6 +103,8 @@ Product types currently defined in the bundled specifications:
 | **Clock** | CLK | Satellite & station clock corrections (30 s / 5 min) |
 | **Bias** | BIA | OSB/FCB code and phase biases — required for PPP-AR integer ambiguity fixing |
 | **ERP** | ERP | Polar motion (x_p, y_p), UT1-UTC, LOD — ITRF↔ICRF transformation |
+| **Bias** | BIA | OSB/FCB code and phase biases — required for PPP-AR integer ambiguity fixing |
+| **ERP** | ERP | Polar motion (x_p, y_p), UT1-UTC, LOD — ITRF↔ICRF transformation |
 | **GIM** | IONEX | Global ionosphere TEC maps |
 | **Navigation** | RINEX NAV | Broadcast ephemerides (merged BRDC) |
 | **ATX** | ANTEX | Satellite & receiver antenna phase center calibrations |
@@ -254,6 +256,8 @@ GNSSommelier/
 │   │   │   ├── environments/       # ProductRegistry, WorkSpace
 │   │   │   ├── factories/          # SearchPlanner, WormHole, ConnectionPoolFactory, pipelines
 │   │   │   ├── specifications/     # Pydantic models (Parameter, FormatSpec, ProductSpec)
+│   │   │   ├── lockfile/           # LockfileManager, DependencyLockFile, operations
+│   │   │   └── utilities/          # Date math, decompression, path helpers
 │   │   │   ├── lockfile/           # LockfileManager, DependencyLockFile, operations
 │   │   │   └── utilities/          # Date math, decompression, path helpers
 │   │   └── test/

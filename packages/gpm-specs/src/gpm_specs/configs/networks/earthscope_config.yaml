@@ -30,7 +30,7 @@ products:
     description: RINEX 3 observation files from EarthScope GAGE.
     parameters:
       - {name: V, value: "3"}
-    directory: {pattern: "/archive/gnss/data/daily/rinex3/obs/{YYYY}/{DDD}/"}
+    directory: {pattern: "archive/gnss/rinex3/obs/{YYYY}/{DDD}/"}
 
   - id: earthscope_rinex2_nav
     product_name: RINEX_NAV

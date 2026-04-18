@@ -10,13 +10,14 @@ from gnss_product_management.environments.gnss_station_network import GNSSStatio
 
 class EarthScopeProtocol(NetworkProtocol):
     id = "ERT"
-    url = "https://web-services.unavco.org/events/event_response/radius_search/beta?lat={lat}&lon={lon}&date={date}&radius={radius_km}"
+    url = "https://web-services.unavco.org/events/event_response/radius_search/beta?lat={lat}&lon={lon}&date={date}&radius={radius_m}"
 
     def radius_spatial_query(
         self, date: datetime, lat: float, lon: float, radius_km: float
     ) -> list[GNSSStation] | None:
         date_str = date.strftime("%Y-%m-%d")
-        url = self.url.format(lat=lat, lon=lon, date=date_str, radius_km=radius_km)
+        radius_m = radius_km * 1000
+        url = self.url.format(lat=lat, lon=lon, date=date_str, radius_m=radius_m)
         response = requests.get(url)
         match response.status_code:
             case 200:
@@ -35,8 +36,9 @@ class EarthScopeProtocol(NetworkProtocol):
                     site_code=record["station_code"],
                     lat=record["lat"],
                     lon=record["lon"],
-                    network_id="ERT",
+                    network_id=self.id,
                     end_date=datetime.fromisoformat(record["latest_data_from_search"]),
+                    data_center=self.id,
                 )
                 stations.append(station)
             except KeyError:

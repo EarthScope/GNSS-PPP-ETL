@@ -1,0 +1,3355 @@
+stations:
+- site_code: abmf
+  lat: 16.2623
+  lon: -61.527537
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: abpo
+  lat: -19.018306
+  lon: 47.229212
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ac23
+  lat: 60.475093
+  lon: -150.877954
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ac24
+  lat: 58.681572
+  lon: -156.652756
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: acrg
+  lat: 5.641472
+  lon: -0.207111
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: acso
+  lat: 40.232361
+  lon: -82.981532
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: adis
+  lat: 9.035136
+  lon: 38.766304
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: aggo
+  lat: -34.873708
+  lon: -58.139861
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: aira
+  lat: 31.824061
+  lon: 130.599592
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ajac
+  lat: 41.92745
+  lon: 8.762608
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: alac
+  lat: 38.338917
+  lon: -0.481233
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: albh
+  lat: 48.3898
+  lon: -123.4874
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: algo
+  lat: 45.9558
+  lon: -78.071368
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: alic
+  lat: -23.670111
+  lon: 133.885522
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: alrt
+  lat: 82.494294
+  lon: -62.340461
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: amc4
+  lat: 38.803125
+  lon: -104.524597
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ank2
+  lat: 39.842797
+  lon: 32.775347
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: antc
+  lat: -37.338703
+  lon: -71.53205
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: antf
+  lat: -23.701531
+  lon: -70.420078
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: areg
+  lat: -16.465423
+  lon: -71.492904
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: areq
+  lat: -16.465517
+  lon: -71.492797
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: arht
+  lat: -77.829436
+  lon: 166.663653
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: artu
+  lat: 56.429822
+  lon: 58.560453
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: arua
+  lat: 3.017144
+  lon: 30.909914
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: aruc
+  lat: 40.285722
+  lon: 44.085583
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: as02
+  lat: 19.977228
+  lon: 42.5984
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ascg
+  lat: -7.916281
+  lon: -14.332664
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: aspa
+  lat: -14.326094
+  lon: -170.722433
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: auck
+  lat: -36.602835
+  lon: 174.834387
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: aut0
+  lat: 30.395478
+  lon: -97.735158
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: badg
+  lat: 51.769706
+  lon: 102.234981
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: baie
+  lat: 49.186825
+  lon: -68.263328
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bake
+  lat: 64.317819
+  lon: -96.002344
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bako
+  lat: -6.491055
+  lon: 106.84891
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bamf
+  lat: 48.835317
+  lon: -125.135089
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: barh
+  lat: 44.395047
+  lon: -68.221692
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: baut
+  lat: 51.192344
+  lon: 14.521733
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: bele
+  lat: -1.408794
+  lon: -48.462547
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bhpl
+  lat: 23.288942
+  lon: 77.466636
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: bhr3
+  lat: 26.209147
+  lon: 50.608153
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: bhr4
+  lat: 26.209147
+  lon: 50.608153
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: bik0
+  lat: 42.854193
+  lon: 74.533182
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: bill
+  lat: 33.578242
+  lon: -117.0646
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bjco
+  lat: 6.384664
+  lon: 2.450022
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: bjfs
+  lat: 39.608625
+  lon: 115.892461
+  server_id: IGN
+  rinex_versions:
+  - '2'
+- site_code: bjnm
+  lat: 40.245326
+  lon: 116.224135
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: blyt
+  lat: 33.610414
+  lon: -114.71485
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bneu
+  lat: 21.643967
+  lon: 101.917194
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: bnoa
+  lat: -8.7465
+  lon: 115.209917
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: boav
+  lat: 2.845181
+  lon: -60.701114
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bogi
+  lat: 52.474989
+  lon: 21.035211
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: bogt
+  lat: 4.640073
+  lon: -74.08094
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: bor1
+  lat: 52.276956
+  lon: 17.073458
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: braz
+  lat: -15.947475
+  lon: -47.877869
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: brew
+  lat: 48.131524
+  lon: -119.682634
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: brft
+  lat: -3.877447
+  lon: -38.425536
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: brmg
+  lat: 47.907739
+  lon: 7.632878
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: brst
+  lat: 48.380497
+  lon: -4.4966
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: brux
+  lat: 50.798064
+  lon: 4.358564
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: bshm
+  lat: 32.778987
+  lon: 35.022987
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: btng
+  lat: 1.438922
+  lon: 125.190431
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: bucu
+  lat: 44.463944
+  lon: 26.125739
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: bzr2
+  lat: 46.495786
+  lon: 11.338236
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: cace
+  lat: 39.478889
+  lon: -6.341781
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: cags
+  lat: 45.585021
+  lon: -75.807332
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: cant
+  lat: 43.471978
+  lon: -3.798067
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: cas1
+  lat: -66.283358
+  lon: 110.519706
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: casc
+  lat: 38.693414
+  lon: -9.418522
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: ccj2
+  lat: 27.067531
+  lon: 142.195028
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cebr
+  lat: 40.453431
+  lon: -4.367853
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cedu
+  lat: -31.866658
+  lon: 133.809836
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cggn
+  lat: 10.123095
+  lon: 9.118312
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: chan
+  lat: 43.7905
+  lon: 125.4433
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: chof
+  lat: 35.674544
+  lon: 139.531057
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: chpg
+  lat: -22.682273
+  lon: -45.002376
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: chpi
+  lat: -22.687144
+  lon: -44.985158
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: chti
+  lat: -43.735469
+  lon: -176.617124
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: chum
+  lat: 42.998501
+  lon: 74.751099
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: chur
+  lat: 58.759078
+  lon: -94.088725
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: chwk
+  lat: 49.1566
+  lon: -122.0084
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: cibg
+  lat: -6.490365
+  lon: 106.849173
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: cit1
+  lat: 34.136708
+  lon: -118.127286
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: ckis
+  lat: -21.201028
+  lon: -159.800607
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cksv
+  lat: 22.998853
+  lon: 120.220008
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: cmp9
+  lat: 34.353181
+  lon: -118.411425
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: cmum
+  lat: 18.760875
+  lon: 98.932378
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: coco
+  lat: -12.188339
+  lon: 96.833975
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cord
+  lat: -31.528436
+  lon: -64.470048
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: coso
+  lat: 35.982344
+  lon: -117.808889
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: cote
+  lat: -77.8059
+  lon: 161.9978
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: coyq
+  lat: -45.514376
+  lon: -71.892084
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cpnm
+  lat: 10.72465
+  lon: 99.374378
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cpvg
+  lat: 16.732062
+  lon: -22.934933
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: crfp
+  lat: 34.039053
+  lon: -117.099683
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: cro1
+  lat: 17.756899
+  lon: -64.584319
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: cuib
+  lat: -15.555261
+  lon: -56.069864
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: cusv
+  lat: 13.735914
+  lon: 100.533908
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: cut0
+  lat: -32.003889
+  lon: 115.8948
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: cuut
+  lat: 13.735991
+  lon: 100.533935
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: cyne
+  lat: 4.821954
+  lon: -52.365414
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: cztg
+  lat: -46.431894
+  lon: 51.855481
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: dae2
+  lat: 36.399425
+  lon: 127.374481
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: daej
+  lat: 36.399427
+  lon: 127.374486
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: dakr
+  lat: 14.721222
+  lon: -17.439472
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: darw
+  lat: -12.843697
+  lon: 131.132744
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: dav1
+  lat: -68.577325
+  lon: 77.972611
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: dear
+  lat: -30.665206
+  lon: 23.992639
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: dgar
+  lat: -7.269684
+  lon: 72.37024
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: dhlg
+  lat: 33.389806
+  lon: -115.788028
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: djig
+  lat: 11.526288
+  lon: 42.847064
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: dlf1
+  lat: 51.986019
+  lon: 4.387458
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: dltv
+  lat: 11.945273
+  lon: 108.481753
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: drag
+  lat: 31.5932
+  lon: 35.392069
+  server_id: BKG
+  rinex_versions:
+  - '2'
+- site_code: drao
+  lat: 49.3226
+  lon: -119.625
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: drdn
+  lat: 30.340287
+  lon: 78.044164
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: dubi
+  lat: 25.002321
+  lon: 55.466769
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: dubo
+  lat: 50.258808
+  lon: -95.866185
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: dumg
+  lat: -66.665169
+  lon: 140.0022
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: dund
+  lat: -45.883659
+  lon: 170.59716
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: dyng
+  lat: 38.078553
+  lon: 23.932433
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: ebre
+  lat: 40.820886
+  lon: 0.49235
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: eil3
+  lat: 64.687889
+  lon: -147.113019
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: eil4
+  lat: 64.687889
+  lon: -147.113019
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: enao
+  lat: 39.091203
+  lon: -28.026011
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: entb
+  lat: 0.059981
+  lon: 32.476011
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: eprt
+  lat: 44.908711
+  lon: -66.992131
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: escu
+  lat: 47.073404
+  lon: -64.79871
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: eur2
+  lat: 79.988947
+  lon: -85.937592
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: faa1
+  lat: -17.555314
+  lon: -149.6143
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: fair
+  lat: 64.977998
+  lon: -147.49924
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: falk
+  lat: -51.693652
+  lon: -57.874067
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ffmj
+  lat: 50.090581
+  lon: 8.664969
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: flin
+  lat: 54.725583
+  lon: -101.97804
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: flrs
+  lat: 39.453833
+  lon: -31.126389
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: fprt
+  lat: 0.652456
+  lon: 30.298303
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: frdn
+  lat: 45.933497
+  lon: -66.65988
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ftna
+  lat: -14.307803
+  lon: -178.120946
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: func
+  lat: 32.647947
+  lon: -16.907617
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: gamb
+  lat: -23.130355
+  lon: -134.964824
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: gamg
+  lat: 35.590071
+  lon: 127.919658
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: ganp
+  lat: 49.034714
+  lon: 20.322936
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: gcgo
+  lat: 64.978036
+  lon: -147.499447
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: geno
+  lat: 44.4194
+  lon: 8.921117
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: glps
+  lat: -0.742999
+  lon: -90.303669
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: glsv
+  lat: 50.364178
+  lon: 30.496739
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: gmsd
+  lat: 30.556444
+  lon: 131.015564
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: gode
+  lat: 39.021728
+  lon: -76.82683
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: godn
+  lat: 39.021179
+  lon: -76.827095
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: gods
+  lat: 39.020518
+  lon: -76.827324
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: gol2
+  lat: 35.425156
+  lon: -116.88925
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: gold
+  lat: 35.425156
+  lon: -116.88925
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: gop6
+  lat: 49.913667
+  lon: 14.785603
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: gop7
+  lat: 49.913667
+  lon: 14.785603
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: gope
+  lat: 49.913706
+  lon: 14.785622
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: grac
+  lat: 43.754486
+  lon: 6.920761
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: gras
+  lat: 43.754739
+  lon: 6.920575
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: graz
+  lat: 47.067128
+  lon: 15.493475
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: guam
+  lat: 13.589331
+  lon: 144.868358
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: guat
+  lat: 14.590403
+  lon: -90.520183
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: guug
+  lat: 13.433208
+  lon: 144.802714
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: gvdg
+  lat: 34.838361
+  lon: 24.109031
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: hal1
+  lat: 20.707417
+  lon: -156.256243
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: hamd
+  lat: 34.869083
+  lon: 48.534306
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: harb
+  lat: -25.886962
+  lon: 27.707246
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: hers
+  lat: 50.8673
+  lon: 0.3362
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: hert
+  lat: 50.867478
+  lon: 0.334353
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: hksl
+  lat: 22.372006
+  lon: 113.927981
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: hkws
+  lat: 22.434283
+  lon: 114.335378
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: hlfx
+  lat: 44.68355
+  lon: -63.611278
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: hnlc
+  lat: 21.3033
+  lon: -157.8645
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: hnpt
+  lat: 38.588817
+  lon: -76.130372
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: hnus
+  lat: -34.424631
+  lon: 19.223061
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: hob2
+  lat: -42.804706
+  lon: 147.438736
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: hofn
+  lat: 64.267294
+  lon: -15.197914
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: holb
+  lat: 50.6404
+  lon: -128.135
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: holm
+  lat: 70.7364
+  lon: -117.7609
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: holp
+  lat: 33.924539
+  lon: -118.168169
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: hrag
+  lat: -25.890402
+  lon: 27.68518
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: hrao
+  lat: -25.890106
+  lon: 27.686981
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: humg
+  lat: 21.071752
+  lon: 105.773486
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: hyde
+  lat: 17.417256
+  lon: 78.550867
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: ieng
+  lat: 45.015133
+  lon: 7.639406
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: iisc
+  lat: 13.021166
+  lon: 77.570376
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: iitk
+  lat: 26.521422
+  lon: 80.232133
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: impz
+  lat: -5.491764
+  lon: -47.497233
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ineg
+  lat: 21.856153
+  lon: -102.284203
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: invk
+  lat: 68.306182
+  lon: -133.526967
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: iqal
+  lat: 63.755964
+  lon: -68.510497
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: iqqe
+  lat: -20.273539
+  lon: -70.131717
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: irkj
+  lat: 52.219019
+  lon: 104.316178
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: irkm
+  lat: 52.219024
+  lon: 104.31624
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: isba
+  lat: 33.341414
+  lon: 44.438403
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: ishi
+  lat: 36.208833
+  lon: 140.218956
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ispa
+  lat: -27.124984
+  lon: -109.344398
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ista
+  lat: 41.104447
+  lon: 29.019339
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: izmi
+  lat: 38.394808
+  lon: 27.081822
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: jctw
+  lat: -33.951433
+  lon: 18.46855
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: jdpr
+  lat: 26.206452
+  lon: 73.023948
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: jfng
+  lat: 30.515565
+  lon: 114.491019
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: jog2
+  lat: -7.763814
+  lon: 110.372463
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: joz2
+  lat: 52.097831
+  lon: 21.032342
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: joze
+  lat: 52.097272
+  lon: 21.031533
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: jplm
+  lat: 34.204819
+  lon: -118.173225
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: jpre
+  lat: -25.732025
+  lon: 28.282633
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: karr
+  lat: -20.981422
+  lon: 117.097197
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: kat1
+  lat: -14.375994
+  lon: 132.153278
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: kerg
+  lat: -49.351467
+  lon: 70.255524
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: khar
+  lat: 50.005103
+  lon: 36.239008
+  server_id: BKG
+  rinex_versions: []
+- site_code: kir0
+  lat: 67.877572
+  lon: 21.060233
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: kir8
+  lat: 67.877542
+  lon: 21.060178
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: kiri
+  lat: 1.354589
+  lon: 172.922883
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: kiru
+  lat: 67.85735
+  lon: 20.968442
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: kit3
+  lat: 39.134767
+  lon: 66.88545
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: kitg
+  lat: 39.133386
+  lon: 66.886738
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: klsq
+  lat: 66.995606
+  lon: -50.620236
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: kmnm
+  lat: 24.463822
+  lon: 118.388578
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: kokb
+  lat: 22.126264
+  lon: -159.66493
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: kokv
+  lat: 22.126264
+  lon: -159.66493
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: kos1
+  lat: 52.173356
+  lon: 5.818225
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: kouc
+  lat: -20.558697
+  lon: 164.287333
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: koug
+  lat: 5.098468
+  lon: -52.639747
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: kour
+  lat: 5.25218
+  lon: -52.805959
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: krgg
+  lat: -49.351543
+  lon: 70.255506
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: krs1
+  lat: 40.588453
+  lon: 43.093444
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: ksu1
+  lat: 39.10075
+  lon: -96.609483
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: kuj2
+  lat: 55.290008
+  lon: -77.735272
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: kzn2
+  lat: 55.790783
+  lon: 49.119244
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: lae1
+  lat: -6.6737
+  lon: 146.9932
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: lama
+  lat: 53.8924
+  lon: 20.669933
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: laut
+  lat: -17.608808
+  lon: 177.446583
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: lbch
+  lat: 33.787769
+  lon: -118.203344
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: lck4
+  lat: 26.912142
+  lon: 80.955617
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: leij
+  lat: 51.353983
+  lon: 12.374103
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: lhaz
+  lat: 29.657331
+  lon: 91.104031
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: licc
+  lat: 51.499789
+  lon: -0.174839
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: lmmf
+  lat: 14.594817
+  lon: -60.996169
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: lpal
+  lat: 28.763869
+  lon: -17.893831
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: lpgs
+  lat: -34.906744
+  lon: -57.9323
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: lroc
+  lat: 46.15894
+  lon: -1.21932
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: m0se
+  lat: 41.893114
+  lon: 12.493258
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: mac1
+  lat: -54.499528
+  lon: 158.935831
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mad2
+  lat: 40.429161
+  lon: -4.249658
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: madr
+  lat: 40.429161
+  lon: -4.249658
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mag0
+  lat: 59.5758
+  lon: 150.77
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: maju
+  lat: 7.119153
+  lon: 171.36451
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mal2
+  lat: -2.996055
+  lon: 40.194143
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mall
+  lat: 39.552625
+  lon: 2.62455
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: mana
+  lat: 12.148939
+  lon: -86.248994
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mar6
+  lat: 60.595142
+  lon: 17.258522
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: mar7
+  lat: 60.595053
+  lon: 17.258439
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: mars
+  lat: 43.278767
+  lon: 5.353783
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: mas1
+  lat: 27.763739
+  lon: -15.633278
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mat1
+  lat: 40.649061
+  lon: 16.704544
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mate
+  lat: 40.649131
+  lon: 16.704458
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: matg
+  lat: 40.649028
+  lon: 16.704653
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: maui
+  lat: 20.7067
+  lon: -156.257
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: maw1
+  lat: -67.604767
+  lon: 62.870714
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mbar
+  lat: -0.601469
+  lon: 30.737876
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mchl
+  lat: -26.358903
+  lon: 148.144961
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mcil
+  lat: 24.290094
+  lon: 153.978661
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mcm4
+  lat: -77.838349
+  lon: 166.669329
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mdo1
+  lat: 30.680511
+  lon: -104.014994
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mdvj
+  lat: 56.021492
+  lon: 37.214503
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: medi
+  lat: 44.519956
+  lon: 11.646814
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: meli
+  lat: 35.281219
+  lon: -2.951642
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: mers
+  lat: 36.566389
+  lon: 34.255853
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: met3
+  lat: 60.217456
+  lon: 24.3945
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: metg
+  lat: 60.241967
+  lon: 24.384175
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: mfkg
+  lat: -25.805014
+  lon: 25.539969
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mgue
+  lat: -35.77735
+  lon: -69.397928
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mikl
+  lat: 46.972789
+  lon: 31.972828
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: mizu
+  lat: 39.135169
+  lon: 141.132828
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mkea
+  lat: 19.801357
+  lon: -155.456345
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mobj
+  lat: 55.114882
+  lon: 36.569713
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: mobk
+  lat: 55.114882
+  lon: 36.569713
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: mobn
+  lat: 55.114881
+  lon: 36.569519
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: mobs
+  lat: -37.829403
+  lon: 144.975342
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: moiu
+  lat: 0.28832
+  lon: 35.29001
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: monp
+  lat: 32.891939
+  lon: -116.422358
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: morp
+  lat: 55.212789
+  lon: -1.685497
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mqzg
+  lat: -43.702729
+  lon: 172.654693
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mrc1
+  lat: 38.4991
+  lon: -77.37065
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mrl1
+  lat: -41.576183
+  lon: 173.740756
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: mrl2
+  lat: -41.576183
+  lon: 173.740756
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: mro1
+  lat: -26.696633
+  lon: 116.637494
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: msgr
+  lat: -20.445367
+  lon: -54.723406
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: mssa
+  lat: 36.140353
+  lon: 138.352308
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: mtka
+  lat: 35.679514
+  lon: 139.561386
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: mtv1
+  lat: -34.913589
+  lon: -56.176303
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: mtv2
+  lat: -34.913589
+  lon: -56.176303
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: nabg
+  lat: 78.943094
+  lon: 11.857314
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: nain
+  lat: 56.536964
+  lon: -61.688717
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: nano
+  lat: 49.2948
+  lon: -124.0865
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: naur
+  lat: -0.551839
+  lon: 166.92555
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: naus
+  lat: -3.022919
+  lon: -60.055014
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: nb01
+  lat: 31.025103
+  lon: 40.909897
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ncku
+  lat: 22.996658
+  lon: 120.222583
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: nico
+  lat: 35.140989
+  lon: 33.39645
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: nist
+  lat: 39.995067
+  lon: -105.262606
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: nium
+  lat: -19.076567
+  lon: -169.927067
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: nkay
+  lat: 17.719131
+  lon: 105.153164
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: nklg
+  lat: 0.353899
+  lon: 9.672126
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: nlib
+  lat: 41.771592
+  lon: -91.574892
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: nnor
+  lat: -31.048739
+  lon: 116.192714
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: not1
+  lat: 36.875861
+  lon: 14.989789
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: novm
+  lat: 55.0305
+  lon: 82.909489
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: nrc1
+  lat: 45.454162
+  lon: -75.623826
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: nril
+  lat: 69.361833
+  lon: 88.359778
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: nrmd
+  lat: -22.228331
+  lon: 166.484883
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: nrmg
+  lat: -22.228324
+  lon: 166.484886
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: ntus
+  lat: 1.3458
+  lon: 103.6799
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: nvsk
+  lat: 54.8406
+  lon: 83.2355
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: nya1
+  lat: 78.929553
+  lon: 11.865294
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: nya2
+  lat: 78.930333
+  lon: 11.858639
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: nyal
+  lat: 78.929581
+  lon: 11.865094
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: oafa
+  lat: -31.508683
+  lon: -68.623267
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: oak1
+  lat: 51.117614
+  lon: -0.905122
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: oak2
+  lat: 51.117614
+  lon: -0.905122
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: obe4
+  lat: 48.084806
+  lon: 11.277856
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ohi2
+  lat: -63.321081
+  lon: -57.901333
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: ohi3
+  lat: -63.321095
+  lon: -57.901385
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: ons1
+  lat: 57.395331
+  lon: 11.924536
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: onsa
+  lat: 57.395297
+  lon: 11.925514
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: op71
+  lat: 48.835906
+  lon: 2.334975
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: orid
+  lat: 41.127311
+  lon: 20.794047
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: osn3
+  lat: 37.082689
+  lon: 127.033589
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: osn4
+  lat: 37.082689
+  lon: 127.033589
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: ous2
+  lat: -45.869475
+  lon: 170.510933
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: owmg
+  lat: -44.024295
+  lon: -176.368803
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: p043
+  lat: 43.881147
+  lon: -104.185703
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: p051
+  lat: 45.8066
+  lon: -108.546144
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: p053
+  lat: 48.726081
+  lon: -107.725419
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: p389
+  lat: 43.811989
+  lon: -120.603344
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: p779
+  lat: 35.201939
+  lon: -82.872472
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: p802
+  lat: 46.557564
+  lon: -100.623417
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: palm
+  lat: -64.77509
+  lon: -64.051122
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: parc
+  lat: -53.136952
+  lon: -70.879881
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: park
+  lat: -32.998761
+  lon: 148.264614
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: pbr4
+  lat: 11.637442
+  lon: 92.712431
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: pdel
+  lat: 37.747747
+  lon: -25.662767
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: penc
+  lat: 47.7896
+  lon: 19.281522
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: pert
+  lat: -31.801958
+  lon: 115.885256
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: pets
+  lat: 53.0233
+  lon: 158.650136
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: pgen
+  lat: 6.064912
+  lon: 125.131661
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: picl
+  lat: 51.479808
+  lon: -90.161975
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: pie1
+  lat: 34.301506
+  lon: -108.118927
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: pimo
+  lat: 14.635719
+  lon: 121.077731
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: pin1
+  lat: 33.612158
+  lon: -116.458169
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: piur
+  lat: -5.169867
+  lon: -80.639286
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: pngm
+  lat: -2.043225
+  lon: 147.366
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: poal
+  lat: -30.074042
+  lon: -51.119764
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: pohn
+  lat: 6.959944
+  lon: 158.210116
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: pol2
+  lat: 42.67977
+  lon: 74.694264
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: polv
+  lat: 49.602614
+  lon: 34.542928
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: pots
+  lat: 52.379297
+  lon: 13.066092
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: pove
+  lat: -8.709337
+  lon: -63.89632
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: pppc
+  lat: 9.772932
+  lon: 118.740234
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: prds
+  lat: 50.871352
+  lon: -114.293495
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: pre3
+  lat: -25.746492
+  lon: 28.224047
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: pre4
+  lat: -25.746492
+  lon: 28.224047
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: ptag
+  lat: 14.535442
+  lon: 121.040764
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ptbb
+  lat: 52.296189
+  lon: 10.459744
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: ptgg
+  lat: 14.535402
+  lon: 121.041265
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: ptvl
+  lat: -17.749433
+  lon: 168.315025
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: qaq1
+  lat: 60.715264
+  lon: -46.047761
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: qiki
+  lat: 67.559333
+  lon: -64.033667
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: qs07
+  lat: 25.609839
+  lon: 43.9478
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: qui3
+  lat: -0.139578
+  lon: -78.467281
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: qui4
+  lat: -0.139578
+  lon: -78.467281
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: quin
+  lat: 39.974553
+  lon: -120.944428
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: rabt
+  lat: 33.998103
+  lon: -6.854289
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: raeg
+  lat: 36.9857
+  lon: -25.126389
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: ramo
+  lat: 30.597758
+  lon: 34.763139
+  server_id: BKG
+  rinex_versions:
+  - '2'
+- site_code: rbay
+  lat: -28.795547
+  lon: 32.078386
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: rdsd
+  lat: 18.461398
+  lon: -69.911323
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: redu
+  lat: 50.0015
+  lon: 5.144881
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: reso
+  lat: 74.69082
+  lon: -94.893705
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: reun
+  lat: -21.208225
+  lon: 55.571721
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: reyk
+  lat: 64.138789
+  lon: -21.955492
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: rgdg
+  lat: -53.785839
+  lon: -67.751528
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: riga
+  lat: 56.948619
+  lon: 24.058772
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: rio1
+  lat: 42.464242
+  lon: -2.426097
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: rio2
+  lat: -53.785472
+  lon: -67.751119
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: riop
+  lat: -1.6506
+  lon: -78.6511
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: roag
+  lat: 36.46335
+  lon: -6.206275
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: rock
+  lat: 34.235675
+  lon: -118.676431
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: roth
+  lat: -67.571402
+  lon: -68.125746
+  server_id: BKG
+  rinex_versions:
+  - '2'
+- site_code: saby
+  lat: 17.64585
+  lon: -63.220569
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: salu
+  lat: -2.593458
+  lon: -44.212478
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: samo
+  lat: -13.849211
+  lon: -171.738419
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: sant
+  lat: -33.150288
+  lon: -70.668553
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: sask
+  lat: 52.196254
+  lon: -106.398359
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: savo
+  lat: -12.939247
+  lon: -38.432254
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: sbok
+  lat: -29.669322
+  lon: 17.879208
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: sch2
+  lat: 54.832089
+  lon: -66.832614
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: scip
+  lat: 32.914428
+  lon: -118.48795
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: scor
+  lat: 70.485333
+  lon: -21.950336
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: scrz
+  lat: -17.796792
+  lon: -63.159678
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: sctb
+  lat: -77.848986
+  lon: 166.758014
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: scub
+  lat: 20.012067
+  lon: -75.762314
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: sejn
+  lat: 36.522211
+  lon: 127.303192
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: seus
+  lat: 17.495297
+  lon: -62.982608
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: sey2
+  lat: -4.673651
+  lon: 55.479454
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: seyg
+  lat: -4.678732
+  lon: 55.530631
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: sfdm
+  lat: 34.459806
+  lon: -118.754506
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: sfer
+  lat: 36.464344
+  lon: -6.205647
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: sgoc
+  lat: 6.892075
+  lon: 79.874178
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: sgpo
+  lat: 36.604183
+  lon: -97.484822
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: shao
+  lat: 31.099642
+  lon: 121.200445
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: she2
+  lat: 46.220691
+  lon: -64.55201
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: shlg
+  lat: 25.67395
+  lon: 91.913297
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: sin1
+  lat: 1.342981
+  lon: 103.679438
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: smst
+  lat: 33.577855
+  lon: 135.936955
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: sni1
+  lat: 33.247875
+  lon: -119.524364
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: sod3
+  lat: 67.420786
+  lon: 26.389286
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: sofi
+  lat: 42.556092
+  lon: 23.394728
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: solo
+  lat: -9.434922
+  lon: 159.954344
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: spk1
+  lat: 34.059342
+  lon: -118.646161
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: spt0
+  lat: 57.714956
+  lon: 12.891344
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: sptu
+  lat: -21.929117
+  lon: -50.492369
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: srti
+  lat: 1.721942
+  lon: 33.620011
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ssia
+  lat: 13.6973
+  lon: -89.1162
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: stfu
+  lat: 37.426907
+  lon: -122.173291
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: sthl
+  lat: -15.942534
+  lon: -5.667345
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: stj3
+  lat: 47.595435
+  lon: -52.678308
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: stjo
+  lat: 47.595239
+  lon: -52.677747
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: stk2
+  lat: 43.528644
+  lon: 141.844819
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: stpm
+  lat: 46.777825
+  lon: -56.168244
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: str1
+  lat: -35.315525
+  lon: 149.010056
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: str2
+  lat: -35.316153
+  lon: 149.010158
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: sulp
+  lat: 49.835589
+  lon: 24.014489
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: suth
+  lat: -32.380211
+  lon: 20.810462
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: sutm
+  lat: -32.381436
+  lon: 20.810911
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: suwn
+  lat: 37.2755
+  lon: 127.0542
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: svtl
+  lat: 60.532856
+  lon: 29.780872
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: sydn
+  lat: -33.780872
+  lon: 151.150383
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: syog
+  lat: -69.006957
+  lon: 39.583744
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: tabl
+  lat: 34.38185
+  lon: -117.678283
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: tana
+  lat: 11.569072
+  lon: 37.329106
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: tash
+  lat: 41.32805
+  lon: 69.295567
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: tcms
+  lat: 24.797986
+  lon: 120.987389
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: tdou
+  lat: -23.079908
+  lon: 30.384006
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: tehn
+  lat: 35.697281
+  lon: 51.334092
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: teja
+  lat: -39.805453
+  lon: -73.252847
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: thtg
+  lat: -17.577064
+  lon: -149.606442
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: thti
+  lat: -17.577058
+  lon: -149.606445
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: thu2
+  lat: 76.537047
+  lon: -68.82505
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: tid1
+  lat: -35.399197
+  lon: 148.98
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: tidb
+  lat: -35.399206
+  lon: 148.979997
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: tit2
+  lat: 51.035233
+  lon: 6.431581
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: tixi
+  lat: 71.634475
+  lon: 128.866414
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: tkbg
+  lat: 36.067497
+  lon: 140.131236
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: tlse
+  lat: 43.560694
+  lon: 1.480872
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: tlsg
+  lat: 43.549708
+  lon: 1.485036
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: tnml
+  lat: 24.797955
+  lon: 120.987344
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: toay
+  lat: 16.073442
+  lon: 106.626764
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: tong
+  lat: -21.144714
+  lon: -175.179222
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: topl
+  lat: -10.171053
+  lon: -48.330678
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: torp
+  lat: 33.797797
+  lon: -118.330603
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: tow2
+  lat: -19.269272
+  lon: 147.055692
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: trak
+  lat: 33.617936
+  lon: -117.803439
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: tro1
+  lat: 69.662714
+  lon: 18.939631
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: tsk2
+  lat: 36.105575
+  lon: 140.087117
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: tskb
+  lat: 36.105681
+  lon: 140.087497
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: tubi
+  lat: 40.786728
+  lon: 29.450675
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: tuva
+  lat: -8.525292
+  lon: 179.196561
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: twtf
+  lat: 24.953563
+  lon: 121.164508
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ucal
+  lat: 51.079975
+  lon: -114.13385
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: uclp
+  lat: 34.069122
+  lon: -118.441911
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: uclu
+  lat: 48.9256
+  lon: -125.5416
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ufpr
+  lat: -25.448369
+  lon: -49.230955
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: ulab
+  lat: 47.865067
+  lon: 107.052331
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: uldi
+  lat: -28.293117
+  lon: 31.420922
+  server_id: IGN
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: unb3
+  lat: 45.950208
+  lon: -66.641706
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: unbd
+  lat: 45.950123
+  lon: -66.641495
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: unbj
+  lat: 45.950208
+  lon: -66.641706
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: unbn
+  lat: 45.950208
+  lon: -66.641706
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: unsa
+  lat: -24.727456
+  lon: -65.407644
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: ural
+  lat: 56.838275
+  lon: 60.614858
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: urum
+  lat: 43.80795
+  lon: 87.600672
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: uscl
+  lat: -33.449853
+  lon: -70.681344
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: usn7
+  lat: 38.920566
+  lon: -77.066277
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: usn8
+  lat: 38.920566
+  lon: -77.066277
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: usn9
+  lat: 38.920566
+  lon: -77.066277
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: usp1
+  lat: -18.149086
+  lon: 178.446372
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: usud
+  lat: 36.13311
+  lon: 138.362044
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: utqi
+  lat: 71.322756
+  lon: -156.615017
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: uzhl
+  lat: 48.631978
+  lon: 22.297617
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: vacs
+  lat: -20.297091
+  lon: 57.497037
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: vald
+  lat: 48.097058
+  lon: -77.564167
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: vill
+  lat: 40.443592
+  lon: -3.951981
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: vis0
+  lat: 57.653867
+  lon: 18.367311
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: vndp
+  lat: 34.556311
+  lon: -120.61645
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: voim
+  lat: -21.9063
+  lon: 46.793272
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: wab2
+  lat: 46.923747
+  lon: 7.46425
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: wark
+  lat: -36.434405
+  lon: 174.66278
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: warn
+  lat: 54.169789
+  lon: 12.101428
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: wdc5
+  lat: 38.920564
+  lon: -77.066319
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: wdc6
+  lat: 38.920564
+  lon: -77.066319
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: wes2
+  lat: 42.613336
+  lon: -71.493328
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: wgtn
+  lat: -41.323448
+  lon: 174.805887
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: whc1
+  lat: 33.979886
+  lon: -118.031169
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: whit
+  lat: 60.750513
+  lon: -135.222112
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: widc
+  lat: 33.934758
+  lon: -116.391781
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: will
+  lat: 52.2369
+  lon: -122.1678
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: wind
+  lat: -22.574919
+  lon: 17.089431
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: wlsn
+  lat: 34.226122
+  lon: -118.055914
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: wroc
+  lat: 51.113264
+  lon: 17.062028
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: wsrt
+  lat: 52.9146
+  lon: 6.6045
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: wtz3
+  lat: 49.144789
+  lon: 12.878624
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: wtza
+  lat: 49.144228
+  lon: 12.878908
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: wtzr
+  lat: 49.144197
+  lon: 12.878908
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: wtzz
+  lat: 49.144214
+  lon: 12.878908
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: wuh2
+  lat: 30.53168
+  lon: 114.357266
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: wuhn
+  lat: 30.531653
+  lon: 114.357261
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: wuth
+  lat: 77.002511
+  lon: 15.538606
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: xmis
+  lat: -10.449958
+  lon: 105.688506
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: yakt
+  lat: 62.030961
+  lon: 129.6803
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: yar2
+  lat: -29.046547
+  lon: 115.346983
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: yar3
+  lat: -29.046489
+  lon: 115.347158
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: yarr
+  lat: -29.046581
+  lon: 115.346981
+  server_id: CDDIS
+  rinex_versions:
+  - '3'
+- site_code: yebe
+  lat: 40.524897
+  lon: -3.088631
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: yel2
+  lat: 62.481321
+  lon: -114.480846
+  server_id: IGN
+  rinex_versions:
+  - '3'
+- site_code: yell
+  lat: 62.4809
+  lon: -114.4807
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: yibl
+  lat: 22.186458
+  lon: 56.112333
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: ykro
+  lat: 6.87056
+  lon: -5.240093
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: yons
+  lat: 37.541122
+  lon: 127.001344
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+- site_code: yssk
+  lat: 47.029736
+  lon: 142.716719
+  server_id: CDDIS
+  rinex_versions: []
+- site_code: zamb
+  lat: -15.425541
+  lon: 28.311012
+  server_id: CDDIS
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: zeck
+  lat: 43.788392
+  lon: 41.565067
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: zim2
+  lat: 46.877092
+  lon: 7.465028
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'
+- site_code: zim3
+  lat: 46.877092
+  lon: 7.465028
+  server_id: BKG
+  rinex_versions:
+  - '3'
+- site_code: zimm
+  lat: 46.877094
+  lon: 7.465272
+  server_id: BKG
+  rinex_versions:
+  - '2'
+  - '3'

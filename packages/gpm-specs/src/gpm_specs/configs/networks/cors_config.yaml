@@ -1,0 +1,72 @@
+id: CORS
+name: NOAA CORS Network (NCN)
+description: >
+  NOAA Continuously Operating Reference Station Network managed by
+  the National Geodetic Survey.  ~1800 active stations across the
+  United States and territories providing RINEX v2 observation and
+  navigation data.  Data are available from two public mirrors:
+  the NGS HTTPS server and the NOAA Open-Data AWS S3 bucket.
+
+  Station-to-server routing is pre-computed in cors_stations.yaml
+  (active stations only) keyed by lowercase site_code → server_id.
+
+station_catalog: cors_stations.yaml
+
+servers:
+  - id: NOAA_NGS
+    hostname: "https://geodesy.noaa.gov"
+    protocol: https
+    auth_required: false
+    description: >
+      NGS HTTPS archive (public, no authentication).
+      Directory listings available via web browser.
+
+  - id: NOAA_S3
+    hostname: "https://noaa-cors-pds.s3.amazonaws.com"
+    protocol: https
+    auth_required: false
+    description: >
+      NOAA Open-Data Dissemination (NODD) S3 bucket (public).
+      High-bandwidth mirror of the full CORS RINEX archive.
+
+products:
+  # ── NGS server ─────────────────────────────────────────────────
+  - id: cors_ngs_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: NOAA_NGS
+    available: true
+    description: >
+      RINEX 2 daily observation files from the NGS server.
+      Hatanaka-compressed (.YYd.gz) and plain (.YYo.gz).
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "corsdata/rinex/{YYYY}/{DDD}/{SSSS}/"}
+
+  - id: cors_ngs_rinex2_nav
+    product_name: RINEX_NAV
+    server_id: NOAA_NGS
+    available: true
+    description: RINEX 2 navigation files from the NGS server.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "corsdata/rinex/{YYYY}/{DDD}/{SSSS}/"}
+
+  # ── S3 bucket ──────────────────────────────────────────────────
+  - id: cors_s3_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: NOAA_S3
+    available: true
+    description: >
+      RINEX 2 daily observation files from the NOAA S3 bucket.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "rinex/{YYYY}/{DDD}/{SSSS}/"}
+
+  - id: cors_s3_rinex2_nav
+    product_name: RINEX_NAV
+    server_id: NOAA_S3
+    available: true
+    description: RINEX 2 navigation files from the NOAA S3 bucket.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "rinex/{YYYY}/{DDD}/{SSSS}/"}

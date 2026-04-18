@@ -70,6 +70,7 @@ class StationQuery:
         self._rinex_version: Literal["2", "3", "4"] = "3"
         self._rinex_variant: Literal["OBS", "NAV", "MET"] = "OBS"
         self._refresh_index: bool = False
+        self._version_fallback: bool = False
 
     # ── Builder methods ───────────────────────────────────────────────
 
@@ -186,6 +187,29 @@ class StationQuery:
         clone._rinex_variant = variant
         return clone
 
+    def with_version_fallback(self, enable: bool = True) -> StationQuery:
+        """Enable automatic RINEX version fallback for stations with no results.
+
+        When enabled, any station that returns zero file candidates for the
+        requested RINEX version is automatically retried with the next lower
+        version (``"3"`` → ``"2"``; ``"4"`` → ``"3"``).  This is useful when
+        a network archives most stations at v3 but keeps some legacy stations
+        at v2 only (e.g. EarthScope GAGE has ~100 stations with v2 data only).
+
+        The fallback candidates are included alongside v3 hits in both
+        :meth:`search` and :meth:`download`, ranked below any v3 results for
+        the same station.
+
+        Args:
+            enable: ``True`` to enable fallback (default), ``False`` to disable.
+
+        Returns:
+            New :class:`StationQuery` instance.
+        """
+        clone = copy.copy(self)
+        clone._version_fallback = enable
+        return clone
+
     def country_codes(self, *codes: str) -> StationQuery:
         """Pin the 3-char data-centre / country code (``CCC`` parameter).
 
@@ -282,7 +306,7 @@ class StationQuery:
                 stations = self._apply_temporal_filter(stations, self._date)
 
             all_stations.extend(stations)
-
+        all_stations.sort(key=lambda s: s.site_code)  # sort by station code ascending
         return all_stations
 
     def _query_spatial(self, network_id: str) -> list[GNSSStation]:
@@ -405,6 +429,53 @@ class StationQuery:
             len(expanded),
             self._date.date(),
         )
+
+        # Version fallback: retry stations with zero candidates at a lower version.
+        if self._version_fallback and self._rinex_version in ("3", "4"):
+            fallback_version: Literal["2", "3"] = (
+                "2" if self._rinex_version == "3" else "3"
+            )
+            hit_codes = {
+                next((p.value for p in rq.product.parameters if p.name == "SSSS"), None)
+                for rq in expanded
+            }
+            missing_codes = {s.site_code for s in stations} - {c for c in hit_codes if c}
+            if missing_codes:
+                fallback_stations = [s for s in stations if s.site_code in missing_codes]
+                logger.info(
+                    "v%s fallback: %d station(s) have no v%s candidates, retrying with v%s",
+                    fallback_version,
+                    len(fallback_stations),
+                    self._rinex_version,
+                    fallback_version,
+                )
+                fallback_targets = self._search_planner.get_stations(
+                    stations=fallback_stations,
+                    date=self._date,
+                    version=fallback_version,
+                    variant=self._rinex_variant,
+                    network_ids=network_ids,
+                    local_resource_ids=local_resource_ids,
+                    country_codes=list(self._country_codes) if self._country_codes else None,
+                )
+                if fallback_targets:
+                    fallback_expanded = self._wormhole.search(fallback_targets)
+                    if fallback_expanded:
+                        recovered = {
+                            next(
+                                (p.value for p in rq.product.parameters if p.name == "SSSS"),
+                                None,
+                            )
+                            for rq in fallback_expanded
+                        } - {None}
+                        logger.info(
+                            "v%s fallback: recovered %d file(s) across %d station(s)",
+                            fallback_version,
+                            len(fallback_expanded),
+                            len(recovered),
+                        )
+                    expanded.extend(fallback_expanded)
+
         return sort_by_protocol(expanded)
 
     def search(self) -> list[FoundResource]:
@@ -440,7 +511,11 @@ class StationQuery:
                 continue
             seen[key] = True
 
-            params = {p.name: p.value for p in rq.product.parameters if p.value is not None}
+            params = {
+                p.name: (p.value.upper() if p.name == "SSSS" and p.value else p.value)
+                for p in rq.product.parameters
+                if p.value is not None
+            }
             protocol = (rq.server.protocol or "").upper()
             is_local = protocol in ("FILE", "LOCAL")
             dir_val = rq.directory.value or rq.directory.pattern
@@ -459,11 +534,12 @@ class StationQuery:
             fr._query = rq
             results.append(fr)
 
-        # Sort: station code ascending; within each station local before remote,
-        # then RINEX version descending.  The download() fallback tries candidates
-        # in this order, so local files are always preferred over network fetches.
+        # Sort: station code ascending (alphabetical, case-insensitive);
+        # within each station local before remote, then RINEX version descending.
+        # The download() fallback tries candidates in this order, so local files
+        # are always preferred over network fetches.
         def _sort_key(r: FoundResource) -> tuple:
-            ssss = r.parameters.get("SSSS", "")
+            ssss = r.parameters.get("SSSS", "").upper()
             is_remote = 0 if r.source == "local" else 1
             try:
                 v_int = int(r.parameters.get("V", "0"))

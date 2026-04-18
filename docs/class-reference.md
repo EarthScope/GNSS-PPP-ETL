@@ -7,7 +7,7 @@ grouped by architectural layer.
 
 ## Layer 0 — Configuration & Utilities
 
-Layer 0 contains no standalone classes — only module-level helpers and bundled YAML data. Low-level network I/O is handled at Layer 3 by `ConnectionPoolFactory` (via `fsspec`). See [Layer 6 — Utilities](#layer-6-utilities) for the utility classes (`_PassthroughDict`, `IGSAntexReferenceFrameType`) and [Layer 3 — Factories, Planners & Transport](#layer-3-factories-planners-transport) for `ConnectionPool` / `ConnectionPoolFactory`.
+Layer 0 contains no standalone classes — only module-level helpers and bundled YAML data. Low-level network I/O is handled at Layer 3 by `ConnectionPoolFactory` (via `fsspec`). See [Layer 6 — Utilities](#layer-6--utilities) for the utility classes (`_PassthroughDict`, `IGSAntexReferenceFrameType`) and [Layer 3 — Factories, Planners & Transport](#layer-3--factories-planners--transport) for `ConnectionPool` / `ConnectionPoolFactory`.
 
 ---
 

@@ -405,6 +405,16 @@ class SearchPlanner:
                 query_planner=self._gnss_network_registry,
                 resource_selection=_listify(network_ids),
             )
+            # Build server→network lookup from the registry so the data-
+            # center filter only applies within the same network.
+            server_to_network: dict[str, str] = {}
+            for nid in self._gnss_network_registry.resource_ids:
+                cfg = self._gnss_network_registry.config_for(nid)
+                for srv in cfg.servers:
+                    server_to_network[srv.id] = nid
+            network_out = self._filter_by_data_center(
+                network_out, stations or [], server_to_network,
+            )
             out.extend(network_out)
 
         # Replace any unresolved placeholders with their regex patterns.
@@ -416,3 +426,93 @@ class SearchPlanner:
                 rq.product.filename.derive(rq.product.parameters)
 
         return out
+
+    @staticmethod
+    def _filter_by_data_center(
+        targets: list[SearchTarget],
+        stations: list[GNSSStation],
+        server_to_network: dict[str, str] | None = None,
+    ) -> list[SearchTarget]:
+        """Route each station's targets to its preferred data-center server.
+
+        For every station that carries a ``data_center`` value, only targets
+        whose ``server.id`` matches that value are kept — but only when the
+        target's server belongs to the **same network** as the station.
+        Targets from other networks are always retained.
+
+        If no configured server matches within the station's own network
+        (e.g. the station's data center is JPL, PGC, GA, or SIO — none of
+        which have their own server entry), *all* targets for that station
+        within its network are retained so the WormHole can fall back to
+        whichever server actually has the file (typically CDDIS).
+
+        Stations without a ``data_center`` or ``network_id`` are unaffected.
+
+        Args:
+            targets: Network search targets to filter.
+            stations: Station metadata returned by the spatial query.
+            server_to_network: Optional mapping of server_id → network_id.
+                When provided, the data-center filter is scoped to targets
+                whose server belongs to the same network as the station.
+
+        Returns:
+            Filtered list of search targets.
+        """
+        # Build site_code → (preferred_server_id, network_id) mapping.
+        site_to_dc: dict[str, str] = {
+            s.site_code: s.data_center
+            for s in stations
+            if s.data_center is not None
+        }
+        site_to_network: dict[str, str] = {
+            s.site_code: s.network_id
+            for s in stations
+            if s.network_id is not None
+        }
+        if not site_to_dc:
+            return targets
+
+        # Per-network available server IDs for fallback detection.
+        network_server_ids: dict[str, set[str]] = {}
+        for t in targets:
+            nid = server_to_network.get(t.server.id) if server_to_network else None
+            if nid is not None:
+                network_server_ids.setdefault(nid, set()).add(t.server.id)
+
+        # Flat fallback when no server→network mapping is provided.
+        all_server_ids: set[str] = {t.server.id for t in targets}
+
+        filtered: list[SearchTarget] = []
+        for target in targets:
+            ssss = next(
+                (p.value for p in target.product.parameters if p.name == "SSSS"),
+                None,
+            )
+            station_nid = site_to_network.get(ssss)  # type: ignore[arg-type]
+            target_nid = server_to_network.get(target.server.id) if server_to_network else None
+
+            # Cross-network check first: always drop targets whose server
+            # belongs to a different network than the station.  This prevents
+            # ERT/CORS stations from generating spurious IGS targets (and vice
+            # versa) even when the station has no data_center annotation.
+            if station_nid and target_nid and station_nid != target_nid:
+                continue
+
+            dc = site_to_dc.get(ssss)  # type: ignore[arg-type]
+            if dc is None:
+                # Station has no data_center annotation — keep (same network or
+                # network unknown).
+                filtered.append(target)
+                continue
+
+            # Within the correct network: apply data-center routing.
+            avail = network_server_ids.get(station_nid, all_server_ids) if station_nid else all_server_ids
+            if dc not in avail:
+                # Data center not configured — keep all same-network targets as
+                # fallback (e.g. JPL/PGC/GA/SIO stations fall back to CDDIS).
+                filtered.append(target)
+            elif target.server.id == dc:
+                # Matches preferred server — keep.
+                filtered.append(target)
+            # else: wrong server for this station within its own network — drop.
+        return filtered
