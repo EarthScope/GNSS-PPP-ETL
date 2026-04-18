@@ -303,7 +303,11 @@ class WormHole:
         # Prefer an already-decompressed version on disk (.crx.gz→.rnx, .26d.Z→.26o, etc.)
         decompressed_name = hatanaka.get_decompressed_path(destination_path.name)
         decompressed_path = destination_dir / decompressed_name
-        if decompressed_path != destination_path and decompressed_path.exists() and decompressed_path.stat().st_size > 0:
+        if (
+            decompressed_path != destination_path
+            and decompressed_path.exists()
+            and decompressed_path.stat().st_size > 0
+        ):
             logger.debug(
                 "Skipping download, decompressed file already exists: %s",
                 decompressed_path,

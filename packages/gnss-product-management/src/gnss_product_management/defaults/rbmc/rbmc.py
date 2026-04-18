@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from shapely import STRtree, Point
+from shapely import Point, STRtree
 
 from gnss_product_management.environments.gnss_station_network import (
     GNSSStation,
@@ -27,6 +27,7 @@ class RBMCProtocol(NetworkProtocol):
     def __init__(self, catalog_path: Path | None = None) -> None:
         if catalog_path is None:
             from gpm_specs.configs import NETWORKS_RESOURCE_DIR
+
             catalog_path = Path(NETWORKS_RESOURCE_DIR) / "rbmc_stations.yaml"
 
         with open(catalog_path) as f:

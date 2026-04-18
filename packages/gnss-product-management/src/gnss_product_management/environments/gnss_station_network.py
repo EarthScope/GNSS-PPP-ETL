@@ -241,49 +241,59 @@ class GNSSNetworkRegistry:
             safe_id = nid.replace(" ", "_").replace(".", "_").lower()
 
             # BKG EUREF Regional Data Centre — obs + nav, ~277 obs files/day.
-            servers.append({
-                "id": "BKG_EUREF",
-                "hostname": "ftp://igs-ftp.bkg.bund.de",
-                "protocol": "ftp",
-                "auth_required": False,
-                "description": "BKG EUREF Regional Data Centre (anonymous FTP).",
-            })
-            products.append({
-                "id": f"{safe_id}_bkg_rinex3_obs",
-                "product_name": "RINEX_OBS",
-                "server_id": "BKG_EUREF",
-                "available": True,
-                "description": f"RINEX 3 observation files for {nid} via BKG EUREF.",
-                "parameters": [{"name": "V", "value": "3"}],
-                "directory": {"pattern": "EUREF/obs/{YYYY}/{DDD}/"},
-            })
+            servers.append(
+                {
+                    "id": "BKG_EUREF",
+                    "hostname": "ftp://igs-ftp.bkg.bund.de",
+                    "protocol": "ftp",
+                    "auth_required": False,
+                    "description": "BKG EUREF Regional Data Centre (anonymous FTP).",
+                }
+            )
+            products.append(
+                {
+                    "id": f"{safe_id}_bkg_rinex3_obs",
+                    "product_name": "RINEX_OBS",
+                    "server_id": "BKG_EUREF",
+                    "available": True,
+                    "description": f"RINEX 3 observation files for {nid} via BKG EUREF.",
+                    "parameters": [{"name": "V", "value": "3"}],
+                    "directory": {"pattern": "EUREF/obs/{YYYY}/{DDD}/"},
+                }
+            )
 
             # EPN Historical Data Centre (ROB) — definitive EPN archive,
             # ~394 obs files/day.
-            servers.append({
-                "id": "EPN_HDC",
-                "hostname": "ftp://ftp.epncb.oma.be",
-                "protocol": "ftp",
-                "auth_required": False,
-                "description": "EPN Historical Data Centre at ROB (anonymous FTP).",
-            })
-            products.append({
-                "id": f"{safe_id}_epn_rinex3_obs",
-                "product_name": "RINEX_OBS",
-                "server_id": "EPN_HDC",
-                "available": True,
-                "description": f"RINEX 3 observation files for {nid} via EPN-HDC.",
-                "parameters": [{"name": "V", "value": "3"}],
-                "directory": {"pattern": "pub/RINEX/{YYYY}/{DDD}/"},
-            })
+            servers.append(
+                {
+                    "id": "EPN_HDC",
+                    "hostname": "ftp://ftp.epncb.oma.be",
+                    "protocol": "ftp",
+                    "auth_required": False,
+                    "description": "EPN Historical Data Centre at ROB (anonymous FTP).",
+                }
+            )
+            products.append(
+                {
+                    "id": f"{safe_id}_epn_rinex3_obs",
+                    "product_name": "RINEX_OBS",
+                    "server_id": "EPN_HDC",
+                    "available": True,
+                    "description": f"RINEX 3 observation files for {nid} via EPN-HDC.",
+                    "parameters": [{"name": "V", "value": "3"}],
+                    "directory": {"pattern": "pub/RINEX/{YYYY}/{DDD}/"},
+                }
+            )
 
-        return ResourceSpec.model_validate({
-            "id": nid,
-            "name": name,
-            "description": description,
-            "servers": servers,
-            "products": products,
-        })
+        return ResourceSpec.model_validate(
+            {
+                "id": nid,
+                "name": name,
+                "description": description,
+                "servers": servers,
+                "products": products,
+            }
+        )
 
     # ── Lookups ───────────────────────────────────────────────────────
 

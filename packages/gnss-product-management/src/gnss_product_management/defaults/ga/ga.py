@@ -13,12 +13,11 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from shapely import Point, STRtree
-
 from gnss_product_management.environments.gnss_station_network import (
     GNSSStation,
     NetworkProtocol,
 )
+from shapely import Point, STRtree
 
 
 class GAProtocol(NetworkProtocol):
