@@ -1,0 +1,45 @@
+id: GA
+name: Geoscience Australia CORS Network
+description: >
+  Geoscience Australia Continuously Operating Reference Stations (CORS)
+  network. ~870 public stations distributed across mainland Australia,
+  Tasmania, and offshore territories (Cocos/Keeling, Christmas Island,
+  Lord Howe, Norfolk Island, Macquarie Island).
+
+  RINEX 3 daily observation (30 s sampling) and navigation files are
+  available via a REST API at data.gnss.ga.gov.au.  The API returns
+  pre-signed S3 download URLs; standard directory listings are not
+  supported.  No authentication is required for public data.
+
+  Station metadata sourced from the GA metadata API at
+  prod-metadata.gnss.ga.gov.au/api/corsSites.
+
+servers:
+  - id: GA_API
+    hostname: "https://data.gnss.ga.gov.au"
+    protocol: https
+    auth_required: false
+    description: >
+      Geoscience Australia GNSS data API. Returns pre-signed S3 URLs
+      for RINEX files. Query via /api/rinexFiles?stationId={SSSS}
+      &startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&filePeriod=01D
+      &rinexVersion=3.
+
+products:
+  - id: ga_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: GA_API
+    available: true
+    description: RINEX 3 daily observation files from GA CORS network.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "api/rinexFiles/"}
+
+  - id: ga_rinex3_nav
+    product_name: RINEX_NAV
+    server_id: GA_API
+    available: true
+    description: RINEX 3 daily navigation files from GA CORS network.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "api/rinexFiles/"}

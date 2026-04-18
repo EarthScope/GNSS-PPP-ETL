@@ -183,7 +183,9 @@ class GNSSNetworkRegistry:
         """Load all ``*.yaml`` files from *config_dir* into a new registry.
 
         Silently skips files that lack a top-level ``id`` field (they are
-        not network configs).
+        not network configs).  Files whose top-level value is a *list* are
+        treated as M3G-style multi-network manifests (each element must
+        have at least ``id`` and ``name`` keys).
 
         Args:
             config_dir: Path to the directory containing network YAML files.
@@ -194,9 +196,21 @@ class GNSSNetworkRegistry:
         registry = cls()
         config_dir = Path(config_dir)
 
-        for path in sorted(config_dir.glob("*.yaml")):
+        for path in sorted(config_dir.rglob("*.yaml")):
             with open(path) as fh:
                 raw = yaml.safe_load(fh)
+
+            # ── Multi-network manifest (list of dicts) ────────────
+            if isinstance(raw, list):
+                for entry in raw:
+                    if not isinstance(entry, dict) or "id" not in entry:
+                        continue
+                    spec = registry._m3g_entry_to_spec(entry)
+                    registry._configs[spec.id] = spec
+                    logger.debug("Loaded M3G network: %s from %s", spec.id, path.name)
+                continue
+
+            # ── Single-network config (dict with id) ──────────────
             if not isinstance(raw, dict) or "id" not in raw:
                 continue
             config = ResourceSpec.model_validate(raw)
@@ -205,6 +219,71 @@ class GNSSNetworkRegistry:
             logger.debug("Loaded network config: %s from %s", config.id, path.name)
 
         return registry
+
+    @staticmethod
+    def _m3g_entry_to_spec(entry: dict) -> ResourceSpec:
+        """Convert a lightweight M3G manifest entry to a ResourceSpec."""
+        nid = entry["id"]
+        name = entry.get("name", nid)
+        parts = [name]
+        if entry.get("country"):
+            parts.append(f"Country: {entry['country']}.")
+        if entry.get("agency"):
+            parts.append(f"Operated by {entry['agency']}.")
+        parts.append("Station metadata via M3G API (gnss-metadata.eu).")
+        if entry.get("doi"):
+            parts.append(f"DOI: {entry['doi']}")
+        description = " ".join(parts)
+
+        servers = []
+        products = []
+        if entry.get("euref"):
+            safe_id = nid.replace(" ", "_").replace(".", "_").lower()
+
+            # BKG EUREF Regional Data Centre — obs + nav, ~277 obs files/day.
+            servers.append({
+                "id": "BKG_EUREF",
+                "hostname": "ftp://igs-ftp.bkg.bund.de",
+                "protocol": "ftp",
+                "auth_required": False,
+                "description": "BKG EUREF Regional Data Centre (anonymous FTP).",
+            })
+            products.append({
+                "id": f"{safe_id}_bkg_rinex3_obs",
+                "product_name": "RINEX_OBS",
+                "server_id": "BKG_EUREF",
+                "available": True,
+                "description": f"RINEX 3 observation files for {nid} via BKG EUREF.",
+                "parameters": [{"name": "V", "value": "3"}],
+                "directory": {"pattern": "EUREF/obs/{YYYY}/{DDD}/"},
+            })
+
+            # EPN Historical Data Centre (ROB) — definitive EPN archive,
+            # ~394 obs files/day.
+            servers.append({
+                "id": "EPN_HDC",
+                "hostname": "ftp://ftp.epncb.oma.be",
+                "protocol": "ftp",
+                "auth_required": False,
+                "description": "EPN Historical Data Centre at ROB (anonymous FTP).",
+            })
+            products.append({
+                "id": f"{safe_id}_epn_rinex3_obs",
+                "product_name": "RINEX_OBS",
+                "server_id": "EPN_HDC",
+                "available": True,
+                "description": f"RINEX 3 observation files for {nid} via EPN-HDC.",
+                "parameters": [{"name": "V", "value": "3"}],
+                "directory": {"pattern": "pub/RINEX/{YYYY}/{DDD}/"},
+            })
+
+        return ResourceSpec.model_validate({
+            "id": nid,
+            "name": name,
+            "description": description,
+            "servers": servers,
+            "products": products,
+        })
 
     # ── Lookups ───────────────────────────────────────────────────────
 

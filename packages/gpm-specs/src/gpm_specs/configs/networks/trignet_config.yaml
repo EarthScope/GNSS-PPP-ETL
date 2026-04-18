@@ -1,0 +1,28 @@
+id: TrigNet
+name: TrigNet GNSS CORS Network
+description: >
+  South African national GNSS CORS network operated by the Chief Directorate:
+  National Geo-spatial Information (NGI), Department of Agriculture, Land Reform
+  and Rural Development. ~70 permanent stations covering South Africa plus a few
+  sites in Lesotho and Eswatini.
+
+  Data access requires free registration at https://trignet.co.za/.
+  After registration RINEX observation files are downloadable via the portal.
+  This config documents the network structure for future integration; the station
+  catalog and automated download require an authenticated session token from the
+  TrigNet portal.
+
+servers:
+  - id: TrigNet_Portal
+    hostname: "https://trignet.co.za"
+    protocol: https
+    auth_required: true
+    description: >
+      TrigNet web portal. Free registration required at trignet.co.za.
+      RINEX data downloads require an active authenticated session.
+      No bulk-download API is currently documented.
+
+products: []
+# No products configured — TrigNet data access is session-based via web portal.
+# Integrate by implementing a TrigNetProtocol that authenticates via the portal
+# and constructs per-station download URLs once the access pattern is confirmed.

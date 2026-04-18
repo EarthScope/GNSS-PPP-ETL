@@ -1,0 +1,923 @@
+# RBMC Brazil station catalog — sourced from IBGE KMZ (RBMC_2024.kmz)
+# 153 stations across Brazil and Uruguay
+# Coordinates from IBGE cartogram, RINEX 3 only (15s sampling)
+
+stations:
+- site_code: alar
+  lat: -9.749225
+  lon: -36.65342
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: amco
+  lat: -4.871989
+  lon: -65.333979
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: amcr
+  lat: -4.085823
+  lon: -63.142204
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: amha
+  lat: -7.51675
+  lon: -63.028401
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ampt
+  lat: -2.654235
+  lon: -56.748369
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: amte
+  lat: -3.34569
+  lon: -64.70665
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: amtg
+  lat: -4.230513
+  lon: -69.914719
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: amua
+  lat: -3.091842
+  lon: -60.018157
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: aplj
+  lat: -0.822001
+  lon: -52.515593
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: apma
+  lat: 0.047035
+  lon: -51.097136
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: aps1
+  lat: -0.059514
+  lon: -51.166497
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: babj
+  lat: -13.26146
+  lon: -43.547065
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: babr
+  lat: -12.150043
+  lon: -44.994895
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: baic
+  lat: -11.327441
+  lon: -41.86505
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: bail
+  lat: -14.796603
+  lon: -39.172385
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: bait
+  lat: -12.521347
+  lon: -40.288657
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: bapa
+  lat: -9.390147
+  lon: -38.215462
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: batf
+  lat: -17.554871
+  lon: -39.743345
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: bavc
+  lat: -14.888312
+  lon: -40.802702
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: bele
+  lat: -1.408795
+  lon: -48.46255
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: bepa
+  lat: -1.460808
+  lon: -48.441407
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: boav
+  lat: 2.845182
+  lon: -60.701115
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: braz
+  lat: -15.947475
+  lon: -47.877869
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: brft
+  lat: -3.877447
+  lon: -38.425537
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ceeu
+  lat: -3.877549
+  lon: -38.425541
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: cefe
+  lat: -20.310794
+  lon: -40.319455
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ceft
+  lat: -3.710812
+  lon: -38.472918
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: cesb
+  lat: -3.68127
+  lon: -40.337487
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: chpi
+  lat: -22.687146
+  lon: -44.985158
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: coru
+  lat: -19.000281
+  lon: -57.629615
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: crat
+  lat: -7.238019
+  lon: -39.415605
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: cruz
+  lat: -7.611163
+  lon: -72.67211
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: cuib
+  lat: -15.555263
+  lon: -56.069867
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: each
+  lat: -23.48155
+  lon: -46.499697
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: eesc
+  lat: -22.004949
+  lon: -47.89918
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: esnv
+  lat: -18.713515
+  lon: -40.377711
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: gogy
+  lat: -16.664728
+  lon: -49.254673
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: goja
+  lat: -17.883279
+  lon: -51.726109
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: gour
+  lat: -14.509226
+  lon: -49.143584
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: guai
+  lat: -24.08407
+  lon: -54.262399
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ifsc
+  lat: -27.594433
+  lon: -48.542083
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ilha
+  lat: -20.427785
+  lon: -51.343385
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: impz
+  lat: -5.491766
+  lon: -47.497235
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: itai
+  lat: -25.420678
+  lon: -54.588293
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: maba
+  lat: -5.362379
+  lon: -49.122298
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mabb
+  lat: -4.240959
+  lon: -44.815723
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgbh
+  lat: -19.941901
+  lon: -43.924897
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgin
+  lat: -22.318562
+  lon: -46.328024
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgjf
+  lat: -21.776833
+  lon: -43.372578
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgjp
+  lat: -19.851986
+  lon: -43.965089
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgla
+  lat: -21.229065
+  lon: -44.974899
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgmc
+  lat: -16.716392
+  lon: -43.858317
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgmt
+  lat: -18.724104
+  lon: -47.523795
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgrp
+  lat: -19.209861
+  lon: -46.132552
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgto
+  lat: -17.883997
+  lon: -41.498476
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mgub
+  lat: -18.919163
+  lon: -48.256049
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msaq
+  lat: -20.452943
+  lon: -55.671165
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msbl
+  lat: -22.106888
+  lon: -56.530942
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msdr
+  lat: -22.194106
+  lon: -54.930402
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msgr
+  lat: -20.445367
+  lon: -54.723405
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msjr
+  lat: -21.498447
+  lon: -56.15898
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msmj
+  lat: -21.618209
+  lon: -55.137956
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msmn
+  lat: -23.923543
+  lon: -54.286585
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: msnv
+  lat: -23.022041
+  lon: -54.192067
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mspm
+  lat: -21.697692
+  lon: -57.884022
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mspp
+  lat: -22.621625
+  lon: -55.608854
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mtca
+  lat: -16.130468
+  lon: -57.690839
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mtga
+  lat: -15.87529
+  lon: -52.312071
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mtji
+  lat: -11.448745
+  lon: -58.723585
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mtla
+  lat: -15.228282
+  lon: -59.350469
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mtle
+  lat: -15.553766
+  lon: -54.282467
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mtsc
+  lat: -16.687529
+  lon: -56.174332
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: mtsr
+  lat: -12.545235
+  lon: -55.727413
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: naus
+  lat: -3.02292
+  lon: -60.055017
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: neia
+  lat: -25.020239
+  lon: -47.924969
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: obra
+  lat: -27.473614
+  lon: -55.130282
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: onrj
+  lat: -22.895701
+  lon: -43.224332
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: paar
+  lat: -3.211677
+  lon: -52.212763
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: paco
+  lat: -29.714267
+  lon: -57.086366
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pait
+  lat: -4.287657
+  lon: -56.036356
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pasm
+  lat: -2.427968
+  lon: -54.728901
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pbcg
+  lat: -7.213678
+  lon: -35.907138
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pbjp
+  lat: -7.136278
+  lon: -34.873424
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pbpt
+  lat: -7.074893
+  lon: -37.286313
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: peaf
+  lat: -7.764112
+  lon: -37.631955
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pepe
+  lat: -9.384418
+  lon: -40.506124
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: perc
+  lat: -8.058801
+  lon: -34.950385
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: picr
+  lat: -10.430189
+  lon: -45.173204
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pifl
+  lat: -6.788128
+  lon: -43.041156
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pisr
+  lat: -9.030693
+  lon: -42.702759
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pitn
+  lat: -5.102482
+  lon: -42.793029
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: poal
+  lat: -30.074042
+  lon: -51.119765
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: poli
+  lat: -23.555648
+  lon: -46.730312
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: pove
+  lat: -8.709337
+  lon: -63.89632
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ppte
+  lat: -22.119905
+  lon: -51.408534
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: prcl
+  lat: -24.987991
+  lon: -53.451013
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: prcv
+  lat: -24.962755
+  lon: -53.466329
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: prgu
+  lat: -25.383998
+  lon: -51.487578
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: prma
+  lat: -23.409688
+  lon: -51.938424
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: prur
+  lat: -23.806085
+  lon: -53.320661
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: riob
+  lat: -9.965459
+  lon: -67.802812
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rjcg
+  lat: -21.764866
+  lon: -41.326156
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rjni
+  lat: -22.905936
+  lon: -43.133804
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rjre
+  lat: -22.452713
+  lon: -44.380222
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rjva
+  lat: -22.402211
+  lon: -43.651863
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rnna
+  lat: -5.836141
+  lon: -35.207708
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rnpf
+  lat: -6.131767
+  lon: -38.206828
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rogu
+  lat: -10.761734
+  lon: -65.315433
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: roji
+  lat: -10.863901
+  lon: -61.959715
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rosa
+  lat: -22.523304
+  lon: -52.952088
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rovi
+  lat: -12.751885
+  lon: -60.14316
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rsal
+  lat: -29.789445
+  lon: -55.76884
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rscl
+  lat: -28.14188
+  lon: -54.754759
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rspe
+  lat: -31.802449
+  lon: -52.417629
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rspf
+  lat: -28.22814
+  lon: -52.39062
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: rssl
+  lat: -29.792995
+  lon: -51.152422
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: saga
+  lat: -0.143854
+  lon: -67.057781
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: salu
+  lat: -2.593459
+  lon: -44.212479
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: savo
+  lat: -12.939247
+  lon: -38.432254
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: scaq
+  lat: -26.393757
+  lon: -48.737441
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: scbl
+  lat: -26.881829
+  lon: -49.137384
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: scca
+  lat: -26.779728
+  lon: -51.039313
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: scch
+  lat: -27.137566
+  lon: -52.599507
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: sccr
+  lat: -28.677848
+  lon: -49.331733
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: scfl
+  lat: -27.59938
+  lon: -48.519534
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: scim
+  lat: -28.236646
+  lon: -48.655311
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: scla
+  lat: -27.792836
+  lon: -50.304261
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: seaj
+  lat: -10.929633
+  lon: -37.104278
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: sjrp
+  lat: -20.785519
+  lon: -49.359951
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: sjsp
+  lat: -23.207132
+  lon: -45.861738
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: smar
+  lat: -29.718924
+  lon: -53.716593
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spar
+  lat: -21.184666
+  lon: -50.439788
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spbo
+  lat: -22.852467
+  lon: -48.432301
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spbp
+  lat: -22.925588
+  lon: -46.53447
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spc1
+  lat: -22.816286
+  lon: -47.062693
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spdr
+  lat: -21.461604
+  lon: -51.554257
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spfe
+  lat: -20.262875
+  lon: -50.228695
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spfr
+  lat: -20.510574
+  lon: -47.386642
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spja
+  lat: -21.241073
+  lon: -48.286703
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spli
+  lat: -21.665204
+  lon: -49.733695
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: spor
+  lat: -22.99917
+  lon: -49.843288
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: sps1
+  lat: -23.479191
+  lon: -47.416835
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: sptu
+  lat: -21.929118
+  lon: -50.49237
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ssa1
+  lat: -12.975158
+  lon: -38.516485
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: svic
+  lat: -26.993715
+  lon: -54.48752
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: togu
+  lat: -11.746706
+  lon: -49.049099
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: topl
+  lat: -10.171054
+  lon: -48.330679
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: uba1
+  lat: -23.500177
+  lon: -45.118901
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: ufpr
+  lat: -25.448369
+  lon: -49.230955
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: uyar
+  lat: -30.411748
+  lon: -56.490681
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: uybu
+  lat: -30.253642
+  lon: -57.60252
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: uyri
+  lat: -30.895763
+  lon: -55.559114
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'
+- site_code: vico
+  lat: -20.761501
+  lon: -42.869989
+  server_id: RBMC_IBGE
+  rinex_versions:
+  - '3'

@@ -38,12 +38,25 @@ DefaultNetworkRegistry.bind(DefaultProductEnvironment)
 
 # Register concrete protocol implementations.
 from gnss_product_management.defaults.earthscope.earthscope import EarthScopeProtocol  # noqa: E402
+from gnss_product_management.defaults.ga.ga import GAProtocol  # noqa: E402
 from gnss_product_management.defaults.igs.igs import IGSProtocol  # noqa: E402
+from gnss_product_management.defaults.m3g.m3g_protocol import M3GNetworkProtocol  # noqa: E402
 from gnss_product_management.defaults.noaa.cors import NOAACORSProtocol  # noqa: E402
+from gnss_product_management.defaults.rbmc.rbmc import RBMCProtocol  # noqa: E402
 
 DefaultNetworkRegistry.register_protocol(NOAACORSProtocol())
 DefaultNetworkRegistry.register_protocol(EarthScopeProtocol())
+DefaultNetworkRegistry.register_protocol(GAProtocol())
 DefaultNetworkRegistry.register_protocol(IGSProtocol())
+DefaultNetworkRegistry.register_protocol(RBMCProtocol())
+
+# Register M3G-backed protocols for all remaining networks without a dedicated protocol.
+for _net_id in DefaultNetworkRegistry.network_ids:
+    if _net_id not in DefaultNetworkRegistry._network_protocols:
+        try:
+            DefaultNetworkRegistry.register_protocol(M3GNetworkProtocol(_net_id))
+        except (AssertionError, KeyError):
+            pass
 
 # Backward-compatible alias.
 DefaultNetworkEnvironment = DefaultNetworkRegistry

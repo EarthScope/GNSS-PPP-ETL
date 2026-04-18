@@ -1,0 +1,67 @@
+id: GEONET_NZ
+name: GeoNet GNSS Network (New Zealand)
+description: >
+  GNS Science GeoNet continuous GNSS station network covering
+  New Zealand, its offshore islands, and parts of the South Pacific.
+  ~185 active stations providing daily RINEX 2 and RINEX 3 observation
+  data.  Archive extends from 1995 to present.
+
+  Observation data are stored on a public AWS S3 bucket and mirrored
+  via an HTTPS index at data.geonet.org.nz.  Navigation files are
+  not archived per-station; use IGS broadcast products instead.
+
+servers:
+  - id: GEONET_S3
+    hostname: "s3://geonet-open-data"
+    protocol: s3
+    auth_required: false
+    description: >
+      GeoNet open-data S3 bucket (public, anonymous, ap-southeast-2).
+      Primary high-bandwidth archive for GeoNet GNSS data.
+
+  - id: GEONET_HTTPS
+    hostname: "https://data.geonet.org.nz"
+    protocol: https
+    auth_required: false
+    description: >
+      GeoNet HTTPS directory index (public, no authentication).
+      HTML directory listings redirect to S3 for actual file downloads.
+
+products:
+  # ── S3 bucket ──────────────────────────────────────────────────
+  - id: geonet_s3_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: GEONET_S3
+    available: true
+    description: RINEX 2 daily observation files from the GeoNet S3 bucket.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "gnss/rinex/{YYYY}/{DDD}/"}
+
+  - id: geonet_s3_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: GEONET_S3
+    available: true
+    description: RINEX 3 daily observation files from the GeoNet S3 bucket.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "gnss/rinex/{YYYY}/{DDD}/"}
+
+  # ── HTTPS mirror ───────────────────────────────────────────────
+  - id: geonet_https_rinex2_obs
+    product_name: RINEX_OBS
+    server_id: GEONET_HTTPS
+    available: true
+    description: RINEX 2 daily observation files from GeoNet HTTPS.
+    parameters:
+      - {name: V, value: "2"}
+    directory: {pattern: "gnss/rinex/{YYYY}/{DDD}/"}
+
+  - id: geonet_https_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: GEONET_HTTPS
+    available: true
+    description: RINEX 3 daily observation files from GeoNet HTTPS.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "gnss/rinex/{YYYY}/{DDD}/"}

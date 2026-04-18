@@ -9,12 +9,12 @@ from pathlib import Path
 
 import fsspec
 import fsspec.utils
+import hatanaka
 
 from gnss_product_management.environments import WorkSpace
 from gnss_product_management.factories.connection_pool import ConnectionPoolFactory
 from gnss_product_management.specifications.products.product import PathTemplate
 from gnss_product_management.specifications.remote.resource import SearchTarget
-from gnss_product_management.utilities.helpers import decompress_gzip
 from gnss_product_management.utilities.paths import AnyPath, as_path
 
 logger = logging.getLogger(__name__)
@@ -300,17 +300,17 @@ class WormHole:
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination_path = destination_dir / query.product.filename.value  # type: ignore[union-attr]
 
-        # Prefer an already-decompressed version on disk
-        if destination_path.suffix == ".gz":
-            decompressed_path = destination_path.with_suffix("")
-            if decompressed_path.exists() and decompressed_path.stat().st_size > 0:
-                logger.debug(
-                    "Skipping download, decompressed file already exists: %s",
-                    decompressed_path,
-                )
-                return decompressed_path
+        # Prefer an already-decompressed version on disk (.crx.gz→.rnx, .26d.Z→.26o, etc.)
+        decompressed_name = hatanaka.get_decompressed_path(destination_path.name)
+        decompressed_path = destination_dir / decompressed_name
+        if decompressed_path != destination_path and decompressed_path.exists() and decompressed_path.stat().st_size > 0:
+            logger.debug(
+                "Skipping download, decompressed file already exists: %s",
+                decompressed_path,
+            )
+            return decompressed_path
 
-        # Skip download if the file already exists and is non-empty
+        # Skip download if the compressed file already exists and is non-empty
         if destination_path.exists() and destination_path.stat().st_size > 0:
             logger.debug("Skipping download, file already exists: %s", destination_path)
             return destination_path
@@ -341,11 +341,12 @@ class WormHole:
             )
             return None
 
-        # Decompress gzip files after download
-        if result is not None and result.suffix == ".gz":
-            decompressed = decompress_gzip(result)
-            if decompressed is not None:
+        # Decompress after download: handles .gz, .Z, Hatanaka (.crx, .##d), and combinations.
+        if result is not None:
+            try:
+                decompressed = hatanaka.decompress_on_disk(result, delete=True)
                 return decompressed
-            logger.warning("Decompression failed for %s, returning compressed file", result)
+            except Exception as exc:
+                logger.warning("Decompression failed for %s: %s", result, exc)
 
         return result

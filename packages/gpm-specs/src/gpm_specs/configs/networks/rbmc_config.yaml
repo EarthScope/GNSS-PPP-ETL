@@ -1,0 +1,29 @@
+id: RBMC
+name: Rede Brasileira de Monitoramento Contínuo dos Sistemas GNSS
+description: >
+  Brazilian GNSS continuous monitoring network operated by IBGE
+  (Instituto Brasileiro de Geografia e Estatística). ~150 stations
+  distributed across Brazil and a few in Uruguay. RINEX 3 observation
+  files (15 s sampling) are freely available via HTTPS with no
+  authentication. RINEX 2 data also exists but uses non-standard ZIP
+  archives and is not configured here.
+
+servers:
+  - id: RBMC_IBGE
+    hostname: "https://geoftp.ibge.gov.br"
+    protocol: https
+    auth_required: false
+    description: >
+      IBGE public HTTPS FTP mirror. RINEX 3 daily files archived under
+      dados_RINEX3/{YYYY}/{DDD}/ in standard IGS long-filename format
+      (e.g. BRAZ00BRA_R_20261050000_01D_15S_MO.crx.gz).
+
+products:
+  - id: rbmc_rinex3_obs
+    product_name: RINEX_OBS
+    server_id: RBMC_IBGE
+    available: true
+    description: RINEX 3 observation files from RBMC Brazil.
+    parameters:
+      - {name: V, value: "3"}
+    directory: {pattern: "informacoes_sobre_posicionamento_geodesico/rbmc/dados_RINEX3/{YYYY}/{DDD}/"}

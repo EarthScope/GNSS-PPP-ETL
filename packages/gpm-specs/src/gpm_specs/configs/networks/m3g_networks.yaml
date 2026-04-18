@@ -1,0 +1,494 @@
+# M3G (gnss-metadata.eu) network catalog.
+# Station metadata is fetched from the M3G REST API at runtime.
+# Networks marked euref: true have data accessible via BKG EUREF archive.
+# Data licensed under CC BY 4.0 — doi:10.24414/ROB-GNSS-M3G
+#
+# 95 networks (70 EUREF-accessible)
+
+- id: A. Marussi
+  name: Friuli-Venezia Giulia Regional GNSS Network
+  country: Italy
+  agency: INSIEL
+  euref: true
+- id: AGN
+  name: Active Geodetic Network
+  country: Belgium
+  agency: NGI
+  euref: true
+- id: AGRS.BES
+  name: Active GNSS Reference System for the BES islands
+  country: Bonaire, Sint Eustatius and Saba
+  agency: KAD
+  euref: true
+- id: AGRS.NL
+  name: Active GNSS Reference System for the Netherlands
+  country: Netherlands
+  agency: DUT
+  euref: true
+- id: APOS
+  name: Austrian Positioning Service
+  country: Austria
+  agency: BEV
+  euref: false
+- id: ARAGEA
+  name: Red de Geodésia Activa de Aragón
+  country: Spain
+  agency: IGEAR
+  euref: true
+- id: ASGEUPOS
+  name: ASG-EUPOS
+  country: Poland
+  agency: ASGEUPOS
+  euref: true
+- id: BAN
+  name: BANIAN
+  country: New Caledonia
+  agency: DITTT
+  euref: false
+- id: BFA
+  name: GNSS Network of Bizkaia
+  country: Spain
+  agency: ARA
+  euref: true
+- id: BME
+  name: Permanent Network of Budapest University of Technology and Economics
+  country: Hungary
+  agency: BMEDGS
+  euref: false
+- id: C4G
+  name: C4G stations
+  country: Portugal
+  agency: SEGAL
+  euref: true
+- id: CatNet
+  name: GNSS Catalan Network
+  country: Spain
+  agency: ICGC
+  euref: true
+- id: CNMSU
+  name: NET.Spacecenter
+  country: Ukraine
+  agency: CSIRP&NFC
+  euref: false
+- id: COP2020
+  name: COP2020
+  country: Chile
+  agency: LGENS
+  doi: https://doi.org/10.1016/j.pepi.2022.106970
+  euref: false
+- id: CYCLOPS
+  name: Cyprus Continuously Operating Natural Hazards Monitoring and Prevention System
+  country: Cyprus
+  agency: CUT
+  doi: https://doi.org/10.1007/1345_2022_161
+  euref: false
+- id: CZEPOS
+  name: Network of GNSS Permanent Stations of the Czech Republic
+  country: Czechia
+  agency: ZU
+  euref: true
+- id: DEEP-trigger
+  name: DEEP-trigger
+  country: Chile
+  agency: OSUG
+  euref: false
+- id: DJ
+  name: Observatoire Géophysique d'Arta GNSS network
+  country: Djibouti
+  agency: OGA
+  euref: false
+- id: E-GVAP
+  name: The EUMETNET EIG GNSS water vapour programme
+  agency: DMI
+  euref: true
+- id: EPN
+  name: EUREF Permanent GNSS Network
+  agency: ROB
+  doi: https://doi.org/10.24414/ROB-EUREF-HDC
+  euref: true
+- id: EPN densification
+  name: EPN Densification Network (EPND)
+  agency: SGO
+  euref: true
+- id: EPOS
+  name: GNSS network of the European Plate Observing System
+  agency: ROB
+  euref: true
+- id: ERGAND
+  name: Estacions de referència GNSS d'Andorra
+  country: Andorra
+  agency: ACGA
+  euref: false
+- id: ERGNSS
+  name: Red de Estaciones de Referencia GNSS del IGN
+  country: Spain
+  agency: IGE
+  euref: true
+- id: ERVA
+  name: Red Geodésica de Estaciones de Referencia de Valencia
+  country: Spain
+  agency: ICV
+  euref: false
+- id: ESTPOS
+  name: ESTPOS
+  country: Estonia
+  agency: ELB
+  euref: true
+- id: EUSKADIGNSS
+  name: Red de Estaciones de Referencia GNSS de Euskadi
+  country: Spain
+  agency: GVEJ
+  euref: false
+- id: FLEPOS
+  name: Flemish Positioning Services
+  country: Belgium
+  agency: DV
+  doi: https://doi.org/10.24414/ROB-FLEPOS
+  euref: true
+- id: FReDNet
+  name: Friuli Regional Deformation Network
+  country: Italy
+  agency: OGS/CRS
+  doi: https://doi.org/10.6092/frednet
+  euref: true
+- id: GEONAS
+  name: GEOdynamic Network of the Academy of Sciences
+  country: Czechia
+  agency: IRSM CAS
+  euref: true
+- id: GeoPontica
+  name: National Institute for Marine Geology and Geoecology - GNSS Permanent Network
+  country: Romania
+  agency: NIEP
+  euref: true
+- id: GeoTerrace
+  name: GeoTerrace Network
+  country: Ukraine
+  agency: IGDG
+  euref: false
+- id: GFA
+  name: GNSS Network of Gipuzkoa
+  country: Spain
+  agency: ARA
+  euref: true
+- id: GFZ
+  name: Global network of the German Research Centre for Geosciences (GFZ)
+  country: Germany
+  agency: GFZ
+  doi: https://doi.org/10.5880/GFZ.1.1.2020.001
+  euref: true
+- id: GL
+  name: Guadeloupe Seismic and Volcano Observatory GNSS network
+  country: Guadeloupe
+  agency: IPGP
+  doi: https://doi.org/10.18715/GUADELOUPE.OVSG
+  euref: false
+- id: GNSSCAR
+  name: Red de Estaciones de Referencia GNSS de la Comunidad Autónoma de La Rioja
+  country: Spain
+  agency: CAR
+  euref: false
+- id: IGRS.NL
+  name: Integrated Geodetic Reference Stations for the Netherlands
+  country: Netherlands
+  agency: DUT
+  euref: true
+- id: ITACYL
+  name: Red GNSS de Castilla y León
+  country: Spain
+  agency: ITACYL
+  euref: true
+- id: KNMI
+  name: Royal Netherlands Meteorological Institute GNSS
+  country: Bonaire, Sint Eustatius and Saba
+  agency: KNMI
+  doi: https://doi.org/10.7283/RYFJ-AQ59
+  euref: true
+- id: LatPos
+  name: Latvian permanent base station system
+  country: Latvia
+  agency: LGIA
+  euref: true
+- id: LitPOS
+  name: Lithuanian Positioning System
+  country: Lithuania
+  agency: VGTUGI
+  euref: true
+- id: MAO_GNSS
+  name: MAO GNSS Network
+  country: Ukraine
+  agency: MAO
+  euref: false
+- id: MQ
+  name: Martinique Seismic and Volcano Observatory GNSS network
+  country: Martinique
+  agency: IPGP
+  doi: https://doi.org/10.18715/MARTINIQUE.OVSM
+  euref: false
+- id: NETPOS
+  name: Netherlands Positioning Service
+  country: Netherlands
+  agency: KAD
+  euref: true
+- id: NFO_CRL
+  name: Near Fault Observatory Corinth Rift Laboratory
+  country: Greece
+  agency: UPAT
+  euref: true
+- id: NFO_MARMARA
+  name: Near-Fault Observatory Marmara
+  country: Turkey
+  agency: BOUN
+  euref: true
+- id: NFO_NITRO
+  name: North-Eastern Italy Thrust Faults Observatory
+  country: Italy
+  agency: OGS/CRS
+  euref: true
+- id: NFO_TABOO
+  name: Near Fault Observatory Taboo
+  country: Italy
+  agency: INGV
+  euref: true
+- id: NFO_VRANCEA
+  name: NFO_VRANCEA
+  country: Romania
+  agency: NIEP
+  euref: true
+- id: NIEP_GNSS
+  name: National Institute for Earth Physics - GNSS Permanent Network
+  country: Romania
+  agency: NIEP
+  euref: true
+- id: NMA-CORS
+  name: Norwegian Mapping Authority - CORS
+  country: Norway
+  agency: NMA
+  euref: true
+- id: NOANET
+  name: NOA National GNSS Network
+  country: Greece
+  agency: NOA
+  euref: true
+- id: OMIV
+  name: Observatoire Multidisciplinaire des Instabilités de Versant
+  country: France
+  agency: EOST
+  doi: https://doi.org/10.15778/resif.mt
+  euref: true
+- id: Orpheon
+  name: Orphéon network
+  country: France
+  agency: OCA
+  euref: true
+- id: OS Net
+  name: OS Net
+  country: United Kingdom
+  agency: OS
+  euref: true
+- id: PE
+  name: Puertos del Estado
+  country: Spain
+  agency: IGE
+  euref: false
+- id: PF
+  name: Piton de la Fournaise Volcano Observatory GNSS network
+  country: Reunion
+  agency: IPGP
+  doi: https://doi.org/10.18715/REUNION.OVPF
+  euref: false
+- id: PPGNET
+  name: Pecny-Patras-Praha GNSS Network
+  country: Greece
+  agency: RIGTC GOP
+  euref: true
+- id: QM
+  name: Volcanological and seismological monitoring network of Mayotte (REVOSIMA) GNSS network
+  country: Mayotte
+  agency: IPGP
+  doi: https://doi.org/10.18715/MAYOTTE.REVOSIMA
+  euref: false
+- id: RAP
+  name: Red Andaluza de Posicionamiento
+  country: Spain
+  agency: IECA
+  euref: true
+- id: REDGNSSCANT
+  name: RED GNSS DE CANTABRIA
+  country: Spain
+  agency: CANT
+  euref: false
+- id: REGAM
+  name: Red Geodésica Activa de la Región de Murcia
+  country: Spain
+  agency: CARM
+  euref: true
+- id: RENAG
+  name: Réseau National GNSS
+  country: France
+  agency: Epos-Fr
+  doi: https://doi.org/10.15778/resif.rg
+  euref: true
+- id: ReNEP
+  name: Rede Nacional de Estações Permanentes
+  country: Portugal
+  agency: DGT
+  euref: true
+- id: REP
+  name: Red ExtremeNa de Posicionamiento
+  country: Spain
+  euref: true
+- id: REPCAN
+  name: Red de Estaciones Permanentes de Canarias
+  country: Spain
+  agency: GRAFCAN
+  euref: true
+- id: REPGRAM
+  name: Rede de Estações Permanentes GNSS da RAM
+  country: Portugal
+  agency: DROTe
+  euref: true
+- id: REPRAA
+  name: Rede de Estações Permanentes da Região Autónoma dos Açores
+  country: Portugal
+  agency: DGCC
+  euref: true
+- id: RGAN
+  name: Red de Geodesia Activa de Navarra
+  country: Spain
+  agency: SCGN
+  euref: true
+- id: RGAPA
+  name: Red Geodésica Activa del Principado de Asturias
+  country: Spain
+  agency: CCPA
+  euref: true
+- id: RGM
+  name: Red de estaciones GNSS de la Comunidad de Madrid
+  country: Spain
+  agency: IGE
+  euref: true
+- id: RGP
+  name: Réseau GNSS Permanent
+  country: France
+  agency: IGN_RGP
+  euref: true
+- id: RING
+  name: Rete Integrata Nazionale GNSS
+  country: Italy
+  agency: INGV
+  doi: https://doi.org/10.13127/RING
+  euref: true
+- id: ROB_GNSS
+  name: ROB GNSS Network
+  country: Belgium
+  agency: ROB
+  doi: https://doi.org/10.24414/FST8-P256
+  euref: true
+- id: ROMPOS
+  name: Romanian Position Determination System
+  country: Romania
+  agency: NCC
+  euref: true
+- id: ROSAME
+  name: 'Réseau d''Observation Subantarctique et Antarctique du niveau de la MEr '
+  country: France
+  agency: LEGOS
+  doi: https://doi.org/10.18142/135
+  euref: true
+- id: SKPOS
+  name: Slovak Real-Time Positioning Service
+  country: Slovakia
+  agency: GKU
+  euref: true
+- id: SONEL
+  name: Système d'Observation du Niveau des Eaux Littorales
+  agency: LIENSs lab
+  euref: true
+- id: SPIN3
+  name: SPIN3 NETWORK
+  country: Italy
+  agency: SPIN3
+  euref: true
+- id: SPSLUX
+  name: Satellite Positioning System Luxembourg
+  country: Luxembourg
+  agency: ACT
+  euref: true
+- id: STPOS
+  name: STPOS
+  country: Italy
+  agency: STPOS
+  euref: true
+- id: SWEPOS
+  name: SWEPOS
+  country: Sweden
+  agency: LMV
+  doi: https://doi.org/10.23701/swepos
+  euref: true
+- id: System.NET
+  name: System.NET
+  country: Ukraine
+  agency: PJSC SS
+  euref: false
+- id: TERIA
+  name: TERIA
+  country: France
+  agency: TERIA
+  euref: true
+- id: TGRef
+  name: TopGeocart - GNSS Permanent Network
+  country: Romania
+  agency: NIEP
+  euref: true
+- id: UPAT GNSS Network
+  name: UPAT GNSS Network
+  country: Greece
+  agency: UPAT
+  euref: true
+- id: UPAT-DGnet
+  name: University of Patras GNSS network
+  country: Greece
+  agency: UPAT
+  euref: false
+- id: UPN_GNSS
+  name: Ukrainian Permanent GNSS Network
+  country: Ukraine
+  agency: RIGC
+  euref: false
+- id: VESOG
+  name: Research and Experimental Network for GNSS Observations
+  country: Czechia
+  agency: RIGTC GOP
+  euref: true
+- id: VOLC
+  name: Volcano Observatories
+  agency: ROB
+  euref: true
+- id: WALCORS
+  name: WALlonia Continuously Operating Reference System
+  country: Belgium
+  agency: SPW
+  doi: https://doi.org/10.24414/ROB-WALCORS
+  euref: true
+- id: WEBGEODYN
+  name: West Bohemia geodynamic network
+  country: Czechia
+  agency: IGCAS
+  euref: true
+- id: WI
+  name: French West Indies GNSS permanent network
+  country: France
+  agency: IPGP
+  doi: https://doi.org/10.18715/ANTILLES.WI
+  euref: false
+- id: XGAIB
+  name: Xarxa de Geodesia Activa de les Illes Balears
+  country: Spain
+  agency: IGE
+  euref: true
+- id: ZAKPOS
+  name: ZAKPOS
+  country: Ukraine
+  agency: NULP
+  euref: false
