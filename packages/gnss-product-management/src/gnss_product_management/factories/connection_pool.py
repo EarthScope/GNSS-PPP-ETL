@@ -149,6 +149,7 @@ class ConnectionPool:
         else:
             # Give back the semaphore slot since we can't replace it
             logger.warning("Reconnect failed for %s; pool shrunk by 1", self.hostname)
+            return None
         return fresh
 
     def full_path(self, directory: str) -> str:
