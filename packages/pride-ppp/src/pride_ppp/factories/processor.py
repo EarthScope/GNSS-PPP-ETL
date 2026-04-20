@@ -31,6 +31,7 @@ from gnss_product_management.specifications.dependencies.dependencies import (
     DependencyResolution,
     DependencySpec,
 )
+from gnss_product_management.utilities.paths import as_path
 from gpm_specs.configs import (
     CENTERS_RESOURCE_DIR,
     FORMAT_SPEC_YAML,
@@ -245,9 +246,10 @@ def _resolution_to_satellite_products(
         field_name = _SPEC_TO_PRODUCT_FIELD.get(rd.spec)
         if field_name is None or field_name in product_fields:
             continue
-        path = rd.local_path
-        if path is None:
+        local_path = rd.local_path
+        if local_path is None:
             continue
+        path = as_path(local_path)
         product_fields[field_name] = path.name
         # Use the first product's parent as the common product directory
         if product_dir is None:
@@ -282,8 +284,9 @@ def _resolution_to_table_dir(resolution: DependencyResolution) -> Path | None:
     """
     for rd in resolution.fulfilled:
         if rd.spec in "ATTATX":
-            path = rd.local_path
-            if path is not None:
+            local_path = rd.local_path
+            if local_path is not None:
+                path = as_path(local_path)
                 return path.parent
     return None
 
