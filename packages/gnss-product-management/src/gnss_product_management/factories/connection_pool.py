@@ -38,6 +38,12 @@ class ConnectionPool:
         self._pool_lock = threading.Lock()
         self._initialized = False
         self._failed = False
+        # Set of id()s for connections that have been declared dead by
+        # replace_connection so get_connection's finally skips re-inserting them.
+        self._dead_connections: set[int] = set()
+        # Per-thread flag: when True, get_connection's finally will NOT release
+        # the semaphore, so the count permanently drops by 1 (pool truly shrinks).
+        self._suppress_next_release = threading.local()
 
     def _connect(self) -> fsspec.AbstractFileSystem | None:
         """Create a single fsspec filesystem connection.
@@ -118,9 +124,35 @@ class ConnectionPool:
         try:
             yield connection
         finally:
-            with self._pool_lock:
-                self._pool.append(connection)
-            self._semaphore.release()
+            conn_id = id(connection)
+            if conn_id in self._dead_connections:
+                # Connection was declared dead by replace_connection.
+                # Do NOT put it back in the pool.
+                self._dead_connections.discard(conn_id)
+                if getattr(self._suppress_next_release, "value", False):
+                    # Reconnect failed — permanently shrink the pool by 1 by
+                    # withholding the semaphore release.
+                    self._suppress_next_release.value = False
+                    with self._pool_lock:
+                        if not self._pool:
+                            # Pool exhausted — mark as failed so future
+                            # get_connection() calls raise ConnectionError
+                            # immediately instead of blocking on acquire().
+                            self._failed = True
+                            self._initialized = False
+                            logger.warning(
+                                "All connections to %s exhausted; marking as unreachable",
+                                self.hostname,
+                            )
+                else:
+                    # Reconnect succeeded — fresh connection was added to the
+                    # pool by replace_connection; release the slot so the
+                    # semaphore count stays consistent with pool size.
+                    self._semaphore.release()
+            else:
+                with self._pool_lock:
+                    self._pool.append(connection)
+                self._semaphore.release()
 
     def replace_connection(
         self, dead: "fsspec.AbstractFileSystem"
@@ -137,17 +169,24 @@ class ConnectionPool:
             A fresh :class:`fsspec.AbstractFileSystem`, or ``None`` if
             reconnection fails (the pool will be one slot smaller).
         """
-        with self._pool_lock:
-            try:
-                self._pool.remove(dead)
-            except ValueError:
-                pass
+        # NOTE: ``dead`` was already popped from the pool by get_connection
+        # before being yielded to the caller, so there is nothing to remove
+        # here.  We communicate to get_connection's finally via _dead_connections
+        # so it does not re-insert the stale connection.
         fresh = self._connect()
         if fresh is not None:
+            # Mark dead so get_connection's finally skips re-adding it.
+            # The semaphore WILL be released (suppress=False) so the count
+            # stays consistent with the freshly appended connection.
+            self._dead_connections.add(id(dead))
             with self._pool_lock:
                 self._pool.append(fresh)
         else:
-            # Give back the semaphore slot since we can't replace it
+            # Mark dead AND suppress the semaphore release so the pool truly
+            # shrinks by 1 (get_connection's finally will not put dead back
+            # and will not release the semaphore).
+            self._dead_connections.add(id(dead))
+            self._suppress_next_release.value = True
             logger.warning("Reconnect failed for %s; pool shrunk by 1", self.hostname)
             return None
         return fresh

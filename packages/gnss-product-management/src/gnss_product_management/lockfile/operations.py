@@ -18,7 +18,6 @@ URIs / :class:`~cloudpathlib.CloudPath` objects interchangeably via
 import datetime
 import enum
 import logging
-from importlib.metadata import version as _get_package_version
 
 from gnss_product_management.lockfile.models import (
     DependencyLockFile,
@@ -33,10 +32,10 @@ logger = logging.getLogger(__name__)
 
 def get_package_version() -> str:
     """Return the installed gnss-product-management version."""
-    try:
-        return _get_package_version("gnss-product-management")
-    except Exception:
-        return "0.0.0-dev"
+    # try:
+    #     return _get_package_version("gnss-product-management")
+    # except Exception:
+    return "0.0.0-dev"
 
 
 class HashMismatchMode(enum.Enum):

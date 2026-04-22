@@ -679,7 +679,7 @@ class PrideProcessor:
                 return False
             # Attempt to parse the kinfile — only accept it if it yields data
             kin_df: pd.DataFrame | None = kin_to_kin_position_df(kin_path)
-            if kin_df and not kin_df.empty:
+            if isinstance(kin_df, pd.DataFrame) and not kin_df.empty:
                 return True
         return False
 
